@@ -108,7 +108,6 @@ int main(int argc, char** argv)
                 std::cout << '\t' << path.generic_string() << '\n';
             else if (fs::is_directory(path))
             {
-                auto prefix = path.generic_string() + '/';
                 std::for_each(fs::recursive_directory_iterator(path), fs::recursive_directory_iterator(),
                             [&](const fs::directory_entry &entry)
                             {
@@ -120,10 +119,7 @@ int main(int argc, char** argv)
                                     if (ext == entry_ext || (entry_ext.empty() && ext == "."))
                                         return;
 
-                                // I don't know any smarter way to remove a prefix
-                                assert(entry.path().generic_string().substr(0, prefix.size()) == prefix);
-                                auto normalized = fs::path(entry.path().generic_string().substr(prefix.size()));
-
+                                auto normalized = fs::relative(entry.path(), path);
                                 for (auto& file : blacklist_file)
                                     if (normalized == file)
                                         return;
