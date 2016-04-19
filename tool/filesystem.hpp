@@ -1,0 +1,92 @@
+// Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// This file is subject to the license terms in the LICENSE file
+// found in the top-level directory of this distribution.
+
+#ifndef STANDARDESE_FILESYSTEM_HPP_INCLUDED
+#define STANDARDESE_FILESYSTEM_HPP_INCLUDED
+
+#include <string>
+#include <vector>
+
+#include <boost/filesystem.hpp>
+
+namespace standardese_tool
+{
+    namespace fs = boost::filesystem;
+
+    // blacklist of certain extensions, files, ...
+    using blacklist = std::vector<std::string>;
+
+    namespace detail
+    {
+        // path must be given relative to the traversal directory
+        inline bool is_valid(const fs::path &path,
+                             const blacklist &extensions, const blacklist &files, const blacklist &dirs)
+        {
+            if (fs::is_directory(path))
+            {
+                for (auto& d : dirs)
+                    if (path == d)
+                        return false;
+            }
+            else
+            {
+                for (auto& f : files)
+                    if (path == f)
+                        return false;
+
+                auto ext = path.extension();
+                for (auto& e : extensions)
+                    if (ext == e || (ext.empty() && e == "."))
+                        return false;
+            }
+
+            return true;
+        }
+    } // namespace detail
+
+    // a path is determined valid through the blacklists
+    // if given path is normal file and valid, calls f for it
+    // otherwise recursively traverses through the given directory and calls f for each valid file
+    template <typename Fun>
+    void handle_path(const fs::path &path,
+                     const blacklist &extensions, const blacklist &files, blacklist dirs,
+                     Fun f)
+    {
+        // remove trailing slash if any
+        // otherwise Boost.Filesystem can't handle it
+        for (auto& dir : dirs)
+        {
+            if (dir.back() == '/' || dir.back() == '\\')
+                dir.pop_back();
+        }
+
+        if (fs::is_directory(path))
+        {
+            auto end = fs::recursive_directory_iterator();
+            for (auto iter = fs::recursive_directory_iterator(path); iter != end; ++iter)
+            {
+                auto& cur = iter->path();
+                auto relative = fs::relative(cur, path);
+
+                if (fs::is_directory(cur))
+                {
+                    if (!detail::is_valid(relative, extensions, files, dirs))
+                        iter.no_push();
+                }
+                else if (detail::is_valid(relative, extensions, files, dirs))
+                {
+                    f(cur);
+                }
+            }
+        }
+        else if (!fs::exists(path))
+            throw std::runtime_error("file '" + path.generic_string() + "' does not exist");
+        else if (detail::is_valid(path, extensions, files, dirs))
+        {
+            f(path);
+        }
+    }
+} // namespace standardese_tool
+
+#endif // STANDARDESE_FILESYSTEM_HPP_INCLUDED

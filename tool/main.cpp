@@ -10,6 +10,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
+#include "filesystem.hpp"
+
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
@@ -102,73 +104,16 @@ int main(int argc, char** argv)
         auto blacklist_file = map["input.blacklist_file"].as<std::vector<std::string>>();
         auto blacklist_dir = map["input.blacklist_dir"].as<std::vector<std::string>>();
 
-        // remove trailing slash if any
-        // otherwise Boost.Filesystem can't handle it
-        for (auto& dir : blacklist_dir)
-        {
-            if (dir.back() == '/' || dir.back() == '\\')
-                dir.pop_back();
-        }
-
         assert(!input.empty());
 
         std::cout << "Input files:\n";
         for (auto& path : input)
         {
-            if (fs::is_regular_file(path))
-                std::cout << '\t' << path << '\n';
-            else if (fs::is_directory(path))
-            {
-                auto end = fs::recursive_directory_iterator();
-                for (auto iter = fs::recursive_directory_iterator(path); iter != end; ++iter)
-                {
-                    auto& entry = *iter;
-                    auto normalized = fs::relative(entry.path(), path);
-
-                    if (entry.status().type() == fs::file_type::directory_file)
-                    {
-                        for (auto& dir : blacklist_dir)
-                            if (normalized == dir)
-                            {
-                                iter.no_push();
-                                break;
-                            }
-                    }
-                    else
-                    {
-                        auto valid = true;
-
-                        auto entry_ext = entry.path().extension();
-                        for (auto &ext : blacklist_ext)
-                            if (ext == entry_ext || (entry_ext.empty() && ext == "."))
-                            {
-                                valid = false;
-                                break;
-                            }
-
-                        if (valid)
-                        {
-                            for (auto &file : blacklist_file)
-                            {
-                                if (normalized == file)
-                                {
-                                    valid = false;
-                                    break;
-                                }
-                            }
-
-                            if (valid)
-                            {
-                                std::cout << '\t' << normalized << '\n';
-                            }
-                        }
-                    }
-                }
-            }
-            else if (fs::exists(path))
-                throw std::runtime_error("file '" + path.generic_string() + "' is neither file nor directory");
-            else
-                throw std::runtime_error("file '" + path.generic_string() + "' does not exist");
+            standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,
+                                         [&](const fs::path &p)
+                                         {
+                                             std::cout << '\t' << p << '\n';
+                                         });
         }
         std::cout << '\n';
     }
