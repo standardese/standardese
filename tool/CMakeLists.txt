@@ -6,4 +6,9 @@ set(header )
 set(src main.cpp)
 
 add_executable(standardese ${header} ${src})
+comp_target_features(standardese PRIVATE CPP11)
 target_link_libraries(standardese PUBLIC standardese_library)
+
+find_package(Boost COMPONENTS program_options REQUIRED)
+target_include_directories(standardese PUBLIC ${Boost_INCLUDE_DIR})
+target_link_libraries(standardese PUBLIC ${Boost_LIBRARIES})
