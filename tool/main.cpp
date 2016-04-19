@@ -38,6 +38,10 @@ int main(int argc, char** argv)
             ("version,v", "prints version information and exits")
             ("help,h", "prints this help message and exits")
             ("config,c", po::value<fs::path>(), "read options from additional config file as well");
+    configuration.add_options()
+            ("input.blacklist_ext",
+             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+             "file extension that is forbidden (e.g. \".md\"; \".\" for no extension)");
 
     po::options_description input("");
     input.add_options()
@@ -89,6 +93,8 @@ int main(int argc, char** argv)
     else try
     {
         auto input = map["input-files"].as<std::vector<fs::path>>();
+        auto blacklist_ext = map["input.blacklist_ext"].as<std::vector<std::string>>();
+
         assert(!input.empty());
 
         std::cout << "Input files:\n";
@@ -103,6 +109,11 @@ int main(int argc, char** argv)
                             {
                                 if (entry.status().type() != fs::file_type::regular_file)
                                     return;
+
+                                auto entry_ext = entry.path().extension();
+                                for (auto& ext : blacklist_ext)
+                                    if (ext == entry_ext || (entry_ext.empty() && ext == "."))
+                                        return;
 
                                 std::cout << '\t' << entry.path() << '\n';
                             });
