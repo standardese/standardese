@@ -41,7 +41,10 @@ int main(int argc, char** argv)
     configuration.add_options()
             ("input.blacklist_ext",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
-             "file extension that is forbidden (e.g. \".md\"; \".\" for no extension)");
+             "file extension that is forbidden (e.g. \".md\"; \".\" for no extension)")
+            ("input.blacklist_file",
+             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+             "file that is forbidden, relative to traversed directory");
 
     po::options_description input("");
     input.add_options()
@@ -94,6 +97,7 @@ int main(int argc, char** argv)
     {
         auto input = map["input-files"].as<std::vector<fs::path>>();
         auto blacklist_ext = map["input.blacklist_ext"].as<std::vector<std::string>>();
+        auto blacklist_file = map["input.blacklist_file"].as<std::vector<std::string>>();
 
         assert(!input.empty());
 
@@ -104,6 +108,7 @@ int main(int argc, char** argv)
                 std::cout << '\t' << path.generic_string() << '\n';
             else if (fs::is_directory(path))
             {
+                auto prefix = path.generic_string() + '/';
                 std::for_each(fs::recursive_directory_iterator(path), fs::recursive_directory_iterator(),
                             [&](const fs::directory_entry &entry)
                             {
@@ -115,7 +120,15 @@ int main(int argc, char** argv)
                                     if (ext == entry_ext || (entry_ext.empty() && ext == "."))
                                         return;
 
-                                std::cout << '\t' << entry.path() << '\n';
+                                // I don't know any smarter way to remove a prefix
+                                assert(entry.path().generic_string().substr(0, prefix.size()) == prefix);
+                                auto normalized = fs::path(entry.path().generic_string().substr(prefix.size()));
+
+                                for (auto& file : blacklist_file)
+                                    if (normalized == file)
+                                        return;
+
+                                std::cout << '\t' << normalized << '\n';
                             });
             }
             else if (fs::exists(path))
