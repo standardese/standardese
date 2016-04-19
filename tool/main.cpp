@@ -2,6 +2,7 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
+#include <algorithm>
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -85,14 +86,37 @@ int main(int argc, char** argv)
         print_usage(argv[0], generic, configuration);
         return 1;
     }
-    else
+    else try
     {
         auto input = map["input-files"].as<std::vector<fs::path>>();
         assert(!input.empty());
 
         std::cout << "Input files:\n";
-        for (auto& str : input)
-            std::cout << '\t' << str << '\n';
+        for (auto& path : input)
+        {
+            if (fs::is_regular_file(path))
+                std::cout << '\t' << path.generic_string() << '\n';
+            else if (fs::is_directory(path))
+            {
+                std::for_each(fs::recursive_directory_iterator(path), fs::recursive_directory_iterator(),
+                            [&](const fs::directory_entry &entry)
+                            {
+                                if (entry.status().type() != fs::file_type::regular_file)
+                                    return;
+
+                                std::cout << '\t' << entry.path() << '\n';
+                            });
+            }
+            else if (fs::exists(path))
+                throw std::runtime_error("file '" + path.generic_string() + "' is neither file nor directory");
+            else
+                throw std::runtime_error("file '" + path.generic_string() + "' does not exist");
+        }
         std::cout << '\n';
+    }
+    catch (std::exception &ex)
+    {
+        std::cerr << "Error: " << ex.what() << '\n';
+        return 1;
     }
 }
