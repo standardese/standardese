@@ -5,11 +5,14 @@
 #include <cassert>
 #include <fstream>
 #include <iostream>
-#include <string>
 #include <vector>
 
+#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
+#include "filesystem.hpp"
+
+namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
 void print_version(const char *exe_name)
@@ -35,11 +38,22 @@ int main(int argc, char** argv)
     generic.add_options()
             ("version,v", "prints version information and exits")
             ("help,h", "prints this help message and exits")
-            ("config,c", po::value<std::string>(), "read options from additional config file as well");
+            ("config,c", po::value<fs::path>(), "read options from additional config file as well");
+    configuration.add_options()
+            ("input.blacklist_ext",
+             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+             "file extension that is forbidden (e.g. \".md\"; \".\" for no extension)")
+            ("input.blacklist_file",
+             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+             "file that is forbidden, relative to traversed directory")
+            ("input.blacklist_dir",
+             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+             "directory that is forbidden, relative to traversed directory")
+            ("input.force_blacklist", "force the blacklist for explictly given files");
 
     po::options_description input("");
     input.add_options()
-            ("input-files", po::value<std::vector<std::string>>(), "input files");
+            ("input-files", po::value<std::vector<fs::path>>(), "input files");
     po::positional_options_description input_pos;
     input_pos.add("input-files", -1);
 
@@ -55,10 +69,10 @@ int main(int argc, char** argv)
         auto iter = map.find("config");
         if (iter != map.end())
         {
-            auto path = iter->second.as<std::string>();
-            std::ifstream config(path);
+            auto path = iter->second.as<fs::path>();
+            std::ifstream config(path.string());
             if (!config.is_open())
-                throw std::runtime_error("config file '" + path + "' not found");
+                throw std::runtime_error("config file '" + path.generic_string() + "' not found");
 
             po::options_description conf;
             conf.add(configuration);
@@ -84,14 +98,35 @@ int main(int argc, char** argv)
         print_usage(argv[0], generic, configuration);
         return 1;
     }
-    else
+    else try
     {
-        auto input = map["input-files"].as<std::vector<std::string>>();
+        auto input = map["input-files"].as<std::vector<fs::path>>();
+        auto blacklist_ext = map["input.blacklist_ext"].as<std::vector<std::string>>();
+        auto blacklist_file = map["input.blacklist_file"].as<std::vector<std::string>>();
+        auto blacklist_dir = map["input.blacklist_dir"].as<std::vector<std::string>>();
+        auto force_blacklist = map.count("input.force_blacklist") != 0u;
+
         assert(!input.empty());
 
         std::cout << "Input files:\n";
-        for (auto& str : input)
-            std::cout << '\t' << str << '\n';
+        for (auto& path : input)
+        {
+            auto handle = [&](const fs::path &p)
+            {
+                std::cout << '\t' << p << '\n';
+            };
+
+            auto res = standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir, handle);
+            if (!res && !force_blacklist)
+                // path is a normal file that is on the blacklist
+                // blacklist isn't enforced however
+                handle(path);
+        }
         std::cout << '\n';
+    }
+    catch (std::exception &ex)
+    {
+        std::cerr << "Error: " << ex.what() << '\n';
+        return 1;
     }
 }
