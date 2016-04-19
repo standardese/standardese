@@ -48,8 +48,9 @@ namespace standardese_tool
     // a path is determined valid through the blacklists
     // if given path is normal file and valid, calls f for it
     // otherwise recursively traverses through the given directory and calls f for each valid file
+    // returns false if path was a normal file that was marked as invalid, true otherwise
     template <typename Fun>
-    void handle_path(const fs::path &path,
+    bool handle_path(const fs::path &path,
                      const blacklist &extensions, const blacklist &files, blacklist dirs,
                      Fun f)
     {
@@ -86,6 +87,10 @@ namespace standardese_tool
         {
             f(path);
         }
+        else
+            return false;
+
+        return true;
     }
 } // namespace standardese_tool
 

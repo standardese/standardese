@@ -48,7 +48,8 @@ int main(int argc, char** argv)
              "file that is forbidden, relative to traversed directory")
             ("input.blacklist_dir",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
-             "directory that is forbidden, relative to traversed directory");
+             "directory that is forbidden, relative to traversed directory")
+            ("input.force_blacklist", "force the blacklist for explictly given files");
 
     po::options_description input("");
     input.add_options()
@@ -103,17 +104,23 @@ int main(int argc, char** argv)
         auto blacklist_ext = map["input.blacklist_ext"].as<std::vector<std::string>>();
         auto blacklist_file = map["input.blacklist_file"].as<std::vector<std::string>>();
         auto blacklist_dir = map["input.blacklist_dir"].as<std::vector<std::string>>();
+        auto force_blacklist = map.count("input.force_blacklist") != 0u;
 
         assert(!input.empty());
 
         std::cout << "Input files:\n";
         for (auto& path : input)
         {
-            standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,
-                                         [&](const fs::path &p)
-                                         {
-                                             std::cout << '\t' << p << '\n';
-                                         });
+            auto handle = [&](const fs::path &p)
+            {
+                std::cout << '\t' << p << '\n';
+            };
+
+            auto res = standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir, handle);
+            if (!res && !force_blacklist)
+                // path is a normal file that is on the blacklist
+                // blacklist isn't enforced however
+                handle(path);
         }
         std::cout << '\n';
     }
