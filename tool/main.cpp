@@ -41,8 +41,17 @@ int main(int argc, char** argv)
     cmd.add(generic).add(input);
 
     po::variables_map map;
-    po::store(po::command_line_parser(argc, argv).options(cmd).positional(input_pos).run(), map);
-    po::notify(map);
+    try
+    {
+        po::store(po::command_line_parser(argc, argv).options(cmd).positional(input_pos).run(), map);
+        po::notify(map);
+    }
+    catch (boost::program_options::error &ex)
+    {
+        std::cerr << "Error: " << ex.what() << '\n';
+        print_usage(argv[0], generic);
+        return 1;
+    }
 
     if (map.count("help"))
         print_usage(argv[0], generic);
