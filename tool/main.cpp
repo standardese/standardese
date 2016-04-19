@@ -2,7 +2,6 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
-#include <algorithm>
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -44,7 +43,10 @@ int main(int argc, char** argv)
              "file extension that is forbidden (e.g. \".md\"; \".\" for no extension)")
             ("input.blacklist_file",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
-             "file that is forbidden, relative to traversed directory");
+             "file that is forbidden, relative to traversed directory")
+            ("input.blacklist_dir",
+             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+             "directory that is forbidden, relative to traversed directory");
 
     po::options_description input("");
     input.add_options()
@@ -98,6 +100,15 @@ int main(int argc, char** argv)
         auto input = map["input-files"].as<std::vector<fs::path>>();
         auto blacklist_ext = map["input.blacklist_ext"].as<std::vector<std::string>>();
         auto blacklist_file = map["input.blacklist_file"].as<std::vector<std::string>>();
+        auto blacklist_dir = map["input.blacklist_dir"].as<std::vector<std::string>>();
+
+        // remove trailing slash if any
+        // otherwise Boost.Filesystem can't handle it
+        for (auto& dir : blacklist_dir)
+        {
+            if (dir.back() == '/' || dir.back() == '\\')
+                dir.pop_back();
+        }
 
         assert(!input.empty());
 
@@ -105,27 +116,54 @@ int main(int argc, char** argv)
         for (auto& path : input)
         {
             if (fs::is_regular_file(path))
-                std::cout << '\t' << path.generic_string() << '\n';
+                std::cout << '\t' << path << '\n';
             else if (fs::is_directory(path))
             {
-                std::for_each(fs::recursive_directory_iterator(path), fs::recursive_directory_iterator(),
-                            [&](const fs::directory_entry &entry)
+                auto end = fs::recursive_directory_iterator();
+                for (auto iter = fs::recursive_directory_iterator(path); iter != end; ++iter)
+                {
+                    auto& entry = *iter;
+                    auto normalized = fs::relative(entry.path(), path);
+
+                    if (entry.status().type() == fs::file_type::directory_file)
+                    {
+                        for (auto& dir : blacklist_dir)
+                            if (normalized == dir)
                             {
-                                if (entry.status().type() != fs::file_type::regular_file)
-                                    return;
+                                iter.no_push();
+                                break;
+                            }
+                    }
+                    else
+                    {
+                        auto valid = true;
 
-                                auto entry_ext = entry.path().extension();
-                                for (auto& ext : blacklist_ext)
-                                    if (ext == entry_ext || (entry_ext.empty() && ext == "."))
-                                        return;
+                        auto entry_ext = entry.path().extension();
+                        for (auto &ext : blacklist_ext)
+                            if (ext == entry_ext || (entry_ext.empty() && ext == "."))
+                            {
+                                valid = false;
+                                break;
+                            }
 
-                                auto normalized = fs::relative(entry.path(), path);
-                                for (auto& file : blacklist_file)
-                                    if (normalized == file)
-                                        return;
+                        if (valid)
+                        {
+                            for (auto &file : blacklist_file)
+                            {
+                                if (normalized == file)
+                                {
+                                    valid = false;
+                                    break;
+                                }
+                            }
 
+                            if (valid)
+                            {
                                 std::cout << '\t' << normalized << '\n';
-                            });
+                            }
+                        }
+                    }
+                }
             }
             else if (fs::exists(path))
                 throw std::runtime_error("file '" + path.generic_string() + "' is neither file nor directory");
