@@ -7,6 +7,12 @@ project(STANDARDESE VERSION 0.0)
 
 option(STANDARDESE_BUILD_TOOL "whether or not to build the tool" ON)
 
+if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/comp_base.cmake)
+    file(DOWNLOAD https://raw.githubusercontent.com/foonathan/compatibility/master/comp_base.cmake
+            ${CMAKE_CURRENT_BINARY_DIR}/comp_base.cmake)
+endif()
+include(${CMAKE_CURRENT_BINARY_DIR}/comp_base.cmake)
+
 # subdirectories
 add_subdirectory(src)
 if(STANDARDESE_BUILD_TOOL)
