@@ -3,12 +3,16 @@
 # found in the top-level directory of this distribution.
 
 set(detail_header
+        ../include/standardese/detail/parse_utils.hpp
         ../include/standardese/detail/wrapper.hpp)
 set(header
+        ../include/standardese/cpp_cursor.hpp
         ../include/standardese/cpp_entity.hpp
         ../include/standardese/parser.hpp
+        ../include/standardese/string.hpp
         ../include/standardese/translation_unit.hpp)
 set(src
+        detail/parse_utils.cpp
         parser.cpp
         translation_unit.cpp)
 
