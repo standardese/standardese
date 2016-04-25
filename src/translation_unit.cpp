@@ -6,11 +6,15 @@
 
 using namespace standardese;
 
-translation_unit::translation_unit(CXTranslationUnit tu, const char *path) STANDARDESE_NOEXCEPT
-: tu_(tu)
+translation_unit::translation_unit(CXTranslationUnit tu, const char *path)
+: tu_(tu), path_(path)
+{}
+
+CXFile translation_unit::get_cxfile() const STANDARDESE_NOEXCEPT
 {
-    file_ = clang_getFile(tu_.get(), path);
-    detail::validate(file_);
+    auto file = clang_getFile(tu_.get(), get_path());
+    detail::validate(file);
+    return file;
 }
 
 void translation_unit::deleter::operator()(CXTranslationUnit tu) const STANDARDESE_NOEXCEPT

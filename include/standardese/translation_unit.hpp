@@ -6,6 +6,7 @@
 #define STANDARDESE_TRANSLATION_UNIT_HPP_INCLUDED
 
 #include <clang-c/Index.h>
+#include <string>
 
 #include <standardese/detail/wrapper.hpp>
 
@@ -22,7 +23,7 @@ namespace standardese
             {
                 Func *func;
                 CXFile file;
-            } data{&f, file_};
+            } data{&f, get_cxfile()};
 
             auto visitor_impl = [](CXCursor cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
             {
@@ -39,8 +40,15 @@ namespace standardese
             clang_visitChildren(clang_getTranslationUnitCursor(tu_.get()), visitor_impl, &data);
         }
 
+        const char* get_path() const STANDARDESE_NOEXCEPT
+        {
+            return path_.c_str();
+        }
+
+        CXFile get_cxfile() const STANDARDESE_NOEXCEPT;
+
     private:
-        translation_unit(CXTranslationUnit tu, const char *path) STANDARDESE_NOEXCEPT;
+        translation_unit(CXTranslationUnit tu, const char *path);
 
         struct deleter
         {
@@ -48,7 +56,7 @@ namespace standardese
         };
 
         detail::wrapper<CXTranslationUnit, deleter> tu_;
-        CXFile file_;
+        std::string path_;
 
         friend class parser;
     };
