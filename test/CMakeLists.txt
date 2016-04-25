@@ -8,7 +8,8 @@ if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
             ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
 endif()
 
-set(tests )
+set(tests
+        cpp_entity.cpp)
 
 add_executable(standardese_test test.cpp ${tests})
 target_include_directories(standardese_test PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

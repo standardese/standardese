@@ -5,6 +5,7 @@
 set(detail_header
         ../include/standardese/detail/wrapper.hpp)
 set(header
+        ../include/standardese/cpp_entity.hpp
         ../include/standardese/parser.hpp
         ../include/standardese/translation_unit.hpp)
 set(src
