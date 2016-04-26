@@ -19,7 +19,6 @@ set(src
 add_library(standardese_library ${detail_header} ${header} ${src})
 comp_target_features(standardese_library PUBLIC
                      cpp11_lang/noexcept
-                     cpp14_lib/make_unique
                      PREFIX "STANDARDESE_" NAMESPACE "standardese_comp")
 target_include_directories(standardese_library PUBLIC
                                 $<BUILD_INTERFACE:${STANDARDESE_SOURCE_DIR}/include>)

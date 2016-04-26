@@ -63,6 +63,18 @@ namespace standardese
         friend class cpp_entity_container;
     };
 
+    template <typename T>
+    using cpp_ptr = std::unique_ptr<T>;
+
+    namespace detail
+    {
+        template <typename T, typename ... Args>
+        cpp_ptr<T> make_ptr(Args&&... args)
+        {
+            return cpp_ptr<T>(new T(std::forward<Args>(args)...));
+        }
+    } // namespace detail
+
     using cpp_entity_ptr = std::unique_ptr<cpp_entity>;
 
     class cpp_entity_container

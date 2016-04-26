@@ -9,9 +9,18 @@
 #include <string>
 
 #include <standardese/detail/wrapper.hpp>
+#include <standardese/cpp_entity.hpp>
 
 namespace standardese
 {
+    class cpp_file
+    : public cpp_entity, public cpp_entity_container
+    {
+    public:
+        cpp_file(const char *name)
+        : cpp_entity(name, "") {}
+    };
+
     class translation_unit
     {
     public:
@@ -46,6 +55,8 @@ namespace standardese
         }
 
         CXFile get_cxfile() const STANDARDESE_NOEXCEPT;
+
+        cpp_ptr<cpp_file> get_cpp_file() const;
 
     private:
         translation_unit(CXTranslationUnit tu, const char *path);

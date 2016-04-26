@@ -17,6 +17,11 @@ CXFile translation_unit::get_cxfile() const STANDARDESE_NOEXCEPT
     return file;
 }
 
+cpp_ptr<cpp_file> translation_unit::get_cpp_file() const
+{
+    return detail::make_ptr<cpp_file>(get_path());
+}
+
 void translation_unit::deleter::operator()(CXTranslationUnit tu) const STANDARDESE_NOEXCEPT
 {
     clang_disposeTranslationUnit(tu);
