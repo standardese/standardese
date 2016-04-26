@@ -4,10 +4,18 @@
 
 #include <standardese/translation_unit.hpp>
 
+#include <standardese/parser.hpp>
+
 using namespace standardese;
 
-translation_unit::translation_unit(CXTranslationUnit tu, const char *path)
-: tu_(tu), path_(path)
+cpp_file::cpp_file(const parser &par, const char *name)
+: cpp_entity(name, "")
+{
+    par.register_file(*this);
+}
+
+translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, const char *path)
+: tu_(tu), path_(path), parser_(&par)
 {}
 
 CXFile translation_unit::get_cxfile() const STANDARDESE_NOEXCEPT
@@ -19,7 +27,7 @@ CXFile translation_unit::get_cxfile() const STANDARDESE_NOEXCEPT
 
 cpp_ptr<cpp_file> translation_unit::get_cpp_file() const
 {
-    return detail::make_ptr<cpp_file>(get_path());
+    return detail::make_ptr<cpp_file>(*parser_, get_path());
 }
 
 void translation_unit::deleter::operator()(CXTranslationUnit tu) const STANDARDESE_NOEXCEPT

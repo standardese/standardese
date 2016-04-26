@@ -13,12 +13,13 @@
 
 namespace standardese
 {
+    class parser;
+
     class cpp_file
     : public cpp_entity, public cpp_entity_container
     {
     public:
-        cpp_file(const char *name)
-        : cpp_entity(name, "") {}
+        cpp_file(const parser &par, const char *name);
     };
 
     class translation_unit
@@ -59,7 +60,7 @@ namespace standardese
         cpp_ptr<cpp_file> get_cpp_file() const;
 
     private:
-        translation_unit(CXTranslationUnit tu, const char *path);
+        translation_unit(const parser &par, CXTranslationUnit tu, const char *path);
 
         struct deleter
         {
@@ -68,8 +69,9 @@ namespace standardese
 
         detail::wrapper<CXTranslationUnit, deleter> tu_;
         std::string path_;
+        const parser *parser_;
 
-        friend class parser;
+        friend parser;
     };
 } // namespace standardese
 
