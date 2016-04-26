@@ -56,10 +56,10 @@ namespace standardese
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_namespace_alias> parse(const cpp_name &scope, cpp_cursor cur);
+        static cpp_ptr<cpp_namespace_alias> parse(cpp_name scope, cpp_cursor cur);
 
-        cpp_namespace_alias(const cpp_name &scope, cpp_name name, cpp_comment comment, cpp_name target)
-        : cpp_entity(scope, std::move(name), std::move(comment)),
+        cpp_namespace_alias(cpp_name scope, cpp_name name, cpp_comment comment, cpp_name target)
+        : cpp_entity(std::move(scope), std::move(name), std::move(comment)),
           target_(std::move(target)), unique_(target) {}
 
         const cpp_name& get_target() const STANDARDESE_NOEXCEPT
@@ -74,6 +74,16 @@ namespace standardese
 
     private:
         cpp_name target_, unique_;
+    };
+
+    class cpp_using_directive
+    : public cpp_entity
+    {
+    public:
+        static cpp_ptr<cpp_using_directive> parse(cpp_cursor cur);
+
+        cpp_using_directive(cpp_name target_scope, cpp_name target_name, cpp_comment comment)
+        : cpp_entity(std::move(target_scope), std::move(target_name), std::move(comment)) {}
     };
 } // namespace standardese
 

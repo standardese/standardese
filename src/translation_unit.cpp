@@ -150,6 +150,9 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_NamespaceAlias:
             stack.add_entity(cpp_namespace_alias::parse(scope, cur));
             return CXChildVisit_Continue;
+        case CXCursor_UsingDirective:
+            stack.add_entity(cpp_using_directive::parse(cur));
+            return CXChildVisit_Continue;
 
         default:
         {
