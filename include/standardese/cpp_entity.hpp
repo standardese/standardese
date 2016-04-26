@@ -66,15 +66,6 @@ namespace standardese
     template <typename T>
     using cpp_ptr = std::unique_ptr<T>;
 
-    namespace detail
-    {
-        template <typename T, typename ... Args>
-        cpp_ptr<T> make_ptr(Args&&... args)
-        {
-            return cpp_ptr<T>(new T(std::forward<Args>(args)...));
-        }
-    } // namespace detail
-
     using cpp_entity_ptr = std::unique_ptr<cpp_entity>;
 
     class cpp_entity_container
@@ -149,34 +140,44 @@ namespace standardese
             return {};
         }
 
-        void add_entity(cpp_entity_ptr entity)
-        {
-            do_add_entity(std::move(entity));
-        }
-
     protected:
         cpp_entity_container() STANDARDESE_NOEXCEPT
         : first_(nullptr), last_(nullptr) {}
 
         ~cpp_entity_container() STANDARDESE_NOEXCEPT = default;
 
-    private:
-        virtual void do_add_entity(cpp_entity_ptr cur)
+        void add_entity(cpp_entity_ptr entity)
         {
             if (last_)
             {
-                last_->next_ = std::move(cur);
+                last_->next_ = std::move(entity);
                 last_ = last_->next_.get();
             }
             else
             {
-                first_ = std::move(cur);
+                first_ = std::move(entity);
                 last_ = first_.get();
             }
         }
 
+    private:
         cpp_entity_ptr first_;
         cpp_entity *last_;
+    };
+
+    class parser;
+
+    /// Required interface for parser classes.
+    class cpp_entity_parser
+    {
+    public:
+        /// Returns the fully parsed entity.
+        /// Parser is given for final registration.
+        virtual cpp_entity_ptr finish(const parser &par) = 0;
+
+        /// Adds a new entity, should forward to cpp_entity_container.
+        virtual void add_entity(cpp_entity_ptr)
+        {}
     };
 } // namespace standardese
 

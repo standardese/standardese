@@ -18,8 +18,10 @@ namespace standardese
     class cpp_file
     : public cpp_entity, public cpp_entity_container
     {
-    public:
-        cpp_file(const parser &par, const char *name);
+    private:
+        cpp_file(const char *name);
+
+        friend class translation_unit;
     };
 
     class translation_unit
@@ -27,7 +29,7 @@ namespace standardese
     public:
         /// Calls given function for each entity in the current translation unit.
         template <typename Func>
-        void visit(Func f)
+        void visit(Func f) const
         {
             struct data_t
             {
@@ -50,6 +52,8 @@ namespace standardese
             clang_visitChildren(clang_getTranslationUnitCursor(tu_.get()), visitor_impl, &data);
         }
 
+        cpp_ptr<cpp_file> parse() const;
+
         const char* get_path() const STANDARDESE_NOEXCEPT
         {
             return path_.c_str();
@@ -57,10 +61,11 @@ namespace standardese
 
         CXFile get_cxfile() const STANDARDESE_NOEXCEPT;
 
-        cpp_ptr<cpp_file> get_cpp_file() const;
-
     private:
         translation_unit(const parser &par, CXTranslationUnit tu, const char *path);
+
+        class scope_stack;
+        CXChildVisitResult parse_visit(scope_stack &stack, CXCursor cur, CXCursor parent) const;
 
         struct deleter
         {
