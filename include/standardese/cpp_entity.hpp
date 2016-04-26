@@ -35,7 +35,13 @@ namespace standardese
 
         virtual cpp_name get_unique_name() const
         {
-            return get_name();
+            return scope_.empty() ? name_ : scope_ + "::" + name_;
+        }
+
+        // excluding trailing "::"
+        const cpp_name& get_scope() const STANDARDESE_NOEXCEPT
+        {
+            return scope_;
         }
 
         const cpp_comment& get_comment() const STANDARDESE_NOEXCEPT
@@ -44,8 +50,8 @@ namespace standardese
         }
 
     protected:
-        cpp_entity(cpp_name n, cpp_comment c) STANDARDESE_NOEXCEPT
-        : name_(std::move(n)), comment_(std::move(c)),
+        cpp_entity(cpp_name scope, cpp_name n, cpp_comment c) STANDARDESE_NOEXCEPT
+        : name_(std::move(n)), scope_(std::move(scope)), comment_(std::move(c)),
           next_(nullptr)
         {}
 
@@ -55,7 +61,7 @@ namespace standardese
         }
 
     private:
-        cpp_name name_;
+        cpp_name name_, scope_;
         cpp_comment comment_;
 
         std::unique_ptr<cpp_entity> next_;
@@ -65,6 +71,15 @@ namespace standardese
 
     template <typename T>
     using cpp_ptr = std::unique_ptr<T>;
+
+    namespace detail
+    {
+        template <typename T, typename ... Args>
+        cpp_ptr<T> make_ptr(Args&&... args)
+        {
+            return cpp_ptr<T>(new T(std::forward<Args>(args)...));
+        }
+    } // namespace detail
 
     using cpp_entity_ptr = std::unique_ptr<cpp_entity>;
 

@@ -4,7 +4,6 @@
 
 #include <standardese/detail/parse_utils.hpp>
 
-#include <standardese/cpp_cursor.hpp>
 #include <standardese/string.hpp>
 
 using namespace standardese;

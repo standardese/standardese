@@ -128,3 +128,101 @@ TEST_CASE("cpp_namespace", "[cpp]")
         REQUIRE(names.empty());
     }
 }
+
+TEST_CASE("cpp_namespace_alias", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(
+        namespace foo {}
+        namespace outer
+        {
+            namespace inner2
+            {
+                namespace inner {}
+            }
+
+            namespace inner
+            {
+                namespace e = outer;
+                namespace f = inner2;
+                namespace g = inner2::inner;
+            }
+
+            namespace a = inner;
+            namespace b = foo;
+        }
+
+        namespace c = outer::inner;
+        namespace d = ::foo;
+
+        namespace h = outer::inner2::inner;
+        namespace i = outer::a::e;
+    )";
+
+    auto tu = parse(p, "cpp_namespace_alias", code);
+
+    auto f = tu.parse();
+    p.for_each_in_namespace([&](const cpp_entity &e)
+    {
+        if (auto ptr = dynamic_cast<const cpp_namespace_alias*>(&e))
+        {
+            if (ptr->get_name() == "a")
+            {
+                REQUIRE(ptr->get_unique_name() == "outer::a");
+                REQUIRE(ptr->get_target() == "inner");
+                REQUIRE(ptr->get_full_target() == "outer::inner");
+            }
+            else if (ptr->get_name() == "b")
+            {
+                REQUIRE(ptr->get_unique_name() == "outer::b");
+                REQUIRE(ptr->get_target() == "foo");
+                REQUIRE(ptr->get_full_target() == "foo");
+            }
+            else if (ptr->get_name() == "c")
+            {
+                REQUIRE(ptr->get_unique_name() == "c");
+                REQUIRE(ptr->get_target() == "outer::inner");
+                REQUIRE(ptr->get_full_target() == "outer::inner");
+            }
+            else if (ptr->get_name() == "d")
+            {
+                REQUIRE(ptr->get_unique_name() == "d");
+                REQUIRE(ptr->get_target() == "foo");
+                REQUIRE(ptr->get_full_target() == "foo");
+            }
+            else if (ptr->get_name() == "e")
+            {
+                REQUIRE(ptr->get_unique_name() == "outer::inner::e");
+                REQUIRE(ptr->get_target() == "outer");
+                REQUIRE(ptr->get_full_target() == "outer");
+            }
+            else if (ptr->get_name() == "f")
+            {
+                REQUIRE(ptr->get_unique_name() == "outer::inner::f");
+                REQUIRE(ptr->get_target() == "inner2");
+                REQUIRE(ptr->get_full_target() == "outer::inner2");
+            }
+            else if (ptr->get_name() == "g")
+            {
+                REQUIRE(ptr->get_unique_name() == "outer::inner::g");
+                REQUIRE(ptr->get_target() == "inner2::inner");
+                REQUIRE(ptr->get_full_target() == "outer::inner2::inner");
+            }
+            else if (ptr->get_name() == "h")
+            {
+                REQUIRE(ptr->get_unique_name() == "h");
+                REQUIRE(ptr->get_target() == "outer::inner2::inner");
+                REQUIRE(ptr->get_full_target() == "outer::inner2::inner");
+            }
+            else if (ptr->get_name() == "i")
+            {
+                REQUIRE(ptr->get_unique_name() == "i");
+                REQUIRE(ptr->get_target() == "outer::a::e");
+                REQUIRE(ptr->get_full_target() == "outer::a::e");
+            }
+            else
+                REQUIRE(false);
+        }
+    });
+}

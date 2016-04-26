@@ -13,7 +13,7 @@ TEST_CASE("cpp_entity", "[cpp]")
     struct test_entity : cpp_entity
     {
         test_entity(const char *name)
-        : cpp_entity(name, "") {}
+        : cpp_entity("", name, "") {}
     };
 
     struct container : cpp_entity_container

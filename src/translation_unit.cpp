@@ -15,7 +15,7 @@
 using namespace standardese;
 
 cpp_file::cpp_file(const char *name)
-: cpp_entity(name, "")
+: cpp_entity("", name, "")
 {}
 
 translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, const char *path)
@@ -59,7 +59,9 @@ public:
     void push_container(cpp_ptr<cpp_entity_parser> parser, CXCursor parent)
     {
         auto scope_name = stack_.back().scope_name;
-        scope_name += parser->scope_name() + "::";
+        if (!scope_name.empty())
+            scope_name += "::";
+        scope_name += parser->scope_name();
         stack_.emplace_back(std::move(parser), scope_name, parent);
     }
 
@@ -74,34 +76,21 @@ public:
     // needs to be called in each visit
     bool pop_if_needed(CXCursor parent, const parser &par)
     {
-        if (stack_.size() > 1u && clang_equalCursors(parent, stack_.back().parent))
+        for (auto iter = std::next(stack_.begin()); iter != stack_.end(); ++iter)
         {
-            // current parent is equal to top parent
-            // and we aren't removing the file
-            auto ptr = stack_.back().parser->finish(par);
-            stack_.pop_back();
-            stack_.back().parser->add_entity(std::move(ptr));
-            return true;
-        }
-        else
-        {
-            // current parent isn't equal to top parent
-            // need to search for any previous containers to see if their parent matches
-            // this can happen when multiple scopes are left at once
-            // no need to check for std::prev(stack_.end()), done in the fast check
-            // also prevents running the loop when stack containers only the file
-            for (auto iter = stack_.begin(); iter != std::prev(stack_.end()); ++iter)
-                if (clang_equalCursors(iter->parent, parent))
+            if (clang_equalCursors(iter->parent, parent))
+            {
+                auto dist = stack_.end() - iter;
+                for (auto i = 0; i != dist; ++i)
                 {
-                    // we found a previous one, erase all after that
-                    for (auto cur = stack_.end(); cur != std::next(iter); --cur)
-                    {
-                        auto e = std::prev(cur)->parser->finish(par);
-                        std::prev(cur, 2)->parser->add_entity(std::move(e));
-                    }
-                    stack_.erase(std::next(iter), stack_.end());
-                    return true;
+                    auto e = stack_.back().parser->finish(par);
+                    stack_.pop_back();
+                    assert(!stack_.empty());
+                    stack_.back().parser->add_entity(std::move(e));
                 }
+
+                return true;
+            }
         }
 
         return false;
@@ -150,13 +139,17 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
 {
     stack.pop_if_needed(parent, *parser_);
 
+    auto scope = stack.get_scope_name();
+
     auto kind = clang_getCursorKind(cur);
     switch (kind)
     {
         case CXCursor_Namespace:
-            stack.push_container(cpp_ptr<cpp_entity_parser>(new cpp_namespace::parser(stack.get_scope_name(), cur)),
-                                 parent);
+            stack.push_container(detail::make_ptr<cpp_namespace::parser>(scope, cur), parent);
             return CXChildVisit_Recurse;
+        case CXCursor_NamespaceAlias:
+            stack.add_entity(cpp_namespace_alias::parse(scope, cur));
+            return CXChildVisit_Continue;
 
         default:
         {

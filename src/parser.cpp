@@ -84,6 +84,19 @@ const cpp_namespace* parser::for_each_in_namespace(const cpp_name &n, in_namespa
     return res;
 }
 
+void parser::for_each_in_namespace(in_namespace_callback cb, void *data)
+{
+    for (auto& f : pimpl_->files)
+        for (auto& e : *f)
+            cb(e, data);
+
+    for (auto& ns : pimpl_->namespaces)
+    {
+        for (auto& e : *ns)
+            cb(e, data);
+    }
+}
+
 void parser::deleter::operator()(CXIndex idx) const STANDARDESE_NOEXCEPT
 {
     clang_disposeIndex(idx);

@@ -5,12 +5,12 @@
 #ifndef STANDARDESE_PARSE_UTILS_HPP_INCLUDED
 #define STANDARDESE_PARSE_UTILS_HPP_INCLUDED
 
+
+#include <standardese/cpp_cursor.hpp>
 #include <standardese/cpp_entity.hpp>
 
 namespace standardese
 {
-    struct cpp_cursor;
-
     namespace detail
     {
         // obtains the name from cursor
@@ -18,6 +18,17 @@ namespace standardese
 
         // obtains the comment from cursor
         cpp_comment parse_comment(cpp_cursor cur);
+
+        // wrapper for clang_visitChildren
+        template <typename Fnc>
+        void visit_children(cpp_cursor cur, Fnc f)
+        {
+            auto cb = [](CXCursor cur, CXCursor parent, CXClientData data)
+            {
+                return (*static_cast<Fnc*>(data))(cur, parent);
+            };
+            clang_visitChildren(cur, cb, &f);
+        }
     } // namespace detail
 } // namespace standardese
 

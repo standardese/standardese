@@ -4,6 +4,8 @@
 
 #include <standardese/cpp_namespace.hpp>
 
+#include <cassert>
+
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/search_token.hpp>
 #include <standardese/cpp_cursor.hpp>
@@ -31,5 +33,62 @@ cpp_entity_ptr cpp_namespace::parser::finish(const standardese::parser &par)
 {
     par.register_namespace(*ns_);
     return std::move(ns_);
+}
+
+namespace
+{
+    cpp_name get_scope_needed(CXCursor target)
+    {
+        cpp_name result;
+        while (true)
+        {
+            target = clang_getCursorSemanticParent(target);
+            if (clang_isTranslationUnit(clang_getCursorKind(target)))
+                break;
+
+            auto str = detail::parse_name(target);
+            if (result.empty())
+                result = str;
+            else
+                result = str + "::" + result;
+        }
+        if (!result.empty() && result.back() != ':')
+            result += "::";
+        return result;
+    }
+
+    void parse_target(CXCursor cur, cpp_name &target, cpp_name &unique)
+    {
+        cpp_name scope;
+        auto first = true;
+        detail::visit_children(cur, [&](CXCursor cur, CXCursor parent)
+        {
+            assert(clang_isReference(clang_getCursorKind(cur)));
+
+            auto ref_cursor = clang_getCursorReferenced(cur);
+            if (first)
+                scope = get_scope_needed(ref_cursor);
+            first = false;
+
+            string ref(clang_getCursorSpelling(ref_cursor));
+            if (!target.empty())
+                target += "::";
+            target += ref;
+
+            return CXChildVisit_Recurse;
+        });
+
+        unique = scope + target;
+    }
+}
+
+cpp_ptr<cpp_namespace_alias> cpp_namespace_alias::parse(const cpp_name &scope, cpp_cursor cur)
+{
+    cpp_name target, unique;
+    parse_target(cur, target, unique);
+    auto result = detail::make_ptr<cpp_namespace_alias>(scope, detail::parse_name(cur),
+                                                 detail::parse_comment(cur), std::move(target));
+    result->unique_ = std::move(unique);
+    return result;
 }
 

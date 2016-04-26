@@ -87,6 +87,18 @@ namespace standardese
             return for_each_in_namespace(n, cb, &f);
         }
 
+        // same as above but for every namespace, including global
+        template <typename Fnc>
+        void for_each_in_namespace(Fnc f)
+        {
+            auto cb = [](const cpp_entity &e, void *data)
+            {
+                (*static_cast<Fnc*>(data))(e);
+            };
+
+            for_each_in_namespace(cb, &f);
+        }
+
     private:
         using file_callback = void(*)(const cpp_file&, void*);
         void for_each_file(file_callback cb, void* data);
@@ -96,6 +108,7 @@ namespace standardese
 
         using in_namespace_callback = void(*)(const cpp_entity&, void*);
         const cpp_namespace* for_each_in_namespace(const cpp_name &n, in_namespace_callback cb, void *data);
+        void for_each_in_namespace(in_namespace_callback cb, void *data);
 
         struct deleter
         {
