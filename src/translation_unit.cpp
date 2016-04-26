@@ -9,6 +9,7 @@
 
 #include <standardese/cpp_cursor.hpp>
 #include <standardese/cpp_namespace.hpp>
+#include <standardese/cpp_type.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/string.hpp>
 
@@ -152,6 +153,11 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
             return CXChildVisit_Continue;
         case CXCursor_UsingDirective:
             stack.add_entity(cpp_using_directive::parse(cur));
+            return CXChildVisit_Continue;
+
+        case CXCursor_TypedefDecl:
+        case CXCursor_TypeAliasDecl:
+            stack.add_entity(cpp_type_alias::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
 
         default:

@@ -5,7 +5,6 @@
 #include <standardese/cpp_namespace.hpp>
 
 #include <catch.hpp>
-#include <ostream>
 
 #include "test_parser.hpp"
 

@@ -19,6 +19,9 @@ namespace standardese
         // obtains the comment from cursor
         cpp_comment parse_comment(cpp_cursor cur);
 
+        // calculates the full scope name of a cursor (without trailing ::)
+        cpp_name parse_scope(cpp_cursor cur);
+
         // wrapper for clang_visitChildren
         template <typename Fnc>
         void visit_children(cpp_cursor cur, Fnc f)

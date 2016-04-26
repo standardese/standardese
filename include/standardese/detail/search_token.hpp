@@ -119,6 +119,24 @@ namespace standardese { namespace detail
 
         return result;
     }
+
+    // returns all tokens after a certain token
+    inline std::string cat_tokens_after(CXCursor cur, const char *token)
+    {
+        std::string result;
+        auto found = false;
+        visit_tokens(cur, [&](CXToken, const string &spelling)
+        {
+            if (!found && spelling == token)
+                found = true;
+            else if (found)
+                result += spelling;
+
+            return true;
+        });
+
+        return result;
+    }
 }} // namespace standardese::detail
 
 #endif // STANDARDESE_DETAIL_SEARCH_TOKEN_HPP_INCLUDED
