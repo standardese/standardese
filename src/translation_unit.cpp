@@ -160,6 +160,13 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
             stack.add_entity(cpp_type_alias::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
 
+        case CXCursor_EnumDecl:
+            stack.push_container(detail::make_ptr<cpp_enum::parser>(scope, cur), parent);
+            return CXChildVisit_Recurse;
+        case CXCursor_EnumConstantDecl:
+            stack.add_entity(cpp_enum_value::parse(scope, cur));
+            return CXChildVisit_Continue;
+
         default:
         {
             string str(clang_getCursorKindSpelling(kind));

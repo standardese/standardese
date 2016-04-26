@@ -121,7 +121,7 @@ namespace standardese { namespace detail
     }
 
     // returns all tokens after a certain token
-    inline std::string cat_tokens_after(CXCursor cur, const char *token)
+    inline std::string cat_tokens_after(CXCursor cur, const char *token, const char *until = "")
     {
         std::string result;
         auto found = false;
@@ -129,6 +129,8 @@ namespace standardese { namespace detail
         {
             if (!found && spelling == token)
                 found = true;
+            else if (found && spelling == until)
+                return false;
             else if (found)
                 result += spelling;
 
