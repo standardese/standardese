@@ -17,6 +17,7 @@ namespace standardese
     class translation_unit;
     class cpp_file;
     class cpp_namespace;
+    class cpp_type;
 
     /// C++ standard to be used
     struct cpp_standard
@@ -99,6 +100,22 @@ namespace standardese
             for_each_in_namespace(cb, &f);
         }
 
+        void register_type(cpp_type &t) const;
+
+        const cpp_type* lookup_type(cpp_name scope, cpp_name name) const;
+
+        // void(const cpp_type &)
+        template <typename Fnc>
+        void for_each_type(Fnc f)
+        {
+            auto cb = [](const cpp_type &t, void *data)
+            {
+                (*static_cast<Fnc*>(data))(t);
+            };
+
+            for_each_type(cb, &f);
+        }
+
     private:
         using file_callback = void(*)(const cpp_file&, void*);
         void for_each_file(file_callback cb, void* data);
@@ -109,6 +126,9 @@ namespace standardese
         using in_namespace_callback = void(*)(const cpp_entity&, void*);
         const cpp_namespace* for_each_in_namespace(const cpp_name &n, in_namespace_callback cb, void *data);
         void for_each_in_namespace(in_namespace_callback cb, void *data);
+
+        using type_callback = void(*)(const cpp_type &t, void *);
+        void for_each_type(type_callback cb, void *data);
 
         struct deleter
         {

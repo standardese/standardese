@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <standardese/cpp_namespace.hpp>
+#include <standardese/cpp_type.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -18,6 +19,20 @@ const char* const cpp_standard::cpp_03 = "-std=c++03";
 const char* const cpp_standard::cpp_11 = "-std=c++11";
 const char* const cpp_standard::cpp_14 = "-std=c++14";
 
+namespace
+{
+    struct type_compare
+    {
+        bool operator()(cpp_type *a, cpp_type *b) const
+        {
+            auto cmp = a->get_name().compare(b->get_name());
+            if (cmp != 0)
+                return cmp < 0;
+            return a->get_scope() < b->get_scope();
+        }
+    };
+}
+
 struct parser::impl
 {
     std::mutex file_mutex;
@@ -26,6 +41,9 @@ struct parser::impl
     std::mutex ns_mutex;
     std::vector<cpp_namespace*> namespaces;
     std::set<cpp_name> namespace_names;
+
+    std::mutex type_mutex;
+    std::set<cpp_type*, type_compare> types;
 };
 
 parser::parser()
@@ -95,6 +113,33 @@ void parser::for_each_in_namespace(in_namespace_callback cb, void *data)
         for (auto& e : *ns)
             cb(e, data);
     }
+}
+
+void parser::register_type(cpp_type &t) const
+{
+    std::unique_lock<std::mutex> lock(pimpl_->type_mutex);
+    pimpl_->types.insert(&t);
+}
+
+const cpp_type* parser::lookup_type(cpp_name scope, cpp_name name) const
+{
+    struct dummy_type : cpp_type
+    {
+        dummy_type(cpp_name scope, cpp_name name)
+        : cpp_type(std::move(scope), std::move(name), "") {}
+    } dummy(std::move(scope), std::move(name));
+
+    std::unique_lock<std::mutex> lock(pimpl_->type_mutex);
+    auto iter = pimpl_->types.find(&dummy);
+    if (iter == pimpl_->types.end())
+        return nullptr;
+    return *iter;
+}
+
+void parser::for_each_type(type_callback cb, void *data)
+{
+    for (auto& t : pimpl_->types)
+        cb(*t, data);
 }
 
 void parser::deleter::operator()(CXIndex idx) const STANDARDESE_NOEXCEPT

@@ -10,12 +10,14 @@ set(header
         ../include/standardese/cpp_cursor.hpp
         ../include/standardese/cpp_entity.hpp
         ../include/standardese/cpp_namespace.hpp
+        ../include/standardese/cpp_type.hpp
         ../include/standardese/parser.hpp
         ../include/standardese/string.hpp
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
         cpp_namespace.cpp
+        cpp_type.cpp
         parser.cpp
         translation_unit.cpp)
 
