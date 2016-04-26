@@ -10,11 +10,13 @@
 #include <utility>
 
 #include <standardese/detail/wrapper.hpp>
+#include "cpp_namespace.hpp"
 
 namespace standardese
 {
     class translation_unit;
     class cpp_file;
+    class cpp_namespace;
 
     /// C++ standard to be used
     struct cpp_standard
@@ -46,14 +48,11 @@ namespace standardese
 
         void register_file(cpp_file &f) const;
 
-        using file_callback = void(*)(cpp_file&, void*);
-
-        void for_each_file(file_callback cb, void* data);
-
+        // void(const cpp_file &file)
         template <typename Fnc>
         void for_each_file(Fnc f)
         {
-            auto cb = [](cpp_file &f, void *data)
+            auto cb = [](const cpp_file &f, void *data)
             {
                 (*static_cast<Fnc*>(data))(f);
             };
@@ -61,7 +60,43 @@ namespace standardese
             for_each_file(cb, &f);
         }
 
+        void register_namespace(cpp_namespace &n) const;
+
+        // void(cpp_name namespace_name)
+        template <typename Fnc>
+        void for_each_namespace(Fnc f)
+        {
+            auto cb = [](const cpp_name &n, void *data)
+            {
+                (*static_cast<Fnc*>(data))(n);
+            };
+
+            for_each_namespace(cb, &f);
+        }
+
+        // void(const cpp_entity &e)
+        // returns one namespace object of that name
+        template <typename Fnc>
+        const cpp_namespace* for_each_in_namespace(const cpp_name &n, Fnc f)
+        {
+            auto cb = [](const cpp_entity &e, void *data)
+            {
+                (*static_cast<Fnc*>(data))(e);
+            };
+
+            return for_each_in_namespace(n, cb, &f);
+        }
+
     private:
+        using file_callback = void(*)(const cpp_file&, void*);
+        void for_each_file(file_callback cb, void* data);
+
+        using namespace_callback = void(*)(const cpp_name&, void*);
+        void for_each_namespace(namespace_callback cb, void *data);
+
+        using in_namespace_callback = void(*)(const cpp_entity&, void*);
+        const cpp_namespace* for_each_in_namespace(const cpp_name &n, in_namespace_callback cb, void *data);
+
         struct deleter
         {
             void operator()(CXIndex idx) const STANDARDESE_NOEXCEPT;

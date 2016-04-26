@@ -33,7 +33,7 @@ namespace standardese
             return name_;
         }
 
-        virtual cpp_name get_unique_name() const STANDARDESE_NOEXCEPT
+        virtual cpp_name get_unique_name() const
         {
             return get_name();
         }
@@ -178,6 +178,12 @@ namespace standardese
         /// Adds a new entity, should forward to cpp_entity_container.
         virtual void add_entity(cpp_entity_ptr)
         {}
+
+        /// Returns the name of the current scope if container
+        virtual cpp_name scope_name()
+        {
+            return "";
+        }
     };
 } // namespace standardese
 

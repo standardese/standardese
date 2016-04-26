@@ -4,15 +4,18 @@
 
 set(detail_header
         ../include/standardese/detail/parse_utils.hpp
+        ../include/standardese/detail/search_token.hpp
         ../include/standardese/detail/wrapper.hpp)
 set(header
         ../include/standardese/cpp_cursor.hpp
         ../include/standardese/cpp_entity.hpp
+        ../include/standardese/cpp_namespace.hpp
         ../include/standardese/parser.hpp
         ../include/standardese/string.hpp
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
+        cpp_namespace.cpp
         parser.cpp
         translation_unit.cpp)
 

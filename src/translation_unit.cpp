@@ -7,6 +7,8 @@
 #include <iostream>
 #include <vector>
 
+#include <standardese/cpp_cursor.hpp>
+#include <standardese/cpp_namespace.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/string.hpp>
 
@@ -45,13 +47,20 @@ public:
             }
         };
 
-        stack_.emplace_back(cpp_ptr<cpp_entity_parser>(new cpp_file_parser{f}), parent);
+        stack_.emplace_back(cpp_ptr<cpp_entity_parser>(new cpp_file_parser{f}), "", parent);
+    }
+
+    const cpp_name& get_scope_name() const STANDARDESE_NOEXCEPT
+    {
+        return stack_.back().scope_name;
     }
 
     // pushes a new container
     void push_container(cpp_ptr<cpp_entity_parser> parser, CXCursor parent)
     {
-        stack_.emplace_back(std::move(parser), parent);
+        auto scope_name = stack_.back().scope_name;
+        scope_name += parser->scope_name() + "::";
+        stack_.emplace_back(std::move(parser), scope_name, parent);
     }
 
     // adds a non-container entity to the current container
@@ -102,10 +111,11 @@ private:
     struct container
     {
         cpp_ptr<cpp_entity_parser> parser;
+        cpp_name scope_name;
         CXCursor parent;
 
-        container(cpp_ptr<cpp_entity_parser> par, CXCursor parent)
-        : parser(std::move(par)), parent(parent)
+        container(cpp_ptr<cpp_entity_parser> par, cpp_name scope_name, CXCursor parent)
+        : parser(std::move(par)), scope_name(std::move(scope_name)), parent(parent)
         {}
     };
 
@@ -143,6 +153,11 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
     auto kind = clang_getCursorKind(cur);
     switch (kind)
     {
+        case CXCursor_Namespace:
+            stack.push_container(cpp_ptr<cpp_entity_parser>(new cpp_namespace::parser(stack.get_scope_name(), cur)),
+                                 parent);
+            return CXChildVisit_Recurse;
+
         default:
         {
             string str(clang_getCursorKindSpelling(kind));

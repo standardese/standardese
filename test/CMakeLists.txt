@@ -9,9 +9,10 @@ if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
 endif()
 
 set(tests
-        cpp_entity.cpp)
+        cpp_entity.cpp
+        cpp_namespace.cpp)
 
-add_executable(standardese_test test.cpp ${tests})
+add_executable(standardese_test test.cpp test_parser.hpp ${tests})
 target_include_directories(standardese_test PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(standardese_test PUBLIC standardese_library)
 comp_target_features(standardese_test PUBLIC CPP11)
