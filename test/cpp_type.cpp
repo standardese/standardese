@@ -20,9 +20,9 @@ TEST_CASE("cpp_type_alias", "[cpp]")
 
         typedef int type_3;
 
-        struct  foo {};
+        struct foo {};
 
-        using type_4 = foo;
+        using type_4 = const foo;
 
         namespace ns
         {
@@ -73,8 +73,8 @@ TEST_CASE("cpp_type_alias", "[cpp]")
             ++count;
             REQUIRE(t.get_unique_name() == "type_4");
             auto& target = t.get_target();
-            REQUIRE(target.get_name() == "foo");
-            REQUIRE(target.get_full_name() == "foo");
+            REQUIRE(target.get_name() == "const foo");
+            REQUIRE(target.get_full_name() == "const foo");
         }
         else if (t.get_name() == "type_5")
         {
@@ -97,7 +97,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
             ++count;
             REQUIRE(t.get_unique_name() == "type_7");
             auto& target = t.get_target();
-            REQUIRE(target.get_name() == "void(*)(int,char)");
+            REQUIRE(target.get_name() == "void(*)(int, char)");
             REQUIRE(target.get_full_name() == "void (*)(int, char)");
         }
         else

@@ -3,8 +3,7 @@
 // found in the top-level directory of this distribution.
 
 #include <standardese/detail/parse_utils.hpp>
-
-#include <standardese/string.hpp>
+#include <standardese/detail/search_token.hpp>
 
 using namespace standardese;
 
@@ -33,5 +32,113 @@ cpp_name detail::parse_scope(cpp_cursor cur)
             result = str + "::" + result;
         cur = clang_getCursorSemanticParent(cur);
     }
+    return result;
+}
+
+namespace
+{
+    bool is_identifier_char(char c) STANDARDESE_NOEXCEPT
+    {
+        return std::isalnum(c) || c == '_';
+    }
+
+    bool needs_whitespace(char a, char b) STANDARDESE_NOEXCEPT
+    {
+        if (is_identifier_char(a) && is_identifier_char(b))
+            return true;
+        else if (a == '(' || b == '('
+                 || a == ')' || b == ')')
+            // no whitespace for or after brackets
+            return false;
+        else if (a == '*' && b != '*')
+            // to format "type *"
+            return true;
+        else if (a == ',')
+            // to format "(a, b)"
+            return true;
+        return false;
+    }
+
+    void cat_token(cpp_name &result, const char *spelling)
+    {
+        if (needs_whitespace(result.back(), *spelling))
+            result += ' ';
+        result += spelling;
+    }
+}
+
+cpp_name detail::parse_typedef_type_name(cpp_cursor cur, const cpp_name &name)
+{
+    cpp_name result;
+    visit_tokens(cur, [&](CXToken, const string &spelling)
+    {
+        if (spelling == name.c_str() || spelling == "typedef")
+            return true;
+
+        cat_token(result, spelling);
+        return true;
+    });
+
+    return result;
+}
+
+cpp_name detail::parse_variable_type_name(cpp_cursor cur, const cpp_name &name)
+{
+    cpp_name result;
+    visit_tokens(cur, [&](CXToken, const string &spelling)
+    {
+        if (spelling == name.c_str())
+            return true;
+        else if (spelling == "=")
+            return false;
+
+        cat_token(result, spelling);
+        return true;
+    });
+
+    return result;
+}
+
+cpp_name detail::parse_alias_type_name(cpp_cursor cur)
+{
+    cpp_name result;
+    auto found = false;
+    visit_tokens(cur, [&](CXToken, const string &spelling)
+    {
+        if (!found && spelling == "=")
+        {
+            found = true;
+            return true;
+        }
+        else if (!found)
+            return true;
+
+        cat_token(result, spelling);
+        return true;
+    });
+
+    return result;
+}
+
+cpp_name detail::parse_enum_type_name(cpp_cursor cur)
+{
+    cpp_name result;
+    auto found = false;
+    visit_tokens(cur, [&](CXToken, const string &spelling)
+    {
+        if (!found && spelling == ":")
+        {
+            found = true;
+            return true;
+        }
+        else if (found && spelling == "{")
+            return false;
+        else if (!found)
+            return true;
+
+        cat_token(result, spelling);
+        return true;
+    });
+
     return result;
 }

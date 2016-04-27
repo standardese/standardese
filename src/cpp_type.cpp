@@ -19,14 +19,11 @@ namespace
         auto type = clang_getTypedefDeclUnderlyingType(cur);
 
         if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl)
-            return {type, detail::cat_tokens_after(cur, "=")};
+            return {type, detail::parse_alias_type_name(cur)};
 
         assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl);
 
-        auto str = detail::cat_tokens_after(cur, "typedef");
-        auto pos = str.find(name);
-        str.erase(pos, name.size());
-
+        auto str = detail::parse_typedef_type_name(cur, name);
         return {type, str};
     }
 
@@ -35,7 +32,7 @@ namespace
         assert(clang_getCursorKind(cur) == CXCursor_EnumDecl);
 
         auto type = clang_getEnumDeclIntegerType(cur);
-        auto str = detail::cat_tokens_after(cur, ":", "{");
+        auto str = detail::parse_enum_type_name(cur);
 
         return {type, str};
     }

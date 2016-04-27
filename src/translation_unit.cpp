@@ -10,6 +10,7 @@
 #include <standardese/cpp_cursor.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_type.hpp>
+#include <standardese/cpp_variable.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/string.hpp>
 
@@ -165,6 +166,10 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
             return CXChildVisit_Recurse;
         case CXCursor_EnumConstantDecl:
             stack.add_entity(cpp_enum_value::parse(scope, cur));
+            return CXChildVisit_Continue;
+
+        case CXCursor_VarDecl:
+            stack.add_entity(cpp_variable::parse(scope, cur));
             return CXChildVisit_Continue;
 
         default:

@@ -6,7 +6,6 @@
 #define STANDARDESE_DETAIL_SEARCH_TOKEN_HPP_INCLUDED
 
 #include <clang-c/Index.h>
-#include <string>
 
 #include <standardese/string.hpp>
 
@@ -99,40 +98,6 @@ namespace standardese { namespace detail
                 result = false;
                 found = false;
             }
-
-            return true;
-        });
-
-        return result;
-    }
-
-    // concatenates all tokens for a cursor
-    inline std::string cat_tokens(CXCursor cur)
-    {
-        std::string result;
-
-        visit_tokens(cur, [&](CXToken, const string &spelling)
-        {
-            result += spelling;
-            return true;
-        });
-
-        return result;
-    }
-
-    // returns all tokens after a certain token
-    inline std::string cat_tokens_after(CXCursor cur, const char *token, const char *until = "")
-    {
-        std::string result;
-        auto found = false;
-        visit_tokens(cur, [&](CXToken, const string &spelling)
-        {
-            if (!found && spelling == token)
-                found = true;
-            else if (found && spelling == until)
-                return false;
-            else if (found)
-                result += spelling;
 
             return true;
         });

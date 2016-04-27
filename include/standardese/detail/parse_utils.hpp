@@ -5,7 +5,6 @@
 #ifndef STANDARDESE_PARSE_UTILS_HPP_INCLUDED
 #define STANDARDESE_PARSE_UTILS_HPP_INCLUDED
 
-
 #include <standardese/cpp_cursor.hpp>
 #include <standardese/cpp_entity.hpp>
 
@@ -21,6 +20,18 @@ namespace standardese
 
         // calculates the full scope name of a cursor (without trailing ::)
         cpp_name parse_scope(cpp_cursor cur);
+
+        // parses the name of a typedef type
+        cpp_name parse_typedef_type_name(cpp_cursor cur, const cpp_name &name);
+
+        // parses the name of a variable type
+        cpp_name parse_variable_type_name(cpp_cursor cur, const cpp_name &name);
+
+        // parses the name of a C++ alias
+        cpp_name parse_alias_type_name(cpp_cursor cur);
+
+        // parses the name of the underlying type of an enum
+        cpp_name parse_enum_type_name(cpp_cursor cur);
 
         // wrapper for clang_visitChildren
         template <typename Fnc>
