@@ -82,17 +82,22 @@ cpp_name detail::parse_typedef_type_name(cpp_cursor cur, const cpp_name &name)
     return result;
 }
 
-cpp_name detail::parse_variable_type_name(cpp_cursor cur, const cpp_name &name)
+cpp_name detail::parse_variable_type_name(cpp_cursor cur, const cpp_name &name, std::string &initializer)
 {
     cpp_name result;
+    auto in_type = true;
     visit_tokens(cur, [&](CXToken, const string &spelling)
     {
-        if (spelling == name.c_str())
+        if (spelling == name.c_str()
+          || spelling == "extern"
+          || spelling == "static"
+          || spelling == "thread_local")
             return true;
         else if (spelling == "=")
-            return false;
+            in_type = false;
+        else
+            cat_token(in_type ? result : initializer, spelling);
 
-        cat_token(result, spelling);
         return true;
     });
 

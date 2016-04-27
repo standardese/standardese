@@ -5,6 +5,8 @@
 #ifndef STANDARDESE_PARSE_UTILS_HPP_INCLUDED
 #define STANDARDESE_PARSE_UTILS_HPP_INCLUDED
 
+#include <string>
+
 #include <standardese/cpp_cursor.hpp>
 #include <standardese/cpp_entity.hpp>
 
@@ -25,7 +27,8 @@ namespace standardese
         cpp_name parse_typedef_type_name(cpp_cursor cur, const cpp_name &name);
 
         // parses the name of a variable type
-        cpp_name parse_variable_type_name(cpp_cursor cur, const cpp_name &name);
+        // also provides initializer
+        cpp_name parse_variable_type_name(cpp_cursor cur, const cpp_name &name, std::string &initializer);
 
         // parses the name of a C++ alias
         cpp_name parse_alias_type_name(cpp_cursor cur);
@@ -38,6 +41,7 @@ namespace standardese
         void visit_children(cpp_cursor cur, Fnc f)
         {
             auto cb = [](CXCursor cur, CXCursor parent, CXClientData data)
+            -> CXChildVisitResult
             {
                 return (*static_cast<Fnc*>(data))(cur, parent);
             };
