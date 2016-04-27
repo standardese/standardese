@@ -18,6 +18,7 @@ namespace standardese
     class cpp_file;
     class cpp_namespace;
     class cpp_type;
+    class cpp_type_ref;
 
     /// C++ standard to be used
     struct cpp_standard
@@ -102,7 +103,7 @@ namespace standardese
 
         void register_type(cpp_type &t) const;
 
-        const cpp_type* lookup_type(cpp_name scope, cpp_name name) const;
+        const cpp_type* lookup_type(const cpp_type_ref &ref) const;
 
         // void(const cpp_type &)
         template <typename Fnc>

@@ -47,51 +47,58 @@ TEST_CASE("cpp_type_alias", "[cpp]")
         {
             ++count;
             REQUIRE(t.get_unique_name() == "type_1");
-            REQUIRE(t.get_target() == "int");
-            REQUIRE(t.get_full_target() == "int");
+            auto& target = t.get_target();
+            REQUIRE(target.get_name() == "int");
+            REQUIRE(target.get_full_name() == "int");
         }
         else if (t.get_name() == "type_2")
         {
             ++count;
             REQUIRE(t.get_unique_name() == "type_2");
-            REQUIRE(t.get_target() == "char[]");
+            auto& target = t.get_target();
+            REQUIRE(target.get_name() == "char[]");
             // note: whitespace because libclang inserts space there
-            REQUIRE(t.get_full_target() == "char []");
+            REQUIRE(target.get_full_name() == "char []");
         }
         else if (t.get_name() == "type_3")
         {
             ++count;
             REQUIRE(t.get_unique_name() == "type_3");
-            REQUIRE(t.get_target() == "int");
-            REQUIRE(t.get_full_target() == "int");
+            auto& target = t.get_target();
+            REQUIRE(target.get_name() == "int");
+            REQUIRE(target.get_full_name() == "int");
         }
         else if (t.get_name() == "type_4")
         {
             ++count;
             REQUIRE(t.get_unique_name() == "type_4");
-            REQUIRE(t.get_target() == "foo");
-            REQUIRE(t.get_full_target() == "foo");
+            auto& target = t.get_target();
+            REQUIRE(target.get_name() == "foo");
+            REQUIRE(target.get_full_name() == "foo");
         }
         else if (t.get_name() == "type_5")
         {
             ++count;
             REQUIRE(t.get_unique_name() == "ns::type_5");
-            REQUIRE(t.get_target() == "foo");
-            REQUIRE(t.get_full_target() == "ns::foo");
+            auto& target = t.get_target();
+            REQUIRE(target.get_name() == "foo");
+            REQUIRE(target.get_full_name() == "ns::foo");
         }
         else if (t.get_name() == "type_6")
         {
             ++count;
             REQUIRE(t.get_unique_name() == "type_6");
-            REQUIRE(t.get_target() == "ns::foo");
-            REQUIRE(t.get_full_target() == "ns::foo");
+            auto& target = t.get_target();
+            REQUIRE(target.get_name() == "ns::foo");
+            REQUIRE(target.get_full_name() == "ns::foo");
         }
         else if (t.get_name() == "type_7")
         {
             ++count;
             REQUIRE(t.get_unique_name() == "type_7");
-            REQUIRE(t.get_target() == "void(*)(int,char)");
-            REQUIRE(t.get_full_target() == "void (*)(int, char)");
+            auto& target = t.get_target();
+            REQUIRE(target.get_name() == "void(*)(int,char)");
+            REQUIRE(target.get_full_name() == "void (*)(int, char)");
         }
         else
             REQUIRE(false);
@@ -131,8 +138,9 @@ TEST_CASE("cpp_enum", "[cpp]")
         if (t.get_name() == "a")
         {
             REQUIRE(!t.is_scoped());
-            REQUIRE(t.get_given_type() == "");
-            REQUIRE(t.get_underlying_type() == "unsigned int");
+            auto& underlying = t.get_underlying_type();
+            REQUIRE(underlying.get_name() == "");
+            REQUIRE(underlying.get_full_name() == "unsigned int");
 
             auto i = 1u;
             for (auto& val : t)
@@ -160,8 +168,9 @@ TEST_CASE("cpp_enum", "[cpp]")
         else if (t.get_name() == "b")
         {
             REQUIRE(t.is_scoped());
-            REQUIRE(t.get_given_type() == "int");
-            REQUIRE(t.get_underlying_type() == "int");
+            auto& underlying = t.get_underlying_type();
+            REQUIRE(underlying.get_name() == "int");
+            REQUIRE(underlying.get_full_name() == "int");
 
             auto i = 1u;
             for (auto& val : t)

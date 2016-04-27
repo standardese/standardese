@@ -14,17 +14,37 @@ using namespace standardese;
 
 namespace
 {
-    cpp_name parse_alias_target(cpp_cursor cur, const cpp_name &name)
+    cpp_type_ref parse_alias_target(cpp_cursor cur, const cpp_name &name)
     {
-        if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl)
-            return detail::cat_tokens_after(cur, "=");
-        auto str = detail::cat_tokens_after(cur, "typedef");
+        auto type = clang_getTypedefDeclUnderlyingType(cur);
 
+        if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl)
+            return {type, detail::cat_tokens_after(cur, "=")};
+
+        assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl);
+
+        auto str = detail::cat_tokens_after(cur, "typedef");
         auto pos = str.find(name);
         str.erase(pos, name.size());
 
-        return str;
+        return {type, str};
     }
+
+    cpp_type_ref parse_enum_underlying(cpp_cursor cur, const cpp_name &name)
+    {
+        assert(clang_getCursorKind(cur) == CXCursor_EnumDecl);
+
+        auto type = clang_getEnumDeclIntegerType(cur);
+        auto str = detail::cat_tokens_after(cur, ":", "{");
+
+        return {type, str};
+    }
+}
+
+cpp_name cpp_type_ref::get_full_name() const
+{
+    string spelling(clang_getTypeSpelling(type_));
+    return spelling.get();
 }
 
 cpp_ptr<cpp_type_alias> cpp_type_alias::parse(const parser &p, const cpp_name &scope, cpp_cursor cur)
@@ -32,13 +52,10 @@ cpp_ptr<cpp_type_alias> cpp_type_alias::parse(const parser &p, const cpp_name &s
     assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl
            || clang_getCursorKind(cur) == CXCursor_TypeAliasDecl);
 
-    cpp_ptr<cpp_type_alias> result(new cpp_type_alias(scope, detail::parse_name(cur), detail::parse_comment(cur)));
-
-    auto target = clang_getTypedefDeclUnderlyingType(cur);
-    string spelling(clang_getTypeSpelling(target));
-
-    result->target_ = parse_alias_target(cur, result->get_name());
-    result->unique_ = spelling.get();
+    auto name = detail::parse_name(cur);
+    auto target = parse_alias_target(cur, name);
+    auto result = detail::make_ptr<cpp_type_alias>(scope, std::move(name), detail::parse_comment(cur),
+                                                   clang_getCursorType(cur), target);
 
     p.register_type(*result);
 
@@ -117,15 +134,18 @@ namespace
 }
 
 cpp_enum::parser::parser(cpp_name scope, cpp_cursor cur)
-: enum_(new cpp_enum(std::move(scope), detail::parse_name(cur), detail::parse_comment(cur)))
 {
+    assert(clang_getCursorKind(cur) == CXCursor_EnumDecl);
+
+    auto name = detail::parse_name(cur);
+    auto type = clang_getCursorType(cur);
+    auto underlying = parse_enum_underlying(cur, name);
+
+    enum_ = cpp_ptr<cpp_enum>(new cpp_enum(std::move(scope), std::move(name), detail::parse_comment(cur),
+                                        type, std::move(underlying)));
+
     if (is_enum_scoped(cur, enum_->get_name()))
         enum_->is_scoped_ = true;
-
-    string spelling(clang_getTypeSpelling(clang_getEnumDeclIntegerType(cur)));
-    enum_->type_calculated_ = spelling.get();
-
-    enum_->type_given_ = detail::cat_tokens_after(cur, ":", "{");
 }
 
 cpp_entity_ptr cpp_enum::parser::finish(const standardese::parser &par)

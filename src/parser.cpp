@@ -25,10 +25,7 @@ namespace
     {
         bool operator()(cpp_type *a, cpp_type *b) const
         {
-            auto cmp = a->get_name().compare(b->get_name());
-            if (cmp != 0)
-                return cmp < 0;
-            return a->get_scope() < b->get_scope();
+            return a->get_unique_name() < b->get_unique_name();
         }
     };
 }
@@ -121,13 +118,13 @@ void parser::register_type(cpp_type &t) const
     pimpl_->types.insert(&t);
 }
 
-const cpp_type* parser::lookup_type(cpp_name scope, cpp_name name) const
+const cpp_type* parser::lookup_type(const cpp_type_ref &ref) const
 {
     struct dummy_type : cpp_type
     {
-        dummy_type(cpp_name scope, cpp_name name)
-        : cpp_type(std::move(scope), std::move(name), "") {}
-    } dummy(std::move(scope), std::move(name));
+        dummy_type(cpp_name name)
+        : cpp_type("", std::move(name), "", {}) {}
+    } dummy(ref.get_full_name());
 
     std::unique_lock<std::mutex> lock(pimpl_->type_mutex);
     auto iter = pimpl_->types.find(&dummy);
