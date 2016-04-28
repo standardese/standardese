@@ -36,6 +36,11 @@ namespace standardese
         // parses the name of the underlying type of an enum
         cpp_name parse_enum_type_name(cpp_cursor cur);
 
+        // parses function information
+        // returns the name of the return type
+        cpp_name parse_function_info(cpp_cursor cur, const cpp_name &name,
+                                     int &function_flags, std::string &noexcept_expr);
+
         // wrapper for clang_visitChildren
         template <typename Fnc>
         void visit_children(cpp_cursor cur, Fnc f)

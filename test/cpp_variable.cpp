@@ -17,16 +17,16 @@ TEST_CASE("cpp_variable", "[cpp]")
     auto code = R"(
         extern char a;
         static char *b = &a;
-        const int c = 4;
+        constexpr int c = 4;
         const float * const d = nullptr;
 
         struct foo {};
         foo e;
 
-        unsigned int func(int x);
+        unsigned int (*f)(int x) = nullptr;
+        thread_local auto g = f(4);
 
-        constexpr unsigned int f = 4;
-        thread_local auto g = func(4);
+        int h[5];
     )";
 
     auto tu = parse(p, "cpp_variable", code);
@@ -52,7 +52,7 @@ TEST_CASE("cpp_variable", "[cpp]")
             else if (var->get_name() == "b")
             {
                 ++count;
-                REQUIRE(type.get_name() == "char*");
+                REQUIRE(type.get_name() == "char *");
                 REQUIRE(type.get_full_name() == "char *");
                 REQUIRE(var->get_initializer() == "&a");
                 REQUIRE(var->get_linkage() == cpp_internal_linkage);
@@ -61,7 +61,7 @@ TEST_CASE("cpp_variable", "[cpp]")
             else if (var->get_name() == "c")
             {
                 ++count;
-                REQUIRE(type.get_name() == "const int");
+                REQUIRE(type.get_name() == "constexpr int");
                 REQUIRE(type.get_full_name() == "const int");
                 REQUIRE(var->get_initializer() == "4");
                 REQUIRE(var->get_linkage() == cpp_internal_linkage);
@@ -70,7 +70,7 @@ TEST_CASE("cpp_variable", "[cpp]")
             else if (var->get_name() == "d")
             {
                 ++count;
-                REQUIRE(type.get_name() == "const float* const");
+                REQUIRE(type.get_name() == "const float *const");
                 REQUIRE(type.get_full_name() == "const float *const");
                 REQUIRE(var->get_initializer() == "nullptr");
                 REQUIRE(var->get_linkage() == cpp_internal_linkage);
@@ -88,10 +88,10 @@ TEST_CASE("cpp_variable", "[cpp]")
             else if (var->get_name() == "f")
             {
                 ++count;
-                REQUIRE(type.get_name() == "constexpr unsigned int");
-                REQUIRE(type.get_full_name() == "const unsigned int");
-                REQUIRE(var->get_initializer() == "4");
-                REQUIRE(var->get_linkage() == cpp_internal_linkage);
+                REQUIRE(type.get_name() == "unsigned int(*)(int x)");
+                REQUIRE(type.get_full_name() == "unsigned int (*)(int)");
+                REQUIRE(var->get_initializer() == "nullptr");
+                REQUIRE(var->get_linkage() == cpp_no_linkage);
                 REQUIRE(!var->is_thread_local());
             }
             else if (var->get_name() == "g")
@@ -99,13 +99,22 @@ TEST_CASE("cpp_variable", "[cpp]")
                 ++count;
                 REQUIRE(type.get_name() == "auto");
                 REQUIRE(type.get_full_name() == "auto");
-                REQUIRE(var->get_initializer() == "func(4)");
+                REQUIRE(var->get_initializer() == "f(4)");
                 REQUIRE(var->get_linkage() == cpp_no_linkage);
                 REQUIRE(var->is_thread_local());
+            }
+            else if (var->get_name() == "h")
+            {
+                ++count;
+                REQUIRE(type.get_name() == "int[5]");
+                REQUIRE(type.get_full_name() == "int [5]");
+                REQUIRE(var->get_initializer() == "");
+                REQUIRE(var->get_linkage() == cpp_no_linkage);
+                REQUIRE(!var->is_thread_local());
             }
             else
                 REQUIRE(false);
         }
     });
-    REQUIRE(count == 7);
+    REQUIRE(count == 8);
 }

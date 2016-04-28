@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <standardese/cpp_cursor.hpp>
+#include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_type.hpp>
 #include <standardese/cpp_variable.hpp>
@@ -170,6 +171,10 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
 
         case CXCursor_VarDecl:
             stack.add_entity(cpp_variable::parse(scope, cur));
+            return CXChildVisit_Continue;
+
+        case CXCursor_FunctionDecl:
+            stack.add_entity(cpp_function::parse(scope, cur));
             return CXChildVisit_Continue;
 
         default:

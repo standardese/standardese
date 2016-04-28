@@ -9,6 +9,7 @@ set(detail_header
 set(header
         ../include/standardese/cpp_cursor.hpp
         ../include/standardese/cpp_entity.hpp
+        ../include/standardese/cpp_function.hpp
         ../include/standardese/cpp_namespace.hpp
         ../include/standardese/cpp_type.hpp
         ../include/standardese/cpp_variable.hpp
@@ -17,6 +18,7 @@ set(header
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
+        cpp_function.cpp
         cpp_namespace.cpp
         cpp_type.cpp
         cpp_variable.cpp

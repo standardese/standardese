@@ -4,6 +4,9 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/search_token.hpp>
+#include <standardese/cpp_function.hpp>
+
+#include <cassert>
 
 using namespace standardese;
 
@@ -50,7 +53,7 @@ namespace
                  || a == ')' || b == ')')
             // no whitespace for or after brackets
             return false;
-        else if (a == '*' && b != '*')
+        else if ((a != '*' && b == '*') || (a != '&' && b == '&'))
             // to format "type *"
             return true;
         else if (a == ',')
@@ -61,7 +64,7 @@ namespace
 
     void cat_token(cpp_name &result, const char *spelling)
     {
-        if (needs_whitespace(result.back(), *spelling))
+        if (!result.empty() && needs_whitespace(result.back(), *spelling))
             result += ' ';
         result += spelling;
     }
@@ -144,6 +147,105 @@ cpp_name detail::parse_enum_type_name(cpp_cursor cur)
         cat_token(result, spelling);
         return true;
     });
+
+    return result;
+}
+
+cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
+                                     int &function_flags, std::string &noexcept_expr)
+{
+    cpp_name result;
+    auto bracket_count = 0;
+
+    enum
+    {
+        normal_return,
+        auto_return,
+        decltype_return
+    } ret = normal_return;
+
+    enum
+    {
+        return_type,
+        parameters,
+        noexcept_expression
+    } state = return_type;
+
+    auto was_noexcept = false;
+    noexcept_expr.clear();
+
+    visit_tokens(cur, [&](CXToken, const string &spelling)
+    {
+        if (state == return_type)
+        {
+            if (spelling == "extern"
+                || spelling == "static"
+                || spelling == "virtual"
+                || spelling == "explicit")
+                return true; // skip leading ignored keywords
+            else if (spelling == "constexpr")
+                function_flags |= cpp_constexpr_fnc; // add constepxr flag
+            else if (spelling == "noexcept")
+            {
+                state = noexcept_expression; // enter noexcept expression
+                was_noexcept = true;
+            }
+            else if (ret != decltype_return && spelling == "auto")
+                ret = auto_return; // mark auto return type
+            else if (spelling == name.c_str())
+                state = parameters; // enter paramaters
+            else if (spelling == ";" || spelling == "{")
+                return false; // finish with header
+            else
+            {
+                if (spelling == "decltype")
+                    ret = decltype_return; // decltype return, allow auto
+                cat_token(result, spelling); // part of return type
+            }
+        }
+        else if (state == parameters)
+        {
+            if (spelling == "(")
+                bracket_count++;
+            else if (spelling == ")")
+                bracket_count--;
+
+            if (bracket_count == 0)
+                state = return_type;
+        }
+        else if (state == noexcept_expression)
+        {
+            if (bracket_count > 0 && (bracket_count != 1 || spelling != ")"))
+                // if inside the noexcept(...)
+                cat_token(noexcept_expr, spelling);
+
+            if (spelling == "(")
+                bracket_count++;
+            else if (spelling == ")")
+                bracket_count--;
+
+            if (bracket_count == 0)
+                state = return_type;
+        }
+        else
+            assert(false);
+
+        return true;
+    });
+
+    if (ret == auto_return && !result.empty())
+        // trailing return type, erase "->"
+        result.erase(0, 2);
+    else if (ret == auto_return)
+        // deduced return type
+        result = "auto";
+
+    if (was_noexcept && noexcept_expr.empty())
+        // this means simply noexcept without a condition
+        noexcept_expr = "true";
+    else if (!was_noexcept)
+        // no noexcept
+        noexcept_expr = "false";
 
     return result;
 }

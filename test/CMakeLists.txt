@@ -10,6 +10,7 @@ endif()
 
 set(tests
         cpp_entity.cpp
+        cpp_function.cpp
         cpp_namespace.cpp
         cpp_type.cpp
         cpp_variable.cpp)
