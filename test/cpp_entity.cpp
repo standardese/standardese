@@ -16,7 +16,7 @@ TEST_CASE("cpp_entity", "[cpp]")
         : cpp_entity("", name, "") {}
     };
 
-    struct container : cpp_entity_container
+    struct container : cpp_entity_container<cpp_entity>
     {
         container()
         : cpp_entity_container() {}

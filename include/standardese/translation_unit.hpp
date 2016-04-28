@@ -16,7 +16,7 @@ namespace standardese
     class parser;
 
     class cpp_file
-    : public cpp_entity, public cpp_entity_container
+    : public cpp_entity, public cpp_entity_container<cpp_entity>
     {
     private:
         cpp_file(const char *name);

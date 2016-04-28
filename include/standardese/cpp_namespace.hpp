@@ -13,7 +13,7 @@ namespace standardese
     class parser;
 
     class cpp_namespace
-    : public cpp_entity, public cpp_entity_container
+    : public cpp_entity, public cpp_entity_container<cpp_entity>
     {
     public:
         class parser : public cpp_entity_parser

@@ -11,8 +11,6 @@
 
 using namespace standardese;
 
-#include <iostream>
-
 namespace
 {
     cpp_type_ref parse_variable_type(cpp_cursor cur, const cpp_name &name, std::string &initializer)

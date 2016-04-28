@@ -135,7 +135,7 @@ namespace standardese
     };
 
     class cpp_enum
-    : public cpp_type, public cpp_entity_container
+    : public cpp_type, public cpp_entity_container<cpp_enum_value>
     {
     public:
         class parser
@@ -146,7 +146,8 @@ namespace standardese
 
             void add_entity(cpp_entity_ptr ptr) override
             {
-                enum_->add_entity(std::move(ptr));
+                auto val = static_cast<cpp_enum_value*>(ptr.release());
+                enum_->add_entity(cpp_ptr<cpp_enum_value>(val));
             }
 
             cpp_name scope_name() override

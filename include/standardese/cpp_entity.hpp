@@ -9,11 +9,15 @@
 #include <iterator>
 #include <memory>
 #include <string>
+#include <type_traits>
 
 #include <standardese/noexcept.hpp>
 
 namespace standardese
 {
+    template <typename T>
+    class cpp_entity_container;
+
     using cpp_name = std::string;
     using cpp_comment = std::string;
 
@@ -66,6 +70,7 @@ namespace standardese
 
         std::unique_ptr<cpp_entity> next_;
 
+        template <typename T>
         friend class cpp_entity_container;
     };
 
@@ -83,8 +88,10 @@ namespace standardese
 
     using cpp_entity_ptr = std::unique_ptr<cpp_entity>;
 
+    template <typename T>
     class cpp_entity_container
     {
+        static_assert(std::is_base_of<cpp_entity, T>::value, "T must be derived from cpp_entity");
     public:
         bool empty() const STANDARDESE_NOEXCEPT
         {
@@ -94,9 +101,9 @@ namespace standardese
         class iterator
         {
         public:
-            using value_type = cpp_entity;
-            using reference = const cpp_entity&;
-            using pointer = const cpp_entity*;
+            using value_type = T;
+            using reference = const T&;
+            using pointer = const T*;
             using difference_type = std::ptrdiff_t;
             using iterator_category = std::forward_iterator_tag;
 
@@ -115,7 +122,7 @@ namespace standardese
 
             iterator& operator++() STANDARDESE_NOEXCEPT
             {
-                cur_ = cur_->next_.get();
+                cur_ = static_cast<pointer>(cur_->next_.get());
                 return *this;
             }
 
@@ -137,10 +144,10 @@ namespace standardese
             }
 
         private:
-            iterator(const cpp_entity *ptr)
-            : cur_(ptr) {}
+            iterator(cpp_entity *ptr)
+            : cur_(static_cast<pointer>(ptr)) {}
 
-            const cpp_entity *cur_;
+            const T *cur_;
 
             friend cpp_entity_container;
         };
@@ -161,7 +168,7 @@ namespace standardese
 
         ~cpp_entity_container() STANDARDESE_NOEXCEPT = default;
 
-        void add_entity(cpp_entity_ptr entity)
+        void add_entity(cpp_ptr<T> entity)
         {
             if (last_)
             {
