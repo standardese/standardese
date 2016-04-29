@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <standardese/cpp_cursor.hpp>
+#include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_type.hpp>
