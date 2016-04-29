@@ -135,8 +135,10 @@ cpp_name detail::parse_alias_type_name(cpp_cursor cur)
     return result;
 }
 
-cpp_name detail::parse_enum_type_name(cpp_cursor cur)
+cpp_name detail::parse_enum_type_name(cpp_cursor cur, bool &definition)
 {
+    definition = false;
+
     cpp_name result;
     auto found = false;
     visit_tokens(cur, [&](CXToken, const string &spelling)
@@ -146,7 +148,12 @@ cpp_name detail::parse_enum_type_name(cpp_cursor cur)
             found = true;
             return true;
         }
-        else if (found && spelling == "{")
+        else if (spelling == "{")
+        {
+            definition = true;
+            return false;
+        }
+        else if (spelling == ";")
             return false;
         else if (!found)
             return true;
@@ -157,8 +164,6 @@ cpp_name detail::parse_enum_type_name(cpp_cursor cur)
 
     return result;
 }
-
-#include <iostream>
 
 cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
                                      cpp_function_info &finfo,

@@ -125,8 +125,7 @@ void cpp_class::parser::add_entity(cpp_entity_ptr ptr)
 
 cpp_name cpp_class::parser::scope_name()
 {
-    assert(class_);
-    return class_->get_name();
+    return class_ ? class_->get_name() : "";
 }
 
 cpp_entity_ptr cpp_class::parser::finish(const standardese::parser &par)

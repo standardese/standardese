@@ -116,6 +116,9 @@ TEST_CASE("cpp_enum", "[cpp]")
     parser p;
 
     auto code = R"(
+        enum ignore_me : int;
+        enum class ignore_me_as_well;
+
         enum a
         {
             a_1,

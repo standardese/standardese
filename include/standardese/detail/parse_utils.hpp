@@ -42,7 +42,7 @@ namespace standardese
         cpp_name parse_alias_type_name(cpp_cursor cur);
 
         // parses the name of the underlying type of an enum
-        cpp_name parse_enum_type_name(cpp_cursor cur);
+        cpp_name parse_enum_type_name(cpp_cursor cur, bool &definition);
 
         // parses function information
         // returns the name of the return type

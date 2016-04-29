@@ -74,16 +74,9 @@ namespace standardese
         public:
             parser(cpp_name scope, cpp_cursor cur);
 
-            void add_entity(cpp_entity_ptr ptr) override
-            {
-                auto val = static_cast<cpp_enum_value*>(ptr.release());
-                enum_->add_entity(cpp_ptr<cpp_enum_value>(val));
-            }
+            void add_entity(cpp_entity_ptr ptr) override;
 
-            cpp_name scope_name() override
-            {
-                return enum_->is_scoped_ ? enum_->get_name() : "";
-            }
+            cpp_name scope_name() override;
 
             cpp_entity_ptr finish(const standardese::parser &par) override;
 

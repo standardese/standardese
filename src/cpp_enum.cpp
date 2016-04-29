@@ -14,21 +14,16 @@ using namespace standardese;
 
 namespace
 {
-    cpp_type_ref parse_enum_underlying(cpp_cursor cur, const cpp_name &name)
+    cpp_type_ref parse_enum_underlying(cpp_cursor cur, const cpp_name &name, bool &definition)
     {
         assert(clang_getCursorKind(cur) == CXCursor_EnumDecl);
 
         auto type = clang_getEnumDeclIntegerType(cur);
-        auto str = detail::parse_enum_type_name(cur);
+        auto str = detail::parse_enum_type_name(cur, definition);
 
         return {type, str};
     }
-}
 
-
-
-namespace
-{
     bool is_unsigned_integer(CXType t)
     {
         auto kind = t.kind;
@@ -104,17 +99,34 @@ cpp_enum::parser::parser(cpp_name scope, cpp_cursor cur)
 
     auto name = detail::parse_name(cur);
     auto type = clang_getCursorType(cur);
-    auto underlying = parse_enum_underlying(cur, name);
 
-    enum_ = cpp_ptr<cpp_enum>(new cpp_enum(std::move(scope), std::move(name), detail::parse_comment(cur),
-                                           type, std::move(underlying)));
+    bool definition;
+    auto underlying = parse_enum_underlying(cur, name, definition);
+    if (definition)
+    {
+        enum_ = cpp_ptr<cpp_enum>(new cpp_enum(std::move(scope), std::move(name), detail::parse_comment(cur),
+                                               type, std::move(underlying)));
 
-    if (is_enum_scoped(cur, enum_->get_name()))
-        enum_->is_scoped_ = true;
+        if (is_enum_scoped(cur, enum_->get_name()))
+            enum_->is_scoped_ = true;
+    }
 }
 
 cpp_entity_ptr cpp_enum::parser::finish(const standardese::parser &par)
 {
-    par.register_type(*enum_);
+    if (enum_)
+        par.register_type(*enum_);
     return std::move(enum_);
+}
+
+void cpp_enum::parser::add_entity(cpp_entity_ptr ptr)
+{
+    assert(enum_);
+    auto val = static_cast<cpp_enum_value*>(ptr.release());
+    enum_->add_entity(cpp_ptr<cpp_enum_value>(val));
+}
+
+cpp_name cpp_enum::parser::scope_name()
+{
+    return enum_ && enum_->is_scoped_ ? enum_->get_name() : "";
 }
