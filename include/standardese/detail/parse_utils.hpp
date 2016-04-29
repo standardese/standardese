@@ -21,6 +21,10 @@ namespace standardese
         // obtains the name from cursor
         cpp_name parse_name(cpp_cursor cur);
 
+        // parses the class name from cursor
+        // cannot use parse_name(), adds "struct"/... before
+        cpp_name parse_class_name(cpp_cursor cur);
+
         // obtains the comment from cursor
         cpp_comment parse_comment(cpp_cursor cur);
 

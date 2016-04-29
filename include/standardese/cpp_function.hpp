@@ -133,6 +133,16 @@ namespace standardese
         cpp_cv_volatile = 2,
     };
 
+    inline bool is_const(cpp_cv cv) STANDARDESE_NOEXCEPT
+    {
+        return cv & cpp_cv_const;
+    }
+
+    inline bool is_volatile(cpp_cv cv) STANDARDESE_NOEXCEPT
+    {
+        return cv & cpp_cv_volatile;
+    }
+
     enum cpp_ref_qualifier
     {
         cpp_ref_none,

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 
+#include <standardese/cpp_class.hpp>
 #include <standardese/cpp_cursor.hpp>
 #include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_function.hpp>
@@ -179,6 +180,18 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
             return CXChildVisit_Continue;
         case CXCursor_CXXMethod:
             stack.add_entity(cpp_member_function::parse(scope, cur));
+            return CXChildVisit_Continue;
+
+        case CXCursor_ClassDecl:
+        case CXCursor_StructDecl:
+        case CXCursor_UnionDecl:
+            stack.push_container(detail::make_ptr<cpp_class::parser>(scope, cur), parent);
+            return CXChildVisit_Recurse;
+        case CXCursor_CXXBaseSpecifier:
+            stack.add_entity(cpp_base_class::parse(scope, cur));
+            return CXChildVisit_Continue;
+        case CXCursor_CXXAccessSpecifier:
+            stack.add_entity(cpp_access_specifier::parse(cur));
             return CXChildVisit_Continue;
 
         default:

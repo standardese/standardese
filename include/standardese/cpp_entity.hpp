@@ -170,6 +170,9 @@ namespace standardese
 
         void add_entity(cpp_ptr<T> entity)
         {
+            if (!entity)
+                return;
+
             if (last_)
             {
                 last_->next_ = std::move(entity);

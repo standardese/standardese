@@ -16,6 +16,13 @@ cpp_name detail::parse_name(cpp_cursor cur)
     return cpp_name(str.get());
 }
 
+cpp_name detail::parse_class_name(cpp_cursor cur)
+{
+    auto name = parse_name(cur);
+    auto pos = name.find(' ');
+    return name.substr(pos + 1);
+}
+
 cpp_comment detail::parse_comment(cpp_cursor cur)
 {
     string str(clang_Cursor_getRawCommentText(cur));

@@ -39,6 +39,7 @@ TEST_CASE("cpp_entity", "[cpp]")
     REQUIRE(!container.empty());
 
     container.add_entity(new test_entity("b"));
+    container.add_entity(nullptr);
     container.add_entity(new test_entity("c"));
     container.add_entity(new test_entity("d"));
 

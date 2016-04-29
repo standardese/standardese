@@ -2,6 +2,7 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
+#include <standardese/cpp_class.hpp>
 #include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_type.hpp>
 
@@ -43,6 +44,9 @@ TEST_CASE("cpp_type_alias", "[cpp]")
     auto count = 0u;
     p.for_each_type([&](const cpp_type &e)
     {
+        if (!dynamic_cast<const cpp_type_alias*>(&e))
+            return;
+
         auto& t = dynamic_cast<const cpp_type_alias&>(e);
         if (t.get_name() == "type_1")
         {
@@ -200,4 +204,149 @@ TEST_CASE("cpp_enum", "[cpp]")
             REQUIRE(false);
     });
     REQUIRE(count == 2u);
+}
+
+TEST_CASE("cpp_class", "[cpp]")
+{
+    parser p;
+
+    // no need to test member functions here
+    auto code = R"(
+        struct ignore_me;
+        class ignore_me_too;
+        union ignore_me_three;
+
+        struct foo final
+        {
+        public:
+            struct nested_a {};
+        protected:
+            struct nested_b {};
+        private:
+            struct nested_c {};
+        };
+
+        union union_t
+        {
+
+        };
+
+        class base_a {};
+        class base_b {};
+        class base_c {};
+
+        class derived
+        : public base_a, private virtual base_b, protected base_c {};
+    )";
+
+    auto tu = parse(p, "cpp_enum", code);
+
+    auto f = tu.parse();
+    auto count = 0u;
+    p.for_each_type([&](const cpp_type &e)
+    {
+        auto& c = dynamic_cast<const cpp_class&>(e);
+        if (c.get_name() == "foo")
+        {
+            ++count;
+            REQUIRE(c.is_final());
+            REQUIRE(c.get_class_type() == cpp_struct_t);
+            for (auto& member : c)
+            {
+                if (member.get_name() == "public")
+                {
+                    ++count;
+                    auto& access = dynamic_cast<const cpp_access_specifier&>(member);
+                    REQUIRE(access.get_access() == cpp_public);
+                }
+                else if (member.get_name() == "private")
+                {
+                    ++count;
+                    auto& access = dynamic_cast<const cpp_access_specifier&>(member);
+                    REQUIRE(access.get_access()  == cpp_private);
+                }
+                else if (member.get_name() == "protected")
+                {
+                    ++count;
+                    auto& access = dynamic_cast<const cpp_access_specifier&>(member);
+                    REQUIRE(access.get_access()  == cpp_protected);
+                }
+                else
+                    dynamic_cast<const cpp_class&>(member);
+            }
+        }
+        else if (c.get_name() == "nested_a")
+        {
+            ++count;
+            REQUIRE(!c.is_final());
+            REQUIRE(c.get_unique_name() == "foo::nested_a");
+            REQUIRE(c.get_class_type() == cpp_struct_t);
+        }
+        else if (c.get_name() == "nested_b")
+        {
+            ++count;
+            REQUIRE(!c.is_final());
+            REQUIRE(c.get_unique_name() == "foo::nested_b");
+            REQUIRE(c.get_class_type() == cpp_struct_t);
+        }
+        else if (c.get_name() == "nested_c")
+        {
+            ++count;
+            REQUIRE(!c.is_final());
+            REQUIRE(c.get_unique_name() == "foo::nested_c");
+            REQUIRE(c.get_class_type() == cpp_struct_t);
+        }
+        else if (c.get_name() == "union_t")
+        {
+            ++count;
+            REQUIRE(!c.is_final());
+            REQUIRE(c.get_class_type() == cpp_union_t);
+        }
+        else if (c.get_name() == "base_a")
+        {
+            ++count;
+            REQUIRE(!c.is_final());
+            REQUIRE(c.get_class_type() == cpp_class_t);
+        }
+        else if (c.get_name() == "base_b")
+        {
+            ++count;
+            REQUIRE(!c.is_final());
+            REQUIRE(c.get_class_type() == cpp_class_t);
+        }
+        else if (c.get_name() == "base_c")
+        {
+            ++count;
+            REQUIRE(!c.is_final());
+            REQUIRE(c.get_class_type() == cpp_class_t);
+        }
+        else if (c.get_name() == "derived")
+        {
+            ++count;
+            REQUIRE(!c.is_final());
+            for (auto& member : c)
+            {
+                auto& base = dynamic_cast<const cpp_base_class&>(member);
+                if (base.get_name() == "base_a")
+                {
+                    ++count;
+                    REQUIRE(base.get_access() == cpp_public);
+                    REQUIRE(!base.is_virtual());
+                }
+                else if (base.get_name() == "base_b")
+                {
+                    ++count;
+                    REQUIRE(base.get_access() == cpp_private);
+                    REQUIRE(base.is_virtual());
+                }
+                else if (base.get_name() == "base_c")
+                {
+                    ++count;
+                    REQUIRE(base.get_access() == cpp_protected);
+                    REQUIRE(!base.is_virtual());
+                }
+            }
+        }
+    });
+    REQUIRE(count == 15u);
 }
