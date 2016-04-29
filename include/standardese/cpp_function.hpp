@@ -38,7 +38,7 @@ namespace standardese
         std::string  default_;
     };
 
-    enum cpp_function_flags
+    enum cpp_function_flags : unsigned
     {
         cpp_variadic_fnc    = 1,
         cpp_constexpr_fnc   = 2,
@@ -49,6 +49,18 @@ namespace standardese
         cpp_function_definition_normal,
         cpp_function_definition_deleted,
         cpp_function_definition_defaulted,
+    };
+
+    struct cpp_function_info
+    {
+        cpp_function_flags flags = cpp_function_flags(0);
+        cpp_function_definition definition = cpp_function_definition_normal;
+        std::string noexcept_expression;
+
+        void set_flag(cpp_function_flags f) STANDARDESE_NOEXCEPT
+        {
+            flags = cpp_function_flags(unsigned(flags) | unsigned(f));
+        }
     };
 
     // common stuff for all functions
@@ -63,17 +75,17 @@ namespace standardese
 
         bool is_variadic() const STANDARDESE_NOEXCEPT
         {
-            return flags_ & cpp_variadic_fnc;
+            return info_.flags & cpp_variadic_fnc;
         }
 
         bool is_constexpr() const STANDARDESE_NOEXCEPT
         {
-            return flags_ & cpp_constexpr_fnc;
+            return info_.flags & cpp_constexpr_fnc;
         }
 
         cpp_function_definition get_definition() const STANDARDESE_NOEXCEPT
         {
-            return definition_;
+            return info_.definition;
         }
 
         // the part inside a noexcept(...)
@@ -81,21 +93,17 @@ namespace standardese
         // no noexcept at all leads to "false"
         const std::string& get_noexcept() const STANDARDESE_NOEXCEPT
         {
-            return noexcept_expr_;
+            return info_.noexcept_expression;
         }
 
     protected:
         cpp_function_base(cpp_name scope, cpp_name name, cpp_comment comment,
-                          std::string noexcept_expr,
-                          int flags, cpp_function_definition def)
+                          cpp_function_info info)
         : cpp_entity(std::move(scope), std::move(name), std::move(comment)),
-          noexcept_expr_(std::move(noexcept_expr)),
-          flags_(cpp_function_flags(flags)), definition_(def) {}
+          info_(std::move(info)) {}
 
     private:
-        std::string noexcept_expr_;
-        cpp_function_flags flags_;
-        cpp_function_definition definition_;
+        cpp_function_info info_;
     };
 
     class cpp_function
@@ -105,11 +113,9 @@ namespace standardese
         static cpp_ptr<cpp_function> parse(cpp_name scope, cpp_cursor cur);
 
         cpp_function(cpp_name scope, cpp_name name, cpp_comment comment,
-                     cpp_type_ref return_type, std::string noexcept_expr,
-                     cpp_function_flags flags,
-                     cpp_function_definition def = cpp_function_definition_normal)
+                     cpp_type_ref return_type, cpp_function_info info)
         : cpp_function_base(std::move(scope), std::move(name), std::move(comment),
-                            std::move(noexcept_expr), flags, def),
+                            std::move(info)),
           return_(std::move(return_type)) {}
 
         const cpp_type_ref& get_return_type() const STANDARDESE_NOEXCEPT
@@ -119,6 +125,83 @@ namespace standardese
 
     private:
         cpp_type_ref return_;
+    };
+
+    enum cpp_cv
+    {
+        cpp_cv_const    = 1,
+        cpp_cv_volatile = 2,
+    };
+
+    enum cpp_ref_qualifier
+    {
+        cpp_ref_none,
+        cpp_ref_lvalue,
+        cpp_ref_rvalue
+    };
+
+    enum cpp_virtual
+    {
+        cpp_virtual_static,
+        cpp_virtual_none,
+        cpp_virtual_pure,
+        cpp_virtual_new,
+        cpp_virtual_overriden,
+        cpp_virtual_final
+    };
+
+    inline bool is_virtual(cpp_virtual virt) STANDARDESE_NOEXCEPT
+    {
+        return virt != cpp_virtual_static && virt != cpp_virtual_none;
+    }
+
+    inline bool is_overriden(cpp_virtual virt) STANDARDESE_NOEXCEPT
+    {
+        return virt == cpp_virtual_overriden || virt == cpp_virtual_final;
+    }
+
+    struct cpp_member_function_info
+    {
+        cpp_cv cv_qualifier = cpp_cv(0);
+        cpp_ref_qualifier ref_qualifier = cpp_ref_none;
+        cpp_virtual virtual_flag = cpp_virtual_none;
+
+        void set_cv(cpp_cv cv) STANDARDESE_NOEXCEPT
+        {
+            cv_qualifier = cpp_cv(unsigned(cv_qualifier) | unsigned(cv));
+        }
+    };
+
+    class cpp_member_function
+    : public cpp_function
+    {
+    public:
+        static cpp_ptr<cpp_member_function> parse(cpp_name scope, cpp_cursor cur);
+
+        cpp_member_function(cpp_name scope, cpp_name name, cpp_comment comment,
+                            cpp_type_ref return_type,
+                            cpp_function_info finfo, cpp_member_function_info minfo)
+        : cpp_function(std::move(scope), std::move(name), std::move(comment),
+                       std::move(return_type), std::move(finfo)),
+          info_(minfo) {}
+
+        cpp_cv get_cv() const STANDARDESE_NOEXCEPT
+        {
+            return info_.cv_qualifier;
+        }
+
+        cpp_ref_qualifier get_ref_qualifier() const STANDARDESE_NOEXCEPT
+        {
+            return info_.ref_qualifier;
+        }
+
+        cpp_virtual get_virtual() const STANDARDESE_NOEXCEPT
+        {
+            return info_.virtual_flag;
+        }
+
+    private:
+        cpp_member_function_info info_;
     };
 } // namespace standardese
 

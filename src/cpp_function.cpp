@@ -39,17 +39,15 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(cpp_cursor cur)
 namespace
 {
     cpp_type_ref parse_function_info(cpp_cursor cur, const cpp_name &name,
-                                     cpp_function_flags &flags, std::string &noexcept_expr)
+                                     cpp_function_info &info)
     {
         auto type = clang_getCursorResultType(cur);
 
-        int f = 0, d = 0;
-        auto type_name = detail::parse_function_info(cur, name, f, noexcept_expr);
-
-        if (clang_isFunctionTypeVariadic(clang_getCursorType(cur)))
-            f |= cpp_variadic_fnc;
-
-        flags = cpp_function_flags(f);
+        cpp_member_function_info minfo;
+        auto type_name = detail::parse_function_info(cur, name, info, minfo);
+        assert(minfo.virtual_flag  == cpp_virtual_none);
+        assert(minfo.cv_qualifier  == cpp_cv(0));
+        assert(minfo.ref_qualifier == cpp_ref_none);
 
         return {type, std::move(type_name)};
     }
@@ -70,14 +68,42 @@ cpp_ptr<cpp_function> cpp_function::parse(cpp_name scope, cpp_cursor cur)
     assert(clang_getCursorKind(cur) == CXCursor_FunctionDecl);
 
     auto name = detail::parse_name(cur);
-    cpp_function_flags flags;
-    cpp_function_definition def = cpp_function_definition_normal; // libclang doesn't support it yet here
-    std::string noexcept_expr;
-    auto return_type = parse_function_info(cur, name, flags, noexcept_expr);
+    cpp_function_info info;
+    auto return_type = parse_function_info(cur, name, info);
 
     auto result = detail::make_ptr<cpp_function>(std::move(scope), std::move(name), detail::parse_comment(cur),
-                                                 std::move(return_type), std::move(noexcept_expr),
-                                                 flags, def);
+                                                 std::move(return_type), std::move(info));
+
+    parse_parameters(result.get(), cur);
+
+    return result;
+}
+
+namespace
+{
+    cpp_type_ref parse_member_function_info(cpp_cursor cur, const cpp_name &name,
+                                            cpp_function_info &finfo,
+                                            cpp_member_function_info &minfo)
+    {
+        auto type = clang_getCursorResultType(cur);
+        auto type_name = detail::parse_function_info(cur, name, finfo, minfo);
+
+        return {type, std::move(type_name)};
+    }
+}
+
+cpp_ptr<cpp_member_function> cpp_member_function::parse(cpp_name scope, cpp_cursor cur)
+{
+    assert(clang_getCursorKind(cur) == CXCursor_CXXMethod);
+
+    auto name = detail::parse_name(cur);
+    cpp_function_info finfo;
+    cpp_member_function_info minfo;
+    auto return_type = parse_member_function_info(cur, name, finfo, minfo);
+
+    auto result = detail::make_ptr<cpp_member_function>(std::move(scope), std::move(name), detail::parse_comment(cur),
+                                                        std::move(return_type),
+                                                        std::move(finfo), std::move(minfo));
 
     parse_parameters(result.get(), cur);
 

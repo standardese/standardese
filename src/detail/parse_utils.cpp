@@ -151,11 +151,15 @@ cpp_name detail::parse_enum_type_name(cpp_cursor cur)
     return result;
 }
 
+#include <iostream>
+
 cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
-                                     int &function_flags, std::string &noexcept_expr)
+                                     cpp_function_info &finfo,
+                                     cpp_member_function_info &minfo)
 {
     cpp_name result;
     auto bracket_count = 0;
+    auto start_parameters = 0;
 
     enum
     {
@@ -166,36 +170,43 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
 
     enum
     {
-        return_type,
+        prefix,
         parameters,
-        noexcept_expression
-    } state = return_type;
+        suffix,
+        noexcept_expression,
+        trailing_return,
+        definition,
+    } state = prefix;
 
     auto was_noexcept = false;
-    noexcept_expr.clear();
+    finfo.noexcept_expression.clear();
 
     visit_tokens(cur, [&](CXToken, const string &spelling)
     {
-        if (state == return_type)
+        if (spelling == "(")
+            bracket_count++;
+        else if (spelling == ")")
+            bracket_count--;
+
+        if (state == prefix) // everything before the function name
         {
             if (spelling == "extern"
                 || spelling == "static"
-                || spelling == "virtual"
                 || spelling == "explicit")
                 return true; // skip leading ignored keywords
             else if (spelling == "constexpr")
-                function_flags |= cpp_constexpr_fnc; // add constepxr flag
-            else if (spelling == "noexcept")
-            {
-                state = noexcept_expression; // enter noexcept expression
-                was_noexcept = true;
-            }
+                finfo.set_flag(cpp_constexpr_fnc); // add constepxr flag
+            else if (spelling == "virtual")
+                minfo.virtual_flag = cpp_virtual_new; // mark virtual
             else if (ret != decltype_return && spelling == "auto")
                 ret = auto_return; // mark auto return type
+            // parameter begin
             else if (spelling == name.c_str())
-                state = parameters; // enter paramaters
-            else if (spelling == ";" || spelling == "{")
-                return false; // finish with header
+            {
+                state = parameters; // enter parameters
+                start_parameters = bracket_count;
+            }
+            // normal case
             else
             {
                 if (spelling == "decltype")
@@ -203,29 +214,80 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
                 cat_token(result, spelling); // part of return type
             }
         }
-        else if (state == parameters)
+        else if (state == parameters) // parameter part
         {
-            if (spelling == "(")
-                bracket_count++;
-            else if (spelling == ")")
-                bracket_count--;
-
-            if (bracket_count == 0)
-                state = return_type;
+            if (bracket_count == start_parameters)
+                state = suffix; // go to suffix if outside
         }
-        else if (state == noexcept_expression)
+        else if (state == suffix) // rest of return type, other keywords at the end
         {
-            if (bracket_count > 0 && (bracket_count != 1 || spelling != ")"))
-                // if inside the noexcept(...)
-                cat_token(noexcept_expr, spelling);
+            // first handle state switch conditions
+            if (spelling == "->")
+            {
+                state = trailing_return; // trailing return type
+                return true; // consume token
+            }
+            else if (spelling == ";" || spelling == "{")
+                return false; // finish with declaration part
 
-            if (spelling == "(")
-                bracket_count++;
-            else if (spelling == ")")
-                bracket_count--;
-
+            // count brackets to handle: int (*f(int a))(volatile char);
+            // i.e. don't mistake the cv there for a cv specifier
+            // outside of the parameters of a function ptr return type
             if (bracket_count == 0)
-                state = return_type;
+            {
+                if (spelling == "const")
+                    minfo.set_cv(cpp_cv_const); // const member function
+                else if (spelling == "volatile")
+                    minfo.set_cv(cpp_cv_volatile); // volatile member function
+                else if (spelling == "&")
+                    minfo.ref_qualifier = cpp_ref_lvalue; // lvalue member function
+                else if (spelling == "&&")
+                    minfo.ref_qualifier = cpp_ref_rvalue; // rvalue member function
+                else if (spelling == "noexcept")
+                {
+                    state = noexcept_expression; // enter noexcept expression
+                    was_noexcept = true;
+                }
+                else if (spelling == "override")
+                    minfo.virtual_flag = cpp_virtual_overriden; // make override
+                else if (spelling == "final")
+                    minfo.virtual_flag = cpp_virtual_final; // make final
+                else if (spelling == "=")
+                    state = definition; // enter definition
+                else
+                    cat_token(result, spelling); // part of return type
+            }
+            else
+                cat_token(result, spelling); // part of return type
+        }
+        else if (state == noexcept_expression) // handles the (...) part of noexcept(...)
+        {
+            if (bracket_count > 0 && (bracket_count != 1 || spelling != "("))
+                // if inside the noexcept(...)
+                cat_token(finfo.noexcept_expression, spelling);
+            else if (bracket_count == 0)
+                state = suffix; // continue with suffix
+        }
+        else if (state == trailing_return) // trailing return type
+        {
+            if (spelling == "=")
+                state = definition; // enter definition
+            else if (spelling == ";" || spelling == "{")
+                return false; // finished with body
+            else
+                cat_token(result, spelling); // part of return type
+        }
+        else if (state == definition) // deleted, defaulted, pure virtual
+        {
+            if (spelling == "delete")
+                finfo.definition = cpp_function_definition_deleted;
+            else if (spelling == "default")
+                finfo.definition = cpp_function_definition_defaulted;
+            else if (spelling == "0")
+                minfo.virtual_flag = cpp_virtual_pure; // make pure virtual
+            else
+                assert(false);
+            return false; // nothing comes after this
         }
         else
             assert(false);
@@ -233,19 +295,20 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
         return true;
     });
 
-    if (ret == auto_return && !result.empty())
-        // trailing return type, erase "->"
-        result.erase(0, 2);
-    else if (ret == auto_return)
+    if (ret == auto_return && result.empty())
         // deduced return type
         result = "auto";
 
-    if (was_noexcept && noexcept_expr.empty())
+    if (was_noexcept && finfo.noexcept_expression.empty())
         // this means simply noexcept without a condition
-        noexcept_expr = "true";
+        finfo.noexcept_expression = "true";
     else if (!was_noexcept)
         // no noexcept
-        noexcept_expr = "false";
+        finfo.noexcept_expression = "false";
+
+    // set variadic flag
+    if (clang_isFunctionTypeVariadic(clang_getCursorType(cur)))
+        finfo.set_flag(cpp_variadic_fnc);
 
     return result;
 }

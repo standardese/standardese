@@ -28,9 +28,9 @@ TEST_CASE("cpp_function", "[cpp]")
 
         const int e() noexcept(false);
 
-        int (*f(int a))(char);
+        int (*f(int a))(volatile char&&);
 
-        constexpr auto g() -> char&&;
+        constexpr auto g() -> const char&&;
 
         auto h() noexcept(noexcept(e()))
         {
@@ -49,6 +49,7 @@ TEST_CASE("cpp_function", "[cpp]")
     {
         auto& func = dynamic_cast<const cpp_function&>(e);
         REQUIRE(func.get_name() == func.get_unique_name());
+        REQUIRE(func.get_definition() == cpp_function_definition_normal);
 
         INFO(func.get_return_type().get_full_name());
         if (func.get_name() == "a")
@@ -57,7 +58,6 @@ TEST_CASE("cpp_function", "[cpp]")
             REQUIRE(func.get_return_type().get_name() == "void");
             REQUIRE(!func.is_constexpr());
             REQUIRE(!func.is_variadic());
-            REQUIRE(func.get_definition() == cpp_function_definition_normal);
             REQUIRE(func.get_noexcept() == "false");
         }
         else if (func.get_name() == "b")
@@ -66,7 +66,6 @@ TEST_CASE("cpp_function", "[cpp]")
             REQUIRE(func.get_return_type().get_name() == "int");
             REQUIRE(!func.is_constexpr());
             REQUIRE(func.is_variadic());
-            REQUIRE(func.get_definition() == cpp_function_definition_normal);
             REQUIRE(func.get_noexcept() == "false");
         }
         else if (func.get_name() == "c")
@@ -75,7 +74,6 @@ TEST_CASE("cpp_function", "[cpp]")
             REQUIRE(func.get_return_type().get_name() == "int *");
             REQUIRE(!func.is_constexpr());
             REQUIRE(!func.is_variadic());
-            REQUIRE(func.get_definition() == cpp_function_definition_normal);
             REQUIRE(func.get_noexcept() == "false");
         }
         else if (func.get_name() == "d")
@@ -84,7 +82,6 @@ TEST_CASE("cpp_function", "[cpp]")
             REQUIRE(func.get_return_type().get_name() == "char &");
             REQUIRE(!func.is_constexpr());
             REQUIRE(!func.is_variadic());
-            REQUIRE(func.get_definition() == cpp_function_definition_normal);
             REQUIRE(func.get_noexcept() == "true");
         }
         else if (func.get_name() == "e")
@@ -93,25 +90,22 @@ TEST_CASE("cpp_function", "[cpp]")
             REQUIRE(func.get_return_type().get_name() == "const int");
             REQUIRE(!func.is_constexpr());
             REQUIRE(!func.is_variadic());
-            REQUIRE(func.get_definition() == cpp_function_definition_normal);
             REQUIRE(func.get_noexcept() == "false");
         }
         else if (func.get_name() == "f")
         {
             ++count;
-            REQUIRE(func.get_return_type().get_name() == "int(*)(char)");
+            REQUIRE(func.get_return_type().get_name() == "int(*)(volatile char &&)");
             REQUIRE(!func.is_constexpr());
             REQUIRE(!func.is_variadic());
-            REQUIRE(func.get_definition() == cpp_function_definition_normal);
             REQUIRE(func.get_noexcept() == "false");
         }
         else if (func.get_name() == "g")
         {
             ++count;
-            REQUIRE(func.get_return_type().get_name() == "char &&");
+            REQUIRE(func.get_return_type().get_name() == "const char &&");
             REQUIRE(func.is_constexpr());
             REQUIRE(!func.is_variadic());
-            REQUIRE(func.get_definition() == cpp_function_definition_normal);
             REQUIRE(func.get_noexcept() == "false");
         }
         else if (func.get_name() == "h")
@@ -120,7 +114,6 @@ TEST_CASE("cpp_function", "[cpp]")
             REQUIRE(func.get_return_type().get_name() == "auto");
             REQUIRE(!func.is_constexpr());
             REQUIRE(!func.is_variadic());
-            REQUIRE(func.get_definition() == cpp_function_definition_normal);
             REQUIRE(func.get_noexcept() == "noexcept(e())");
         }
         else if (func.get_name() == "i")
@@ -129,7 +122,6 @@ TEST_CASE("cpp_function", "[cpp]")
             REQUIRE(func.get_return_type().get_name() == "decltype(auto)");
             REQUIRE(!func.is_constexpr());
             REQUIRE(!func.is_variadic());
-            REQUIRE(func.get_definition() == cpp_function_definition_normal);
             REQUIRE(func.get_noexcept() == "false");
         }
         else

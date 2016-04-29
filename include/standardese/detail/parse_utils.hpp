@@ -9,9 +9,13 @@
 
 #include <standardese/cpp_cursor.hpp>
 #include <standardese/cpp_entity.hpp>
+#include <standardese/cpp_function.hpp>
 
 namespace standardese
 {
+    struct cpp_function_info;
+    struct cpp_member_function_info;
+
     namespace detail
     {
         // obtains the name from cursor
@@ -39,7 +43,8 @@ namespace standardese
         // parses function information
         // returns the name of the return type
         cpp_name parse_function_info(cpp_cursor cur, const cpp_name &name,
-                                     int &function_flags, std::string &noexcept_expr);
+                                     cpp_function_info &finfo,
+                                     cpp_member_function_info &minfo);
 
         // wrapper for clang_visitChildren
         template <typename Fnc>
