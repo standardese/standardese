@@ -56,6 +56,8 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
             virtual int& k() const override;
 
             void m(int a = h()) final;
+
+            derived& operator   =(const derived &a) = default;
         };
     )";
 
@@ -234,6 +236,16 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
                     REQUIRE(func.get_definition() == cpp_function_definition_normal);
                 }
+                else if (func.get_name() == "operator=")
+                {
+                    ++count;
+                    REQUIRE(func.get_return_type().get_name() == "derived &");
+                    REQUIRE(func.get_virtual() == cpp_virtual_none);
+                    REQUIRE(!is_const(func.get_cv()));
+                    REQUIRE(!is_volatile(func.get_cv()));
+                    REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
+                    REQUIRE(func.get_definition() == cpp_function_definition_defaulted);
+                }
                 else
                     REQUIRE(false);
             }
@@ -241,5 +253,69 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
         else
             REQUIRE(false);
     });
-    REQUIRE(count == 15u);
+    REQUIRE(count == 16u);
+}
+
+TEST_CASE("cpp_conversion_op", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(
+        struct foo
+        {
+            operator    int(); // multiple whitespace
+
+            explicit operator const char&();
+
+            constexpr explicit operator char() const volatile && noexcept;
+        };
+    )";
+
+    auto tu = parse(p, "cpp_function", code);
+    auto f = tu.parse();
+    auto count = 0u;
+    p.for_each_type([&](const cpp_type &t)
+    {
+        for (auto& e : dynamic_cast<const cpp_class&>(t))
+        {
+            auto& op = dynamic_cast<const cpp_conversion_op&>(e);
+
+            if (op.get_name() == "operator int")
+            {
+                ++count;
+                REQUIRE(op.get_target_type().get_name() == "int");
+                REQUIRE(!op.is_explicit());
+                REQUIRE(!op.is_constexpr());
+                REQUIRE(!is_const(op.get_cv()));
+                REQUIRE(!is_volatile(op.get_cv()));
+                REQUIRE(op.get_ref_qualifier() == cpp_ref_none);
+                REQUIRE(op.get_noexcept() == "false");
+            }
+            else if (op.get_name() == "operator const char &")
+            {
+                ++count;
+                REQUIRE(op.get_target_type().get_name() == "const char &");
+                REQUIRE(op.is_explicit());
+                REQUIRE(!op.is_constexpr());
+                REQUIRE(!is_const(op.get_cv()));
+                REQUIRE(!is_volatile(op.get_cv()));
+                REQUIRE(op.get_ref_qualifier() == cpp_ref_none);
+                REQUIRE(op.get_noexcept() == "false");
+            }
+            else if (op.get_name() == "operator char")
+            {
+                ++count;
+                REQUIRE(op.get_target_type().get_name() == "char");
+                REQUIRE(op.is_explicit());
+                REQUIRE(op.is_constexpr());
+                REQUIRE(is_const(op.get_cv()));
+                REQUIRE(is_volatile(op.get_cv()));
+                REQUIRE(op.get_ref_qualifier() == cpp_ref_rvalue);
+                REQUIRE(op.get_noexcept() == "true");
+            }
+            else
+                REQUIRE(false);
+        }
+    });
+    REQUIRE(count == 3u);
 }

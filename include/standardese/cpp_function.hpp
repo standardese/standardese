@@ -40,8 +40,9 @@ namespace standardese
 
     enum cpp_function_flags : unsigned
     {
-        cpp_variadic_fnc    = 1,
-        cpp_constexpr_fnc   = 2,
+        cpp_variadic_fnc        = 1,
+        cpp_constexpr_fnc       = 2,
+        cpp_explicit_conversion = 4,
     };
 
     enum cpp_function_definition
@@ -81,6 +82,11 @@ namespace standardese
         bool is_constexpr() const STANDARDESE_NOEXCEPT
         {
             return info_.flags & cpp_constexpr_fnc;
+        }
+
+        bool is_explicit() const STANDARDESE_NOEXCEPT
+        {
+            return info_.flags & cpp_explicit_conversion;
         }
 
         cpp_function_definition get_definition() const STANDARDESE_NOEXCEPT
@@ -211,6 +217,43 @@ namespace standardese
         }
 
     private:
+        cpp_member_function_info info_;
+    };
+
+    class cpp_conversion_op
+    : public cpp_function_base
+    {
+    public:
+        static cpp_ptr<cpp_conversion_op> parse(cpp_name scope, cpp_cursor cur);
+
+        cpp_conversion_op(cpp_name scope, cpp_name name, cpp_comment comment,
+                          cpp_type_ref target_type,
+                          cpp_function_info finfo, cpp_member_function_info minfo)
+        : cpp_function_base(std::move(scope), std::move(name), std::move(comment), std::move(finfo)),
+          target_type_(std::move(target_type)), info_(minfo) {}
+
+        const cpp_type_ref& get_target_type() const STANDARDESE_NOEXCEPT
+        {
+            return target_type_;
+        }
+
+        cpp_cv get_cv() const STANDARDESE_NOEXCEPT
+        {
+            return info_.cv_qualifier;
+        }
+
+        cpp_ref_qualifier get_ref_qualifier() const STANDARDESE_NOEXCEPT
+        {
+            return info_.ref_qualifier;
+        }
+
+        cpp_virtual get_virtual() const STANDARDESE_NOEXCEPT
+        {
+            return info_.virtual_flag;
+        }
+
+    private:
+        cpp_type_ref target_type_;
         cpp_member_function_info info_;
     };
 } // namespace standardese

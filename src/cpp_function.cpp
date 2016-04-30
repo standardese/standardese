@@ -109,3 +109,23 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(cpp_name scope, cpp_curs
 
     return result;
 }
+
+cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(cpp_name scope, cpp_cursor cur)
+{
+    assert(clang_getCursorKind(cur) == CXCursor_ConversionFunction);
+
+    auto name = detail::parse_name(cur);
+
+    cpp_function_info finfo;
+    cpp_member_function_info minfo;
+    auto return_type = detail::parse_function_info(cur, name, finfo, minfo);
+    assert(return_type.empty());
+
+    auto target_type = clang_getCursorResultType(cur);
+    auto target_type_spelling = name.substr(9);
+    assert(target_type_spelling.front() != ' '); // no multiple whitespace
+
+    return detail::make_ptr<cpp_conversion_op>(std::move(scope), std::move(name), detail::parse_comment(cur),
+                                               cpp_type_ref(target_type, std::move(target_type_spelling)),
+                                               std::move(finfo), std::move(minfo));
+}

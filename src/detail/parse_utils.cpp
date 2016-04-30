@@ -165,6 +165,31 @@ cpp_name detail::parse_enum_type_name(cpp_cursor cur, bool &definition)
     return result;
 }
 
+namespace
+{
+    // compares until whitespace
+    bool token_equal(const string &token, const char* &ptr)
+    {
+        auto save = ptr;
+        auto token_ptr = token.get();
+        while (true)
+        {
+            if (!*token_ptr)
+                return true;
+            else if (!*ptr)
+                break;
+            else if (*ptr == ' ')
+                return true;
+            else if (*token_ptr != *ptr)
+                break;
+            ++token_ptr;
+            ++ptr;
+        }
+        ptr = save;
+        return false;
+    }
+}
+
 cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
                                      cpp_function_info &finfo,
                                      cpp_member_function_info &minfo)
@@ -172,6 +197,8 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
     cpp_name result;
     auto bracket_count = 0;
     auto start_parameters = 0;
+
+    auto ptr = name.c_str();
 
     enum
     {
@@ -203,20 +230,31 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
         if (state == prefix) // everything before the function name
         {
             if (spelling == "extern"
-                || spelling == "static"
-                || spelling == "explicit")
+                || spelling == "static")
                 return true; // skip leading ignored keywords
+            else if (spelling == "operator")
+            {
+                assert(name.compare(0, 8, "operator") == 0);
+                ptr += 8; // bump pointer for comparision
+                while (*ptr == ' ')
+                    ++ptr;
+            }
             else if (spelling == "constexpr")
                 finfo.set_flag(cpp_constexpr_fnc); // add constepxr flag
+            else if (spelling == "explicit")
+                finfo.set_flag(cpp_explicit_conversion); // add explicit flag
             else if (spelling == "virtual")
                 minfo.virtual_flag = cpp_virtual_new; // mark virtual
             else if (ret != decltype_return && spelling == "auto")
                 ret = auto_return; // mark auto return type
             // parameter begin
-            else if (spelling == name.c_str())
+            else if (token_equal(spelling, ptr)) // consume only up to whitespace for conversion op
             {
-                state = parameters; // enter parameters
-                start_parameters = bracket_count;
+                if (!*ptr)
+                {
+                    state = parameters; // enter parameters
+                    start_parameters = bracket_count;
+                }
             }
             // normal case
             else
