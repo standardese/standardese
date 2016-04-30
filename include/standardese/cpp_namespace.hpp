@@ -85,6 +85,16 @@ namespace standardese
         cpp_using_directive(cpp_name target_scope, cpp_name target_name, cpp_comment comment)
         : cpp_entity(std::move(target_scope), std::move(target_name), std::move(comment)) {}
     };
+
+    class cpp_using_declaration
+    : public cpp_entity
+    {
+    public:
+        static cpp_ptr<cpp_using_declaration> parse(cpp_cursor cur);
+
+        cpp_using_declaration(cpp_name target_scope, cpp_name target_name, cpp_comment comment)
+        : cpp_entity(std::move(target_scope), std::move(target_name), std::move(comment)) {}
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_NAMESPACE_HPP_INCLUDED

@@ -5,6 +5,7 @@
 #include <standardese/cpp_namespace.hpp>
 
 #include <catch.hpp>
+#include <standardese/cpp_class.hpp>
 
 #include "test_parser.hpp"
 
@@ -324,4 +325,101 @@ TEST_CASE("cpp_using_directive", "[cpp]")
     });
 
     REQUIRE(count == 6u);
+}
+
+TEST_CASE("cpp_using_declaration", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(
+        namespace ns
+        {
+            struct foo;
+
+            namespace inner
+            {
+                struct bar;
+            }
+
+            /// a
+            using inner::bar;
+        }
+
+        /// b
+        using ns::foo;
+
+        /// c
+        using ns::inner::bar;
+
+        struct base
+        {
+            base(int);
+
+            void foo(int);
+        };
+
+        struct derived
+        : base
+        {
+            /// d
+            using base::base;
+
+            /// e
+            using base::foo;
+        };
+    )";
+
+    auto tu = parse(p, "cpp_using_declaration", code);
+
+    auto f = tu.parse();
+    auto count = 0u;
+    p.for_each_in_namespace([&](const cpp_entity &e)
+    {
+        if (auto ptr = dynamic_cast<const cpp_using_declaration*>(&e))
+        {
+            if (ptr->get_comment() == "/// a")
+            {
+                ++count;
+                REQUIRE(ptr->get_name() == "inner::bar");
+                REQUIRE(ptr->get_unique_name() == "ns::inner::bar");
+            }
+            else if (ptr->get_comment() == "/// b")
+            {
+                ++count;
+                REQUIRE(ptr->get_name() == "ns::foo");
+                REQUIRE(ptr->get_unique_name() == "ns::foo");
+            }
+            else if (ptr->get_comment() == "/// c")
+            {
+                ++count;
+                REQUIRE(ptr->get_name() == "ns::inner::bar");
+                REQUIRE(ptr->get_unique_name() == "ns::inner::bar");
+            }
+            else
+                REQUIRE(false);
+        }
+        else if (e.get_name() == "derived")
+        {
+            for (auto& m : dynamic_cast<const cpp_class &>(e))
+            {
+                if (m.get_name() == "base")
+                    continue; // skip base specifier
+
+                auto& ud = dynamic_cast<const cpp_using_declaration&>(m);
+                if (ud.get_comment() == "/// d")
+                {
+                    ++count;
+                    REQUIRE(ud.get_name() == "base::base");
+                    REQUIRE(ud.get_unique_name() == "base::base");
+                }
+                else if (ud.get_comment() == "/// e")
+                {
+                    ++count;
+                    REQUIRE(ud.get_name() == "base::foo");
+                    REQUIRE(ud.get_unique_name() == "base::foo");
+                }
+            }
+        }
+    });
+    REQUIRE(count == 5u);
 }

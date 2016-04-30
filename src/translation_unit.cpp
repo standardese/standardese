@@ -158,6 +158,9 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_UsingDirective:
             stack.add_entity(cpp_using_directive::parse(cur));
             return CXChildVisit_Continue;
+        case CXCursor_UsingDeclaration:
+            stack.add_entity(cpp_using_declaration::parse(cur));
+            return CXChildVisit_Continue;
 
         case CXCursor_TypedefDecl:
         case CXCursor_TypeAliasDecl:

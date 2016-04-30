@@ -55,6 +55,10 @@ namespace
                 target += "::";
             target += ref;
 
+            if (clang_getCursorKind(ref_cursor) == CXCursor_OverloadedDeclRef)
+                // abort when OverloadedDeclRef is found
+                // otherwise for inheriting ctors an extra TypeRef follows
+                return CXChildVisit_Break;
             return CXChildVisit_Recurse;
         });
     }
@@ -79,3 +83,12 @@ cpp_ptr<cpp_using_directive> cpp_using_directive::parse(cpp_cursor cur)
     return detail::make_ptr<cpp_using_directive>(std::move(target_scope), std::move(target), detail::parse_comment(cur));
 }
 
+cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(cpp_cursor cur)
+{
+    assert(clang_getCursorKind(cur) == CXCursor_UsingDeclaration);
+
+    cpp_name target, target_scope;
+    parse_target(cur, target, target_scope);
+
+    return detail::make_ptr<cpp_using_declaration>(std::move(target_scope), std::move(target), detail::parse_comment(cur));
+}
