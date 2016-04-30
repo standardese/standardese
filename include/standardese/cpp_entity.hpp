@@ -210,6 +210,14 @@ namespace standardese
             return "";
         }
     };
+
+    class cpp_parameter_base
+    : public cpp_entity
+    {
+    protected:
+        cpp_parameter_base(cpp_name name, cpp_comment comment)
+        : cpp_entity("", std::move(name), std::move(comment)) {}
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_ENTITY_HPP_INCLUDED

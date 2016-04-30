@@ -13,19 +13,24 @@
 namespace standardese
 {
     class cpp_function_parameter
-    : public cpp_entity
+    : public cpp_parameter_base
     {
     public:
         static cpp_ptr<cpp_function_parameter> parse(cpp_cursor cur);
 
         cpp_function_parameter(cpp_name name, cpp_comment comment,
                                cpp_type_ref type, std::string default_value = "")
-        : cpp_entity("", std::move(name), std::move(comment)),
+        : cpp_parameter_base(std::move(name), std::move(comment)),
           type_(std::move(type)), default_(std::move(default_value)) {}
 
         const cpp_type_ref& get_type() const STANDARDESE_NOEXCEPT
         {
             return type_;
+        }
+
+        bool has_default_value() const STANDARDESE_NOEXCEPT
+        {
+            return !default_.empty();
         }
 
         const std::string& get_default_value() const STANDARDESE_NOEXCEPT
@@ -66,7 +71,7 @@ namespace standardese
 
     // common stuff for all functions
     class cpp_function_base
-    : public cpp_entity, public cpp_entity_container<cpp_function_parameter>
+    : public cpp_entity, public cpp_entity_container<cpp_parameter_base>
     {
     public:
         void add_parameter(cpp_ptr<cpp_function_parameter> param)
