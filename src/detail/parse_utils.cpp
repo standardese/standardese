@@ -101,7 +101,8 @@ cpp_name detail::parse_variable_type_name(cpp_cursor cur, const cpp_name &name, 
         if (spelling == name.c_str()
           || spelling == "extern"
           || spelling == "static"
-          || spelling == "thread_local")
+          || spelling == "thread_local"
+          || spelling == "mutable")
             return true;
         else if (spelling == "=")
             in_type = false;

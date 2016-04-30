@@ -58,6 +58,30 @@ namespace standardese
         cpp_linkage linkage_;
         bool thread_local_;
     };
+
+    class cpp_member_variable
+    : public cpp_variable
+    {
+    public:
+        static cpp_ptr<cpp_member_variable> parse(cpp_name scope, cpp_cursor cur);
+
+        cpp_member_variable(cpp_name scope, cpp_name name, cpp_comment comment,
+                         cpp_type_ref type, std::string initializer,
+                         cpp_linkage linkage = cpp_no_linkage,
+                         bool is_mutable = false, bool is_thread_local = false)
+        : cpp_variable(std::move(scope), std::move(name), std::move(comment),
+                       std::move(type), std::move(initializer), linkage,
+                       is_thread_local),
+          mutable_(is_mutable) {}
+
+        bool is_mutable() const STANDARDESE_NOEXCEPT
+        {
+            return mutable_;
+        }
+
+    private:
+        bool mutable_;
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_VARIABLE_HPP_INCLUDED

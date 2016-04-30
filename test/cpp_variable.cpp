@@ -5,6 +5,7 @@
 #include <standardese/cpp_variable.hpp>
 
 #include <catch.hpp>
+#include <standardese/cpp_class.hpp>
 
 #include "test_parser.hpp"
 
@@ -117,4 +118,82 @@ TEST_CASE("cpp_variable", "[cpp]")
         }
     });
     REQUIRE(count == 8);
+}
+
+TEST_CASE("cpp_member_variable", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(
+        struct foo
+        {
+            int a;
+
+            char b = '4';
+
+            const int c[42];
+
+            mutable float d;
+
+            static int& e;
+        };
+    )";
+
+    auto tu = parse(p, "cpp_member_variable", code);
+
+    auto f = tu.parse();
+    auto count = 0u;
+    p.for_each_type([&](const cpp_type &t)
+    {
+        auto& c = dynamic_cast<const cpp_class&>(t);
+        for (auto& e : c)
+        {
+            auto& var = dynamic_cast<const cpp_variable&>(e);
+            INFO(var.get_name());
+            REQUIRE(var.get_unique_name() == "foo::" + var.get_name());
+            REQUIRE(!var.is_thread_local());
+
+            if (var.get_name() != "e")
+                REQUIRE(var.get_linkage() == cpp_no_linkage);
+
+            if (var.get_name() == "a")
+            {
+                ++count;
+                REQUIRE(var.get_type().get_name() == "int");
+                REQUIRE(var.get_initializer() == "");
+                REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+            }
+            else if (var.get_name() == "b")
+            {
+                ++count;
+                REQUIRE(var.get_type().get_name() == "char");
+                REQUIRE(var.get_initializer() == "'4'");
+                REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+            }
+            else if (var.get_name() == "c")
+            {
+                ++count;
+                REQUIRE(var.get_type().get_name() == "const int[42]");
+                REQUIRE(var.get_initializer() == "");
+                REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+            }
+            else if (var.get_name() == "d")
+            {
+                ++count;
+                REQUIRE(var.get_type().get_name() == "float");
+                REQUIRE(var.get_initializer() == "");
+                REQUIRE(dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+            }
+            else if (var.get_name() == "e")
+            {
+                ++count;
+                REQUIRE(var.get_type().get_name() == "int &");
+                REQUIRE(var.get_initializer() == "");
+                REQUIRE(var.get_linkage() == cpp_external_linkage);
+            }
+            else
+                REQUIRE(false);
+        }
+    });
+    REQUIRE(count == 5);
 }

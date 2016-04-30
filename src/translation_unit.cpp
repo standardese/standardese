@@ -174,6 +174,9 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_VarDecl:
             stack.add_entity(cpp_variable::parse(scope, cur));
             return CXChildVisit_Continue;
+        case CXCursor_FieldDecl:
+            stack.add_entity(cpp_member_variable::parse(scope, cur));
+            return CXChildVisit_Continue;
 
         case CXCursor_FunctionDecl:
             stack.add_entity(cpp_function::parse(scope, cur));
