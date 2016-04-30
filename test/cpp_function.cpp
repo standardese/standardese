@@ -418,3 +418,114 @@ TEST_CASE("cpp_constructor", "[cpp]")
     });
     REQUIRE(count == 4u);
 }
+
+TEST_CASE("cpp_destructor", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(
+        struct a
+        {
+            ~a() = default;
+        };
+
+        struct b
+        {
+            ~b() = delete;
+        };
+
+        struct c
+        {
+            ~c() noexcept(false);
+        };
+
+        struct d
+        {
+            virtual ~d() noexcept = 0;
+        };
+
+        struct e : d
+        {
+            ~e() override;
+        };
+    )";
+
+    auto tu = parse(p, "cpp_conversion_op", code);
+    auto f = tu.parse();
+    auto count = 0u;
+    p.for_each_type([&](const cpp_type &t)
+    {
+        auto& c = dynamic_cast<const cpp_class &>(t);
+        if (c.get_name() == "a")
+        {
+            for (auto& e : c)
+            {
+                auto& dtor = dynamic_cast<const cpp_destructor&>(e);
+                REQUIRE(no_parameters(dtor) == 0);
+                REQUIRE(!dtor.is_constexpr());
+                REQUIRE(dtor.get_noexcept() == "true");
+                REQUIRE(dtor.get_virtual() == cpp_virtual_none);
+                REQUIRE(dtor.get_definition() == cpp_function_definition_defaulted);
+                ++count;
+            }
+        }
+        else if (c.get_name() == "b")
+        {
+            for (auto& e : c)
+            {
+                auto& dtor = dynamic_cast<const cpp_destructor&>(e);
+                REQUIRE(no_parameters(dtor) == 0);
+                REQUIRE(!dtor.is_constexpr());
+                REQUIRE(dtor.get_noexcept() == "true");
+                REQUIRE(dtor.get_virtual() == cpp_virtual_none);
+                REQUIRE(dtor.get_definition() == cpp_function_definition_deleted);
+                ++count;
+            }
+        }
+        else if (c.get_name() == "c")
+        {
+            for (auto& e : c)
+            {
+                auto& dtor = dynamic_cast<const cpp_destructor&>(e);
+                REQUIRE(no_parameters(dtor) == 0);
+                REQUIRE(!dtor.is_constexpr());
+                REQUIRE(dtor.get_noexcept() == "false");
+                REQUIRE(dtor.get_virtual() == cpp_virtual_none);
+                REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
+                ++count;
+            }
+        }
+        else if (c.get_name() == "d")
+        {
+            for (auto& e : c)
+            {
+                auto& dtor = dynamic_cast<const cpp_destructor&>(e);
+                REQUIRE(no_parameters(dtor) == 0);
+                REQUIRE(!dtor.is_constexpr());
+                REQUIRE(dtor.get_noexcept() == "true");
+                REQUIRE(dtor.get_virtual() == cpp_virtual_pure);
+                REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
+                ++count;
+            }
+        }
+        else if (c.get_name() == "e")
+        {
+            for (auto& e : c)
+            {
+                if (e.get_name() == "d")
+                    continue; // skip base
+
+                auto& dtor = dynamic_cast<const cpp_destructor&>(e);
+                REQUIRE(no_parameters(dtor) == 0);
+                REQUIRE(!dtor.is_constexpr());
+                REQUIRE(dtor.get_noexcept() == "true");
+                REQUIRE(dtor.get_virtual() == cpp_virtual_overriden);
+                REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
+                ++count;
+            }
+        }
+        else
+            REQUIRE(false);
+    });
+    REQUIRE(count == 5u);
+}

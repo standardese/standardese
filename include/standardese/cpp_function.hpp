@@ -267,6 +267,27 @@ namespace standardese
                         cpp_function_info info)
         : cpp_function_base(std::move(scope), std::move(name), std::move(comment), std::move(info)) {}
     };
+
+    class cpp_destructor
+    : public cpp_function_base
+    {
+    public:
+        static cpp_ptr<cpp_destructor> parse(cpp_name scope, cpp_cursor cur);
+
+        cpp_destructor(cpp_name scope, cpp_name name, cpp_comment comment,
+                       cpp_function_info info, cpp_virtual virtual_flag)
+        : cpp_function_base(std::move(scope), std::move(name), std::move(comment),
+                            std::move(info)),
+          virtual_(virtual_flag) {}
+
+        cpp_virtual get_virtual() const STANDARDESE_NOEXCEPT
+        {
+            return virtual_;
+        }
+
+    private:
+        cpp_virtual virtual_;
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_FUNCTION_HPP_INCLUDED

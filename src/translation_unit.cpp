@@ -187,6 +187,9 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_Constructor:
             stack.add_entity(cpp_constructor::parse(scope, cur));
             return CXChildVisit_Continue;
+        case CXCursor_Destructor:
+            stack.add_entity(cpp_destructor::parse(scope, cur));
+            return CXChildVisit_Continue;
 
         case CXCursor_ClassDecl:
         case CXCursor_StructDecl:

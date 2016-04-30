@@ -49,6 +49,10 @@ namespace
         assert(minfo.cv_qualifier  == cpp_cv(0));
         assert(minfo.ref_qualifier == cpp_ref_none);
 
+        // no noexcept
+        if (info.noexcept_expression.empty())
+            info.noexcept_expression = "false";
+
         return {type, std::move(type_name)};
     }
 
@@ -85,6 +89,10 @@ namespace
         auto type = clang_getCursorResultType(cur);
         auto type_name = detail::parse_function_info(cur, name, finfo, minfo);
 
+        // no noexcept
+        if (finfo.noexcept_expression.empty())
+            finfo.noexcept_expression = "false";
+
         return {type, std::move(type_name)};
     }
 }
@@ -117,6 +125,9 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(cpp_name scope, cpp_cursor c
     cpp_member_function_info minfo;
     auto return_type = detail::parse_function_info(cur, name, finfo, minfo);
     assert(return_type.empty());
+    // no noexcept
+    if (finfo.noexcept_expression.empty())
+        finfo.noexcept_expression = "false";
 
     auto target_type = clang_getCursorResultType(cur);
     auto target_type_spelling = name.substr(9);
@@ -136,9 +147,33 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(cpp_name scope, cpp_cursor cur)
     cpp_function_info info;
     auto return_type = parse_function_info(cur, name, info);
     assert(return_type.get_name().empty());
+    // no noexcept
+    if (info.noexcept_expression.empty())
+        info.noexcept_expression = "false";
 
     auto result =  detail::make_ptr<cpp_constructor>(std::move(scope), std::move(name), detail::parse_comment(cur),
                                                      std::move(info));
     parse_parameters(result.get(), cur);
     return result;
+}
+
+cpp_ptr<cpp_destructor> cpp_destructor::parse(cpp_name scope, cpp_cursor cur)
+{
+    assert(clang_getCursorKind(cur) == CXCursor_Destructor);
+
+    auto name = detail::parse_name(cur);
+
+    cpp_function_info info;
+    cpp_member_function_info minfo;
+    auto return_type = detail::parse_function_info(cur, name, info, minfo);
+    assert(return_type.empty());
+    assert(minfo.cv_qualifier == cpp_cv(0));
+    assert(minfo.ref_qualifier == cpp_ref_none);
+
+    // no noexcept
+    if (info.noexcept_expression.empty())
+        info.noexcept_expression = "true"; // destructors are implicitly noexcept!
+
+    return detail::make_ptr<cpp_destructor>(std::move(scope), std::move(name), detail::parse_comment(cur),
+                                            std::move(info), minfo.virtual_flag);
 }

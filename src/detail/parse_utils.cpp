@@ -227,6 +227,10 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
         else if (spelling == ")")
             bracket_count--;
 
+        if (spelling != ")" && bracket_count == 0u && state == noexcept_expression)
+            // no brackets, directly back
+            state = suffix;
+
         if (state == prefix) // everything before the function name
         {
             if (spelling == "extern"
@@ -279,6 +283,17 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
             }
             else if (spelling == ";" || spelling == "{")
                 return false; // finish with declaration part
+            else if (spelling == "=")
+            {
+                state = definition; // enter definition
+                return true;
+            }
+            else if (spelling == "noexcept")
+            {
+                state = noexcept_expression; // enter noexcept expression
+                was_noexcept = true;
+                return true;
+            }
 
             // count brackets to handle: int (*f(int a))(volatile char);
             // i.e. don't mistake the cv there for a cv specifier
@@ -293,17 +308,10 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
                     minfo.ref_qualifier = cpp_ref_lvalue; // lvalue member function
                 else if (spelling == "&&")
                     minfo.ref_qualifier = cpp_ref_rvalue; // rvalue member function
-                else if (spelling == "noexcept")
-                {
-                    state = noexcept_expression; // enter noexcept expression
-                    was_noexcept = true;
-                }
                 else if (spelling == "override")
                     minfo.virtual_flag = cpp_virtual_overriden; // make override
                 else if (spelling == "final")
                     minfo.virtual_flag = cpp_virtual_final; // make final
-                else if (spelling == "=")
-                    state = definition; // enter definition
                 else
                     cat_token(result, spelling); // part of return type
             }
@@ -316,7 +324,10 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
                 // if inside the noexcept(...)
                 cat_token(finfo.noexcept_expression, spelling);
             else if (bracket_count == 0)
+            {
+                assert(spelling == ")");
                 state = suffix; // continue with suffix
+            }
         }
         else if (state == trailing_return) // trailing return type
         {
@@ -352,9 +363,6 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
     if (was_noexcept && finfo.noexcept_expression.empty())
         // this means simply noexcept without a condition
         finfo.noexcept_expression = "true";
-    else if (!was_noexcept)
-        // no noexcept
-        finfo.noexcept_expression = "false";
 
     // set variadic flag
     if (clang_isFunctionTypeVariadic(clang_getCursorType(cur)))
