@@ -93,6 +93,13 @@ namespace
         if (finfo.noexcept_expression.empty())
             finfo.noexcept_expression = "false";
 
+        // handle static functions
+        if (clang_CXXMethod_isStatic(cur))
+        {
+            assert(minfo.virtual_flag == cpp_virtual_none);
+            minfo.virtual_flag = cpp_virtual_static;
+        }
+
         return {type, std::move(type_name)};
     }
 }
