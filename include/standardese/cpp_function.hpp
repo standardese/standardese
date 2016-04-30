@@ -256,6 +256,17 @@ namespace standardese
         cpp_type_ref target_type_;
         cpp_member_function_info info_;
     };
+
+    class cpp_constructor
+    : public cpp_function_base
+    {
+    public:
+        static cpp_ptr<cpp_constructor> parse(cpp_name scope, cpp_cursor cur);
+
+        cpp_constructor(cpp_name scope, cpp_name name, cpp_comment comment,
+                        cpp_function_info info)
+        : cpp_function_base(std::move(scope), std::move(name), std::move(comment), std::move(info)) {}
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_FUNCTION_HPP_INCLUDED

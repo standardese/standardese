@@ -11,6 +11,14 @@
 
 using namespace standardese;
 
+std::size_t no_parameters(const cpp_function_base &base)
+{
+    std::size_t result = 0;
+    for (auto& e : base)
+        ++result;
+    return result;
+}
+
 TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
 {
     parser p;
@@ -82,6 +90,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(no_parameters(func) == 2u);
             }
             else if (func.get_name() == "b")
             {
@@ -90,6 +99,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(no_parameters(func) == 1u);
             }
             else if (func.get_name() == "c")
             {
@@ -98,6 +108,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(no_parameters(func) == 1u);
             }
             else if (func.get_name() == "d")
             {
@@ -106,6 +117,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "true");
+                REQUIRE(no_parameters(func) == 0u);
             }
             else if (func.get_name() == "e")
             {
@@ -114,6 +126,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(no_parameters(func) == 0u);
             }
             else if (func.get_name() == "f")
             {
@@ -122,6 +135,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(no_parameters(func) == 1u);
             }
             else if (func.get_name() == "g")
             {
@@ -130,6 +144,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(no_parameters(func) == 0u);
             }
             else if (func.get_name() == "h")
             {
@@ -138,6 +153,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "noexcept(e())");
+                REQUIRE(no_parameters(func) == 0u);
             }
             else if (func.get_name() == "i")
             {
@@ -146,6 +162,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(no_parameters(func) == 0u);
             }
             else
                 REQUIRE(false);
@@ -164,6 +181,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 {
                     ++count;
                     REQUIRE(func.get_return_type().get_name() == "void");
+                    REQUIRE(no_parameters(func) == 0u);
                 }
                 else
                 {
@@ -177,6 +195,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                         REQUIRE(!is_volatile(mfunc.get_cv()));
                         REQUIRE(mfunc.get_ref_qualifier() == cpp_ref_none);
                         REQUIRE(mfunc.get_definition() == cpp_function_definition_normal);
+                        REQUIRE(no_parameters(func) == 0u);
                     }
                     else if (mfunc.get_name() == "l")
                     {
@@ -187,6 +206,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                         REQUIRE(is_volatile(mfunc.get_cv()));
                         REQUIRE(mfunc.get_ref_qualifier() == cpp_ref_rvalue);
                         REQUIRE(mfunc.get_definition() == cpp_function_definition_deleted);
+                        REQUIRE(no_parameters(func) == 0u);
                     }
                     else if (mfunc.get_name() == "m")
                     {
@@ -197,6 +217,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                         REQUIRE(!is_volatile(mfunc.get_cv()));
                         REQUIRE(mfunc.get_ref_qualifier() == cpp_ref_none);
                         REQUIRE(mfunc.get_definition() == cpp_function_definition_normal);
+                        REQUIRE(no_parameters(func) == 1u);
                     }
                     else
                         REQUIRE(false);
@@ -225,6 +246,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                     REQUIRE(!is_volatile(func.get_cv()));
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
                     REQUIRE(func.get_definition() == cpp_function_definition_normal);
+                    REQUIRE(no_parameters(func) == 0u);
                 }
                 else if (func.get_name() == "m")
                 {
@@ -235,6 +257,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                     REQUIRE(!is_volatile(func.get_cv()));
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
                     REQUIRE(func.get_definition() == cpp_function_definition_normal);
+                    REQUIRE(no_parameters(func) == 1u);
                 }
                 else if (func.get_name() == "operator=")
                 {
@@ -245,6 +268,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                     REQUIRE(!is_volatile(func.get_cv()));
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
                     REQUIRE(func.get_definition() == cpp_function_definition_defaulted);
+                    REQUIRE(no_parameters(func) == 1u);
                 }
                 else
                     REQUIRE(false);
@@ -271,7 +295,7 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
         };
     )";
 
-    auto tu = parse(p, "cpp_function", code);
+    auto tu = parse(p, "cpp_conversion_op", code);
     auto f = tu.parse();
     auto count = 0u;
     p.for_each_type([&](const cpp_type &t)
@@ -279,6 +303,7 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
         for (auto& e : dynamic_cast<const cpp_class&>(t))
         {
             auto& op = dynamic_cast<const cpp_conversion_op&>(e);
+            REQUIRE(no_parameters(op) == 0u);
 
             if (op.get_name() == "operator int")
             {
@@ -318,4 +343,78 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
         }
     });
     REQUIRE(count == 3u);
+}
+
+TEST_CASE("cpp_constructor", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(
+        struct foo
+        {
+            /// a
+            foo() = delete;
+
+            /// b
+            explicit foo(int a = {});
+
+            /// c
+            constexpr foo(char c) noexcept;
+
+            /// d
+            foo(const foo &other) = default;
+        };
+    )";
+
+    auto tu = parse(p, "cpp_conversion_op", code);
+    auto f = tu.parse();
+    auto count = 0u;
+    p.for_each_type([&](const cpp_type &t)
+    {
+        for (auto& e : dynamic_cast<const cpp_class&>(t))
+        {
+            auto& ctor = dynamic_cast<const cpp_constructor&>(e);
+            REQUIRE(!ctor.is_variadic());
+
+            if (ctor.get_comment() == "/// a")
+            {
+                ++count;
+                REQUIRE(no_parameters(ctor) == 0u);
+                REQUIRE(!ctor.is_constexpr());
+                REQUIRE(!ctor.is_explicit());
+                REQUIRE(ctor.get_noexcept() == "false");
+                REQUIRE(ctor.get_definition() == cpp_function_definition_deleted);
+            }
+            else if (ctor.get_comment() == "/// b")
+            {
+                ++count;
+                REQUIRE(no_parameters(ctor) == 1u);
+                REQUIRE(!ctor.is_constexpr());
+                REQUIRE(ctor.is_explicit());
+                REQUIRE(ctor.get_noexcept() == "false");
+                REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
+            }
+            else if (ctor.get_comment() == "/// c")
+            {
+                ++count;
+                REQUIRE(no_parameters(ctor) == 1u);
+                REQUIRE(ctor.is_constexpr());
+                REQUIRE(!ctor.is_explicit());
+                REQUIRE(ctor.get_noexcept() == "true");
+                REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
+            }
+            else if (ctor.get_comment() == "/// d")
+            {
+                ++count;
+                REQUIRE(no_parameters(ctor) == 1u);
+                REQUIRE(!ctor.is_constexpr());
+                REQUIRE(!ctor.is_explicit());
+                REQUIRE(ctor.get_noexcept() == "false");
+                REQUIRE(ctor.get_definition() == cpp_function_definition_defaulted);
+            }
+            else
+                REQUIRE(false);
+        }
+    });
+    REQUIRE(count == 4u);
 }

@@ -54,12 +54,9 @@ namespace
 
     void parse_parameters(cpp_function_base *base, cpp_cursor cur)
     {
-        detail::visit_children(cur, [&](CXCursor cur, CXCursor)
-        {
-            if (clang_getCursorKind(cur) == CXCursor_ParmDecl)
-                base->add_parameter(cpp_function_parameter::parse(cur));
-            return CXChildVisit_Continue;
-        });
+        auto no = clang_Cursor_getNumArguments(cur);
+        for (auto i = 0; i != no; ++i)
+            base->add_parameter(cpp_function_parameter::parse(clang_Cursor_getArgument(cur, i)));
     }
 }
 
@@ -128,4 +125,20 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(cpp_name scope, cpp_cursor c
     return detail::make_ptr<cpp_conversion_op>(std::move(scope), std::move(name), detail::parse_comment(cur),
                                                cpp_type_ref(target_type, std::move(target_type_spelling)),
                                                std::move(finfo), std::move(minfo));
+}
+
+cpp_ptr<cpp_constructor> cpp_constructor::parse(cpp_name scope, cpp_cursor cur)
+{
+    assert(clang_getCursorKind(cur) == CXCursor_Constructor);
+
+    auto name = detail::parse_name(cur);
+
+    cpp_function_info info;
+    auto return_type = parse_function_info(cur, name, info);
+    assert(return_type.get_name().empty());
+
+    auto result =  detail::make_ptr<cpp_constructor>(std::move(scope), std::move(name), detail::parse_comment(cur),
+                                                     std::move(info));
+    parse_parameters(result.get(), cur);
+    return result;
 }
