@@ -90,6 +90,13 @@ cpp_ptr<cpp_member_variable> cpp_member_variable::parse(cpp_name scope, cpp_curs
     auto is_thread_local = is_variable_thread_local(cur, name);
     auto is_mutable = is_variable_mutable(cur, name);
 
+    if (clang_Cursor_isBitField(cur))
+    {
+        auto no_bits = clang_getFieldDeclBitWidth(cur);
+        return detail::make_ptr<cpp_bitfield>(std::move(scope), std::move(name), detail::parse_comment(cur),
+                                             std::move(type), std::move(initializer), no_bits, linkage,
+                                             is_mutable, is_thread_local);
+    }
     return detail::make_ptr<cpp_member_variable>(std::move(scope), std::move(name), detail::parse_comment(cur),
                                                  std::move(type), std::move(initializer), linkage,
                                                  is_mutable, is_thread_local);

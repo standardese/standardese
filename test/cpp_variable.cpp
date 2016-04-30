@@ -120,7 +120,7 @@ TEST_CASE("cpp_variable", "[cpp]")
     REQUIRE(count == 8);
 }
 
-TEST_CASE("cpp_member_variable", "[cpp]")
+TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
 {
     parser p;
 
@@ -136,6 +136,11 @@ TEST_CASE("cpp_member_variable", "[cpp]")
             mutable float d;
 
             static int& e;
+
+            int f : 5;
+            int g : 3;
+            int : 0;
+            mutable int h : 1;
         };
     )";
 
@@ -191,9 +196,45 @@ TEST_CASE("cpp_member_variable", "[cpp]")
                 REQUIRE(var.get_initializer() == "");
                 REQUIRE(var.get_linkage() == cpp_external_linkage);
             }
+            else if (var.get_name() == "f")
+            {
+                ++count;
+                REQUIRE(var.get_type().get_name() == "int");
+                REQUIRE(var.get_initializer() == "");
+                REQUIRE(var.get_linkage() == cpp_no_linkage);
+                REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+                REQUIRE(dynamic_cast<const cpp_bitfield&>(var).no_bits() == 5);
+            }
+            else if (var.get_name() == "g")
+            {
+                ++count;
+                REQUIRE(var.get_type().get_name() == "int");
+                REQUIRE(var.get_initializer() == "");
+                REQUIRE(var.get_linkage() == cpp_no_linkage);
+                REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+                REQUIRE(dynamic_cast<const cpp_bitfield&>(var).no_bits() == 3);
+            }
+            else if (var.get_name() == "")
+            {
+                ++count;
+                REQUIRE(var.get_type().get_name() == "int");
+                REQUIRE(var.get_initializer() == "");
+                REQUIRE(var.get_linkage() == cpp_no_linkage);
+                REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+                REQUIRE(dynamic_cast<const cpp_bitfield&>(var).no_bits() == 0);
+            }
+            else if (var.get_name() == "h")
+            {
+                ++count;
+                REQUIRE(var.get_type().get_name() == "int");
+                REQUIRE(var.get_initializer() == "");
+                REQUIRE(var.get_linkage() == cpp_no_linkage);
+                REQUIRE(dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+                REQUIRE(dynamic_cast<const cpp_bitfield&>(var).no_bits() == 1);
+            }
             else
                 REQUIRE(false);
         }
     });
-    REQUIRE(count == 5);
+    REQUIRE(count == 9);
 }

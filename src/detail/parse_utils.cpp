@@ -95,7 +95,7 @@ cpp_name detail::parse_typedef_type_name(cpp_cursor cur, const cpp_name &name)
 cpp_name detail::parse_variable_type_name(cpp_cursor cur, const cpp_name &name, std::string &initializer)
 {
     cpp_name result;
-    auto in_type = true;
+    auto in_type = true, was_bitfield = false;
     visit_tokens(cur, [&](CXToken, const string &spelling)
     {
         if (spelling == name.c_str()
@@ -104,6 +104,10 @@ cpp_name detail::parse_variable_type_name(cpp_cursor cur, const cpp_name &name, 
           || spelling == "thread_local"
           || spelling == "mutable")
             return true;
+        else if (spelling == ":")
+            was_bitfield = true;
+        else if (was_bitfield)
+            was_bitfield = false;
         else if (spelling == "=")
             in_type = false;
         else

@@ -82,6 +82,28 @@ namespace standardese
     private:
         bool mutable_;
     };
+
+    class cpp_bitfield
+    : public cpp_member_variable
+    {
+    public:
+        cpp_bitfield(cpp_name scope, cpp_name name, cpp_comment comment,
+                    cpp_type_ref type, std::string initializer, unsigned no,
+                    cpp_linkage linkage = cpp_no_linkage,
+                    bool is_mutable = false, bool is_thread_local = false)
+        : cpp_member_variable(std::move(scope), std::move(name), std::move(comment),
+                            std::move(type), std::move(initializer), linkage,
+                            is_mutable, is_thread_local),
+          no_bits_(no) {}
+
+        unsigned no_bits() const STANDARDESE_NOEXCEPT
+        {
+            return no_bits_;
+        }
+
+    private:
+        unsigned no_bits_;
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_VARIABLE_HPP_INCLUDED
