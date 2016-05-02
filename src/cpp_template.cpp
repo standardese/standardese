@@ -143,16 +143,34 @@ cpp_ptr<cpp_function_template> cpp_function_template::parse(cpp_name scope, cpp_
     auto func = cpp_function_base::try_parse(std::move(scope), cur);
     assert(func);
 
-    auto name = func->get_name();
     auto result = detail::make_ptr<cpp_function_template>("", std::move(func));
 
     parse_parameters(result.get(), cur);
-    result->set_name(get_template_name(std::move(name), result.get()));
+    result->set_name(get_template_name(result->func_->get_name(), result.get()));
 
     return result;
 }
 
 cpp_function_template::cpp_function_template(cpp_name template_name, cpp_ptr<cpp_function_base> ptr)
+: cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
+  func_(std::move(ptr))
+{}
+
+cpp_ptr<cpp_function_template_specialization> cpp_function_template_specialization::parse(cpp_name scope,
+                                                                                          cpp_cursor cur)
+{
+    auto func = cpp_function_base::try_parse(std::move(scope), cur);
+    assert(func);
+
+    auto result = detail::make_ptr<cpp_function_template_specialization>("", std::move(func));
+
+    result->set_name(detail::parse_template_specialization_name(cur, result->func_->get_name()));
+
+    return result;
+}
+
+cpp_function_template_specialization::cpp_function_template_specialization(cpp_name template_name,
+                                                                           cpp_ptr<cpp_function_base> ptr)
 : cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
   func_(std::move(ptr))
 {}

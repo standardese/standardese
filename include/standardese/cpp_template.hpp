@@ -150,6 +150,10 @@ namespace standardese
         cpp_template_ref default_;
     };
 
+    /// Returns whether cur refers to a full specialization of a template.
+    /// cur must refer to a class or function.
+    bool is_full_specialization(cpp_cursor cur);
+
     class cpp_function_base;
 
     class cpp_function_template
@@ -177,6 +181,29 @@ namespace standardese
 
     private:
         cpp_ptr<cpp_function_base> func_;
+    };
+
+    class cpp_function_template_specialization
+    : public cpp_entity
+    {
+    public:
+        static cpp_ptr<cpp_function_template_specialization> parse(cpp_name scope, cpp_cursor cur);
+
+        cpp_function_template_specialization(cpp_name template_name, cpp_ptr<cpp_function_base> ptr);
+
+        const cpp_function_base& get_function() const STANDARDESE_NOEXCEPT
+        {
+            return *func_;
+        }
+
+        const cpp_template_ref &get_primary_template() const STANDARDESE_NOEXCEPT
+        {
+            return template_;
+        }
+
+    private:
+        cpp_ptr<cpp_function_base> func_;
+        cpp_template_ref template_;
     };
 
     class cpp_class_template
@@ -227,10 +254,6 @@ namespace standardese
 
         cpp_ptr<cpp_class> class_;
     };
-
-    /// Returns whether cur refers to a full specialization of a template.
-    /// cur must refer to a class.
-    bool is_full_specialization(cpp_cursor cur);
 
     class cpp_class_template_full_specialization
     : public cpp_entity

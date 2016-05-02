@@ -282,8 +282,14 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
         }
         else if (state == parameters) // parameter part
         {
-            if (bracket_count == start_parameters)
-                state = suffix; // go to suffix if outside
+            if (bracket_count == start_parameters
+                && spelling != ">")
+                // go to suffix if outside
+                // note that if the bracket_count resets due to >
+                // we're just finished with a specialization part:
+                // void func<int>();
+                // so don't switch then
+                state = suffix;
         }
         else if (state == suffix) // rest of return type, other keywords at the end
         {

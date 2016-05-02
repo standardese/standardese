@@ -369,7 +369,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
 
 // just a quick test to see whether the correct type is unwrapped
 // parsing just forwards
-TEST_CASE("cpp_function_template", "[cpp]")
+TEST_CASE("cpp_function_template and specialization", "[cpp]")
 {
     parser p;
 
@@ -377,8 +377,14 @@ TEST_CASE("cpp_function_template", "[cpp]")
         template <typename A>
         void a(A t);
 
+        template <>
+        void a<int>(int t);
+
         template <int A, typename B>
-        void b(B t);
+        B (*b(B t))();
+
+        template <>
+        int* (*b<0, int*>(int* t))();
 
         struct foo
         {
@@ -404,8 +410,9 @@ TEST_CASE("cpp_function_template", "[cpp]")
             if (ptr->get_function().get_name() == "a")
             {
                 ++count;
-                REQUIRE_NOTHROW(dynamic_cast<const cpp_function*>(ptr));
                 REQUIRE(ptr->get_name() == "a<A>");
+                auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
+                REQUIRE(func.get_return_type().get_name() == "void");
 
                 auto size = 0u;
                 for (auto& param : ptr->get_template_parameters())
@@ -424,8 +431,9 @@ TEST_CASE("cpp_function_template", "[cpp]")
             else if (ptr->get_function().get_name() == "b")
             {
                 ++count;
-                REQUIRE_NOTHROW(dynamic_cast<const cpp_function*>(ptr));
                 REQUIRE(ptr->get_name() == "b<A, B>");
+                auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
+                REQUIRE(func.get_return_type().get_name() == "B(*)()");
 
                 auto size = 0u;
                 for (auto& param : ptr->get_template_parameters())
@@ -450,6 +458,25 @@ TEST_CASE("cpp_function_template", "[cpp]")
             else
                 REQUIRE(false);
         }
+        else if (auto ptr = dynamic_cast<const cpp_function_template_specialization*>(&e))
+        {
+            if (ptr->get_function().get_name() == "a")
+            {
+                ++count;
+                REQUIRE(ptr->get_name() == "a<int>");
+                auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
+                REQUIRE(func.get_return_type().get_name() == "void");
+            }
+            else if (ptr->get_function().get_name() == "b")
+            {
+                ++count;
+                REQUIRE(ptr->get_name() == "b<0, int *>");
+                auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
+                REQUIRE(func.get_return_type().get_name() == "int *(*)()");
+            }
+            else
+                REQUIRE(false);
+        }
         else if (auto ptr = dynamic_cast<const cpp_class*>(&e))
         {
             for (auto& e : *ptr)
@@ -458,7 +485,7 @@ TEST_CASE("cpp_function_template", "[cpp]")
                     if (ptr->get_function().get_name() == "c")
                     {
                         ++count;
-                        REQUIRE_NOTHROW(dynamic_cast<const cpp_member_function*>(ptr));
+                        REQUIRE_NOTHROW(dynamic_cast<const cpp_member_function&>(ptr->get_function()));
                         REQUIRE(ptr->get_name() == "c<A...>");
 
                         auto size = 0u;
@@ -478,7 +505,7 @@ TEST_CASE("cpp_function_template", "[cpp]")
                     else if (ptr->get_function().get_name() == "foo")
                     {
                         ++count;
-                        REQUIRE_NOTHROW(dynamic_cast<const cpp_constructor*>(ptr));
+                        REQUIRE_NOTHROW(dynamic_cast<const cpp_constructor&>(ptr->get_function()));
                         REQUIRE(ptr->get_name() == "foo<A>");
 
                         auto size = 0u;
@@ -498,7 +525,7 @@ TEST_CASE("cpp_function_template", "[cpp]")
                     else if (ptr->get_function().get_name() == "operator T *")
                     {
                         ++count;
-                        REQUIRE_NOTHROW(dynamic_cast<const cpp_conversion_op*>(ptr));
+                        REQUIRE_NOTHROW(dynamic_cast<const cpp_conversion_op&>(ptr->get_function()));
                         REQUIRE(ptr->get_name() == "operator T *<T>");
 
                         auto size = 0u;
@@ -524,7 +551,7 @@ TEST_CASE("cpp_function_template", "[cpp]")
         else
             REQUIRE(false);
     });
-    REQUIRE(count == 5u);
+    REQUIRE(count == 7u);
 }
 
 TEST_CASE("cpp_class_template and specialization", "[cpp]")

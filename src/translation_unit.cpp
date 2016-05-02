@@ -188,16 +188,28 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
             return CXChildVisit_Continue;
 
         case CXCursor_FunctionDecl:
-            stack.add_entity(cpp_function::parse(scope, cur));
+            if (is_full_specialization(cur))
+                stack.add_entity(cpp_function_template_specialization::parse(scope, cur));
+            else
+                stack.add_entity(cpp_function::parse(scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_CXXMethod:
-            stack.add_entity(cpp_member_function::parse(scope, cur));
+            if (is_full_specialization(cur))
+                stack.add_entity(cpp_function_template_specialization::parse(scope, cur));
+            else
+                stack.add_entity(cpp_member_function::parse(scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_ConversionFunction:
-            stack.add_entity(cpp_conversion_op::parse(scope, cur));
+            if (is_full_specialization(cur))
+                stack.add_entity(cpp_function_template_specialization::parse(scope, cur));
+            else
+                stack.add_entity(cpp_conversion_op::parse(scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_Constructor:
-            stack.add_entity(cpp_constructor::parse(scope, cur));
+            if (is_full_specialization(cur))
+                stack.add_entity(cpp_function_template_specialization::parse(scope, cur));
+            else
+                stack.add_entity(cpp_constructor::parse(scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_Destructor:
             stack.add_entity(cpp_destructor::parse(scope, cur));
