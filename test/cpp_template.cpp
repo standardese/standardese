@@ -527,7 +527,7 @@ TEST_CASE("cpp_function_template", "[cpp]")
     REQUIRE(count == 5u);
 }
 
-TEST_CASE("cpp_class_template", "[cpp]")
+TEST_CASE("cpp_class_template and specialization", "[cpp]")
 {
     parser p;
 
@@ -542,6 +542,15 @@ TEST_CASE("cpp_class_template", "[cpp]")
         template <int A, typename ... B>
         class b
         {};
+
+        template <>
+        struct should_be_ignored<int>;
+
+        template <>
+        struct a<int *> {};
+
+        template <>
+        struct b<0, char, int(*)(char)> {};
     )";
 
     auto tu = parse(p, "cpp_class_template", code);
@@ -550,53 +559,74 @@ TEST_CASE("cpp_class_template", "[cpp]")
     auto count = 0u;
     p.for_each_in_namespace([&](const cpp_entity &e)
     {
-        auto& c = dynamic_cast<const cpp_class_template&>(e);
-        if (c.get_class().get_name() == "a")
+        if (auto c = dynamic_cast<const cpp_class_template*>(&e))
         {
-            ++count;
-            REQUIRE(c.get_name() == "a<A>");
-
-            auto size = 0u;
-            for (auto& param : c.get_template_parameters())
+            if (c->get_class().get_name() == "a")
             {
-                if (param.get_name() == "A")
+                ++count;
+                REQUIRE(c->get_name() == "a<A>");
+
+                auto size = 0u;
+                for (auto &param : c->get_template_parameters())
                 {
-                    ++size;
-                    REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter&>(param));
-                    REQUIRE(!param.is_variadic());
+                    if (param.get_name() == "A")
+                    {
+                        ++size;
+                        REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter &>(param));
+                        REQUIRE(!param.is_variadic());
+                    }
+                    else
+                        REQUIRE(false);
                 }
-                else
-                    REQUIRE(false);
+                REQUIRE(size == 1u);
             }
-            REQUIRE(size == 1u);
+            else if (c->get_class().get_name() == "b")
+            {
+                ++count;
+                REQUIRE(c->get_name() == "b<A, B...>");
+
+                auto size = 0u;
+                for (auto &param : c->get_template_parameters())
+                {
+                    if (param.get_name() == "A")
+                    {
+                        ++size;
+                        REQUIRE_NOTHROW(dynamic_cast<const cpp_non_type_template_parameter &>(param));
+                        REQUIRE(!param.is_variadic());
+                    }
+                    else if (param.get_name() == "B")
+                    {
+                        ++size;
+                        REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter &>(param));
+                        REQUIRE(param.is_variadic());
+                    }
+                    else
+                        REQUIRE(false);
+                }
+                REQUIRE(size == 2u);
+            }
+            else
+                REQUIRE(false);
         }
-        else if (c.get_class().get_name() == "b")
+        else if (auto c = dynamic_cast<const cpp_class_template_full_specialization*>(&e))
         {
-            ++count;
-            REQUIRE(c.get_name() == "b<A, B...>");
-
-            auto size = 0u;
-            for (auto& param : c.get_template_parameters())
+            if (c->get_class().get_name() == "a")
             {
-                if (param.get_name() == "A")
-                {
-                    ++size;
-                    REQUIRE_NOTHROW(dynamic_cast<const cpp_non_type_template_parameter&>(param));
-                    REQUIRE(!param.is_variadic());
-                }
-                else if (param.get_name() == "B")
-                {
-                    ++size;
-                    REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter&>(param));
-                    REQUIRE(param.is_variadic());
-                }
-                else
-                    REQUIRE(false);
+                ++count;
+                REQUIRE(c->get_name() == "a<int *>");
+                REQUIRE(c->get_primary_template().get_name() == "a");
             }
-            REQUIRE(size == 2u);
+            else if (c->get_class().get_name() == "b")
+            {
+                ++count;
+                REQUIRE(c->get_name() == "b<0, char, int(*)(char)>");
+                REQUIRE(c->get_primary_template().get_name() == "b");
+            }
+            else
+                REQUIRE(false);
         }
         else
             REQUIRE(false);
     });
-    REQUIRE(count == 2u);
+    REQUIRE(count == 4u);
 }

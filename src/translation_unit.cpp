@@ -205,7 +205,11 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_ClassDecl:
         case CXCursor_StructDecl:
         case CXCursor_UnionDecl:
-            stack.push_container(detail::make_ptr<cpp_class::parser>(scope, cur), parent);
+            if (is_full_specialization(cur))
+                stack.push_container(detail::make_ptr<cpp_class_template_full_specialization::parser>
+                                                       (scope, cur), parent);
+            else
+                stack.push_container(detail::make_ptr<cpp_class::parser>(scope, cur), parent);
             return CXChildVisit_Recurse;
         case CXCursor_ClassTemplate:
             stack.push_container(detail::make_ptr<cpp_class_template::parser>(scope, cur), parent);

@@ -17,8 +17,10 @@ namespace standardese
         cpp_template_ref()
         : cpp_template_ref(cpp_cursor({}), "") {}
 
-        cpp_template_ref(cpp_cursor ref, cpp_name given)
-        : given_(std::move(given)), declaration_(clang_getCursorReferenced(ref)) {}
+        /// Constructs it by giving the cursor to the template
+        /// and the name as specified in the source.
+        cpp_template_ref(cpp_cursor tmplate, cpp_name given)
+        : given_(std::move(given)), declaration_(tmplate) {}
 
         /// Returns the name as specified in the source.
         const cpp_name& get_name() const STANDARDESE_NOEXCEPT
@@ -224,6 +226,56 @@ namespace standardese
         cpp_class_template(cpp_name scope, cpp_comment comment);
 
         cpp_ptr<cpp_class> class_;
+    };
+
+    /// Returns whether cur refers to a full specialization of a template.
+    /// cur must refer to a class.
+    bool is_full_specialization(cpp_cursor cur);
+
+    class cpp_class_template_full_specialization
+    : public cpp_entity
+    {
+    public:
+        class parser : public cpp_entity_parser
+        {
+        public:
+            parser(cpp_name scope, cpp_cursor cur);
+
+            void add_entity(cpp_entity_ptr ptr) override
+            {
+                parser_.add_entity(std::move(ptr));
+            }
+
+            cpp_name scope_name() override
+            {
+                return parser_.scope_name();
+            }
+
+            cpp_entity_ptr finish(const standardese::parser &par) override;
+
+        private:
+            cpp_class::parser parser_;
+            cpp_ptr<cpp_class_template_full_specialization> class_;
+        };
+
+        cpp_class_template_full_specialization(cpp_name template_name, cpp_ptr<cpp_class> ptr,
+                                               cpp_template_ref primary_template);
+
+        const cpp_class &get_class() const STANDARDESE_NOEXCEPT
+        {
+            return *class_;
+        }
+
+        const cpp_template_ref &get_primary_template() const STANDARDESE_NOEXCEPT
+        {
+            return template_;
+        }
+
+    private:
+        cpp_class_template_full_specialization(cpp_name scope, cpp_comment comment);
+
+        cpp_ptr<cpp_class> class_;
+        cpp_template_ref template_;
     };
 } // namespace standardese
 

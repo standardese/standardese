@@ -57,6 +57,9 @@ namespace standardese
         cpp_name parse_template_non_type_type(cpp_cursor cur, const cpp_name &name,
                                               std::string &def, bool &variadic);
 
+        // parses name of a template specialization
+        cpp_name parse_template_specialization_name(cpp_cursor cur, const cpp_name &name);
+
         // wrapper for clang_visitChildren
         template <typename Fnc>
         void visit_children(cpp_cursor cur, Fnc f)

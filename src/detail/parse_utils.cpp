@@ -455,3 +455,32 @@ cpp_name detail::parse_template_non_type_type(cpp_cursor cur, const cpp_name &na
 
     return result;
 }
+
+cpp_name detail::parse_template_specialization_name(cpp_cursor cur, const cpp_name &name)
+{
+    cpp_name result = name;
+
+    auto found = false;
+    auto bracket_count = 0;
+    visit_tokens(cur, [&](CXToken, const string &spelling)
+    {
+        if (found)
+        {
+            if (spelling == "<")
+                ++bracket_count;
+            else if (spelling == ">")
+                --bracket_count;
+
+            cat_token(result, spelling);
+
+            if (bracket_count == 0)
+                return false;
+        }
+        else
+            found = spelling.get() == name;
+
+        return true;
+    });
+
+    return result;
+}
