@@ -550,7 +550,16 @@ TEST_CASE("cpp_class_template and specialization", "[cpp]")
         struct a<int *> {};
 
         template <>
-        struct b<0, char, int(*)(char)> {};
+        class b<0, char, int(*)(char)> {};
+
+        template <typename T>
+        struct should_be_ignored<T*>;
+
+        template <class T>
+        struct a<T(*)()> {};
+
+        template <int A, typename ... B>
+        class b<A, void(*)(B...)> {};
     )";
 
     auto tu = parse(p, "cpp_class_template", code);
@@ -565,6 +574,7 @@ TEST_CASE("cpp_class_template and specialization", "[cpp]")
             {
                 ++count;
                 REQUIRE(c->get_name() == "a<A>");
+                REQUIRE(c->get_class().get_class_type() == cpp_struct_t);
 
                 auto size = 0u;
                 for (auto &param : c->get_template_parameters())
@@ -584,6 +594,7 @@ TEST_CASE("cpp_class_template and specialization", "[cpp]")
             {
                 ++count;
                 REQUIRE(c->get_name() == "b<A, B...>");
+                REQUIRE(c->get_class().get_class_type() == cpp_class_t);
 
                 auto size = 0u;
                 for (auto &param : c->get_template_parameters())
@@ -615,12 +626,33 @@ TEST_CASE("cpp_class_template and specialization", "[cpp]")
                 ++count;
                 REQUIRE(c->get_name() == "a<int *>");
                 REQUIRE(c->get_primary_template().get_name() == "a");
+                REQUIRE(c->get_class().get_class_type() == cpp_struct_t);
             }
             else if (c->get_class().get_name() == "b")
             {
                 ++count;
                 REQUIRE(c->get_name() == "b<0, char, int(*)(char)>");
                 REQUIRE(c->get_primary_template().get_name() == "b");
+                REQUIRE(c->get_class().get_class_type() == cpp_class_t);
+            }
+            else
+                REQUIRE(false);
+        }
+        else if (auto c = dynamic_cast<const cpp_class_template_partial_specialization*>(&e))
+        {
+            if (c->get_class().get_name() == "a")
+            {
+                ++count;
+                REQUIRE(c->get_name() == "a<T(*)()>");
+                REQUIRE(c->get_primary_template().get_name() == "a");
+                REQUIRE(c->get_class().get_class_type() == cpp_struct_t);
+            }
+            else if (c->get_class().get_name() == "b")
+            {
+                ++count;
+                REQUIRE(c->get_name() == "b<A, void(*)(B...)>");
+                REQUIRE(c->get_primary_template().get_name() == "b");
+                REQUIRE(c->get_class().get_class_type() == cpp_class_t);
             }
             else
                 REQUIRE(false);
@@ -628,5 +660,5 @@ TEST_CASE("cpp_class_template and specialization", "[cpp]")
         else
             REQUIRE(false);
     });
-    REQUIRE(count == 4u);
+    REQUIRE(count == 6u);
 }

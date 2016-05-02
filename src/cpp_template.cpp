@@ -160,6 +160,7 @@ cpp_function_template::cpp_function_template(cpp_name template_name, cpp_ptr<cpp
 cpp_class_template::parser::parser(cpp_name scope, cpp_cursor cur)
 : parser_(scope, cur), class_(new cpp_class_template(std::move(scope), detail::parse_comment(cur)))
 {
+    assert(clang_getCursorKind(cur) == CXCursor_ClassTemplate);
     parse_parameters(class_.get(), cur);
     class_->set_name(get_template_name(parser_.scope_name(), class_.get()));
 }
@@ -198,6 +199,10 @@ cpp_class_template_full_specialization::parser::parser(cpp_name scope, cpp_curso
 : parser_(scope, cur),
   class_(new cpp_class_template_full_specialization(std::move(scope), detail::parse_comment(cur)))
 {
+    assert(clang_getCursorKind(cur) == CXCursor_ClassDecl
+        || clang_getCursorKind(cur) == CXCursor_StructDecl
+        || clang_getCursorKind(cur) == CXCursor_UnionDecl);
+
     auto name = parser_.scope_name();
     class_->set_name(detail::parse_template_specialization_name(cur, name));
     class_->template_ = cpp_template_ref(clang_getSpecializedCursorTemplate(cur), std::move(name));
@@ -220,4 +225,35 @@ cpp_class_template_full_specialization::cpp_class_template_full_specialization(c
   class_(std::move(ptr)), template_(std::move(primary)) {}
 
 cpp_class_template_full_specialization::cpp_class_template_full_specialization(cpp_name scope, cpp_comment comment)
+: cpp_entity(std::move(scope), "", std::move(comment)), class_(nullptr) {}
+
+cpp_class_template_partial_specialization::parser::parser(cpp_name scope, cpp_cursor cur)
+: parser_(scope, cur),
+  class_(new cpp_class_template_partial_specialization(std::move(scope), detail::parse_comment(cur)))
+{
+    assert(clang_getCursorKind(cur) == CXCursor_ClassTemplatePartialSpecialization);
+    parse_parameters(class_.get(), cur);
+
+    auto name = parser_.scope_name();
+    class_->set_name(detail::parse_template_specialization_name(cur, name));
+    class_->template_ = cpp_template_ref(clang_getSpecializedCursorTemplate(cur), std::move(name));
+}
+
+cpp_entity_ptr cpp_class_template_partial_specialization::parser::finish(const standardese::parser &par)
+{
+    auto ptr = static_cast<cpp_class*>(parser_.finish(par).release());
+    if (!ptr)
+        return nullptr;
+
+    class_->class_ = cpp_ptr<cpp_class>(ptr);
+    return std::move(class_);
+}
+
+cpp_class_template_partial_specialization::cpp_class_template_partial_specialization(cpp_name template_name,
+                                                                               cpp_ptr<cpp_class> ptr,
+                                                                               cpp_template_ref primary)
+: cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
+  class_(std::move(ptr)), template_(std::move(primary)) {}
+
+cpp_class_template_partial_specialization::cpp_class_template_partial_specialization(cpp_name scope, cpp_comment comment)
 : cpp_entity(std::move(scope), "", std::move(comment)), class_(nullptr) {}

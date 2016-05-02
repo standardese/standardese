@@ -277,6 +277,64 @@ namespace standardese
         cpp_ptr<cpp_class> class_;
         cpp_template_ref template_;
     };
+
+    class cpp_class_template_partial_specialization
+    : public cpp_entity, public cpp_entity_container<cpp_template_parameter>
+    {
+    public:
+    public:
+        class parser : public cpp_entity_parser
+        {
+        public:
+            parser(cpp_name scope, cpp_cursor cur);
+
+            void add_entity(cpp_entity_ptr ptr) override
+            {
+                parser_.add_entity(std::move(ptr));
+            }
+
+            cpp_name scope_name() override
+            {
+                return parser_.scope_name();
+            }
+
+            cpp_entity_ptr finish(const standardese::parser &par) override;
+
+        private:
+            cpp_class::parser parser_;
+            cpp_ptr<cpp_class_template_partial_specialization> class_;
+        };
+
+        cpp_class_template_partial_specialization(cpp_name template_name, cpp_ptr<cpp_class> ptr,
+                                                  cpp_template_ref primary_template);
+
+        void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
+        {
+            cpp_entity_container::add_entity(std::move(param));
+        }
+
+        const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const STANDARDESE_NOEXCEPT
+        {
+            return *this;
+        }
+
+        const cpp_class &get_class() const STANDARDESE_NOEXCEPT
+        {
+            return *class_;
+        }
+
+        const cpp_template_ref &get_primary_template() const STANDARDESE_NOEXCEPT
+        {
+            return template_;
+        }
+
+    private:
+        cpp_class_template_partial_specialization(cpp_name scope, cpp_comment comment);
+
+        cpp_ptr<cpp_class> class_;
+        cpp_template_ref template_;
+
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_TEMPLATE_HPP_INCLUDED

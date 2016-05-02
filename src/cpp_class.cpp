@@ -67,7 +67,8 @@ cpp_ptr<cpp_base_class> cpp_base_class::parse(cpp_name scope, cpp_cursor cur)
 
 namespace
 {
-    bool parse_class(cpp_cursor cur, const cpp_name &name, bool &is_final)
+    bool parse_class(cpp_cursor cur, const cpp_name &name,
+                     bool &is_final/*, cpp_class_type &ctype*/)
     {
         auto result = false;
         auto found = false;
@@ -90,6 +91,15 @@ namespace
             }
             else if (spelling == name.c_str())
                 found = true;
+            // keep resetting ctype
+            // it will store the type of the most recent keyword
+            // so "class" inside class template doesn't matter
+            /*else if (spelling == "class")
+                ctype = cpp_class_t;
+            else if (spelling == "struct")
+                ctype = cpp_struct_t;
+            else if (spelling == "union")
+                ctype = cpp_union_t;*/
 
             return true;
         });
@@ -103,7 +113,8 @@ cpp_class::parser::parser(cpp_name scope, cpp_cursor cur)
     cpp_class_type ctype;
 
     auto kind = clang_getCursorKind(cur);
-    if (kind == CXCursor_ClassTemplate)
+    if (kind == CXCursor_ClassTemplate
+        || kind == CXCursor_ClassTemplatePartialSpecialization)
         kind = clang_getTemplateCursorKind(cur);
 
     if (kind == CXCursor_ClassDecl)

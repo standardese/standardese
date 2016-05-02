@@ -148,6 +148,11 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
     auto scope = stack.get_scope_name();
 
     auto kind = clang_getCursorKind(cur);
+    if (kind != CXCursor_CXXBaseSpecifier
+        && (clang_isReference(kind) || clang_isExpression(kind)))
+        // ignore those
+        return CXChildVisit_Continue;
+
     switch (kind)
     {
         case CXCursor_Namespace:
@@ -214,6 +219,10 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_ClassTemplate:
             stack.push_container(detail::make_ptr<cpp_class_template::parser>(scope, cur), parent);
             return CXChildVisit_Recurse;
+        case CXCursor_ClassTemplatePartialSpecialization:
+            stack.push_container(detail::make_ptr<cpp_class_template_partial_specialization::parser>
+                                                    (scope, cur), parent);
+            return CXChildVisit_Recurse;
         case CXCursor_CXXBaseSpecifier:
             stack.add_entity(cpp_base_class::parse(scope, cur));
             return CXChildVisit_Continue;
@@ -227,7 +236,6 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_NonTypeTemplateParameter:
         case CXCursor_CXXFinalAttr:
         case CXCursor_ParmDecl:
-        case CXCursor_IntegerLiteral:
             return CXChildVisit_Continue;
 
         default:
