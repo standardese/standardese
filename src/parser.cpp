@@ -51,9 +51,9 @@ parser::~parser() STANDARDESE_NOEXCEPT {}
 
 translation_unit parser::parse(const char *path, const char *standard) const
 {
-    const char* args[] = {"-x", "c++", standard};
+    const char* args[] = {"-x", "c++", standard, "-I", LIBCLANG_SYSTEM_INCLUDE_DIR};
 
-    auto tu = clang_parseTranslationUnit(index_.get(), path, args, 3, nullptr, 0,
+    auto tu = clang_parseTranslationUnit(index_.get(), path, args, sizeof(args) / sizeof(const char*), nullptr, 0,
                                          CXTranslationUnit_Incomplete | CXTranslationUnit_DetailedPreprocessingRecord);
 
     return translation_unit(*this, tu, path);
