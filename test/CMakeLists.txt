@@ -12,6 +12,7 @@ set(tests
         cpp_entity.cpp
         cpp_function.cpp
         cpp_namespace.cpp
+        cpp_preprocessor.cpp
         cpp_template.cpp
         cpp_type.cpp
         cpp_variable.cpp)

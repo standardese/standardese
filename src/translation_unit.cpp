@@ -12,6 +12,7 @@
 #include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
+#include <standardese/cpp_preprocessor.hpp>
 #include <standardese/cpp_template.hpp>
 #include <standardese/cpp_type.hpp>
 #include <standardese/cpp_variable.hpp>
@@ -155,6 +156,10 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
 
     switch (kind)
     {
+        case CXCursor_InclusionDirective:
+            stack.add_entity(cpp_inclusion_directive::parse(cur));
+            return CXChildVisit_Continue;
+
         case CXCursor_Namespace:
             stack.push_container(detail::make_ptr<cpp_namespace::parser>(scope, cur), parent);
             return CXChildVisit_Recurse;
