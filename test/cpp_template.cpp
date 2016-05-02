@@ -526,3 +526,77 @@ TEST_CASE("cpp_function_template", "[cpp]")
     });
     REQUIRE(count == 5u);
 }
+
+TEST_CASE("cpp_class_template", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(
+        template <typename T>
+        struct should_be_ignored;
+
+        template <typename A>
+        struct a
+        {};
+
+        template <int A, typename ... B>
+        class b
+        {};
+    )";
+
+    auto tu = parse(p, "cpp_class_template", code);
+
+    auto f = tu.parse();
+    auto count = 0u;
+    p.for_each_in_namespace([&](const cpp_entity &e)
+    {
+        auto& c = dynamic_cast<const cpp_class_template&>(e);
+        if (c.get_class().get_name() == "a")
+        {
+            ++count;
+            REQUIRE(c.get_name() == "a<A>");
+
+            auto size = 0u;
+            for (auto& param : c.get_template_parameters())
+            {
+                if (param.get_name() == "A")
+                {
+                    ++size;
+                    REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter&>(param));
+                    REQUIRE(!param.is_variadic());
+                }
+                else
+                    REQUIRE(false);
+            }
+            REQUIRE(size == 1u);
+        }
+        else if (c.get_class().get_name() == "b")
+        {
+            ++count;
+            REQUIRE(c.get_name() == "b<A, B...>");
+
+            auto size = 0u;
+            for (auto& param : c.get_template_parameters())
+            {
+                if (param.get_name() == "A")
+                {
+                    ++size;
+                    REQUIRE_NOTHROW(dynamic_cast<const cpp_non_type_template_parameter&>(param));
+                    REQUIRE(!param.is_variadic());
+                }
+                else if (param.get_name() == "B")
+                {
+                    ++size;
+                    REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter&>(param));
+                    REQUIRE(param.is_variadic());
+                }
+                else
+                    REQUIRE(false);
+            }
+            REQUIRE(size == 2u);
+        }
+        else
+            REQUIRE(false);
+    });
+    REQUIRE(count == 2u);
+}

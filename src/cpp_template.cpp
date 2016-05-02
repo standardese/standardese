@@ -115,6 +115,27 @@ namespace
             return CXChildVisit_Break;
         });
     }
+
+    template <typename T>
+    cpp_name get_template_name(cpp_name name, T *result)
+    {
+        name += "<";
+        auto needs_comma = false;
+        for (auto& param : result->get_template_parameters())
+        {
+            if (needs_comma)
+                name += ", ";
+            else
+                needs_comma = true;
+
+            name += param.get_name();
+            if (param.is_variadic())
+                name += "...";
+        }
+        name += ">";
+
+        return name;
+    }
 }
 
 cpp_ptr<cpp_function_template> cpp_function_template::parse(cpp_name scope, cpp_cursor cur)
@@ -126,22 +147,7 @@ cpp_ptr<cpp_function_template> cpp_function_template::parse(cpp_name scope, cpp_
     auto result = detail::make_ptr<cpp_function_template>("", std::move(func));
 
     parse_parameters(result.get(), cur);
-
-    name += "<";
-    auto needs_comma = false;
-    for (auto& param : result->get_template_parameters())
-    {
-        if (needs_comma)
-            name += ", ";
-        else
-            needs_comma = true;
-
-        name += param.get_name();
-        if (param.is_variadic())
-            name += "...";
-    }
-    name += ">";
-    result->set_name(std::move(name));
+    result->set_name(get_template_name(std::move(name), result.get()));
 
     return result;
 }
@@ -150,3 +156,28 @@ cpp_function_template::cpp_function_template(cpp_name template_name, cpp_ptr<cpp
 : cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
   func_(std::move(ptr))
 {}
+
+cpp_class_template::parser::parser(cpp_name scope, cpp_cursor cur)
+: parser_(scope, cur), class_(new cpp_class_template(std::move(scope), detail::parse_comment(cur)))
+{
+    parse_parameters(class_.get(), cur);
+    class_->set_name(get_template_name(parser_.scope_name(), class_.get()));
+}
+
+cpp_entity_ptr cpp_class_template::parser::finish(const standardese::parser &par)
+{
+    auto ptr = static_cast<cpp_class*>(parser_.finish(par).release());
+    if (!ptr)
+        return nullptr;
+
+    class_->class_ = cpp_ptr<cpp_class>(ptr);
+    return std::move(class_);
+}
+
+cpp_class_template::cpp_class_template(cpp_name template_name, cpp_ptr<cpp_class> ptr)
+: cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
+  class_(std::move(ptr))
+{}
+
+cpp_class_template::cpp_class_template(cpp_name scope, cpp_name comment)
+: cpp_entity(std::move(scope), "", std::move(comment)), class_(nullptr) {}

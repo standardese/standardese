@@ -5,6 +5,7 @@
 #ifndef STANDARDESE_CPP_TEMPLATE_HPP_INCLUDED
 #define STANDARDESE_CPP_TEMPLATE_HPP_INCLUDED
 
+#include <standardese/cpp_class.hpp>
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_type.hpp>
 
@@ -174,6 +175,55 @@ namespace standardese
 
     private:
         cpp_ptr<cpp_function_base> func_;
+    };
+
+    class cpp_class_template
+    : public cpp_entity, private cpp_entity_container<cpp_template_parameter>
+    {
+    public:
+        class parser : public cpp_entity_parser
+        {
+        public:
+            parser(cpp_name scope, cpp_cursor cur);
+
+            void add_entity(cpp_entity_ptr ptr) override
+            {
+                parser_.add_entity(std::move(ptr));
+            }
+
+            cpp_name scope_name() override
+            {
+                return parser_.scope_name();
+            }
+
+            cpp_entity_ptr finish(const standardese::parser &par) override;
+
+        private:
+            cpp_class::parser parser_;
+            cpp_ptr<cpp_class_template> class_;
+        };
+
+        cpp_class_template(cpp_name template_name, cpp_ptr<cpp_class> ptr);
+
+        void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
+        {
+            cpp_entity_container::add_entity(std::move(param));
+        }
+
+        const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const STANDARDESE_NOEXCEPT
+        {
+            return *this;
+        }
+
+        const cpp_class &get_class() const STANDARDESE_NOEXCEPT
+        {
+            return *class_;
+        }
+
+    private:
+        cpp_class_template(cpp_name scope, cpp_comment comment);
+
+        cpp_ptr<cpp_class> class_;
     };
 } // namespace standardese
 

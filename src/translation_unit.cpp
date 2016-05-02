@@ -207,6 +207,9 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_UnionDecl:
             stack.push_container(detail::make_ptr<cpp_class::parser>(scope, cur), parent);
             return CXChildVisit_Recurse;
+        case CXCursor_ClassTemplate:
+            stack.push_container(detail::make_ptr<cpp_class_template::parser>(scope, cur), parent);
+            return CXChildVisit_Recurse;
         case CXCursor_CXXBaseSpecifier:
             stack.add_entity(cpp_base_class::parse(scope, cur));
             return CXChildVisit_Continue;

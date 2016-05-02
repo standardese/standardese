@@ -96,6 +96,16 @@ namespace standardese
             cpp_ptr<cpp_class> class_;
         };
 
+        cpp_class(cpp_name scope, cpp_name name, cpp_comment comment,
+                  CXType type, cpp_class_type ctype, bool is_final)
+        : cpp_type(std::move(scope), std::move(name), std::move(comment), type),
+          type_(ctype), final_(is_final) {}
+
+        void add_entity(cpp_entity_ptr e)
+        {
+            cpp_entity_container::add_entity(std::move(e));
+        }
+
         cpp_class_type get_class_type() const STANDARDESE_NOEXCEPT
         {
             return type_;
@@ -107,11 +117,6 @@ namespace standardese
         }
 
     private:
-        cpp_class(cpp_name scope, cpp_name name, cpp_comment comment,
-                  CXType type, cpp_class_type ctype, bool is_final)
-        : cpp_type(std::move(scope), std::move(name), std::move(comment), type),
-          type_(ctype), final_(is_final) {}
-
         cpp_class_type type_;
         bool final_;
 

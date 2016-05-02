@@ -69,7 +69,7 @@ namespace
 {
     bool parse_class(cpp_cursor cur, const cpp_name &name, bool &is_final)
     {
-        auto result = true;
+        auto result = false;
         auto found = false;
         detail::visit_tokens(cur, [&](CXToken, const string &spelling)
         {
@@ -78,7 +78,10 @@ namespace
                 if (spelling == "final")
                     is_final = true;
                 else if (spelling == ":" || spelling == "{")
+                {
+                    result = true;
                     return false; // class body
+                }
                 else if (spelling == ";")
                 {
                     result = false;
@@ -100,6 +103,9 @@ cpp_class::parser::parser(cpp_name scope, cpp_cursor cur)
     cpp_class_type ctype;
 
     auto kind = clang_getCursorKind(cur);
+    if (kind == CXCursor_ClassTemplate)
+        kind = clang_getTemplateCursorKind(cur);
+
     if (kind == CXCursor_ClassDecl)
         ctype = cpp_class_t;
     else if (kind == CXCursor_StructDecl)

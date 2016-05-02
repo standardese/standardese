@@ -350,6 +350,8 @@ TEST_CASE("cpp_class", "[cpp]")
                 }
             }
         }
+        else
+            REQUIRE(false);
     });
     REQUIRE(count == 15u);
 }
