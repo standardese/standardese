@@ -13,6 +13,7 @@ set(header
         ../include/standardese/cpp_enum.hpp
         ../include/standardese/cpp_function.hpp
         ../include/standardese/cpp_namespace.hpp
+        ../include/standardese/cpp_template.hpp
         ../include/standardese/cpp_type.hpp
         ../include/standardese/cpp_variable.hpp
         ../include/standardese/parser.hpp
@@ -24,6 +25,7 @@ set(src
         cpp_enum.cpp
         cpp_function.cpp
         cpp_namespace.cpp
+        cpp_template.cpp
         cpp_type.cpp
         cpp_variable.cpp
         parser.cpp

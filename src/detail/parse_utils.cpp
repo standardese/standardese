@@ -125,15 +125,11 @@ cpp_name detail::parse_alias_type_name(cpp_cursor cur)
     auto found = false;
     visit_tokens(cur, [&](CXToken, const string &spelling)
     {
-        if (!found && spelling == "=")
-        {
+        if (found)
+            cat_token(result, spelling);
+        else if (spelling == "=")
             found = true;
-            return true;
-        }
-        else if (!found)
-            return true;
 
-        cat_token(result, spelling);
         return true;
     });
 
@@ -372,6 +368,79 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
     // set variadic flag
     if (clang_isFunctionTypeVariadic(clang_getCursorType(cur)))
         finfo.set_flag(cpp_variadic_fnc);
+
+    return result;
+}
+
+namespace
+{
+    // when concatenating tokens for the default values
+    // template <typename T = foo<int>> yields foo<int>>
+    // because >> is one token
+    // count brackets, if unbalanced, remove final >
+    void unmunch(std::string &str)
+    {
+        auto balance = 0;
+        for (auto c : str)
+            if (c == '<')
+                balance++;
+            else if (c == '>')
+                balance--;
+
+        assert(balance == 0 || balance == -1);
+        if (balance == -1)
+        {
+            assert(str.back() == '>');
+            str.pop_back();
+        }
+    }
+}
+
+cpp_name detail::parse_template_type_default(cpp_cursor cur, bool &variadic)
+{
+    cpp_name result;
+    auto found = false;
+    variadic = false;
+    visit_tokens(cur, [&](CXToken, const string &spelling)
+    {
+        if (found)
+            cat_token(result, spelling);
+        else
+        {
+            if (spelling == "=")
+                found = true;
+            else if (spelling == "...")
+                variadic = true;
+        }
+
+        return true;
+    });
+
+    unmunch(result);
+
+    return result;
+}
+
+cpp_name detail::parse_template_non_type_type(cpp_cursor cur, const cpp_name &name, std::string &def, bool &variadic)
+{
+    cpp_name result;
+    auto in_type = true, after_name = false;
+    variadic = false;
+    visit_tokens(cur, [&](CXToken, const string &spelling)
+    {
+        if (spelling == name.c_str())
+            after_name = true;
+        else if (spelling == "=")
+            in_type = false;
+        else if (!after_name && spelling == "...")
+            variadic = true;
+        else
+            cat_token(in_type ? result : def, spelling);
+
+        return true;
+    });
+
+    unmunch(def);
 
     return result;
 }

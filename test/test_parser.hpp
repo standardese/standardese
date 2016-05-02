@@ -7,6 +7,7 @@
 
 #include <fstream>
 
+#include <standardese/cpp_entity.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/translation_unit.hpp>
 
@@ -16,8 +17,26 @@ inline standardese::translation_unit parse(standardese::parser &p, const char *n
     std::ofstream file(name);
     file << code;
     file.close();
-    
+
     return p.parse(name, standard);
+}
+
+template <typename T>
+std::vector<standardese::cpp_ptr<T>> parse_entity(standardese::translation_unit &unit, CXCursorKind kind)
+{
+    std::vector<standardese::cpp_ptr<T>> result;
+
+    unit.visit([&](CXCursor cur, CXCursor)
+               {
+                    if (clang_getCursorKind(cur) == kind)
+                    {
+                        result.push_back(T::parse(cur));
+                        return CXChildVisit_Continue;
+                    }
+                    return CXChildVisit_Recurse;
+               });
+
+    return result;
 }
 
 #endif // STANDARDESE_TEST_PARSER_HPP_INCLUDED

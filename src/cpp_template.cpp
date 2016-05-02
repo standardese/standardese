@@ -1,0 +1,100 @@
+// Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// This file is subject to the license terms in the LICENSE file
+// found in the top-level directory of this distribution.
+
+#include <standardese/cpp_template.hpp>
+
+#include <cassert>
+
+#include <standardese/detail/parse_utils.hpp>
+#include <standardese/detail/search_token.hpp>
+#include <standardese/string.hpp>
+
+using namespace standardese;
+
+cpp_name cpp_template_ref::get_full_name() const
+{
+    string spelling(clang_getCursorSpelling(declaration_));
+    assert(spelling.get() == given_);
+
+    auto scope = detail::parse_scope(declaration_);
+    return scope.empty() ? spelling.get() : scope + "::" + spelling.get();
+}
+
+cpp_ptr<cpp_template_parameter> cpp_template_parameter::try_parse(cpp_cursor cur)
+{
+    switch (clang_getCursorKind(cur))
+    {
+        case CXCursor_TemplateTypeParameter:
+            return cpp_template_type_parameter::parse(cur);
+        case CXCursor_NonTypeTemplateParameter:
+            return cpp_non_type_template_parameter::parse(cur);
+        case CXCursor_TemplateTemplateParameter:
+            return cpp_template_template_parameter::parse(cur);
+        default:
+            break;
+    }
+
+    return nullptr;
+}
+
+cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(cpp_cursor cur)
+{
+    assert(clang_getCursorKind(cur) == CXCursor_TemplateTypeParameter);
+
+    bool is_variadic;
+    auto def_name = detail::parse_template_type_default(cur, is_variadic);
+
+    return detail::make_ptr<cpp_template_type_parameter>(detail::parse_name(cur), detail::parse_comment(cur),
+                                                         cpp_type_ref({}, def_name), is_variadic);
+}
+
+cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(cpp_cursor cur)
+{
+    assert(clang_getCursorKind(cur) == CXCursor_NonTypeTemplateParameter);
+
+    auto name = detail::parse_name(cur);
+    bool is_variadic;
+    std::string def;
+    auto type_given = detail::parse_template_non_type_type(cur, name, def, is_variadic);
+
+    auto type = clang_getCursorType(cur);
+
+    return detail::make_ptr<cpp_non_type_template_parameter>(std::move(name), detail::parse_comment(cur),
+                                                             cpp_type_ref(type, std::move(type_given)), std::move(def),
+                                                             is_variadic);
+}
+
+namespace
+{
+    bool is_template_template_variadic(cpp_cursor cur, const cpp_name &name)
+    {
+        return detail::has_direct_prefix_token(cur, "...", name.c_str());
+    }
+}
+
+cpp_ptr<cpp_template_template_parameter> cpp_template_template_parameter::parse(cpp_cursor cur)
+{
+    assert(clang_getCursorKind(cur) == CXCursor_TemplateTemplateParameter);
+
+    auto name = detail::parse_name(cur);
+    auto variadic = is_template_template_variadic(cur, name);
+    auto result = detail::make_ptr<cpp_template_template_parameter>(std::move(name), detail::parse_comment(cur),
+                                                                    cpp_template_ref(), variadic);
+
+    detail::visit_children(cur, [&](CXCursor cur, CXCursor)
+    {
+        if (auto param = cpp_template_parameter::try_parse(cur))
+           result->add_paramter(std::move(param));
+        else
+        {
+           assert(clang_getCursorKind(cur) == CXCursor_TemplateRef);
+           string spelling(clang_getCursorSpelling(cur));
+           result->default_ = cpp_template_ref(cur, spelling.get());
+        }
+
+        return CXChildVisit_Continue;
+    });
+
+    return result;
+}

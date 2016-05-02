@@ -12,6 +12,7 @@
 #include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
+#include <standardese/cpp_template.hpp>
 #include <standardese/cpp_type.hpp>
 #include <standardese/cpp_variable.hpp>
 #include <standardese/parser.hpp>
@@ -217,5 +218,5 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         }
     }
 
-    return CXChildVisit_Continue;
+    return CXChildVisit_Recurse;
 }

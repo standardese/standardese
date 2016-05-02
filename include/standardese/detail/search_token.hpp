@@ -81,6 +81,25 @@ namespace standardese { namespace detail
         return result;
     }
 
+    // searches for a token that comes directly before name
+    inline bool has_direct_prefix_token(CXCursor cur, const char *token, const char *name)
+    {
+        auto result = false;
+        visit_tokens(cur, [&](CXToken, const string &spelling)
+        {
+            if (spelling == token)
+                result = true;
+            else if (spelling == name)
+                return false;
+            else
+                result = false;
+
+            return true;
+        });
+
+        return result;
+    }
+
     // searches for a token that comes after name
     inline bool has_suffix_token(CXCursor cur, const char *token, const char *name)
     {

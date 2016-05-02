@@ -50,6 +50,13 @@ namespace standardese
                                      cpp_function_info &finfo,
                                      cpp_member_function_info &minfo);
 
+        // parses the default type of a C++ template type parameter
+        cpp_name parse_template_type_default(cpp_cursor cur, bool &variadic);
+
+        // parses type and name of a C++ non type template parameter
+        cpp_name parse_template_non_type_type(cpp_cursor cur, const cpp_name &name,
+                                              std::string &def, bool &variadic);
+
         // wrapper for clang_visitChildren
         template <typename Fnc>
         void visit_children(cpp_cursor cur, Fnc f)

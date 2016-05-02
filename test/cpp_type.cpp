@@ -242,7 +242,7 @@ TEST_CASE("cpp_class", "[cpp]")
         : public base_a, private virtual base_b, protected base_c {};
     )";
 
-    auto tu = parse(p, "cpp_enum", code);
+    auto tu = parse(p, "cpp_class", code);
 
     auto f = tu.parse();
     auto count = 0u;
