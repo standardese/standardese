@@ -217,6 +217,13 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
             stack.add_entity(cpp_access_specifier::parse(cur));
             return CXChildVisit_Continue;
 
+        // ignored, because handled elsewhere
+        case CXCursor_TemplateTypeParameter:
+        case CXCursor_TemplateTemplateParameter:
+        case CXCursor_NonTypeTemplateParameter:
+        case CXCursor_CXXFinalAttr:
+            return CXChildVisit_Continue;
+
         default:
         {
             string str(clang_getCursorKindSpelling(kind));
