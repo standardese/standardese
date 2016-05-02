@@ -226,6 +226,8 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_TemplateTemplateParameter:
         case CXCursor_NonTypeTemplateParameter:
         case CXCursor_CXXFinalAttr:
+        case CXCursor_ParmDecl:
+        case CXCursor_IntegerLiteral:
             return CXChildVisit_Continue;
 
         default:
