@@ -146,6 +146,35 @@ namespace standardese
     private:
         cpp_template_ref default_;
     };
+
+    class cpp_function_base;
+
+    class cpp_function_template
+    : public cpp_entity, private cpp_entity_container<cpp_template_parameter>
+    {
+    public:
+        static cpp_ptr<cpp_function_template> parse(cpp_name scope, cpp_cursor cur);
+
+        cpp_function_template(cpp_name template_name, cpp_ptr<cpp_function_base> ptr);
+
+        void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
+        {
+            cpp_entity_container::add_entity(std::move(param));
+        }
+
+        const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const STANDARDESE_NOEXCEPT
+        {
+            return *this;
+        }
+
+        const cpp_function_base& get_function() const STANDARDESE_NOEXCEPT
+        {
+            return *func_;
+        }
+
+    private:
+        cpp_ptr<cpp_function_base> func_;
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_TEMPLATE_HPP_INCLUDED

@@ -71,12 +71,19 @@ namespace standardese
 
     // common stuff for all functions
     class cpp_function_base
-    : public cpp_entity, public cpp_entity_container<cpp_parameter_base>
+    : public cpp_entity, private cpp_entity_container<cpp_function_parameter>
     {
     public:
+        static cpp_ptr<cpp_function_base> try_parse(cpp_name scope, cpp_cursor cur);
+
         void add_parameter(cpp_ptr<cpp_function_parameter> param)
         {
             cpp_entity_container::add_entity(std::move(param));
+        }
+
+        const cpp_entity_container<cpp_function_parameter>& get_parameters() const STANDARDESE_NOEXCEPT
+        {
+            return *this;
         }
 
         bool is_variadic() const STANDARDESE_NOEXCEPT

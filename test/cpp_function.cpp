@@ -14,7 +14,7 @@ using namespace standardese;
 std::size_t no_parameters(const cpp_function_base &base)
 {
     std::size_t result = 0;
-    for (auto& e : base)
+    for (auto& e : base.get_parameters())
         ++result;
     return result;
 }

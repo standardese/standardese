@@ -8,6 +8,7 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/search_token.hpp>
+#include <standardese/cpp_function.hpp>
 #include <standardese/string.hpp>
 
 using namespace standardese;
@@ -98,3 +99,54 @@ cpp_ptr<cpp_template_template_parameter> cpp_template_template_parameter::parse(
 
     return result;
 }
+
+namespace
+{
+    template <typename T>
+    void parse_parameters(T *result, cpp_cursor cur)
+    {
+        detail::visit_children(cur, [&](CXCursor cur, CXCursor)
+        {
+            if (auto ptr = cpp_template_parameter::try_parse(cur))
+            {
+                result->add_template_parameter(std::move(ptr));
+                return CXChildVisit_Continue;
+            }
+            return CXChildVisit_Break;
+        });
+    }
+}
+
+cpp_ptr<cpp_function_template> cpp_function_template::parse(cpp_name scope, cpp_cursor cur)
+{
+    auto func = cpp_function_base::try_parse(std::move(scope), cur);
+    assert(func);
+
+    auto name = func->get_name();
+    auto result = detail::make_ptr<cpp_function_template>("", std::move(func));
+
+    parse_parameters(result.get(), cur);
+
+    name += "<";
+    auto needs_comma = false;
+    for (auto& param : result->get_template_parameters())
+    {
+        if (needs_comma)
+            name += ", ";
+        else
+            needs_comma = true;
+
+        name += param.get_name();
+        if (param.is_variadic())
+            name += "...";
+    }
+    name += ">";
+    result->set_name(std::move(name));
+
+    return result;
+}
+
+cpp_function_template::cpp_function_template(cpp_name template_name, cpp_ptr<cpp_function_base> ptr)
+: cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
+  func_(std::move(ptr))
+{}

@@ -211,6 +211,7 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
     enum
     {
         prefix,
+        template_parameters,
         parameters,
         suffix,
         noexcept_expression,
@@ -223,9 +224,9 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
 
     visit_tokens(cur, [&](CXToken, const string &spelling)
     {
-        if (spelling == "(")
+        if (spelling == "(" || spelling == "<")
             bracket_count++;
-        else if (spelling == ")")
+        else if (spelling == ")" || spelling == ">")
             bracket_count--;
 
         if (spelling != ")" && bracket_count == 0u && state == noexcept_expression)
@@ -240,7 +241,7 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
             else if (spelling == "operator")
             {
                 assert(name.compare(0, 8, "operator") == 0);
-                ptr += 8; // bump pointer for comparision
+                ptr += 8; // bump pointer for comparison
                 while (*ptr == ' ')
                     ++ptr;
             }
@@ -252,6 +253,11 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
                 minfo.virtual_flag = cpp_virtual_new; // mark virtual
             else if (ret != decltype_return && spelling == "auto")
                 ret = auto_return; // mark auto return type
+            else if (spelling == "template")
+            {
+                state = template_parameters; // template parameters begin
+                start_parameters = bracket_count;
+            }
             // parameter begin
             else if (token_equal(spelling, ptr)) // consume only up to whitespace for conversion op
             {
@@ -268,6 +274,11 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
                     ret = decltype_return; // decltype return, allow auto
                 cat_token(result, spelling); // part of return type
             }
+        }
+        else if (state == template_parameters) // template parameters
+        {
+            if (bracket_count == start_parameters)
+                state = prefix; // go to prefix
         }
         else if (state == parameters) // parameter part
         {

@@ -93,6 +93,8 @@ namespace standardese
     {
         static_assert(std::is_base_of<cpp_entity, T>::value, "T must be derived from cpp_entity");
     public:
+        ~cpp_entity_container() STANDARDESE_NOEXCEPT = default;
+
         bool empty() const STANDARDESE_NOEXCEPT
         {
             return first_ == nullptr;
@@ -165,8 +167,6 @@ namespace standardese
     protected:
         cpp_entity_container() STANDARDESE_NOEXCEPT
         : first_(nullptr), last_(nullptr) {}
-
-        ~cpp_entity_container() STANDARDESE_NOEXCEPT = default;
 
         void add_entity(cpp_ptr<T> entity)
         {

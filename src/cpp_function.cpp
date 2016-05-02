@@ -7,6 +7,7 @@
 #include <cassert>
 
 #include <standardese/detail/parse_utils.hpp>
+#include <standardese/string.hpp>
 
 using namespace standardese;
 
@@ -36,6 +37,31 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(cpp_cursor cur)
                                                     std::move(type), std::move(default_value));
 }
 
+cpp_ptr<cpp_function_base> cpp_function_base::try_parse(cpp_name scope, cpp_cursor cur)
+{
+    auto kind = clang_getCursorKind(cur);
+    if (kind == CXCursor_FunctionTemplate)
+        kind = clang_getTemplateCursorKind(cur);
+
+    switch (kind)
+    {
+        case CXCursor_FunctionDecl:
+            return cpp_function::parse(std::move(scope), cur);
+        case CXCursor_CXXMethod:
+            return cpp_member_function::parse(std::move(scope), cur);
+        case CXCursor_ConversionFunction:
+            return cpp_conversion_op::parse(std::move(scope), cur);
+        case CXCursor_Constructor:
+            return cpp_constructor::parse(std::move(scope), cur);
+        case CXCursor_Destructor:
+            return cpp_destructor::parse(std::move(scope), cur);
+        default:
+            break;
+    }
+
+    return nullptr;
+}
+
 namespace
 {
     cpp_type_ref parse_function_info(cpp_cursor cur, const cpp_name &name,
@@ -58,15 +84,32 @@ namespace
 
     void parse_parameters(cpp_function_base *base, cpp_cursor cur)
     {
-        auto no = clang_Cursor_getNumArguments(cur);
-        for (auto i = 0; i != no; ++i)
-            base->add_parameter(cpp_function_parameter::parse(clang_Cursor_getArgument(cur, i)));
+        // we cannot use clang_Cursor_getNumArguments(),
+        // doesn't work for templates
+        // luckily parameters are exposed as children nodes
+        // but if returning a function pointer, its parameters are as well
+        // so obtain number of return parameters
+        // and ignore those
+
+        auto type = clang_getPointeeType(clang_getCursorResultType(cur));
+        auto no_params_return = clang_getNumArgTypes(type);
+        if (no_params_return == -1)
+            no_params_return = 0;
+
+        auto i = 0;
+        detail::visit_children(cur, [&](CXCursor cur, CXCursor)
+        {
+            if (clang_getCursorKind(cur) == CXCursor_ParmDecl && i++ >= no_params_return)
+                base->add_parameter(cpp_function_parameter::parse(cur));
+            return CXChildVisit_Continue;
+        });
     }
 }
 
 cpp_ptr<cpp_function> cpp_function::parse(cpp_name scope, cpp_cursor cur)
 {
-    assert(clang_getCursorKind(cur) == CXCursor_FunctionDecl);
+    assert(clang_getCursorKind(cur) == CXCursor_FunctionDecl
+          || clang_getTemplateCursorKind(cur) == CXCursor_FunctionDecl);
 
     auto name = detail::parse_name(cur);
     cpp_function_info info;
@@ -106,7 +149,8 @@ namespace
 
 cpp_ptr<cpp_member_function> cpp_member_function::parse(cpp_name scope, cpp_cursor cur)
 {
-    assert(clang_getCursorKind(cur) == CXCursor_CXXMethod);
+    assert(clang_getCursorKind(cur) == CXCursor_CXXMethod
+           || clang_getTemplateCursorKind(cur) == CXCursor_CXXMethod);
 
     auto name = detail::parse_name(cur);
     cpp_function_info finfo;
@@ -124,9 +168,36 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(cpp_name scope, cpp_curs
 
 cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(cpp_name scope, cpp_cursor cur)
 {
-    assert(clang_getCursorKind(cur) == CXCursor_ConversionFunction);
+    assert(clang_getCursorKind(cur) == CXCursor_ConversionFunction
+           || clang_getTemplateCursorKind(cur) == CXCursor_ConversionFunction);
 
-    auto name = detail::parse_name(cur);
+    cpp_name name;
+    cpp_type_ref type;
+    if (clang_getCursorKind(cur) == CXCursor_ConversionFunction)
+    {
+        // parse name
+        name = detail::parse_name(cur);
+
+        auto target_type = clang_getCursorResultType(cur);
+        auto target_type_spelling = name.substr(9); // take everything from type after "operator "
+        assert(target_type_spelling.front() != ' '); // no multiple whitespace
+
+        type = cpp_type_ref(target_type, std::move(target_type_spelling));
+    }
+    else if (clang_getCursorKind(cur) == CXCursor_FunctionTemplate)
+    {
+        // parsing
+        // template <typename T> operator T();
+        // yields a name of
+        // operator type-parameter-0-0
+        // so workaround by calculating name from the type spelling
+        auto target_type = clang_getCursorResultType(cur);
+
+        string spelling(clang_getTypeSpelling(target_type));
+        name = cpp_name("operator ") + spelling.get();
+
+        type = cpp_type_ref(target_type, spelling.get());
+    }
 
     cpp_function_info finfo;
     cpp_member_function_info minfo;
@@ -136,18 +207,14 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(cpp_name scope, cpp_cursor c
     if (finfo.noexcept_expression.empty())
         finfo.noexcept_expression = "false";
 
-    auto target_type = clang_getCursorResultType(cur);
-    auto target_type_spelling = name.substr(9);
-    assert(target_type_spelling.front() != ' '); // no multiple whitespace
-
     return detail::make_ptr<cpp_conversion_op>(std::move(scope), std::move(name), detail::parse_comment(cur),
-                                               cpp_type_ref(target_type, std::move(target_type_spelling)),
-                                               std::move(finfo), std::move(minfo));
+                                               type, std::move(finfo), std::move(minfo));
 }
 
 cpp_ptr<cpp_constructor> cpp_constructor::parse(cpp_name scope, cpp_cursor cur)
 {
-    assert(clang_getCursorKind(cur) == CXCursor_Constructor);
+    assert(clang_getCursorKind(cur) == CXCursor_Constructor
+           || clang_getTemplateCursorKind(cur) == CXCursor_Constructor);
 
     auto name = detail::parse_name(cur);
 
@@ -166,7 +233,8 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(cpp_name scope, cpp_cursor cur)
 
 cpp_ptr<cpp_destructor> cpp_destructor::parse(cpp_name scope, cpp_cursor cur)
 {
-    assert(clang_getCursorKind(cur) == CXCursor_Destructor);
+    assert(clang_getCursorKind(cur) == CXCursor_Destructor
+           || clang_getTemplateCursorKind(cur) == CXCursor_Destructor);
 
     auto name = detail::parse_name(cur);
 

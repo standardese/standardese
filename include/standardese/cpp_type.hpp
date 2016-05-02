@@ -36,6 +36,9 @@ namespace standardese
     class cpp_type_ref
     {
     public:
+        cpp_type_ref()
+        : cpp_type_ref({}, "") {}
+
         cpp_type_ref(CXType type, cpp_name given)
         : given_(std::move(given)), type_(type) {}
 
