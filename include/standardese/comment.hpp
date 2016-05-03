@@ -53,6 +53,9 @@ namespace standardese
         /// Default is "\".
         static void set_command_character(char c);
 
+        /// Sets the name for a section command.
+        static void set_section_command(section_type t, std::string name);
+
         /// Sets the name for a section.
         static void set_section_name(section_type t, std::string name);
 

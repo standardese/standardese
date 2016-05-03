@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <unordered_map>
 
 using namespace standardese;
 
@@ -13,28 +14,19 @@ namespace
 {
     char command_character = '\\';
 
+    std::unordered_map<std::string, section_type> section_commands;
     std::string section_names[std::size_t(section_type::count)];
 
     void init_sections()
     {
-        comment::parser::set_section_name(section_type::brief, "brief");
-        comment::parser::set_section_name(section_type::detail, "detail");
+        comment::parser::set_section_name(section_type::brief, "");
+        comment::parser::set_section_name(section_type::detail, "");
+
+        section_commands["brief"] = section_type::brief;
+        section_commands["detail"] = section_type::detail;
     }
 
     auto initializer = (init_sections(), 0);
-
-    section_type parse_type(const char *name)
-    {
-        auto i = 0;
-        for (auto& sname : section_names)
-        {
-            if (sname == name)
-                break;
-            ++i;
-        }
-
-        return section_type(i);
-    }
 
     // allows out of range access
     class comment_stream
@@ -86,6 +78,11 @@ void comment::parser::set_command_character(char c)
     command_character = c;
 }
 
+void comment::parser::set_section_command(section_type t, std::string name)
+{
+    section_commands[name] = t;
+}
+
 void comment::parser::set_section_name(section_type t, std::string name)
 {
     section_names[std::size_t(t)] = name;
@@ -130,7 +127,7 @@ comment::parser::parser(const cpp_raw_comment &raw_comment)
             while (stream[++i] != ' ')
                 section_name += stream[i];
 
-            auto type = parse_type(section_name.c_str());
+            auto type = section_commands[section_name];
             if (type == section_type::invalid)
                 parse_error("Invalid section name " + section_name);
 

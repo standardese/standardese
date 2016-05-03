@@ -18,7 +18,7 @@ TEST_CASE("comment", "[doc]")
         REQUIRE(sections.size() == 1u);
 
         REQUIRE(sections[0].type == section_type::brief);
-        REQUIRE(sections[0].name == "brief");
+        REQUIRE(sections[0].name == "");
         REQUIRE(sections[0].body == "Hello World.");
     }
     SECTION("multiple sections explicit")
@@ -33,15 +33,15 @@ TEST_CASE("comment", "[doc]")
         REQUIRE(sections.size() == 3u);
 
         REQUIRE(sections[0].type == section_type::brief);
-        REQUIRE(sections[0].name == "brief");
+        REQUIRE(sections[0].name == "");
         REQUIRE(sections[0].body == "A");
 
         REQUIRE(sections[1].type == section_type::detail);
-        REQUIRE(sections[1].name == "detail");
+        REQUIRE(sections[1].name == "");
         REQUIRE(sections[1].body == "B");
 
         REQUIRE(sections[2].type == section_type::detail);
-        REQUIRE(sections[2].name == "detail");
+        REQUIRE(sections[2].name == "");
         REQUIRE(sections[2].body == "C");
     }
     SECTION("multiple sections implicit")
@@ -56,15 +56,15 @@ TEST_CASE("comment", "[doc]")
         REQUIRE(sections.size() == 3u);
 
         REQUIRE(sections[0].type == section_type::brief);
-        REQUIRE(sections[0].name == "brief");
+        REQUIRE(sections[0].name == "");
         REQUIRE(sections[0].body == "A");
 
         REQUIRE(sections[1].type == section_type::detail);
-        REQUIRE(sections[1].name == "detail");
+        REQUIRE(sections[1].name == "");
         REQUIRE(sections[1].body == "B");
 
         REQUIRE(sections[2].type == section_type::detail);
-        REQUIRE(sections[2].name == "detail");
+        REQUIRE(sections[2].name == "");
         REQUIRE(sections[2].body == "C");
     }
 }
