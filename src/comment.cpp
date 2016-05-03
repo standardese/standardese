@@ -42,6 +42,14 @@ namespace
 
     auto initializer = (init_sections(), 0);
 
+    section_type parse_section_name(const std::string &name)
+    {
+        auto iter = section_commands.find(name);
+        if (iter == section_commands.end())
+            return section_type::invalid;
+        return iter->second;
+    }
+
     // allows out of range access
     class comment_stream
     {
@@ -80,9 +88,9 @@ namespace
         str.erase(0, start);
     }
 
-    void parse_error(const std::string &message)
+    void parse_error(const char *entity_name, unsigned line, const std::string &message)
     {
-        std::cerr << "Comment parse error: " << message << '\n';
+        std::cerr << entity_name << ':' << line << ": comment parse error: " << message << '\n';
     }
 }
 
@@ -124,7 +132,7 @@ void comment::parser::set_section_name(const std::string &type, std::string name
     section_names[int(iter->second)] = std::move(name);
 }
 
-comment::parser::parser(const cpp_raw_comment &raw_comment)
+comment::parser::parser(const char *entity_name, const cpp_raw_comment &raw_comment)
 {
     comment_stream stream(raw_comment);
     auto cur_section_t = section_type::brief;
@@ -147,6 +155,7 @@ comment::parser::parser(const cpp_raw_comment &raw_comment)
                 };
 
     auto i = 0u;
+    auto line = 1u;
     while (i < stream.size())
     {
         if (stream[i] == '/')
@@ -160,6 +169,7 @@ comment::parser::parser(const cpp_raw_comment &raw_comment)
             // section is finished
             ++i;
             finish_section();
+            ++line;
         }
         else if (stream[i] == command_character)
         {
@@ -168,9 +178,10 @@ comment::parser::parser(const cpp_raw_comment &raw_comment)
             while (stream[++i] != ' ')
                 section_name += stream[i];
 
-            auto type = section_commands[section_name];
+            auto type = parse_section_name(section_name);
             if (type == section_type::invalid)
-                parse_error("invalid section name " + section_name);
+                parse_error(entity_name, line,
+                            "invalid section name '" + section_name + "'");
             else
             {
                 finish_section();

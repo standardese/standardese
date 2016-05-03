@@ -77,7 +77,10 @@ namespace standardese
         /// Sames above but for configuration interface.
         static void set_section_name(const std::string &type, std::string name);
 
-        parser(const cpp_raw_comment &raw_comment);
+        parser(const char *entity_name, const cpp_raw_comment &raw_comment);
+
+        parser(const cpp_entity &e)
+        : parser(e.get_unique_name().c_str(), e.get_comment()) {}
 
         comment finish();
 

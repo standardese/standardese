@@ -12,7 +12,7 @@ TEST_CASE("comment", "[doc]")
 {
     SECTION("simple parsing")
     {
-        comment::parser p(R"(/// Hello World.)");
+        comment::parser p("", R"(/// Hello World.)");
         auto comment = p.finish();
         auto sections = comment.get_sections();
         REQUIRE(sections.size() == 1u);
@@ -23,11 +23,11 @@ TEST_CASE("comment", "[doc]")
     }
     SECTION("multiple sections explicit")
     {
-        comment::parser p(R"(/// \brief A
-                             ///
-                             /// \details B
-                             /// C
-                            )");
+        comment::parser p("", R"(/// \brief A
+                                 /// \foo
+                                 /// \details B
+                                 /// C
+                                )");
         auto comment = p.finish();
         auto sections = comment.get_sections();
         REQUIRE(sections.size() == 3u);
@@ -46,11 +46,11 @@ TEST_CASE("comment", "[doc]")
     }
     SECTION("multiple sections implicit")
     {
-        comment::parser p(R"(/// A
-                             ///
-                             /// B
-                             /// C
-                            )");
+        comment::parser p("", R"(/// A
+                                 ///
+                                 /// B
+                                 /// C
+                                )");
         auto comment = p.finish();
         auto sections = comment.get_sections();
         REQUIRE(sections.size() == 3u);
@@ -69,10 +69,10 @@ TEST_CASE("comment", "[doc]")
     }
     SECTION("cherry pick other commands")
     {
-        comment::parser p(R"(/// \effects A A
-                             /// A A
-                             /// \returns B B
-                             /// \error_conditions C C)");
+        comment::parser p("", R"(/// \effects A A
+                                 /// A A
+                                 /// \returns B B
+                                 /// \error_conditions C C)");
 
         auto comment = p.finish();
         auto sections = comment.get_sections();
