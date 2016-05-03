@@ -159,6 +159,9 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_InclusionDirective:
             stack.add_entity(cpp_inclusion_directive::parse(cur));
             return CXChildVisit_Continue;
+        case CXCursor_MacroDefinition:
+            stack.add_entity(cpp_macro_definition::parse(cur));
+            return CXChildVisit_Continue;
 
         case CXCursor_Namespace:
             stack.push_container(detail::make_ptr<cpp_namespace::parser>(scope, cur), parent);

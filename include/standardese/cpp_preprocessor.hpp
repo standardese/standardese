@@ -6,6 +6,7 @@
 #define STANDARDESE_CPP_PREPROCESSOR_HPP_INCLUDED
 
 #include <standardese/cpp_entity.hpp>
+#include "cpp_cursor.hpp"
 
 namespace standardese
 {
@@ -34,6 +35,37 @@ namespace standardese
 
     private:
         kind kind_;
+    };
+
+    class cpp_macro_definition
+    : public cpp_entity
+    {
+    public:
+        static cpp_ptr<cpp_macro_definition> parse(cpp_cursor cur);
+
+        cpp_macro_definition(cpp_name name, cpp_comment c,
+                             std::string args, std::string rep)
+        : cpp_entity("", std::move(name), std::move(c)),
+          args_(std::move(args)), replacement_(std::move(rep)) {}
+
+        bool is_function_macro() const STANDARDESE_NOEXCEPT
+        {
+            return !args_.empty();
+        }
+
+        /// Returns the argument string including brackets.
+        const std::string &get_argument_string() const STANDARDESE_NOEXCEPT
+        {
+            return args_;
+        }
+
+        const std::string &get_replacement() const STANDARDESE_NOEXCEPT
+        {
+            return replacement_;
+        }
+
+    private:
+        std::string args_, replacement_;
     };
 } // namespace standardese
 

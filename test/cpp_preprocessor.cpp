@@ -18,6 +18,18 @@ TEST_CASE("cpp_preprocessor", "[cpp]")
         #include <iostream>
 
         #include "cpp_variable"
+
+        #define A
+
+        #define B foo
+
+        #define C(x) x
+
+        #define D(x, ...) __VA_ARGS__
+
+        #define E(...) __VA_ARGS__
+
+        struct ignore_me; // macro cannot be put last
     )";
 
     auto tu = parse(p, "cpp_preprocessor", code);
@@ -37,8 +49,43 @@ TEST_CASE("cpp_preprocessor", "[cpp]")
             auto& inc = dynamic_cast<const cpp_inclusion_directive&>(e);
             REQUIRE(inc.get_kind() == cpp_inclusion_directive::local);
         }
+        else if (e.get_name() == "A")
+        {
+            ++count;
+            auto& macro = dynamic_cast<const cpp_macro_definition&>(e);
+            REQUIRE(macro.get_argument_string() == "");
+            REQUIRE(macro.get_replacement() == "");
+        }
+        else if (e.get_name() == "B")
+        {
+            ++count;
+            auto& macro = dynamic_cast<const cpp_macro_definition&>(e);
+            REQUIRE(macro.get_argument_string() == "");
+            REQUIRE(macro.get_replacement() == "foo");
+        }
+        else if (e.get_name() == "C")
+        {
+            ++count;
+            auto& macro = dynamic_cast<const cpp_macro_definition&>(e);
+            REQUIRE(macro.get_argument_string() == "(x)");
+            REQUIRE(macro.get_replacement() == "x");
+        }
+        else if (e.get_name() == "D")
+        {
+            ++count;
+            auto& macro = dynamic_cast<const cpp_macro_definition&>(e);
+            REQUIRE(macro.get_argument_string() == "(x, ...)");
+            REQUIRE(macro.get_replacement() == "__VA_ARGS__");
+        }
+        else if (e.get_name() == "E")
+        {
+            ++count;
+            auto& macro = dynamic_cast<const cpp_macro_definition&>(e);
+            REQUIRE(macro.get_argument_string() == "(...)");
+            REQUIRE(macro.get_replacement() == "__VA_ARGS__");
+        }
         else
             REQUIRE(false);
     });
-    REQUIRE(count == 2u);
+    REQUIRE(count == 7u);
 }

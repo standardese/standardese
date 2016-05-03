@@ -490,3 +490,52 @@ cpp_name detail::parse_template_specialization_name(cpp_cursor cur, const cpp_na
 
     return result;
 }
+
+std::string detail::parse_macro_replacement(cpp_cursor cur, const cpp_name &name, std::string &args)
+{
+    std::string result;
+    args.clear();
+
+    enum
+    {
+        prefix,
+        arguments,
+        replacement
+    } state = prefix;
+    auto require_bracket = false;
+
+    detail::visit_tokens(cur, [&](CXToken, const string &spelling)
+    {
+        if (state == prefix && spelling.get() == name)
+        {
+            state = arguments;
+            require_bracket = true;
+        }
+        else if (state == arguments)
+        {
+            if (require_bracket && spelling != "(")
+            {
+                // part of replacement
+                cat_token(result, spelling);
+                state = replacement;
+            }
+            else if (spelling == ")")
+            {
+                cat_token(args, spelling);
+                state = replacement;
+            }
+            else
+                cat_token(args, spelling);
+
+            require_bracket = false;
+        }
+        else if (state == replacement)
+            cat_token(result, spelling);
+        else
+            assert(false);
+
+        return true;
+    });
+
+    return result;
+}

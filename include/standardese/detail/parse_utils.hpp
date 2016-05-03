@@ -60,6 +60,9 @@ namespace standardese
         // parses name of a template specialization
         cpp_name parse_template_specialization_name(cpp_cursor cur, const cpp_name &name);
 
+        // parses the replacement of a macro
+        std::string parse_macro_replacement(cpp_cursor cur, const cpp_name &name, std::string &args);
+
         // wrapper for clang_visitChildren
         template <typename Fnc>
         void visit_children(cpp_cursor cur, Fnc f)
