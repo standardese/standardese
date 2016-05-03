@@ -59,6 +59,16 @@ namespace standardese
                 return *this;
             }
 
+            writer& operator<<(long long value)
+            {
+                return *this << std::to_string(value);
+            }
+
+            writer& operator<<(unsigned long long value)
+            {
+                return *this << std::to_string(value);
+            }
+
             writer& operator<<(newl_t)
             {
                 output_.get_output().write_new_line();

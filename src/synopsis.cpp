@@ -3,6 +3,8 @@
 // found in the top-level directory of this distribution.
 
 #include <standardese/synopsis.hpp>
+
+#include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_preprocessor.hpp>
 #include <standardese/cpp_type.hpp>
@@ -92,6 +94,48 @@ namespace
         out << "using " << a.get_name() << " = " << a.get_target().get_name() << ';';
     }
 
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_enum_value &e, bool)
+    {
+        out << e.get_name();
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_signed_enum_value &e, bool)
+    {
+        out << e.get_name();
+        if (e.is_explicitly_given())
+            out << " = " << e.get_value();
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_unsigned_enum_value &e, bool)
+    {
+        out << e.get_name();
+        if (e.is_explicitly_given())
+            out << " = " << e.get_value();
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_enum &e, bool top_level)
+    {
+        out << "enum ";
+        if (e.is_scoped())
+            out << "class ";
+        out << e.get_name();
+        if (top_level)
+        {
+            out << newl;
+            if (!e.get_underlying_type().get_name().empty())
+                out << ": " << e.get_underlying_type().get_name() << newl;
+            out << '{' << newl;
+            out.indent(tab_width);
+
+            print_range(out, e, ",\n");
+
+            out.unindent(tab_width);
+            out << newl << '}' << newl;
+        }
+        else
+            out << ';';
+    }
+
     void dispatch(output_base::code_block_writer &out, const cpp_entity &e, bool top_level)
     {
         switch (e.get_entity_type())
@@ -112,6 +156,11 @@ namespace
             STANDARDESE_DETAIL_HANDLE(using_declaration)
 
             STANDARDESE_DETAIL_HANDLE(type_alias)
+
+            STANDARDESE_DETAIL_HANDLE(enum_value)
+            STANDARDESE_DETAIL_HANDLE(signed_enum_value)
+            STANDARDESE_DETAIL_HANDLE(unsigned_enum_value)
+            STANDARDESE_DETAIL_HANDLE(enum)
 
             #undef STANDARDESE_DETAIL_HANDLE
 
