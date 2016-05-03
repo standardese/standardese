@@ -20,7 +20,7 @@ namespace standardese
         output_stream_base(const output_stream_base &) = delete;
         output_stream_base(output_stream_base &&) = delete;
 
-        virtual ~output_stream_base() STANDARDESE_NOEXCEPT = default;
+        virtual ~output_stream_base() STANDARDESE_NOEXCEPT;
 
         output_stream_base &operator=(const output_stream_base &) = delete;
         output_stream_base &operator=(output_stream_base &&) = delete;

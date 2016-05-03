@@ -14,6 +14,9 @@
 
 namespace standardese
 {
+    const struct newl_t {} newl;
+    const struct blankl_t {} blankl;
+
     class output_base
     {
     public:
@@ -23,7 +26,7 @@ namespace standardese
         output_base(const output_base &) = delete;
         output_base(output_base &&) = delete;
 
-        virtual ~output_base() STANDARDESE_NOEXCEPT = default;
+        virtual ~output_base() STANDARDESE_NOEXCEPT;
 
         output_base& operator=(const output_base&) = delete;
         output_base& operator=(output_base&&) = delete;
@@ -53,6 +56,18 @@ namespace standardese
             writer& operator<<(char c)
             {
                 output_.get_output().write_char(c);
+                return *this;
+            }
+
+            writer& operator<<(newl_t)
+            {
+                output_.get_output().write_new_line();
+                return *this;
+            }
+
+            writer& operator<<(blankl_t)
+            {
+                output_.get_output().write_blank_line();
                 return *this;
             }
 
@@ -162,7 +177,7 @@ namespace standardese
             write_header_begin(level);
         }
 
-        virtual void write_begin(style s);
+        virtual void write_begin(style s) = 0;
 
         virtual void write_end(style s)
         {
@@ -182,7 +197,7 @@ namespace standardese
             write_code_block_begin();
         }
 
-        virtual void do_write_section_heading(const std::string &section_name);
+        virtual void do_write_section_heading(const std::string &section_name) = 0;
 
     private:
         output_stream_base *output_;
@@ -202,7 +217,7 @@ namespace standardese
 
     protected:
         void write_header_begin(unsigned level) override;
-        void write_header_end(unsigned level) override;
+        void write_header_end(unsigned  level) override;
 
         void write_begin(style s) override;
 

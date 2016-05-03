@@ -8,6 +8,8 @@
 
 using namespace standardese;
 
+output_base::~output_base() STANDARDESE_NOEXCEPT {}
+
 void markdown_output::write_header_begin(unsigned level)
 {
     assert(level <= 6);
@@ -56,6 +58,7 @@ void markdown_output::write_code_block_begin()
 
 void markdown_output::write_code_block_end()
 {
+    get_output().write_new_line();
     get_output().write_str("```", 3);
     get_output().write_blank_line();
 }

@@ -4,6 +4,7 @@
 
 #include <standardese/synopsis.hpp>
 
+#include <standardese/cpp_preprocessor.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -12,10 +13,40 @@ namespace
 {
     void dispatch(output_base::code_block_writer &out, const cpp_entity &e, bool top_level);
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_file &f, bool top_level)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_file &f, bool)
     {
+        auto need = false;
         for (auto& e : f)
+        {
+            if (need)
+                out << blankl;
+            else
+                need = true;
+
             dispatch(out, e, false);
+        }
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_inclusion_directive &i, bool)
+    {
+        out << "#include ";
+
+        if (i.get_kind() == cpp_inclusion_directive::local)
+            out << '"';
+        else
+            out << '<';
+
+        out << i.get_name();
+
+        if (i.get_kind() == cpp_inclusion_directive::local)
+            out << '"';
+        else
+            out << '>';
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_macro_definition &m, bool)
+    {
+        out << "#define " << m.get_name() << m.get_argument_string() << ' ' << m.get_replacement();
     }
 
     void dispatch(output_base::code_block_writer &out, const cpp_entity &e, bool top_level)
@@ -28,6 +59,9 @@ namespace
             break;
 
             STANDARDESE_DETAIL_HANDLE(file)
+
+            STANDARDESE_DETAIL_HANDLE(inclusion_directive)
+            STANDARDESE_DETAIL_HANDLE(macro_definition)
 
             #undef STANDARDESE_DETAIL_HANDLE
 
