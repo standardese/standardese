@@ -10,7 +10,7 @@
 #include <utility>
 
 #include <standardese/detail/wrapper.hpp>
-#include "cpp_namespace.hpp"
+#include <standardese/cpp_entity.hpp>
 
 namespace standardese
 {
@@ -48,7 +48,7 @@ namespace standardese
         /// standard must be one of the cpp_standard values.
         translation_unit parse(const char *path, const char *standard) const;
 
-        void register_file(cpp_file &f) const;
+        void register_file(cpp_ptr<cpp_file> file) const;
 
         // void(const cpp_file &file)
         template <typename Fnc>

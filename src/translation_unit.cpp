@@ -118,7 +118,7 @@ private:
     std::vector<container> stack_;
 };
 
-cpp_ptr<cpp_file> translation_unit::parse() const
+cpp_file& translation_unit::build_ast() const
 {
     cpp_ptr<cpp_file> result(new cpp_file(get_path()));
 
@@ -126,8 +126,9 @@ cpp_ptr<cpp_file> translation_unit::parse() const
     visit([&](CXCursor cur, CXCursor parent) {return this->parse_visit(stack, cur, parent);});
     stack.pop_if_needed(clang_getTranslationUnitCursor(tu_.get()), *parser_);
 
-    parser_->register_file(*result);
-    return result;
+    auto& ref = *result;
+    parser_->register_file(std::move(result));
+    return ref;
 }
 
 CXFile translation_unit::get_cxfile() const STANDARDESE_NOEXCEPT

@@ -39,8 +39,8 @@ TEST_CASE("cpp_type_alias", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_type_alias", code);
+    tu.build_ast();
 
-    auto f = tu.parse();
     auto count = 0u;
     p.for_each_type([&](const cpp_type &e)
     {
@@ -135,8 +135,8 @@ TEST_CASE("cpp_enum", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_enum", code);
+    tu.build_ast();
 
-    auto f = tu.parse();
     auto count = 0u;
     p.for_each_type([&](const cpp_type &e)
     {
@@ -243,8 +243,8 @@ TEST_CASE("cpp_class", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_class", code);
+    tu.build_ast();
 
-    auto f = tu.parse();
     auto count = 0u;
     p.for_each_type([&](const cpp_type &e)
     {

@@ -22,10 +22,10 @@ TEST_CASE("cpp_namespace", "[cpp]")
             inline namespace ns_1 {}
         )";
         auto tu = parse(p, "cpp_namespace__basic_parsing", code);
-        auto file = tu.parse();
+        auto& file = tu.build_ast();
 
         auto i = 0u;
-        for (auto& e : *file)
+        for (auto& e : file)
         {
             auto& ns = dynamic_cast<const cpp_namespace&>(e);
 
@@ -57,10 +57,10 @@ TEST_CASE("cpp_namespace", "[cpp]")
         )";
 
         auto tu = parse(p, "cpp_namespace__nested_parsing", code);
-        auto file = tu.parse();
+        auto& file = tu.build_ast();
 
         auto i = 0u;
-        for (auto& e : *file)
+        for (auto& e : file)
         {
             auto& ns = dynamic_cast<const cpp_namespace&>(e);
 
@@ -112,8 +112,8 @@ TEST_CASE("cpp_namespace", "[cpp]")
         auto tu_a = parse(p, "cpp_namespace__multiple_tu__a", code_a);
         auto tu_b = parse(p, "cpp_namespace__multiple_tu__b", code_b);
 
-        auto f_a = tu_a.parse();
-        auto f_b = tu_b.parse();
+        tu_a.build_ast();
+        tu_b.build_ast();
 
         std::set<cpp_name> names;
         names.insert("outer");
@@ -164,8 +164,8 @@ TEST_CASE("cpp_namespace_alias", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_namespace_alias", code);
+    tu.build_ast();
 
-    auto f = tu.parse();
     auto count = 0u;
     p.for_each_in_namespace([&](const cpp_entity &e)
     {
@@ -276,8 +276,8 @@ TEST_CASE("cpp_using_directive", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_namespace_alias", code);
+    tu.build_ast();
 
-    auto f = tu.parse();
     auto count = 0u;
     p.for_each_in_namespace([&](const cpp_entity &e)
     {
@@ -370,8 +370,8 @@ TEST_CASE("cpp_using_declaration", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_using_declaration", code);
+    tu.build_ast();
 
-    auto f = tu.parse();
     auto count = 0u;
     p.for_each_in_namespace([&](const cpp_entity &e)
     {

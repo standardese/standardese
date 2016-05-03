@@ -31,8 +31,8 @@ TEST_CASE("cpp_variable", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_variable", code);
+    tu.build_ast();
 
-    auto f = tu.parse();
     auto count = 0u;
     p.for_each_in_namespace([&](const cpp_entity &e)
     {
@@ -145,8 +145,8 @@ TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_member_variable", code);
+    tu.build_ast();
 
-    auto f = tu.parse();
     auto count = 0u;
     p.for_each_type([&](const cpp_type &t)
     {

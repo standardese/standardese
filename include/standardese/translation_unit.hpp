@@ -52,7 +52,7 @@ namespace standardese
             clang_visitChildren(clang_getTranslationUnitCursor(tu_.get()), visitor_impl, &data);
         }
 
-        cpp_ptr<cpp_file> parse() const;
+        cpp_file& build_ast() const;
 
         const char* get_path() const STANDARDESE_NOEXCEPT
         {

@@ -33,7 +33,7 @@ TEST_CASE("cpp_preprocessor", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_preprocessor", code);
-    auto f = tu.parse();
+    tu.build_ast();
     auto count = 0u;
     p.for_each_in_namespace([&](const cpp_entity &e)
     {

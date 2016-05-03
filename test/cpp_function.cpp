@@ -70,7 +70,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_function", code);
-    auto f = tu.parse();
+    tu.build_ast();
 
     // no need to check the parameters, same code as for variables
     auto count = 0u;
@@ -297,7 +297,8 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_conversion_op", code);
-    auto f = tu.parse();
+    tu.build_ast();
+
     auto count = 0u;
     p.for_each_type([&](const cpp_type &t)
     {
@@ -368,7 +369,8 @@ TEST_CASE("cpp_constructor", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_conversion_op", code);
-    auto f = tu.parse();
+    tu.build_ast();
+
     auto count = 0u;
     p.for_each_type([&](const cpp_type &t)
     {
@@ -452,7 +454,8 @@ TEST_CASE("cpp_destructor", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_conversion_op", code);
-    auto f = tu.parse();
+    tu.build_ast();
+
     auto count = 0u;
     p.for_each_type([&](const cpp_type &t)
     {

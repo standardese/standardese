@@ -400,8 +400,8 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_function_template", code);
+    tu.build_ast();
 
-    auto f = tu.parse();
     auto count = 0u;
     p.for_each_in_namespace([&](const cpp_entity &e)
     {
@@ -604,8 +604,8 @@ TEST_CASE("cpp_class_template", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_class_template", code);
+    tu.build_ast();
 
-    auto f = tu.parse();
     auto count = 0u;
     p.for_each_in_namespace([&](const cpp_entity &e)
     {

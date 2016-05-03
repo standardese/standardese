@@ -33,7 +33,7 @@ namespace
 struct parser::impl
 {
     std::mutex file_mutex;
-    std::vector<cpp_file*> files;
+    std::vector<cpp_ptr<cpp_file>> files;
 
     std::mutex ns_mutex;
     std::vector<cpp_namespace*> namespaces;
@@ -59,15 +59,15 @@ translation_unit parser::parse(const char *path, const char *standard) const
     return translation_unit(*this, tu, path);
 }
 
-void parser::register_file(cpp_file &f) const
+void parser::register_file(cpp_ptr<cpp_file> file) const
 {
     std::unique_lock<std::mutex> lock(pimpl_->file_mutex);
-    pimpl_->files.push_back(&f);
+    pimpl_->files.push_back(std::move(file));
 }
 
 void parser::for_each_file(file_callback cb, void* data)
 {
-    for (auto ptr : pimpl_->files)
+    for (auto& ptr : pimpl_->files)
         cb(*ptr, data);
 }
 
