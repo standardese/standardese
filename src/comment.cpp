@@ -59,14 +59,15 @@ namespace
 
         char operator[](std::size_t i) const STANDARDESE_NOEXCEPT
         {
-            if (i >= size())
-                return '\n'; // to terminate any section
-            return (*comment_)[i];
+            if (i == 0u || i >= size())
+                // to terminate any section
+                return '\n';
+            return (*comment_)[i - 1];
         }
 
         std::size_t size() const STANDARDESE_NOEXCEPT
         {
-            return comment_->size();
+            return comment_->size() + 1;
         }
 
     private:
@@ -155,21 +156,20 @@ comment::parser::parser(const char *entity_name, const cpp_raw_comment &raw_comm
                 };
 
     auto i = 0u;
-    auto line = 1u;
+    auto line = 0u;
     while (i < stream.size())
     {
-        if (stream[i] == '/')
+        if (stream[i] == '\n')
         {
-            // ignore all comment characters
-            while (stream[i] == '/')
-                ++i;
-        }
-        else if (stream[i] == '\n')
-        {
-            // section is finished
-            ++i;
-            finish_section();
+            ++i; // consume newl
             ++line;
+
+            // section is finished
+            finish_section();
+
+            // ignore all comment characters
+            while (stream[i] == ' ' || stream[i] == '/')
+                ++i;
         }
         else if (stream[i] == command_character)
         {

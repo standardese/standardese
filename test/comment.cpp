@@ -24,9 +24,9 @@ TEST_CASE("comment", "[doc]")
     SECTION("multiple sections explicit")
     {
         comment::parser p("", R"(/// \brief A
-                                 /// \foo
+                                 ///
                                  /// \details B
-                                 /// C
+                                 /// C /// C
                                 )");
         auto comment = p.finish();
         auto sections = comment.get_sections();
@@ -42,7 +42,7 @@ TEST_CASE("comment", "[doc]")
 
         REQUIRE(sections[2].type == section_type::details);
         REQUIRE(sections[2].name == "");
-        REQUIRE(sections[2].body == "C");
+        REQUIRE(sections[2].body == "C /// C");
     }
     SECTION("multiple sections implicit")
     {
