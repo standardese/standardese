@@ -37,19 +37,22 @@ namespace standardese
             cpp_ptr<cpp_namespace> ns_;
         };
 
+        cpp_namespace(const cpp_name &scope, cpp_name name, cpp_comment comment)
+        : cpp_entity(scope, std::move(name), std::move(comment)),
+          inline_(false) {}
+
+        void add_entity(cpp_entity_ptr ptr)
+        {
+            cpp_entity_container::add_entity(std::move(ptr));
+        }
+
         bool is_inline() const STANDARDESE_NOEXCEPT
         {
             return inline_;
         }
 
     private:
-        cpp_namespace(const cpp_name &scope, cpp_name name, cpp_comment comment)
-        : cpp_entity(scope, std::move(name), std::move(comment)),
-          inline_(false) {}
-
         bool inline_;
-
-        friend parser;
     };
 
     class cpp_namespace_alias

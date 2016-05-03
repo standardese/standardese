@@ -123,7 +123,7 @@ void cpp_enum::parser::add_entity(cpp_entity_ptr ptr)
 {
     assert(enum_);
     auto val = static_cast<cpp_enum_value*>(ptr.release());
-    enum_->add_entity(cpp_ptr<cpp_enum_value>(val));
+    enum_->add_enum_value(cpp_ptr<cpp_enum_value>(val));
 }
 
 cpp_name cpp_enum::parser::scope_name()

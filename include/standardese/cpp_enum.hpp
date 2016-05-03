@@ -84,6 +84,17 @@ namespace standardese
             cpp_ptr<cpp_enum> enum_;
         };
 
+        cpp_enum(cpp_name scope, cpp_name name, cpp_comment comment,
+                 CXType type, cpp_type_ref underlying)
+        : cpp_type(std::move(scope), std::move(name), std::move(comment), type),
+          underlying_(std::move(underlying)),
+          is_scoped_(false) {}
+
+        void add_enum_value(cpp_ptr<cpp_enum_value> value)
+        {
+            cpp_entity_container::add_entity(std::move(value));
+        }
+
         bool is_scoped() const STANDARDESE_NOEXCEPT
         {
             return is_scoped_;
@@ -95,16 +106,8 @@ namespace standardese
         }
 
     private:
-        cpp_enum(cpp_name scope, cpp_name name, cpp_comment comment,
-                 CXType type, cpp_type_ref underlying)
-        : cpp_type(std::move(scope), std::move(name), std::move(comment), type),
-          underlying_(std::move(underlying)),
-          is_scoped_(false) {}
-
         cpp_type_ref underlying_;
         bool is_scoped_;
-
-        friend parser;
     };
 } // namespace standardese
 

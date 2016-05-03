@@ -225,8 +225,6 @@ namespace
     }
 }
 
-#include <iostream>
-
 cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
                                      cpp_function_info &finfo,
                                      cpp_member_function_info &minfo)
