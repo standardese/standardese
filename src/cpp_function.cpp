@@ -192,11 +192,10 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(cpp_name scope, cpp_cursor c
         // operator type-parameter-0-0
         // so workaround by calculating name from the type spelling
         auto target_type = clang_getCursorResultType(cur);
+        auto spelling = detail::parse_name(target_type);
+        name = "operator " + spelling;
 
-        string spelling(clang_getTypeSpelling(target_type));
-        name = cpp_name("operator ") + spelling.get();
-
-        type = cpp_type_ref(target_type, spelling.get());
+        type = cpp_type_ref(target_type, spelling);
     }
 
     cpp_function_info finfo;

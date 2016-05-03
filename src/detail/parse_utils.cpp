@@ -10,10 +10,44 @@
 
 using namespace standardese;
 
+namespace
+{
+    void clean_name(cpp_name &name)
+    {
+        // when the name of the class is mentioned in a partial specialization
+        // clang appends the template parameters with an internal name at the end
+        // erase that part
+        auto pos = name.find("-parameter");
+        if (pos == cpp_name::npos)
+            return;
+
+        auto beg = name.find('<');
+        auto end = name.rfind('>');
+        auto count = end - beg + 1;
+
+        assert(beg != cpp_name::npos);
+        name.erase(beg, count);
+    }
+}
+
 cpp_name detail::parse_name(cpp_cursor cur)
 {
     string str(clang_getCursorSpelling(cur));
-    return cpp_name(str.get());
+    auto result = cpp_name(str.get());
+
+    clean_name(result);
+
+    return result;
+}
+
+cpp_name detail::parse_name(CXType type)
+{
+    string str(clang_getTypeSpelling(type));
+    auto result = cpp_name(str.get());
+
+    clean_name(result);
+
+    return result;
 }
 
 cpp_name detail::parse_class_name(cpp_cursor cur)
@@ -190,6 +224,8 @@ namespace
         return false;
     }
 }
+
+#include <iostream>
 
 cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
                                      cpp_function_info &finfo,

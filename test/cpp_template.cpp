@@ -554,7 +554,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
     REQUIRE(count == 7u);
 }
 
-TEST_CASE("cpp_class_template and specialization", "[cpp]")
+TEST_CASE("cpp_class_template", "[cpp]")
 {
     parser p;
 
@@ -574,7 +574,14 @@ TEST_CASE("cpp_class_template and specialization", "[cpp]")
         struct should_be_ignored<int>;
 
         template <>
-        struct a<int *> {};
+        struct a<int *>
+        {
+            /// a
+            a(const a &a) = default;
+
+            /// b
+            a(const a<int> &a);
+        };
 
         template <>
         class b<0, char, int(*)(char)> {};
@@ -583,7 +590,14 @@ TEST_CASE("cpp_class_template and specialization", "[cpp]")
         struct should_be_ignored<T*>;
 
         template <class T>
-        struct a<T(*)()> {};
+        struct a<T(*)()>
+        {
+            /// a
+            a(const a &a) = default;
+
+            /// b
+            a(const a<int *> &a);
+        };
 
         template <int A, typename ... B>
         class b<A, void(*)(B...)> {};
@@ -654,6 +668,22 @@ TEST_CASE("cpp_class_template and specialization", "[cpp]")
                 REQUIRE(c->get_name() == "a<int *>");
                 REQUIRE(c->get_primary_template().get_name() == "a");
                 REQUIRE(c->get_class().get_class_type() == cpp_struct_t);
+
+                for (auto& e : c->get_class())
+                {
+                    auto& ctor = dynamic_cast<const cpp_constructor&>(e);
+                    REQUIRE(ctor.get_name() == "a");
+                    for (auto& param : ctor.get_parameters())
+                    {
+                        REQUIRE(param.get_name() == "a");
+                        if (ctor.get_comment() == "/// a")
+                            REQUIRE(param.get_type().get_full_name() == "const a<int *> &");
+                        else if (ctor.get_comment() == "/// b")
+                            REQUIRE(param.get_type().get_full_name() == "const a<int> &");
+                        else
+                            REQUIRE(false);
+                    }
+                }
             }
             else if (c->get_class().get_name() == "b")
             {
@@ -673,6 +703,22 @@ TEST_CASE("cpp_class_template and specialization", "[cpp]")
                 REQUIRE(c->get_name() == "a<T(*)()>");
                 REQUIRE(c->get_primary_template().get_name() == "a");
                 REQUIRE(c->get_class().get_class_type() == cpp_struct_t);
+
+                for (auto& e : c->get_class())
+                {
+                    auto& ctor = dynamic_cast<const cpp_constructor&>(e);
+                    REQUIRE(ctor.get_name() == "a");
+                    for (auto& param : ctor.get_parameters())
+                    {
+                        REQUIRE(param.get_name() == "a");
+                        if (ctor.get_comment() == "/// a")
+                            REQUIRE(param.get_type().get_full_name() == "const a &");
+                        else if (ctor.get_comment() == "/// b")
+                            REQUIRE(param.get_type().get_full_name() == "const a<int *> &");
+                        else
+                            REQUIRE(false);
+                    }
+                }
             }
             else if (c->get_class().get_name() == "b")
             {

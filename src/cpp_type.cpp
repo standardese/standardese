@@ -30,8 +30,7 @@ namespace
 
 cpp_name cpp_type_ref::get_full_name() const
 {
-    string spelling(clang_getTypeSpelling(type_));
-    return spelling.get();
+    return detail::parse_name(type_);
 }
 
 cpp_ptr<cpp_type_alias> cpp_type_alias::parse(const parser &p, const cpp_name &scope, cpp_cursor cur)

@@ -21,6 +21,9 @@ namespace standardese
         // obtains the name from cursor
         cpp_name parse_name(cpp_cursor cur);
 
+        // otbains the name of a type
+        cpp_name parse_name(CXType type);
+
         // parses the class name from cursor
         // cannot use parse_name(), adds "struct"/... before
         cpp_name parse_class_name(cpp_cursor cur);
