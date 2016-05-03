@@ -20,10 +20,10 @@ namespace
     void init_sections()
     {
         comment::parser::set_section_name(section_type::brief, "");
-        comment::parser::set_section_name(section_type::detail, "");
+        comment::parser::set_section_name(section_type::details, "");
 
         section_commands["brief"] = section_type::brief;
-        section_commands["detail"] = section_type::detail;
+        section_commands["details"] = section_type::details;
     }
 
     auto initializer = (init_sections(), 0);
@@ -101,7 +101,7 @@ comment::parser::parser(const cpp_raw_comment &raw_comment)
                         return;
 
                     comment_.sections_.emplace_back(cur_section_t, section_names[int(cur_section_t)], cur_body);
-                    cur_section_t = section_type::detail;
+                    cur_section_t = section_type::details;
                     cur_body.clear();
                 };
 

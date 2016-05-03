@@ -25,7 +25,7 @@ TEST_CASE("comment", "[doc]")
     {
         comment::parser p(R"(/// \brief A
                              ///
-                             /// \detail B
+                             /// \details B
                              /// C
                             )");
         auto comment = p.finish();
@@ -36,11 +36,11 @@ TEST_CASE("comment", "[doc]")
         REQUIRE(sections[0].name == "");
         REQUIRE(sections[0].body == "A");
 
-        REQUIRE(sections[1].type == section_type::detail);
+        REQUIRE(sections[1].type == section_type::details);
         REQUIRE(sections[1].name == "");
         REQUIRE(sections[1].body == "B");
 
-        REQUIRE(sections[2].type == section_type::detail);
+        REQUIRE(sections[2].type == section_type::details);
         REQUIRE(sections[2].name == "");
         REQUIRE(sections[2].body == "C");
     }
@@ -59,11 +59,11 @@ TEST_CASE("comment", "[doc]")
         REQUIRE(sections[0].name == "");
         REQUIRE(sections[0].body == "A");
 
-        REQUIRE(sections[1].type == section_type::detail);
+        REQUIRE(sections[1].type == section_type::details);
         REQUIRE(sections[1].name == "");
         REQUIRE(sections[1].body == "B");
 
-        REQUIRE(sections[2].type == section_type::detail);
+        REQUIRE(sections[2].type == section_type::details);
         REQUIRE(sections[2].name == "");
         REQUIRE(sections[2].body == "C");
     }

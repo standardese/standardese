@@ -15,7 +15,9 @@ namespace standardese
     enum class section_type
     {
         brief,
-        detail,
+        details,
+
+
 
         count,
         invalid = count
