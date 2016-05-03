@@ -19,11 +19,25 @@ namespace
 
     void init_sections()
     {
-        comment::parser::set_section_name(section_type::brief, "");
-        comment::parser::set_section_name(section_type::details, "");
+        #define STANDARDESE_DETAIL_SET(type, name) \
+            comment::parser::set_section_name(section_type::type, name); \
+            section_commands[#type] = section_type::type;
 
-        section_commands["brief"] = section_type::brief;
-        section_commands["details"] = section_type::details;
+        STANDARDESE_DETAIL_SET(brief, "")
+        STANDARDESE_DETAIL_SET(details, "")
+
+        STANDARDESE_DETAIL_SET(requires, "Requires")
+        STANDARDESE_DETAIL_SET(effects, "Effects")
+        STANDARDESE_DETAIL_SET(synchronization, "Synchronization")
+        STANDARDESE_DETAIL_SET(postconditions, "Postconditions")
+        STANDARDESE_DETAIL_SET(returns, "Returns")
+        STANDARDESE_DETAIL_SET(throws, "Throws")
+        STANDARDESE_DETAIL_SET(complexity, "Complexity")
+        STANDARDESE_DETAIL_SET(remarks, "Remarks")
+        STANDARDESE_DETAIL_SET(error_conditions, "Error conditions")
+        STANDARDESE_DETAIL_SET(notes, "Notes")
+
+        #undef STANDARDESE_DETAIL_SET
     }
 
     auto initializer = (init_sections(), 0);

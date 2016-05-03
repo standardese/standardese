@@ -17,7 +17,17 @@ namespace standardese
         brief,
         details,
 
-
+        // [structure.specifications]/3 sections
+        requires,
+        effects,
+        synchronization,
+        postconditions,
+        returns,
+        throws,
+        complexity,
+        remarks,
+        error_conditions,
+        notes,
 
         count,
         invalid = count
