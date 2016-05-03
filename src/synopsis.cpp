@@ -3,9 +3,9 @@
 // found in the top-level directory of this distribution.
 
 #include <standardese/synopsis.hpp>
-
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_preprocessor.hpp>
+#include <standardese/cpp_type.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -69,7 +69,7 @@ namespace
         print_range(out, ns, blankl);
 
         out.unindent(tab_width);
-        out << '}' << newl;
+        out << newl << '}' << newl;
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_namespace_alias &ns, bool)
@@ -85,6 +85,11 @@ namespace
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_using_declaration &u, bool)
     {
         out << "using " << u.get_name() << ';';
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_type_alias &a, bool)
+    {
+        out << "using " << a.get_name() << " = " << a.get_target().get_name() << ';';
     }
 
     void dispatch(output_base::code_block_writer &out, const cpp_entity &e, bool top_level)
@@ -105,6 +110,8 @@ namespace
             STANDARDESE_DETAIL_HANDLE(namespace_alias)
             STANDARDESE_DETAIL_HANDLE(using_directive)
             STANDARDESE_DETAIL_HANDLE(using_declaration)
+
+            STANDARDESE_DETAIL_HANDLE(type_alias)
 
             #undef STANDARDESE_DETAIL_HANDLE
 
