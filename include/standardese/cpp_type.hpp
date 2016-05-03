@@ -24,8 +24,8 @@ namespace standardese
         }
 
     protected:
-        cpp_type(cpp_name scope, cpp_name name, cpp_raw_comment comment, CXType type)
-        : cpp_entity(std::move(scope), std::move(name), std::move(comment)),
+        cpp_type(cpp_entity::type t, cpp_name scope, cpp_name name, cpp_raw_comment comment, CXType type)
+        : cpp_entity(t, std::move(scope), std::move(name), std::move(comment)),
           type_(type)
         {}
 
@@ -70,7 +70,7 @@ namespace standardese
 
         cpp_type_alias(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                        CXType type, cpp_type_ref target)
-        : cpp_type(std::move(scope), std::move(name), std::move(comment), type),
+        : cpp_type(type_alias_t, std::move(scope), std::move(name), std::move(comment), type),
           target_(std::move(target)) {}
 
         const cpp_type_ref& get_target() const STANDARDESE_NOEXCEPT

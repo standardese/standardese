@@ -27,7 +27,8 @@ namespace standardese
                      cpp_type_ref type, std::string initializer,
                      cpp_linkage linkage = cpp_no_linkage,
                      bool is_thread_local = false)
-        : cpp_entity(std::move(scope), std::move(name), std::move(comment)),
+        : cpp_entity(variable_t, std::move(scope),
+                     std::move(name), std::move(comment)),
           type_(std::move(type)), initializer_(std::move(initializer)),
           linkage_(std::move(linkage)),
           thread_local_(is_thread_local) {}
@@ -72,7 +73,10 @@ namespace standardese
         : cpp_variable(std::move(scope), std::move(name), std::move(comment),
                        std::move(type), std::move(initializer), linkage,
                        is_thread_local),
-          mutable_(is_mutable) {}
+          mutable_(is_mutable)
+        {
+            set_type(member_variable_t);
+        }
 
         bool is_mutable() const STANDARDESE_NOEXCEPT
         {
@@ -94,7 +98,10 @@ namespace standardese
         : cpp_member_variable(std::move(scope), std::move(name), std::move(comment),
                             std::move(type), std::move(initializer), linkage,
                             is_mutable, is_thread_local),
-          no_bits_(no) {}
+          no_bits_(no)
+        {
+            set_type(bitfield_t);
+        }
 
         unsigned no_bits() const STANDARDESE_NOEXCEPT
         {

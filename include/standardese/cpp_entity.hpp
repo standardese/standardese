@@ -24,6 +24,52 @@ namespace standardese
     class cpp_entity
     {
     public:
+        enum type
+        {
+            file_t,
+
+            inclusion_directive_t,
+            macro_definition_t,
+
+            namespace_t,
+            namespace_alias_t,
+            using_directive_t,
+            using_declaration_t,
+
+            type_alias_t,
+
+            enum_t,
+            enum_value_t,
+            signed_enum_value_t,
+            unsigned_enum_value_t,
+
+            variable_t,
+            member_variable_t,
+            bitfield_t,
+
+            function_parameter_t,
+            function_t,
+            member_function_t,
+            conversion_op_t,
+            constructor_t,
+            destructor_t,
+
+            template_type_parameter_t,
+            non_type_template_parameter_t,
+            template_template_parameter_t,
+
+            function_template_t,
+            function_template_specialization_t,
+
+            class_t,
+            class_template_t,
+            class_template_partial_specialization_t,
+            class_template_full_specialization_t,
+
+            base_class_t,
+            access_specifier_t,
+        };
+
         cpp_entity(cpp_entity&&) = delete;
         cpp_entity(const cpp_entity&) = delete;
 
@@ -53,10 +99,15 @@ namespace standardese
             return comment_;
         }
 
+        type get_entity_type() const STANDARDESE_NOEXCEPT
+        {
+            return t_;
+        }
+
     protected:
-        cpp_entity(cpp_name scope, cpp_name n, cpp_raw_comment c) STANDARDESE_NOEXCEPT
+        cpp_entity(type t, cpp_name scope, cpp_name n, cpp_raw_comment c) STANDARDESE_NOEXCEPT
         : name_(std::move(n)), scope_(std::move(scope)), comment_(std::move(c)),
-          next_(nullptr)
+          next_(nullptr), t_(t)
         {}
 
         void set_name(cpp_name n)
@@ -64,11 +115,18 @@ namespace standardese
             name_ = std::move(n);
         }
 
+        void set_type(type t) STANDARDESE_NOEXCEPT
+        {
+            t_ = t;
+        }
+
     private:
         cpp_name name_, scope_;
         cpp_raw_comment comment_;
 
         std::unique_ptr<cpp_entity> next_;
+
+        type t_;
 
         template <typename T>
         friend class cpp_entity_container;
@@ -215,8 +273,8 @@ namespace standardese
     : public cpp_entity
     {
     protected:
-        cpp_parameter_base(cpp_name name, cpp_raw_comment comment)
-        : cpp_entity("", std::move(name), std::move(comment)) {}
+        cpp_parameter_base(cpp_entity::type t, cpp_name name, cpp_raw_comment comment)
+        : cpp_entity(t, "", std::move(name), std::move(comment)) {}
     };
 } // namespace standardese
 

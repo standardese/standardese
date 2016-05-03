@@ -16,13 +16,18 @@ namespace standardese
         static cpp_ptr<cpp_enum_value> parse(cpp_name scope, cpp_cursor cur);
 
         cpp_enum_value(cpp_name scope, cpp_name name, cpp_raw_comment comment)
-        : cpp_entity(std::move(scope), std::move(name), std::move(comment)),
-          explicit_(false) {}
+        : cpp_enum_value(enum_value_t, std::move(scope), std::move(name), std::move(comment)) {}
 
         bool is_explicitly_given() const STANDARDESE_NOEXCEPT
         {
             return explicit_;
         }
+
+    protected:
+        cpp_enum_value(cpp_entity::type t, cpp_name scope,
+                       cpp_name name, cpp_raw_comment comment)
+        : cpp_entity(t, std::move(scope), std::move(name), std::move(comment)),
+          explicit_(false) {}
 
     private:
         bool explicit_;
@@ -34,7 +39,8 @@ namespace standardese
     public:
         cpp_signed_enum_value(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                               long long value)
-        : cpp_enum_value(std::move(scope), std::move(name), std::move(comment)),
+        : cpp_enum_value(signed_enum_value_t, std::move(scope),
+                         std::move(name), std::move(comment)),
           value_(value) {}
 
         long long get_value() const STANDARDESE_NOEXCEPT
@@ -52,7 +58,8 @@ namespace standardese
     public:
         cpp_unsigned_enum_value(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                                 unsigned long long value)
-        : cpp_enum_value(std::move(scope), std::move(name), std::move(comment)),
+        : cpp_enum_value(unsigned_enum_value_t, std::move(scope),
+                         std::move(name), std::move(comment)),
           value_(value) {}
 
         unsigned long long get_value() const STANDARDESE_NOEXCEPT
@@ -86,7 +93,7 @@ namespace standardese
 
         cpp_enum(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                  CXType type, cpp_type_ref underlying)
-        : cpp_type(std::move(scope), std::move(name), std::move(comment), type),
+        : cpp_type(enum_t, std::move(scope), std::move(name), std::move(comment), type),
           underlying_(std::move(underlying)),
           is_scoped_(false) {}
 

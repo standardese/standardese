@@ -123,7 +123,7 @@ const cpp_type* parser::lookup_type(const cpp_type_ref &ref) const
     struct dummy_type : cpp_type
     {
         dummy_type(cpp_name name)
-        : cpp_type("", std::move(name), "", {}) {}
+        : cpp_type(class_t, "", std::move(name), "", {}) {}
     } dummy(ref.get_full_name());
 
     std::unique_lock<std::mutex> lock(pimpl_->type_mutex);

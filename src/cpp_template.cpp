@@ -152,7 +152,7 @@ cpp_ptr<cpp_function_template> cpp_function_template::parse(cpp_name scope, cpp_
 }
 
 cpp_function_template::cpp_function_template(cpp_name template_name, cpp_ptr<cpp_function_base> ptr)
-: cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
+: cpp_entity(function_template_t, ptr->get_scope(), std::move(template_name), ptr->get_comment()),
   func_(std::move(ptr))
 {}
 
@@ -171,7 +171,7 @@ cpp_ptr<cpp_function_template_specialization> cpp_function_template_specializati
 
 cpp_function_template_specialization::cpp_function_template_specialization(cpp_name template_name,
                                                                            cpp_ptr<cpp_function_base> ptr)
-: cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
+: cpp_entity(function_template_specialization_t, ptr->get_scope(), std::move(template_name), ptr->get_comment()),
   func_(std::move(ptr))
 {}
 
@@ -194,12 +194,12 @@ cpp_entity_ptr cpp_class_template::parser::finish(const standardese::parser &par
 }
 
 cpp_class_template::cpp_class_template(cpp_name template_name, cpp_ptr<cpp_class> ptr)
-: cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
+: cpp_entity(class_template_t, ptr->get_scope(), std::move(template_name), ptr->get_comment()),
   class_(std::move(ptr))
 {}
 
 cpp_class_template::cpp_class_template(cpp_name scope, cpp_name comment)
-: cpp_entity(std::move(scope), "", std::move(comment)), class_(nullptr) {}
+: cpp_entity(class_template_t, std::move(scope), "", std::move(comment)), class_(nullptr) {}
 
 bool standardese::is_full_specialization(cpp_cursor cur)
 {
@@ -239,11 +239,11 @@ cpp_entity_ptr cpp_class_template_full_specialization::parser::finish(const stan
 cpp_class_template_full_specialization::cpp_class_template_full_specialization(cpp_name template_name,
                                                                                cpp_ptr<cpp_class> ptr,
                                                                                cpp_template_ref primary)
-: cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
+: cpp_entity(class_template_full_specialization_t, ptr->get_scope(), std::move(template_name), ptr->get_comment()),
   class_(std::move(ptr)), template_(std::move(primary)) {}
 
 cpp_class_template_full_specialization::cpp_class_template_full_specialization(cpp_name scope, cpp_raw_comment comment)
-: cpp_entity(std::move(scope), "", std::move(comment)), class_(nullptr) {}
+: cpp_entity(class_template_full_specialization_t, std::move(scope), "", std::move(comment)), class_(nullptr) {}
 
 cpp_class_template_partial_specialization::parser::parser(cpp_name scope, cpp_cursor cur)
 : parser_(scope, cur),
@@ -270,8 +270,8 @@ cpp_entity_ptr cpp_class_template_partial_specialization::parser::finish(const s
 cpp_class_template_partial_specialization::cpp_class_template_partial_specialization(cpp_name template_name,
                                                                                cpp_ptr<cpp_class> ptr,
                                                                                cpp_template_ref primary)
-: cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
+: cpp_entity(class_template_partial_specialization_t, ptr->get_scope(), std::move(template_name), ptr->get_comment()),
   class_(std::move(ptr)), template_(std::move(primary)) {}
 
 cpp_class_template_partial_specialization::cpp_class_template_partial_specialization(cpp_name scope, cpp_raw_comment comment)
-: cpp_entity(std::move(scope), "", std::move(comment)), class_(nullptr) {}
+: cpp_entity(class_template_partial_specialization_t, std::move(scope), "", std::move(comment)), class_(nullptr) {}
