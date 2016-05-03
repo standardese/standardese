@@ -83,7 +83,6 @@ namespace
     void parse_error(const std::string &message)
     {
         std::cerr << "Comment parse error: " << message << '\n';
-        std::abort();
     }
 }
 
@@ -171,10 +170,12 @@ comment::parser::parser(const cpp_raw_comment &raw_comment)
 
             auto type = section_commands[section_name];
             if (type == section_type::invalid)
-                parse_error("Invalid section name " + section_name);
-
-            finish_section();
-            cur_section_t = type;
+                parse_error("invalid section name " + section_name);
+            else
+            {
+                finish_section();
+                cur_section_t = type;
+            }
         }
         else
         {
