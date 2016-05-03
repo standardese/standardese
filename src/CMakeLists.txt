@@ -18,6 +18,7 @@ set(header
         ../include/standardese/cpp_template.hpp
         ../include/standardese/cpp_type.hpp
         ../include/standardese/cpp_variable.hpp
+        ../include/standardese/output.hpp
         ../include/standardese/parser.hpp
         ../include/standardese/string.hpp
         ../include/standardese/translation_unit.hpp)
@@ -32,6 +33,7 @@ set(src
         cpp_template.cpp
         cpp_type.cpp
         cpp_variable.cpp
+        output.cpp
         parser.cpp
         translation_unit.cpp)
 
