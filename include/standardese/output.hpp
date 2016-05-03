@@ -60,16 +60,16 @@ namespace standardese
             output_base &output_;
         };
 
-        class writer_paragraph : public writer
+        class paragraph_writer : public writer
         {
         public:
-            writer_paragraph(output_base &output) STANDARDESE_NOEXCEPT
+            paragraph_writer(output_base &output) STANDARDESE_NOEXCEPT
             : writer(output)
             {
                 output_.write_paragraph_begin();
             }
 
-            ~writer_paragraph() STANDARDESE_NOEXCEPT override
+            ~paragraph_writer() STANDARDESE_NOEXCEPT override
             {
                 output_.write_paragraph_end();
             }
@@ -80,20 +80,19 @@ namespace standardese
             normal,
             italics,
             bold,
-            code_span,
-            code_block
+            code_span
         };
 
-        class writer_style : public writer
+        class inline_writer : public writer
         {
         public:
-            writer_style(output_base &output, style s) STANDARDESE_NOEXCEPT
+            inline_writer(output_base &output, style s) STANDARDESE_NOEXCEPT
             : writer(output), s_(s)
             {
                 output_.write_begin(s_);
             }
 
-            ~writer_style() STANDARDESE_NOEXCEPT override
+            ~inline_writer() STANDARDESE_NOEXCEPT override
             {
                 output_.write_end(s_);
             }
@@ -102,16 +101,16 @@ namespace standardese
             style s_;
         };
 
-        class writer_heading : public writer
+        class heading_writer : public writer
         {
         public:
-            writer_heading(output_base &output, unsigned level) STANDARDESE_NOEXCEPT
+            heading_writer(output_base &output, unsigned level) STANDARDESE_NOEXCEPT
             : writer(output), level_(level)
             {
                 output_.write_header_begin(level_);
             }
 
-            ~writer_heading() STANDARDESE_NOEXCEPT override
+            ~heading_writer() STANDARDESE_NOEXCEPT override
             {
                 output_.write_header_end(level_);
             }
@@ -125,15 +124,30 @@ namespace standardese
             do_write_section_heading(section_name);
         }
 
-        void indent(unsigned level)
+        class code_block_writer : public writer
         {
-            output_->indent(level);
-        }
+        public:
+            code_block_writer(output_base &output) STANDARDESE_NOEXCEPT
+            : writer(output)
+            {
+                output_.write_code_block_begin();
+            }
 
-        void unindent(unsigned level)
-        {
-            output_->unindent(level);
-        }
+            ~code_block_writer() STANDARDESE_NOEXCEPT
+            {
+                output_.write_code_block_end();
+            }
+
+            void indent(unsigned level)
+            {
+                output_.get_output().indent(level);
+            }
+
+            void unindent(unsigned level)
+            {
+                output_.get_output().unindent(level);
+            }
+        };
 
     protected:
         output_stream_base& get_output() STANDARDESE_NOEXCEPT
@@ -162,15 +176,21 @@ namespace standardese
             write_paragraph_begin();
         }
 
+        virtual void write_code_block_begin() = 0;
+        virtual void write_code_block_end()
+        {
+            write_code_block_begin();
+        }
+
         virtual void do_write_section_heading(const std::string &section_name);
 
     private:
         output_stream_base *output_;
 
         friend writer;
-        friend writer_paragraph;
-        friend writer_style;
-        friend writer_heading;
+        friend paragraph_writer;
+        friend inline_writer;
+        friend heading_writer;
     };
 
     class markdown_output
@@ -185,10 +205,12 @@ namespace standardese
         void write_header_end(unsigned level) override;
 
         void write_begin(style s) override;
-        void write_end(style s) override;
 
         void write_paragraph_begin() override;
         void write_paragraph_end() override;
+
+        void write_code_block_begin() override;
+        void write_code_block_end() override;
 
         void do_write_section_heading(const std::string &section_name) override;
     };

@@ -21,6 +21,7 @@ set(header
         ../include/standardese/output.hpp
         ../include/standardese/parser.hpp
         ../include/standardese/string.hpp
+        ../include/standardese/synopsis.hpp
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
@@ -36,6 +37,7 @@ set(src
         output.cpp
         output_stream.cpp
         parser.cpp
+        synopsis.cpp
         translation_unit.cpp)
 
 add_library(standardese_library ${detail_header} ${header} ${src})
