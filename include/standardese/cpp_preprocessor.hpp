@@ -24,7 +24,7 @@ namespace standardese
 
         static cpp_ptr<cpp_inclusion_directive> parse(cpp_cursor cur);
 
-        cpp_inclusion_directive(cpp_name file_name, cpp_comment comment, kind k)
+        cpp_inclusion_directive(cpp_name file_name, cpp_raw_comment comment, kind k)
         : cpp_entity("", std::move(file_name), std::move(comment)),
           kind_(k) {}
 
@@ -43,7 +43,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_macro_definition> parse(cpp_cursor cur);
 
-        cpp_macro_definition(cpp_name name, cpp_comment c,
+        cpp_macro_definition(cpp_name name, cpp_raw_comment c,
                              std::string args, std::string rep)
         : cpp_entity("", std::move(name), std::move(c)),
           args_(std::move(args)), replacement_(std::move(rep)) {}

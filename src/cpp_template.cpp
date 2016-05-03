@@ -242,7 +242,7 @@ cpp_class_template_full_specialization::cpp_class_template_full_specialization(c
 : cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
   class_(std::move(ptr)), template_(std::move(primary)) {}
 
-cpp_class_template_full_specialization::cpp_class_template_full_specialization(cpp_name scope, cpp_comment comment)
+cpp_class_template_full_specialization::cpp_class_template_full_specialization(cpp_name scope, cpp_raw_comment comment)
 : cpp_entity(std::move(scope), "", std::move(comment)), class_(nullptr) {}
 
 cpp_class_template_partial_specialization::parser::parser(cpp_name scope, cpp_cursor cur)
@@ -273,5 +273,5 @@ cpp_class_template_partial_specialization::cpp_class_template_partial_specializa
 : cpp_entity(ptr->get_scope(), std::move(template_name), ptr->get_comment()),
   class_(std::move(ptr)), template_(std::move(primary)) {}
 
-cpp_class_template_partial_specialization::cpp_class_template_partial_specialization(cpp_name scope, cpp_comment comment)
+cpp_class_template_partial_specialization::cpp_class_template_partial_specialization(cpp_name scope, cpp_raw_comment comment)
 : cpp_entity(std::move(scope), "", std::move(comment)), class_(nullptr) {}

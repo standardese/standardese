@@ -19,7 +19,7 @@ namespace standardese
     class cpp_entity_container;
 
     using cpp_name = std::string;
-    using cpp_comment = std::string;
+    using cpp_raw_comment = std::string;
 
     class cpp_entity
     {
@@ -48,13 +48,13 @@ namespace standardese
             return scope_;
         }
 
-        const cpp_comment& get_comment() const STANDARDESE_NOEXCEPT
+        const cpp_raw_comment& get_comment() const STANDARDESE_NOEXCEPT
         {
             return comment_;
         }
 
     protected:
-        cpp_entity(cpp_name scope, cpp_name n, cpp_comment c) STANDARDESE_NOEXCEPT
+        cpp_entity(cpp_name scope, cpp_name n, cpp_raw_comment c) STANDARDESE_NOEXCEPT
         : name_(std::move(n)), scope_(std::move(scope)), comment_(std::move(c)),
           next_(nullptr)
         {}
@@ -66,7 +66,7 @@ namespace standardese
 
     private:
         cpp_name name_, scope_;
-        cpp_comment comment_;
+        cpp_raw_comment comment_;
 
         std::unique_ptr<cpp_entity> next_;
 
@@ -215,7 +215,7 @@ namespace standardese
     : public cpp_entity
     {
     protected:
-        cpp_parameter_base(cpp_name name, cpp_comment comment)
+        cpp_parameter_base(cpp_name name, cpp_raw_comment comment)
         : cpp_entity("", std::move(name), std::move(comment)) {}
     };
 } // namespace standardese

@@ -23,7 +23,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_variable> parse(cpp_name scope, cpp_cursor cur);
 
-        cpp_variable(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_variable(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                      cpp_type_ref type, std::string initializer,
                      cpp_linkage linkage = cpp_no_linkage,
                      bool is_thread_local = false)
@@ -65,7 +65,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_member_variable> parse(cpp_name scope, cpp_cursor cur);
 
-        cpp_member_variable(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_member_variable(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                          cpp_type_ref type, std::string initializer,
                          cpp_linkage linkage = cpp_no_linkage,
                          bool is_mutable = false, bool is_thread_local = false)
@@ -87,7 +87,7 @@ namespace standardese
     : public cpp_member_variable
     {
     public:
-        cpp_bitfield(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_bitfield(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                     cpp_type_ref type, std::string initializer, unsigned no,
                     cpp_linkage linkage = cpp_no_linkage,
                     bool is_mutable = false, bool is_thread_local = false)

@@ -54,7 +54,7 @@ namespace standardese
         }
 
     protected:
-        cpp_template_parameter(cpp_name name, cpp_comment comment,
+        cpp_template_parameter(cpp_name name, cpp_raw_comment comment,
                                bool is_variadic)
         : cpp_parameter_base(std::move(name), std::move(comment)),
           variadic_(is_variadic) {}
@@ -69,7 +69,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_template_type_parameter> parse(cpp_cursor cur);
 
-        cpp_template_type_parameter(cpp_name name, cpp_comment comment,
+        cpp_template_type_parameter(cpp_name name, cpp_raw_comment comment,
                                     cpp_type_ref def, bool is_variadic)
         : cpp_template_parameter(std::move(name), std::move(comment), is_variadic),
           default_(std::move(def)) {}
@@ -94,7 +94,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_non_type_template_parameter> parse(cpp_cursor cur);
 
-        cpp_non_type_template_parameter(cpp_name name, cpp_comment comment,
+        cpp_non_type_template_parameter(cpp_name name, cpp_raw_comment comment,
                                         cpp_type_ref type, std::string default_value,
                                         bool is_variadic)
         : cpp_template_parameter(std::move(name), std::move(comment), is_variadic),
@@ -126,7 +126,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_template_template_parameter> parse(cpp_cursor cur);
 
-        cpp_template_template_parameter(cpp_name name, cpp_comment comment,
+        cpp_template_template_parameter(cpp_name name, cpp_raw_comment comment,
                                         cpp_template_ref def, bool is_variadic)
         : cpp_template_parameter(std::move(name), std::move(comment), is_variadic),
           default_(std::move(def)) {}
@@ -250,7 +250,7 @@ namespace standardese
         }
 
     private:
-        cpp_class_template(cpp_name scope, cpp_comment comment);
+        cpp_class_template(cpp_name scope, cpp_raw_comment comment);
 
         cpp_ptr<cpp_class> class_;
     };
@@ -295,7 +295,7 @@ namespace standardese
         }
 
     private:
-        cpp_class_template_full_specialization(cpp_name scope, cpp_comment comment);
+        cpp_class_template_full_specialization(cpp_name scope, cpp_raw_comment comment);
 
         cpp_ptr<cpp_class> class_;
         cpp_template_ref template_;
@@ -352,7 +352,7 @@ namespace standardese
         }
 
     private:
-        cpp_class_template_partial_specialization(cpp_name scope, cpp_comment comment);
+        cpp_class_template_partial_specialization(cpp_name scope, cpp_raw_comment comment);
 
         cpp_ptr<cpp_class> class_;
         cpp_template_ref template_;

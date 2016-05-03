@@ -9,6 +9,7 @@ if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
 endif()
 
 set(tests
+        comment.cpp
         cpp_entity.cpp
         cpp_function.cpp
         cpp_namespace.cpp

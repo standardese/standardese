@@ -29,7 +29,7 @@ namespace standardese
         cpp_name parse_class_name(cpp_cursor cur);
 
         // obtains the comment from cursor
-        cpp_comment parse_comment(cpp_cursor cur);
+        cpp_raw_comment parse_comment(cpp_cursor cur);
 
         // calculates the full scope name of a cursor (without trailing ::)
         cpp_name parse_scope(cpp_cursor cur);

@@ -57,10 +57,10 @@ cpp_name detail::parse_class_name(cpp_cursor cur)
     return name.substr(pos + 1);
 }
 
-cpp_comment detail::parse_comment(cpp_cursor cur)
+cpp_raw_comment detail::parse_comment(cpp_cursor cur)
 {
     string str(clang_Cursor_getRawCommentText(cur));
-    return cpp_comment(str.get());
+    return cpp_raw_comment(str.get());
 }
 
 cpp_name detail::parse_scope(cpp_cursor cur)

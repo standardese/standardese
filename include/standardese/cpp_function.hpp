@@ -18,7 +18,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_function_parameter> parse(cpp_cursor cur);
 
-        cpp_function_parameter(cpp_name name, cpp_comment comment,
+        cpp_function_parameter(cpp_name name, cpp_raw_comment comment,
                                cpp_type_ref type, std::string default_value = "")
         : cpp_parameter_base(std::move(name), std::move(comment)),
           type_(std::move(type)), default_(std::move(default_value)) {}
@@ -115,7 +115,7 @@ namespace standardese
         }
 
     protected:
-        cpp_function_base(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_function_base(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                           cpp_function_info info)
         : cpp_entity(std::move(scope), std::move(name), std::move(comment)),
           info_(std::move(info)) {}
@@ -130,7 +130,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_function> parse(cpp_name scope, cpp_cursor cur);
 
-        cpp_function(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_function(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                      cpp_type_ref return_type, cpp_function_info info)
         : cpp_function_base(std::move(scope), std::move(name), std::move(comment),
                             std::move(info)),
@@ -206,7 +206,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_member_function> parse(cpp_name scope, cpp_cursor cur);
 
-        cpp_member_function(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_member_function(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                             cpp_type_ref return_type,
                             cpp_function_info finfo, cpp_member_function_info minfo)
         : cpp_function(std::move(scope), std::move(name), std::move(comment),
@@ -238,7 +238,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_conversion_op> parse(cpp_name scope, cpp_cursor cur);
 
-        cpp_conversion_op(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_conversion_op(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                           cpp_type_ref target_type,
                           cpp_function_info finfo, cpp_member_function_info minfo)
         : cpp_function_base(std::move(scope), std::move(name), std::move(comment), std::move(finfo)),
@@ -275,7 +275,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_constructor> parse(cpp_name scope, cpp_cursor cur);
 
-        cpp_constructor(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_constructor(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                         cpp_function_info info)
         : cpp_function_base(std::move(scope), std::move(name), std::move(comment), std::move(info)) {}
     };
@@ -286,7 +286,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_destructor> parse(cpp_name scope, cpp_cursor cur);
 
-        cpp_destructor(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_destructor(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                        cpp_function_info info, cpp_virtual virtual_flag)
         : cpp_function_base(std::move(scope), std::move(name), std::move(comment),
                             std::move(info)),
