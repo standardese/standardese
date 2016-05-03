@@ -7,9 +7,10 @@ set(detail_header
         ../include/standardese/detail/search_token.hpp
         ../include/standardese/detail/wrapper.hpp)
 set(header
+        ../include/standardese/comment.hpp
+        ../include/standardese/cpp_class.hpp
         ../include/standardese/cpp_cursor.hpp
         ../include/standardese/cpp_entity.hpp
-        ../include/standardese/cpp_class.hpp
         ../include/standardese/cpp_enum.hpp
         ../include/standardese/cpp_function.hpp
         ../include/standardese/cpp_namespace.hpp
@@ -22,6 +23,7 @@ set(header
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
+        comment.cpp
         cpp_class.cpp
         cpp_enum.cpp
         cpp_function.cpp
