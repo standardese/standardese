@@ -62,3 +62,10 @@ void markdown_output::write_paragraph_end()
 {
     get_output().write_blank_line();
 }
+
+void markdown_output::do_write_section_heading(const std::string &section_name)
+{
+    get_output().write_char('*');
+    get_output().write_str(section_name.c_str(), section_name.size());
+    get_output().write_str(":* ", 3);
+}

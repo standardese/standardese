@@ -120,6 +120,11 @@ namespace standardese
             unsigned level_;
         };
 
+        void write_section_heading(const std::string &section_name)
+        {
+            do_write_section_heading(section_name);
+        }
+
     protected:
         output_stream_base& get_output() STANDARDESE_NOEXCEPT
         {
@@ -147,6 +152,8 @@ namespace standardese
             write_paragraph_begin();
         }
 
+        virtual void do_write_section_heading(const std::string &section_name);
+
     private:
         output_stream_base *output_;
 
@@ -172,6 +179,8 @@ namespace standardese
 
         void write_paragraph_begin() override;
         void write_paragraph_end() override;
+
+        void do_write_section_heading(const std::string &section_name) override;
     };
 } // namespace standardese
 
