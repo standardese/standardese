@@ -9,6 +9,7 @@
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_preprocessor.hpp>
 #include <standardese/cpp_type.hpp>
+#include <standardese/cpp_variable.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -195,7 +196,7 @@ namespace
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_access_specifier &a, bool)
     {
         out.unindent(tab_width);
-        out << a.get_name() << ':' << newl;
+        out << newl << a.get_name() << ':' << newl;
         out.indent(tab_width);
     }
 
@@ -217,7 +218,7 @@ namespace
             auto need = false;
             for (auto& e : c)
             {
-                if (need && e.get_entity_type() != cpp_entity::access_specifier_t)
+                if (need)
                     out << blankl;
                 else
                     need = true;
@@ -229,6 +230,45 @@ namespace
         }
         else
             out << ';';
+    }
+
+    void print_type_value(output_base::code_block_writer &out, const cpp_type_ref &ref, const cpp_name &name)
+    {
+        out << ref.get_name();
+        if (!name.empty())
+            out << ' ' << name;
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_variable &v, bool)
+    {
+        switch (v.get_linkage())
+        {
+            case cpp_external_linkage:
+                out << "extern ";
+                break;
+            case cpp_internal_linkage:
+                out << "static ";
+                break;
+            default:
+                break;
+        }
+
+        if (v.is_thread_local())
+            out << "thread_local ";
+
+        print_type_value(out, v.get_type(), v.get_name());
+        if (!v.get_initializer().empty())
+            out << " = " << v.get_initializer();
+        out << ';';
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_bitfield &v, bool)
+    {
+        print_type_value(out, v.get_type(), v.get_name());
+        out << " : " << (unsigned long long)v.no_bits();
+        if (!v.get_initializer().empty())
+            out << " = " << v.get_initializer();
+        out << ';';
     }
 
     void dispatch(output_base::code_block_writer &out, const cpp_entity &e, bool top_level)
@@ -259,6 +299,10 @@ namespace
 
             STANDARDESE_DETAIL_HANDLE(class)
             STANDARDESE_DETAIL_HANDLE(access_specifier)
+
+            STANDARDESE_DETAIL_HANDLE(variable)
+            STANDARDESE_DETAIL_HANDLE(member_variable)
+            STANDARDESE_DETAIL_HANDLE(bitfield)
 
             #undef STANDARDESE_DETAIL_HANDLE
 
