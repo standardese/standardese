@@ -115,7 +115,12 @@ comment::parser::parser(const cpp_raw_comment &raw_comment)
                         return;
 
                     comment_.sections_.emplace_back(cur_section_t, section_names[int(cur_section_t)], cur_body);
-                    cur_section_t = section_type::details;
+
+                    // when current section is brief, change to details
+                    // otherwise stay
+                    if (cur_section_t == section_type::brief)
+                        cur_section_t = section_type::details;
+
                     cur_body.clear();
                 };
 
