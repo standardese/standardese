@@ -6,6 +6,7 @@
 
 #include <standardese/cpp_class.hpp>
 #include <standardese/cpp_enum.hpp>
+#include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_preprocessor.hpp>
 #include <standardese/cpp_type.hpp>
@@ -24,7 +25,7 @@ namespace
     void print_range(output_base::code_block_writer &out, const Container &cont, T sep)
     {
         auto need = false;
-        for (auto& e : cont)
+        for (auto &e : cont)
         {
             if (need)
                 out << sep;
@@ -158,7 +159,7 @@ namespace
     void write_bases(output_base::code_block_writer &out, const cpp_class &c)
     {
         auto comma = false;
-        for (auto& base : c)
+        for (auto &base : c)
         {
             if (base.get_entity_type() != cpp_entity::base_class_t)
                 break;
@@ -171,7 +172,7 @@ namespace
                 out << ": ";
             }
 
-            switch (static_cast<const cpp_base_class&>(base).get_access())
+            switch (static_cast<const cpp_base_class &>(base).get_access())
             {
                 case cpp_public:
                     if (c.get_class_type() == cpp_class_t)
@@ -216,7 +217,7 @@ namespace
             out.indent(tab_width);
 
             auto need = false;
-            for (auto& e : c)
+            for (auto &e : c)
             {
                 if (need)
                     out << blankl;
@@ -232,7 +233,7 @@ namespace
             out << ';';
     }
 
-    void print_type_value(output_base::code_block_writer &out, const cpp_type_ref &ref, const cpp_name &name)
+    void write_type_value(output_base::code_block_writer &out, const cpp_type_ref &ref, const cpp_name &name)
     {
         out << ref.get_name();
         if (!name.empty())
@@ -256,7 +257,7 @@ namespace
         if (v.is_thread_local())
             out << "thread_local ";
 
-        print_type_value(out, v.get_type(), v.get_name());
+        write_type_value(out, v.get_type(), v.get_name());
         if (!v.get_initializer().empty())
             out << " = " << v.get_initializer();
         out << ';';
@@ -264,11 +265,158 @@ namespace
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_bitfield &v, bool)
     {
-        print_type_value(out, v.get_type(), v.get_name());
-        out << " : " << (unsigned long long)v.no_bits();
+        write_type_value(out, v.get_type(), v.get_name());
+        out << " : " << (unsigned long long) v.no_bits();
         if (!v.get_initializer().empty())
             out << " = " << v.get_initializer();
         out << ';';
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_parameter &p, bool)
+    {
+        write_type_value(out, p.get_type(), p.get_name());
+        if (p.has_default_value())
+            out << " = " << p.get_default_value();
+    }
+
+    void write_parameters(output_base::code_block_writer &out, const cpp_function_base &f)
+    {
+        out << f.get_name() << '(';
+
+        auto need = false;
+        for (auto &param : f.get_parameters())
+        {
+            if (need)
+                out << ", ";
+            else
+                need = true;
+
+            do_write_synopsis(out, param, true);
+        }
+
+        if (f.is_variadic())
+        {
+            if (need)
+                out << ", ";
+            out << "...";
+        }
+
+        out << ')';
+    }
+
+    void write_noexcept(output_base::code_block_writer &out, const cpp_function_base &f)
+    {
+        if (!f.get_noexcept().empty())
+            out << " noexcept(" << f.get_noexcept() << ')';
+    }
+
+    void write_definition(output_base::code_block_writer &out, const cpp_function_base &f)
+    {
+        switch (f.get_definition())
+        {
+            case cpp_function_definition_normal:
+                out << ';';
+                break;
+            case cpp_function_definition_defaulted:
+                out << " = default;";
+                break;
+            case cpp_function_definition_deleted:
+                out << " = delete";
+                break;
+        }
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function &f, bool)
+    {
+        if (f.is_constexpr())
+            out << "constexpr ";
+
+        out << f.get_return_type().get_name() << ' ';
+        write_parameters(out, f);
+        write_noexcept(out, f);
+        write_definition(out, f);
+    }
+
+    void write_cv(output_base::code_block_writer &out, cpp_cv cv)
+    {
+        if (cv & cpp_cv_const)
+            out << " const";
+        if (cv & cpp_cv_volatile)
+            out << " volatile";
+    }
+
+    void write_ref(output_base::code_block_writer &out, cpp_ref_qualifier ref)
+    {
+        if (ref == cpp_ref_rvalue)
+            out << " &&";
+        else if (ref == cpp_ref_lvalue)
+            out << " &";
+    }
+
+    void write_prefix(output_base::code_block_writer &out, const cpp_function_base &f, cpp_virtual virt)
+    {
+        if (f.is_constexpr())
+            out << "constexpr ";
+        else if (is_virtual(virt))
+            out << "virtual ";
+        if (virt == cpp_virtual_static)
+            out << "static ";
+    }
+
+    void write_suffix(output_base::code_block_writer &out, const cpp_function_base &f, cpp_virtual virt)
+    {
+        if (virt == cpp_virtual_overriden)
+            out << " override";
+        else if (virt == cpp_virtual_final)
+            out << " final";
+
+        if (virt == cpp_virtual_pure)
+            out << " = 0;";
+        else
+            write_definition(out, f);
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_member_function &f, bool)
+    {
+        write_prefix(out, f, f.get_virtual());
+        out << f.get_return_type().get_name() << ' ';
+        write_parameters(out, f);
+        write_cv(out, f.get_cv());
+        write_ref(out, f.get_ref_qualifier());
+        write_noexcept(out, f);
+        write_suffix(out, f, f.get_virtual());
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_conversion_op &f, bool)
+    {
+        write_prefix(out, f, f.get_virtual());
+        if (f.is_explicit())
+            out << "explicit ";
+        write_parameters(out, f);
+        write_cv(out, f.get_cv());
+        write_ref(out, f.get_ref_qualifier());
+        write_noexcept(out, f);
+        write_suffix(out, f, f.get_virtual());
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_constructor &f, bool)
+    {
+        if (f.is_explicit())
+            out << "explicit ";
+        if (f.is_constexpr())
+            out << "constexpr ";
+        write_parameters(out, f);
+        write_noexcept(out, f);
+        write_definition(out, f);
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_destructor &f, bool)
+    {
+        if (f.is_constexpr())
+            out << "constexpr ";
+        write_parameters(out, f);
+        write_noexcept(out, f);
+        write_definition(out, f);
     }
 
     void dispatch(output_base::code_block_writer &out, const cpp_entity &e, bool top_level)
@@ -303,6 +451,12 @@ namespace
             STANDARDESE_DETAIL_HANDLE(variable)
             STANDARDESE_DETAIL_HANDLE(member_variable)
             STANDARDESE_DETAIL_HANDLE(bitfield)
+
+            STANDARDESE_DETAIL_HANDLE(function)
+            STANDARDESE_DETAIL_HANDLE(member_function)
+            STANDARDESE_DETAIL_HANDLE(conversion_op)
+            STANDARDESE_DETAIL_HANDLE(constructor)
+            STANDARDESE_DETAIL_HANDLE(destructor)
 
             #undef STANDARDESE_DETAIL_HANDLE
 
