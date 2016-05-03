@@ -4,6 +4,7 @@
 
 #include <standardese/synopsis.hpp>
 
+#include <standardese/cpp_class.hpp>
 #include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_preprocessor.hpp>
@@ -71,7 +72,7 @@ namespace
         print_range(out, ns, blankl);
 
         out.unindent(tab_width);
-        out << newl << '}' << newl;
+        out << newl << '}';
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_namespace_alias &ns, bool)
@@ -130,7 +131,101 @@ namespace
             print_range(out, e, ",\n");
 
             out.unindent(tab_width);
-            out << newl << '}' << newl;
+            out << newl << '}';
+        }
+        else
+            out << ';';
+    }
+
+    void write_class_name(output_base::code_block_writer &out, const cpp_class &c)
+    {
+        switch (c.get_class_type())
+        {
+            case cpp_struct_t:
+                out << "struct ";
+                break;
+            case cpp_class_t:
+                out << "class ";
+                break;
+            case cpp_union_t:
+                out << "union ";
+        }
+
+        out << c.get_name();
+    }
+
+    void write_bases(output_base::code_block_writer &out, const cpp_class &c)
+    {
+        auto comma = false;
+        for (auto& base : c)
+        {
+            if (base.get_entity_type() != cpp_entity::base_class_t)
+                break;
+
+            if (comma)
+                out << ", ";
+            else
+            {
+                comma = true;
+                out << ": ";
+            }
+
+            switch (static_cast<const cpp_base_class&>(base).get_access())
+            {
+                case cpp_public:
+                    if (c.get_class_type() == cpp_class_t)
+                        out << "public ";
+                    break;
+                case cpp_private:
+                    if (c.get_class_type() != cpp_class_t)
+                        out << "private ";
+                    break;
+                case cpp_protected:
+                    out << "protected ";
+                    break;
+            }
+
+            out << base.get_name();
+        }
+
+        if (comma)
+            out << newl;
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_access_specifier &a, bool)
+    {
+        out.unindent(tab_width);
+        out << a.get_name() << ':' << newl;
+        out.indent(tab_width);
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class &c, bool top_level)
+    {
+        write_class_name(out, c);
+
+        if (top_level)
+        {
+            if (c.is_final())
+                out << " final";
+            out << newl;
+
+            write_bases(out, c);
+
+            out << '{' << newl;
+            out.indent(tab_width);
+
+            auto need = false;
+            for (auto& e : c)
+            {
+                if (need && e.get_entity_type() != cpp_entity::access_specifier_t)
+                    out << blankl;
+                else
+                    need = true;
+                dispatch(out, e, false);
+            }
+
+            out.unindent(tab_width);
+            out << newl << '}';
         }
         else
             out << ';';
@@ -161,6 +256,9 @@ namespace
             STANDARDESE_DETAIL_HANDLE(signed_enum_value)
             STANDARDESE_DETAIL_HANDLE(unsigned_enum_value)
             STANDARDESE_DETAIL_HANDLE(enum)
+
+            STANDARDESE_DETAIL_HANDLE(class)
+            STANDARDESE_DETAIL_HANDLE(access_specifier)
 
             #undef STANDARDESE_DETAIL_HANDLE
 
