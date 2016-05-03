@@ -34,6 +34,7 @@ set(src
         cpp_type.cpp
         cpp_variable.cpp
         output.cpp
+        output_stream.cpp
         parser.cpp
         translation_unit.cpp)
 

@@ -125,6 +125,16 @@ namespace standardese
             do_write_section_heading(section_name);
         }
 
+        void indent(unsigned level)
+        {
+            output_->indent(level);
+        }
+
+        void unindent(unsigned level)
+        {
+            output_->unindent(level);
+        }
+
     protected:
         output_stream_base& get_output() STANDARDESE_NOEXCEPT
         {

@@ -25,17 +25,9 @@ namespace standardese
         output_stream_base &operator=(const output_stream_base &) = delete;
         output_stream_base &operator=(output_stream_base &&) = delete;
 
-        void write_str(const char *str, std::size_t n)
-        {
-            do_write_str(str, n);
-            last_ = str[n - 1];
-        }
+        void write_str(const char *str, std::size_t n);
 
-        void write_char(char c)
-        {
-            do_write_char(c);
-            last_ = c;
-        }
+        void write_char(char c);
 
         /// Starts a new line.
         void write_new_line()
@@ -51,11 +43,17 @@ namespace standardese
             write_char('\n');
         }
 
+        void indent(unsigned width);
+
+        void unindent(unsigned width);
+
     private:
-        virtual void do_write_str(const char *str, std::size_t n) = 0;
         virtual void do_write_char(char c) = 0;
 
+        void do_indent();
+
         char last_ = 0;
+        unsigned level_ = 0;
     };
 
     class streambuf_output
@@ -72,11 +70,6 @@ namespace standardese
         }
 
     private:
-        void do_write_str(const char *str, std::size_t n) override
-        {
-            buffer_->sputn(str, n);
-        }
-
         void do_write_char(char c) override
         {
             buffer_->sputc(c);
