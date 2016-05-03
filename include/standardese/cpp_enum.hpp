@@ -15,7 +15,7 @@ namespace standardese
     public:
         static cpp_ptr<cpp_enum_value> parse(cpp_name scope, cpp_cursor cur);
 
-        cpp_enum_value(cpp_name scope, cpp_name name, cpp_comment comment)
+        cpp_enum_value(cpp_name scope, cpp_name name, cpp_raw_comment comment)
         : cpp_entity(std::move(scope), std::move(name), std::move(comment)),
           explicit_(false) {}
 
@@ -32,7 +32,7 @@ namespace standardese
     : public cpp_enum_value
     {
     public:
-        cpp_signed_enum_value(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_signed_enum_value(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                               long long value)
         : cpp_enum_value(std::move(scope), std::move(name), std::move(comment)),
           value_(value) {}
@@ -50,7 +50,7 @@ namespace standardese
     : public cpp_enum_value
     {
     public:
-        cpp_unsigned_enum_value(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_unsigned_enum_value(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                                 unsigned long long value)
         : cpp_enum_value(std::move(scope), std::move(name), std::move(comment)),
           value_(value) {}
@@ -84,7 +84,7 @@ namespace standardese
             cpp_ptr<cpp_enum> enum_;
         };
 
-        cpp_enum(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_enum(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                  CXType type, cpp_type_ref underlying)
         : cpp_type(std::move(scope), std::move(name), std::move(comment), type),
           underlying_(std::move(underlying)),

@@ -96,7 +96,7 @@ namespace standardese
             cpp_ptr<cpp_class> class_;
         };
 
-        cpp_class(cpp_name scope, cpp_name name, cpp_comment comment,
+        cpp_class(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                   CXType type, cpp_class_type ctype, bool is_final)
         : cpp_type(std::move(scope), std::move(name), std::move(comment), type),
           type_(ctype), final_(is_final) {}
