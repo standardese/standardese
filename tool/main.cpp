@@ -10,6 +10,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
+#include <standardese/comment.hpp>
+
 #include "filesystem.hpp"
 
 namespace fs = boost::filesystem;
@@ -32,6 +34,37 @@ void print_usage(const char *exe_name,
     std::clog << configuration << '\n';
 }
 
+bool erase_prefix(std::string &str, const std::string &prefix)
+{
+    auto res = str.find(prefix);
+    if (res != 0u)
+        return false;
+    str.erase(0, prefix.size());
+    return true;
+}
+
+void handle_unparsed_options(const po::parsed_options &options)
+{
+    using namespace standardese;
+
+    for (auto& opt : options.options)
+        if (opt.unregistered)
+        {
+            auto name = opt.string_key;
+
+            if (erase_prefix(name, "comment.cmd_name_"))
+            {
+                comment::parser::set_section_command(name, opt.value[0]);
+            }
+            else if (erase_prefix(name, "output.section_name_"))
+            {
+                comment::parser::set_section_name(name, opt.value[0]);
+            }
+            else
+               throw std::invalid_argument("unrecognized option '" + opt.string_key + "'");
+        }
+}
+
 int main(int argc, char** argv)
 {
     po::options_description generic("Generic options"), configuration("Configuration");
@@ -49,7 +82,17 @@ int main(int argc, char** argv)
             ("input.blacklist_dir",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
              "directory that is forbidden, relative to traversed directory")
-            ("input.force_blacklist", "force the blacklist for explictly given files");
+            ("input.force_blacklist", "force the blacklist for explictly given files")
+
+            ("comment.command_character", po::value<char>()->default_value('\\'),
+             "character used to introduce special commands")
+            ("comment.cmd_name_", po::value<std::string>(),
+             "override name for the command following the name_ (e.g. comment.cmd_name_requires=Require)")
+
+            ("output.section_name_", po::value<std::string>(),
+             "override output name for the section following the name_ (e.g. output.section_name_requires=Require,"
+             "note: override for command name is also required here)");
+
 
     po::options_description input("");
     input.add_options()
@@ -63,7 +106,11 @@ int main(int argc, char** argv)
     po::variables_map map;
     try
     {
-        po::store(po::command_line_parser(argc, argv).options(cmd).positional(input_pos).run(), map);
+        auto cmd_result = po::command_line_parser(argc, argv).options(cmd)
+                             .positional(input_pos).allow_unregistered().run();
+        po::parsed_options file_result(nullptr);
+
+        po::store(cmd_result, map);
         po::notify(map);
 
         auto iter = map.find("config");
@@ -76,9 +123,13 @@ int main(int argc, char** argv)
 
             po::options_description conf;
             conf.add(configuration);
-            po::store(po::parse_config_file(config, configuration), map);
+            file_result = po::parse_config_file(config, configuration, true);
+            po::store(file_result, map);
             po::notify(map);
         }
+
+        handle_unparsed_options(cmd_result);
+        handle_unparsed_options(file_result);
     }
     catch (std::exception &ex)
     {
@@ -100,6 +151,10 @@ int main(int argc, char** argv)
     }
     else try
     {
+        using namespace standardese;
+
+        comment::parser::set_command_character(map["comment.command_character"].as<char>());
+
         auto input = map["input-files"].as<std::vector<fs::path>>();
         auto blacklist_ext = map["input.blacklist_ext"].as<std::vector<std::string>>();
         auto blacklist_file = map["input.blacklist_file"].as<std::vector<std::string>>();

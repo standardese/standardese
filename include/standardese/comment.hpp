@@ -68,8 +68,14 @@ namespace standardese
         /// Sets the name for a section command.
         static void set_section_command(section_type t, std::string name);
 
+        /// Same as above but for configuration interface.
+        static void set_section_command(const std::string &type, std::string name);
+
         /// Sets the name for a section.
         static void set_section_name(section_type t, std::string name);
+
+        /// Sames above but for configuration interface.
+        static void set_section_name(const std::string &type, std::string name);
 
         parser(const cpp_raw_comment &raw_comment);
 

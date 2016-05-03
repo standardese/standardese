@@ -97,9 +97,32 @@ void comment::parser::set_section_command(section_type t, std::string name)
     section_commands[name] = t;
 }
 
+void comment::parser::set_section_command(const std::string &type, std::string name)
+{
+    auto iter = section_commands.find(type);
+    if (iter == section_commands.end())
+        throw std::invalid_argument("invalid section command name '" + type + "'");
+
+    auto t = iter->second;
+    section_commands.erase(iter);
+
+    auto res = section_commands.emplace(name, t);
+    if (!res.second)
+        throw std::invalid_argument("section command name '" + name + "' already in use");
+}
+
 void comment::parser::set_section_name(section_type t, std::string name)
 {
+    assert(t != section_type::invalid);
     section_names[std::size_t(t)] = name;
+}
+
+void comment::parser::set_section_name(const std::string &type, std::string name)
+{
+    auto iter = section_commands.find(type);
+    if (iter == section_commands.end())
+        throw std::invalid_argument("invalid section command name '" + type + "'");
+    section_names[int(iter->second)] = std::move(name);
 }
 
 comment::parser::parser(const cpp_raw_comment &raw_comment)
