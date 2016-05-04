@@ -333,7 +333,7 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
                 state = trailing_return; // trailing return type
                 return true; // consume token
             }
-            else if (spelling == ";" || spelling == "{")
+            else if (spelling == ";" || spelling == "{" || spelling == ":")
                 return false; // finish with declaration part
             else if (spelling == "=")
             {
