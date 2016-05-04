@@ -90,6 +90,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 2u);
             }
             else if (func.get_name() == "b")
@@ -99,6 +100,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 1u);
             }
             else if (func.get_name() == "c")
@@ -108,6 +110,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 1u);
             }
             else if (func.get_name() == "d")
@@ -117,6 +120,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "true");
+                REQUIRE(func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
             }
             else if (func.get_name() == "e")
@@ -126,6 +130,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
             }
             else if (func.get_name() == "f")
@@ -135,6 +140,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 1u);
             }
             else if (func.get_name() == "g")
@@ -144,6 +150,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
             }
             else if (func.get_name() == "h")
@@ -153,6 +160,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "noexcept(e())");
+                REQUIRE(func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
             }
             else if (func.get_name() == "i")
@@ -162,6 +170,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
             }
             else
@@ -176,6 +185,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
 
                 if (func.get_name() == "j")
                 {
@@ -237,6 +247,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
 
                 if (func.get_name() == "k")
                 {
@@ -317,6 +328,7 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 REQUIRE(!is_volatile(op.get_cv()));
                 REQUIRE(op.get_ref_qualifier() == cpp_ref_none);
                 REQUIRE(op.get_noexcept() == "false");
+                REQUIRE(!op.explicit_noexcept());
             }
             else if (op.get_name() == "operator const char &")
             {
@@ -328,6 +340,7 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 REQUIRE(!is_volatile(op.get_cv()));
                 REQUIRE(op.get_ref_qualifier() == cpp_ref_none);
                 REQUIRE(op.get_noexcept() == "false");
+                REQUIRE(!op.explicit_noexcept());
             }
             else if (op.get_name() == "operator char")
             {
@@ -339,6 +352,7 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 REQUIRE(is_volatile(op.get_cv()));
                 REQUIRE(op.get_ref_qualifier() == cpp_ref_rvalue);
                 REQUIRE(op.get_noexcept() == "true");
+                REQUIRE(op.explicit_noexcept());
             }
             else
                 REQUIRE(false);
@@ -386,6 +400,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(!ctor.is_constexpr());
                 REQUIRE(!ctor.is_explicit());
                 REQUIRE(ctor.get_noexcept() == "false");
+                REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_deleted);
             }
             else if (ctor.get_comment() == "/// b")
@@ -395,6 +410,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(!ctor.is_constexpr());
                 REQUIRE(ctor.is_explicit());
                 REQUIRE(ctor.get_noexcept() == "false");
+                REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
             }
             else if (ctor.get_comment() == "/// c")
@@ -404,6 +420,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(ctor.is_constexpr());
                 REQUIRE(!ctor.is_explicit());
                 REQUIRE(ctor.get_noexcept() == "true");
+                REQUIRE(ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
             }
             else if (ctor.get_comment() == "/// d")
@@ -413,6 +430,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(!ctor.is_constexpr());
                 REQUIRE(!ctor.is_explicit());
                 REQUIRE(ctor.get_noexcept() == "false");
+                REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_defaulted);
             }
             else
@@ -469,6 +487,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(!dtor.is_constexpr());
                 REQUIRE(dtor.get_noexcept() == "true");
                 REQUIRE(dtor.get_virtual() == cpp_virtual_none);
+                REQUIRE(!dtor.explicit_noexcept());
                 REQUIRE(dtor.get_definition() == cpp_function_definition_defaulted);
                 ++count;
             }
@@ -481,6 +500,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(no_parameters(dtor) == 0);
                 REQUIRE(!dtor.is_constexpr());
                 REQUIRE(dtor.get_noexcept() == "true");
+                REQUIRE(!dtor.explicit_noexcept());
                 REQUIRE(dtor.get_virtual() == cpp_virtual_none);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_deleted);
                 ++count;
@@ -494,6 +514,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(no_parameters(dtor) == 0);
                 REQUIRE(!dtor.is_constexpr());
                 REQUIRE(dtor.get_noexcept() == "false");
+                REQUIRE(dtor.explicit_noexcept());
                 REQUIRE(dtor.get_virtual() == cpp_virtual_none);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
                 ++count;
@@ -507,6 +528,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(no_parameters(dtor) == 0);
                 REQUIRE(!dtor.is_constexpr());
                 REQUIRE(dtor.get_noexcept() == "true");
+                REQUIRE(dtor.explicit_noexcept());
                 REQUIRE(dtor.get_virtual() == cpp_virtual_pure);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
                 ++count;
@@ -523,6 +545,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(no_parameters(dtor) == 0);
                 REQUIRE(!dtor.is_constexpr());
                 REQUIRE(dtor.get_noexcept() == "true");
+                REQUIRE(!dtor.explicit_noexcept());
                 REQUIRE(dtor.get_virtual() == cpp_virtual_overriden);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
                 ++count;

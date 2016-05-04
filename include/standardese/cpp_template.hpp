@@ -54,9 +54,9 @@ namespace standardese
         }
 
     protected:
-        cpp_template_parameter(cpp_name name, cpp_raw_comment comment,
+        cpp_template_parameter(cpp_entity::type t, cpp_name name, cpp_raw_comment comment,
                                bool is_variadic)
-        : cpp_parameter_base(std::move(name), std::move(comment)),
+        : cpp_parameter_base(t, std::move(name), std::move(comment)),
           variadic_(is_variadic) {}
 
     private:
@@ -71,7 +71,8 @@ namespace standardese
 
         cpp_template_type_parameter(cpp_name name, cpp_raw_comment comment,
                                     cpp_type_ref def, bool is_variadic)
-        : cpp_template_parameter(std::move(name), std::move(comment), is_variadic),
+        : cpp_template_parameter(template_type_parameter_t,
+                                 std::move(name), std::move(comment), is_variadic),
           default_(std::move(def)) {}
 
         bool has_default_type() const STANDARDESE_NOEXCEPT
@@ -97,7 +98,8 @@ namespace standardese
         cpp_non_type_template_parameter(cpp_name name, cpp_raw_comment comment,
                                         cpp_type_ref type, std::string default_value,
                                         bool is_variadic)
-        : cpp_template_parameter(std::move(name), std::move(comment), is_variadic),
+        : cpp_template_parameter(non_type_template_parameter_t,
+                                 std::move(name), std::move(comment), is_variadic),
           type_(std::move(type)), default_(std::move(default_value)) {}
 
         const cpp_type_ref& get_type() const STANDARDESE_NOEXCEPT
@@ -128,7 +130,8 @@ namespace standardese
 
         cpp_template_template_parameter(cpp_name name, cpp_raw_comment comment,
                                         cpp_template_ref def, bool is_variadic)
-        : cpp_template_parameter(std::move(name), std::move(comment), is_variadic),
+        : cpp_template_parameter(template_template_parameter_t,
+                                 std::move(name), std::move(comment), is_variadic),
           default_(std::move(def)) {}
 
         void add_paramter(cpp_ptr<cpp_template_parameter> param)

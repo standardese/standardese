@@ -20,7 +20,7 @@ namespace standardese
 
         cpp_function_parameter(cpp_name name, cpp_raw_comment comment,
                                cpp_type_ref type, std::string default_value = "")
-        : cpp_parameter_base(std::move(name), std::move(comment)),
+        : cpp_parameter_base(function_parameter_t, std::move(name), std::move(comment)),
           type_(std::move(type)), default_(std::move(default_value)) {}
 
         const cpp_type_ref& get_type() const STANDARDESE_NOEXCEPT
@@ -62,6 +62,7 @@ namespace standardese
         cpp_function_flags flags = cpp_function_flags(0);
         cpp_function_definition definition = cpp_function_definition_normal;
         std::string noexcept_expression;
+        bool explicit_noexcept = false;
 
         void set_flag(cpp_function_flags f) STANDARDESE_NOEXCEPT
         {
@@ -114,10 +115,16 @@ namespace standardese
             return info_.noexcept_expression;
         }
 
+        bool explicit_noexcept() const STANDARDESE_NOEXCEPT
+        {
+            return info_.explicit_noexcept;
+        }
+
     protected:
-        cpp_function_base(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_function_base(cpp_entity::type t,
+                          cpp_name scope, cpp_name name, cpp_raw_comment comment,
                           cpp_function_info info)
-        : cpp_entity(std::move(scope), std::move(name), std::move(comment)),
+        : cpp_entity(t, std::move(scope), std::move(name), std::move(comment)),
           info_(std::move(info)) {}
 
     private:
@@ -132,7 +139,8 @@ namespace standardese
 
         cpp_function(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                      cpp_type_ref return_type, cpp_function_info info)
-        : cpp_function_base(std::move(scope), std::move(name), std::move(comment),
+        : cpp_function_base(function_t,
+                            std::move(scope), std::move(name), std::move(comment),
                             std::move(info)),
           return_(std::move(return_type)) {}
 
@@ -211,7 +219,10 @@ namespace standardese
                             cpp_function_info finfo, cpp_member_function_info minfo)
         : cpp_function(std::move(scope), std::move(name), std::move(comment),
                        std::move(return_type), std::move(finfo)),
-          info_(minfo) {}
+          info_(minfo)
+        {
+            set_type(member_function_t);
+        }
 
         cpp_cv get_cv() const STANDARDESE_NOEXCEPT
         {
@@ -241,7 +252,9 @@ namespace standardese
         cpp_conversion_op(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                           cpp_type_ref target_type,
                           cpp_function_info finfo, cpp_member_function_info minfo)
-        : cpp_function_base(std::move(scope), std::move(name), std::move(comment), std::move(finfo)),
+        : cpp_function_base(conversion_op_t,
+                            std::move(scope), std::move(name), std::move(comment),
+                            std::move(finfo)),
           target_type_(std::move(target_type)), info_(minfo) {}
 
         const cpp_type_ref& get_target_type() const STANDARDESE_NOEXCEPT
@@ -277,7 +290,9 @@ namespace standardese
 
         cpp_constructor(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                         cpp_function_info info)
-        : cpp_function_base(std::move(scope), std::move(name), std::move(comment), std::move(info)) {}
+        : cpp_function_base(constructor_t,
+                            std::move(scope), std::move(name), std::move(comment),
+                            std::move(info)) {}
     };
 
     class cpp_destructor
@@ -288,7 +303,8 @@ namespace standardese
 
         cpp_destructor(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                        cpp_function_info info, cpp_virtual virtual_flag)
-        : cpp_function_base(std::move(scope), std::move(name), std::move(comment),
+        : cpp_function_base(destructor_t,
+                            std::move(scope), std::move(name), std::move(comment),
                             std::move(info)),
           virtual_(virtual_flag) {}
 

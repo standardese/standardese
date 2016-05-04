@@ -202,7 +202,7 @@ cpp_name detail::parse_enum_type_name(cpp_cursor cur, bool &definition)
 
 namespace
 {
-    // compares until whitespace
+    // compares until whitespace or template
     bool token_equal(const string &token, const char* &ptr)
     {
         auto save = ptr;
@@ -213,7 +213,7 @@ namespace
                 return true;
             else if (!*ptr)
                 break;
-            else if (*ptr == ' ')
+            else if (*ptr == ' ' || *ptr == '<')
                 return true;
             else if (*token_ptr != *ptr)
                 break;
@@ -295,7 +295,7 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
             // parameter begin
             else if (token_equal(spelling, ptr)) // consume only up to whitespace for conversion op
             {
-                if (!*ptr)
+                if (!*ptr || *ptr == '<')
                 {
                     state = parameters; // enter parameters
                     start_parameters = bracket_count;
@@ -333,7 +333,7 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
                 state = trailing_return; // trailing return type
                 return true; // consume token
             }
-            else if (spelling == ";" || spelling == "{")
+            else if (spelling == ";" || spelling == "{" || spelling == ":")
                 return false; // finish with declaration part
             else if (spelling == "=")
             {
@@ -415,6 +415,7 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
     if (was_noexcept && finfo.noexcept_expression.empty())
         // this means simply noexcept without a condition
         finfo.noexcept_expression = "true";
+    finfo.explicit_noexcept = was_noexcept;
 
     // set variadic flag
     if (clang_isFunctionTypeVariadic(clang_getCursorType(cur)))

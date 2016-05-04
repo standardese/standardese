@@ -5,6 +5,7 @@
 set(detail_header
         ../include/standardese/detail/parse_utils.hpp
         ../include/standardese/detail/search_token.hpp
+        ../include/standardese/detail/synopsis_utils.hpp
         ../include/standardese/detail/wrapper.hpp)
 set(header
         ../include/standardese/comment.hpp
@@ -18,11 +19,15 @@ set(header
         ../include/standardese/cpp_template.hpp
         ../include/standardese/cpp_type.hpp
         ../include/standardese/cpp_variable.hpp
+        ../include/standardese/generator.hpp
+        ../include/standardese/output.hpp
         ../include/standardese/parser.hpp
         ../include/standardese/string.hpp
+        ../include/standardese/synopsis.hpp
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
+        detail/synopsis_utils.cpp
         comment.cpp
         cpp_class.cpp
         cpp_enum.cpp
@@ -32,7 +37,11 @@ set(src
         cpp_template.cpp
         cpp_type.cpp
         cpp_variable.cpp
+        generator.cpp
+        output.cpp
+        output_stream.cpp
         parser.cpp
+        synopsis.cpp
         translation_unit.cpp)
 
 add_library(standardese_library ${detail_header} ${header} ${src})

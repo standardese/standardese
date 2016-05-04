@@ -25,7 +25,7 @@ namespace standardese
         static cpp_ptr<cpp_access_specifier> parse(cpp_cursor cur);
 
         cpp_access_specifier(cpp_access_specifier_t a)
-        : cpp_entity("", to_string(a), ""), access_(a) {}
+        : cpp_entity(access_specifier_t, "", to_string(a), ""), access_(a) {}
 
         cpp_access_specifier_t get_access() const STANDARDESE_NOEXCEPT
         {
@@ -46,7 +46,7 @@ namespace standardese
                        cpp_name name, CXType type,
                        cpp_access_specifier_t access,
                        bool is_virtual)
-        : cpp_entity(std::move(scope), std::move(name), ""), type_(type), access_(access),
+        : cpp_entity(base_class_t, std::move(scope), std::move(name), ""), type_(type), access_(access),
           virtual_(is_virtual) {}
 
         CXType get_type() const STANDARDESE_NOEXCEPT
@@ -98,7 +98,7 @@ namespace standardese
 
         cpp_class(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                   CXType type, cpp_class_type ctype, bool is_final)
-        : cpp_type(std::move(scope), std::move(name), std::move(comment), type),
+        : cpp_type(class_t, std::move(scope), std::move(name), std::move(comment), type),
           type_(ctype), final_(is_final) {}
 
         void add_entity(cpp_entity_ptr e)

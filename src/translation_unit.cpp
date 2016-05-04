@@ -22,7 +22,7 @@
 using namespace standardese;
 
 cpp_file::cpp_file(const char *name)
-: cpp_entity("", name, "")
+: cpp_entity(file_t, "", name, "")
 {}
 
 translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, const char *path)
