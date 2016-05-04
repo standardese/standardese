@@ -22,6 +22,13 @@ void markdown_output::write_header_end(unsigned)
     get_output().write_blank_line();
 }
 
+void markdown_output::do_write_seperator()
+{
+    get_output().write_blank_line();
+    get_output().write_str("---", 3);
+    get_output().write_blank_line();
+}
+
 void markdown_output::write_begin(style s)
 {
     switch (s)
@@ -37,6 +44,8 @@ void markdown_output::write_begin(style s)
         case style::code_span:
             // use two to allow backticks inside
             get_output().write_str("``", 2);
+            break;
+        default:
             break;
     }
 }

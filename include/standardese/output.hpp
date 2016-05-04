@@ -183,6 +183,11 @@ namespace standardese
             }
         };
 
+        void write_seperator() STANDARDESE_NOEXCEPT
+        {
+            do_write_seperator();
+        }
+
     protected:
         output_stream_base& get_output() STANDARDESE_NOEXCEPT
         {
@@ -195,6 +200,8 @@ namespace standardese
         {
             write_header_begin(level);
         }
+
+        virtual void do_write_seperator() = 0;
 
         virtual void write_begin(style s) = 0;
 
@@ -236,6 +243,8 @@ namespace standardese
     protected:
         void write_header_begin(unsigned level) override;
         void write_header_end(unsigned  level) override;
+
+        void do_write_seperator() override;
 
         void write_begin(style s) override;
 

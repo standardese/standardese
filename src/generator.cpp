@@ -43,6 +43,7 @@ namespace
                     generate_doc_entity(output, level, e); \
                     for (auto& child : static_cast<const cpp_##name &>(e)__VA_ARGS__) \
                         dispatch(output, level + 1, child); \
+                    output.write_seperator(); \
                     break;
 
             STANDARDESE_DETAIL_HANDLE(class)
