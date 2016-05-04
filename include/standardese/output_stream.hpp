@@ -6,6 +6,7 @@
 #define STANDARDESE_OUTPUT_STREAM_HPP_INCLUDED
 
 #include <cassert>
+#include <fstream>
 #include <ostream>
 
 #include <standardese/noexcept.hpp>
@@ -76,6 +77,25 @@ namespace standardese
         }
 
         std::streambuf *buffer_;
+    };
+
+    class file_output
+    : public output_stream_base
+    {
+    public:
+        file_output(const std::string &file) STANDARDESE_NOEXCEPT
+        : file_(file)
+        {
+            assert(file_.is_open());
+        }
+
+    private:
+        void do_write_char(char c) override
+        {
+            file_.rdbuf()->sputc(c);
+        }
+
+        std::ofstream file_;
     };
 } // namespace standardese
 
