@@ -61,19 +61,22 @@ namespace
     //=== namespace related ===//
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_namespace &ns)
     {
-        if (ns.empty())
-            return;
-
         if (ns.is_inline())
             out << "inline ";
-        out << "namespace " << ns.get_name() << newl;
-        out << '{' << newl;
-        out.indent(tab_width);
+        out << "namespace " << ns.get_name();
 
-        detail::write_range(out, ns, blankl, write_entity);
+        if (ns.empty())
+            out << "{}";
+        else
+        {
+            out << newl << '{' << newl;
+            out.indent(tab_width);
 
-        out.unindent(tab_width);
-        out << newl << '}';
+            detail::write_range(out, ns, blankl, write_entity);
+
+            out.unindent(tab_width);
+            out << newl << '}';
+        }
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_namespace_alias &ns)
