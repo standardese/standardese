@@ -14,6 +14,8 @@
 #include <standardese/cpp_variable.hpp>
 #include <standardese/translation_unit.hpp>
 
+#include <standardese/detail/synopsis_utils.hpp>
+
 using namespace standardese;
 
 namespace
@@ -23,25 +25,15 @@ namespace
     void dispatch(output_base::code_block_writer &out, const cpp_entity &e, bool top_level,
                   const cpp_name &override_name = "");
 
-    template <class Container, typename T>
-    void print_range(output_base::code_block_writer &out, const Container &cont, T sep)
+    void write_entity(output_base::code_block_writer &out, const cpp_entity &e)
     {
-        auto need = false;
-        for (auto &e : cont)
-        {
-            if (need)
-                out << sep;
-            else
-                need = true;
-
-            dispatch(out, e, false);
-        }
+        dispatch(out, e, false);
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_file &f,
                            bool, const cpp_name &)
     {
-        print_range(out, f, blankl);
+        detail::write_range(out, f, blankl, write_entity);
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_inclusion_directive &i,
@@ -77,7 +69,7 @@ namespace
         out << '{' << newl;
         out.indent(tab_width);
 
-        print_range(out, ns, blankl);
+        detail::write_range(out, ns, blankl, write_entity);
 
         out.unindent(tab_width);
         out << newl << '}';
@@ -144,7 +136,7 @@ namespace
             out << '{' << newl;
             out.indent(tab_width);
 
-            print_range(out, e, ",\n");
+            detail::write_range(out, e, blankl, write_entity);
 
             out.unindent(tab_width);
             out << newl << '}';
@@ -251,13 +243,6 @@ namespace
         out << ';';
     }
 
-    void write_type_value(output_base::code_block_writer &out, const cpp_type_ref &ref, const cpp_name &name)
-    {
-        out << ref.get_name();
-        if (!name.empty())
-            out << ' ' << name;
-    }
-
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_variable &v,
                            bool, const cpp_name &)
     {
@@ -276,16 +261,14 @@ namespace
         if (v.is_thread_local())
             out << "thread_local ";
 
-        write_type_value(out, v.get_type(), v.get_name());
-        if (!v.get_initializer().empty())
-            out << " = " << v.get_initializer();
+        detail::write_type_value_default(out, v.get_type(), v.get_name(), v.get_initializer());
         out << ';';
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_bitfield &v,
                            bool, const cpp_name &)
     {
-        write_type_value(out, v.get_type(), v.get_name());
+        detail::write_type_value_default(out, v.get_type(), v.get_name());
         out << " : " << (unsigned long long) v.no_bits();
         if (!v.get_initializer().empty())
             out << " = " << v.get_initializer();
@@ -295,9 +278,7 @@ namespace
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_parameter &p,
                            bool, const cpp_name &)
     {
-        write_type_value(out, p.get_type(), p.get_name());
-        if (p.has_default_value())
-            out << " = " << p.get_default_value();
+        detail::write_type_value_default(out, p.get_type(), p.get_name(), p.get_default_value());
     }
 
     void write_parameters(output_base::code_block_writer &out, const cpp_function_base &f, const cpp_name &override_name)
@@ -462,9 +443,7 @@ namespace
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_non_type_template_parameter &p,
                            bool, const cpp_name &)
     {
-        write_type_value(out, p.get_type(), p.get_name());
-        if (p.has_default_value())
-            out << " = " << p.get_default_value();
+        detail::write_type_value_default(out, p.get_type(), p.get_name(), p.get_default_value());
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_template_template_parameter &p,
@@ -472,7 +451,7 @@ namespace
     {
         out << "template <";
 
-        print_range(out, p, ", ");
+        detail::write_range(out, p, ", ", write_entity);
 
         out << "> typename";
         if (!p.get_name().empty())
@@ -486,7 +465,7 @@ namespace
     {
         out << "template <";
 
-        print_range(out, f.get_template_parameters(), ", ");
+        detail::write_range(out, f.get_template_parameters(), ", ", write_entity);
 
         out << '>' << newl;
 
@@ -505,7 +484,7 @@ namespace
     {
         out << "template <";
 
-        print_range(out, c.get_template_parameters(), ", ");
+        detail::write_range(out, c.get_template_parameters(), ", ", write_entity);
 
         out << '>' << newl;
 
@@ -524,7 +503,7 @@ namespace
     {
         out << "template <";
 
-        print_range(out, c.get_template_parameters(), ", ");
+        detail::write_range(out, c.get_template_parameters(), ", ", write_entity);
 
         out << '>' << newl;
 
