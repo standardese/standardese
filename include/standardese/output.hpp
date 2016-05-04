@@ -31,6 +31,15 @@ namespace standardese
         output_base& operator=(const output_base&) = delete;
         output_base& operator=(output_base&&) = delete;
 
+        enum class style
+        {
+            normal,
+            italics,
+            bold,
+            code_span,
+            count
+        };
+
         class writer
         {
         public:
@@ -81,8 +90,28 @@ namespace standardese
                 return *this;
             }
 
+            writer& operator<<(style st)
+            {
+                auto i = int(st);
+                if (begin_[i])
+                {
+                    output_.write_begin(st);
+                    begin_[i] = false;
+                }
+                else
+                {
+                    output_.write_end(st);
+                    begin_[i] = true;
+                }
+
+                return *this;
+            }
+
         protected:
             output_base &output_;
+
+        private:
+            bool begin_[int(style::count)] = {};
         };
 
         class paragraph_writer : public writer
@@ -98,32 +127,12 @@ namespace standardese
             {
                 output_.write_paragraph_end();
             }
-        };
 
-        enum class style
-        {
-            normal,
-            italics,
-            bold,
-            code_span
-        };
-
-        class inline_writer : public writer
-        {
-        public:
-            inline_writer(output_base &output, style s) STANDARDESE_NOEXCEPT
-            : writer(output), s_(s)
+            void start_new() const
             {
-                output_.write_begin(s_);
+                output_.write_paragraph_end();
+                output_.write_paragraph_begin();
             }
-
-            ~inline_writer() STANDARDESE_NOEXCEPT override
-            {
-                output_.write_end(s_);
-            }
-
-        private:
-            style s_;
         };
 
         class heading_writer : public writer
@@ -214,7 +223,6 @@ namespace standardese
 
         friend writer;
         friend paragraph_writer;
-        friend inline_writer;
         friend heading_writer;
     };
 
