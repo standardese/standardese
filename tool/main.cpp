@@ -11,6 +11,8 @@
 #include <boost/program_options.hpp>
 
 #include <standardese/comment.hpp>
+#include <standardese/generator.hpp>
+#include <standardese/parser.hpp>
 
 #include "filesystem.hpp"
 
@@ -163,12 +165,20 @@ int main(int argc, char** argv)
 
         assert(!input.empty());
 
-        std::cout << "Input files:\n";
         for (auto& path : input)
         {
+            parser parser;
+
             auto handle = [&](const fs::path &p)
             {
-                std::cout << '\t' << p << '\n';
+                std::clog << "Generating documentation for " << p << "...\n";
+
+                auto tu = parser.parse(p.generic_string().c_str(), cpp_standard::cpp_14);
+                auto& f = tu.build_ast();
+
+                file_output file(p.stem().generic_string() + ".md");
+                markdown_output out(file);
+                generate_doc_file(out, f);
             };
 
             auto res = standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir, handle);
@@ -177,7 +187,6 @@ int main(int argc, char** argv)
                 // blacklist isn't enforced however
                 handle(path);
         }
-        std::cout << '\n';
     }
     catch (std::exception &ex)
     {
