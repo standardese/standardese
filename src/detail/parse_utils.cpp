@@ -415,6 +415,7 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
     if (was_noexcept && finfo.noexcept_expression.empty())
         // this means simply noexcept without a condition
         finfo.noexcept_expression = "true";
+    finfo.explicit_noexcept = was_noexcept;
 
     // set variadic flag
     if (clang_isFunctionTypeVariadic(clang_getCursorType(cur)))

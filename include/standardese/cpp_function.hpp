@@ -62,6 +62,7 @@ namespace standardese
         cpp_function_flags flags = cpp_function_flags(0);
         cpp_function_definition definition = cpp_function_definition_normal;
         std::string noexcept_expression;
+        bool explicit_noexcept = false;
 
         void set_flag(cpp_function_flags f) STANDARDESE_NOEXCEPT
         {
@@ -112,6 +113,11 @@ namespace standardese
         const std::string& get_noexcept() const STANDARDESE_NOEXCEPT
         {
             return info_.noexcept_expression;
+        }
+
+        bool explicit_noexcept() const STANDARDESE_NOEXCEPT
+        {
+            return info_.explicit_noexcept;
         }
 
     protected:

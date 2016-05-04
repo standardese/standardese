@@ -134,7 +134,7 @@ void detail::write_parameters(output_base::code_block_writer &out, const cpp_fun
 
 void detail::write_noexcept(output_base::code_block_writer &out, const cpp_function_base &f)
 {
-    if (!f.get_noexcept().empty())
+    if (f.explicit_noexcept())
         out << " noexcept(" << f.get_noexcept() << ')';
 }
 
