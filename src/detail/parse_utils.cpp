@@ -202,7 +202,7 @@ cpp_name detail::parse_enum_type_name(cpp_cursor cur, bool &definition)
 
 namespace
 {
-    // compares until whitespace
+    // compares until whitespace or template
     bool token_equal(const string &token, const char* &ptr)
     {
         auto save = ptr;
@@ -213,7 +213,7 @@ namespace
                 return true;
             else if (!*ptr)
                 break;
-            else if (*ptr == ' ')
+            else if (*ptr == ' ' || *ptr == '<')
                 return true;
             else if (*token_ptr != *ptr)
                 break;
@@ -295,7 +295,7 @@ cpp_name detail::parse_function_info(cpp_cursor cur, const cpp_name &name,
             // parameter begin
             else if (token_equal(spelling, ptr)) // consume only up to whitespace for conversion op
             {
-                if (!*ptr)
+                if (!*ptr || *ptr == '<')
                 {
                     state = parameters; // enter parameters
                     start_parameters = bracket_count;
