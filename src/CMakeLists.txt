@@ -19,6 +19,7 @@ set(header
         ../include/standardese/cpp_template.hpp
         ../include/standardese/cpp_type.hpp
         ../include/standardese/cpp_variable.hpp
+        ../include/standardese/generator.hpp
         ../include/standardese/output.hpp
         ../include/standardese/parser.hpp
         ../include/standardese/string.hpp
@@ -36,6 +37,7 @@ set(src
         cpp_template.cpp
         cpp_type.cpp
         cpp_variable.cpp
+        generator.cpp
         output.cpp
         output_stream.cpp
         parser.cpp

@@ -12,15 +12,13 @@ output_base::~output_base() STANDARDESE_NOEXCEPT {}
 
 void markdown_output::write_header_begin(unsigned level)
 {
-    assert(level <= 6);
-
     static const char str[] = "######";
-    get_output().write_str(str, level);
+    get_output().write_str(str, std::min(level, 6u));
+    get_output().write_char(' ');
 }
 
-void markdown_output::write_header_end(unsigned level)
+void markdown_output::write_header_end(unsigned)
 {
-    assert(level <= 6);
     get_output().write_blank_line();
 }
 
