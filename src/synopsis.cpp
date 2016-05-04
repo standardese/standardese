@@ -61,6 +61,9 @@ namespace
     //=== namespace related ===//
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_namespace &ns)
     {
+        if (ns.empty())
+            return;
+
         if (ns.is_inline())
             out << "inline ";
         out << "namespace " << ns.get_name() << newl;
@@ -121,16 +124,21 @@ namespace
         out << e.get_name();
         if (top_level)
         {
-            out << newl;
             if (!e.get_underlying_type().get_name().empty())
-                out << ": " << e.get_underlying_type().get_name() << newl;
-            out << '{' << newl;
-            out.indent(tab_width);
+                out << newl << ": " << e.get_underlying_type().get_name();
 
-            detail::write_range(out, e, newl, write_entity);
+            if (e.empty())
+                out << "{}";
+            else
+            {
+                out << newl << '{' << newl;
+                out.indent(tab_width);
 
-            out.unindent(tab_width);
-            out << newl << '}';
+                detail::write_range(out, e, newl, write_entity);
+
+                out.unindent(tab_width);
+                out << newl << '}';
+            }
         }
         out << ';';
     }
@@ -153,17 +161,22 @@ namespace
         {
             if (c.is_final())
                 out << " final";
-            out << newl;
 
             detail::write_bases(out, c);
 
-            out << '{' << newl;
-            out.indent(tab_width);
+            // can still be wrongly triggered if a class has only base classes
+            if (c.empty())
+                out << "{}";
+            else
+            {
+                out << newl << '{' << newl;
+                out.indent(tab_width);
 
-            detail::write_range(out, c, blankl, write_entity);
+                detail::write_range(out, c, blankl, write_entity);
 
-            out.unindent(tab_width);
-            out << newl << '}';
+                out.unindent(tab_width);
+                out << newl << '}';
+            }
         }
 
         out << ';';
@@ -282,7 +295,8 @@ namespace
             out << " = " << p.get_default_template().get_name();
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_template &f)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_template &f,
+                           bool top_level)
     {
         out << "template <";
 
@@ -290,16 +304,18 @@ namespace
 
         out << '>' << newl;
 
-        dispatch(out, f.get_function(), false);
+        dispatch(out, f.get_function(), top_level);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_template_specialization &f)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_template_specialization &f,
+                           bool top_level)
     {
         out << "template <>" << newl;
-        dispatch(out, f.get_function(), false, f.get_name());
+        dispatch(out, f.get_function(), top_level, f.get_name());
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template &c)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template &c,
+                           bool top_level)
     {
         out << "template <";
 
@@ -307,16 +323,18 @@ namespace
 
         out << '>' << newl;
 
-        dispatch(out, c.get_class(), false);
+        dispatch(out, c.get_class(), top_level);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template_full_specialization &c)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template_full_specialization &c,
+                           bool top_level)
     {
         out << "template <>" << newl;
-        dispatch(out, c.get_class(), false, c.get_name());
+        dispatch(out, c.get_class(), top_level, c.get_name());
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template_partial_specialization &c)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template_partial_specialization &c,
+                           bool top_level)
     {
         out << "template <";
 
@@ -324,7 +342,7 @@ namespace
 
         out << '>' << newl;
 
-        dispatch(out, c.get_class(), false, c.get_name());
+        dispatch(out, c.get_class(), top_level, c.get_name());
     }
 
     //=== dispatching ===//

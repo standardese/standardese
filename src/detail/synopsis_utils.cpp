@@ -78,7 +78,7 @@ void detail::write_bases(output_base::code_block_writer &out, const cpp_class &c
         else
         {
             comma = true;
-            out << ": ";
+            out << newl << ": ";
         }
 
         switch (static_cast<const cpp_base_class &>(base).get_access())
