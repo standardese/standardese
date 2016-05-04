@@ -10,6 +10,8 @@
 
 namespace standardese
 {
+    const char* get_entity_type_spelling(cpp_entity::type t);
+
     void generate_doc_entity(output_base &output, unsigned level, const cpp_entity &e);
 
     void generate_doc_file(output_base &output, const cpp_file &f);
