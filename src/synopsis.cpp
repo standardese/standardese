@@ -30,14 +30,13 @@ namespace
         dispatch(out, e, false);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_file &f,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_file &f)
     {
         detail::write_range(out, f, blankl, write_entity);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_inclusion_directive &i,
-                           bool, const cpp_name &)
+    //=== preprocessor ===//
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_inclusion_directive &i)
     {
         out << "#include ";
 
@@ -54,14 +53,13 @@ namespace
             out << '>';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_macro_definition &m,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_macro_definition &m)
     {
         out << "#define " << m.get_name() << m.get_argument_string() << ' ' << m.get_replacement();
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_namespace &ns,
-                           bool, const cpp_name &)
+    //=== namespace related ===//
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_namespace &ns)
     {
         if (ns.is_inline())
             out << "inline ";
@@ -75,54 +73,47 @@ namespace
         out << newl << '}';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_namespace_alias &ns,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_namespace_alias &ns)
     {
         out << "namespace " << ns.get_name() << " = " << ns.get_target() << ';';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_using_directive &u,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_using_directive &u)
     {
         out << "using namespace " << u.get_name() << ';';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_using_declaration &u,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_using_declaration &u)
     {
         out << "using " << u.get_name() << ';';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_type_alias &a,
-                           bool, const cpp_name &)
+    //=== types ===//
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_type_alias &a)
     {
         out << "using " << a.get_name() << " = " << a.get_target().get_name() << ';';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_enum_value &e,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_enum_value &e)
     {
         out << e.get_name();
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_signed_enum_value &e,
-                           bool, const cpp_name &)
-    {
-        out << e.get_name();
-        if (e.is_explicitly_given())
-            out << " = " << e.get_value();
-    }
-
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_unsigned_enum_value &e,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_signed_enum_value &e)
     {
         out << e.get_name();
         if (e.is_explicitly_given())
             out << " = " << e.get_value();
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_enum &e,
-                           bool top_level, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_unsigned_enum_value &e)
+    {
+        out << e.get_name();
+        if (e.is_explicitly_given())
+            out << " = " << e.get_value();
+    }
+
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_enum &e, bool top_level)
     {
         out << "enum ";
         if (e.is_scoped())
@@ -136,7 +127,7 @@ namespace
             out << '{' << newl;
             out.indent(tab_width);
 
-            detail::write_range(out, e, blankl, write_entity);
+            detail::write_range(out, e, newl, write_entity);
 
             out.unindent(tab_width);
             out << newl << '}';
@@ -144,66 +135,7 @@ namespace
         out << ';';
     }
 
-    void write_class_name(output_base::code_block_writer &out, const cpp_class &c, const cpp_name &override_name)
-    {
-        switch (c.get_class_type())
-        {
-            case cpp_struct_t:
-                out << "struct ";
-                break;
-            case cpp_class_t:
-                out << "class ";
-                break;
-            case cpp_union_t:
-                out << "union ";
-        }
-
-        if (override_name.empty())
-            out << c.get_name();
-        else
-            out << override_name;
-    }
-
-    void write_bases(output_base::code_block_writer &out, const cpp_class &c)
-    {
-        auto comma = false;
-        for (auto &base : c)
-        {
-            if (base.get_entity_type() != cpp_entity::base_class_t)
-                break;
-
-            if (comma)
-                out << ", ";
-            else
-            {
-                comma = true;
-                out << ": ";
-            }
-
-            switch (static_cast<const cpp_base_class &>(base).get_access())
-            {
-                case cpp_public:
-                    if (c.get_class_type() == cpp_class_t)
-                        out << "public ";
-                    break;
-                case cpp_private:
-                    if (c.get_class_type() != cpp_class_t)
-                        out << "private ";
-                    break;
-                case cpp_protected:
-                    out << "protected ";
-                    break;
-            }
-
-            out << base.get_name();
-        }
-
-        if (comma)
-            out << newl;
-    }
-
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_access_specifier &a,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_access_specifier &a)
     {
         out.unindent(tab_width);
         out << newl << a.get_name() << ':' << newl;
@@ -213,7 +145,9 @@ namespace
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_class &c,
                            bool top_level, const cpp_name &override_name)
     {
-        write_class_name(out, c, override_name);
+        detail::write_class_name(out,
+                                 override_name.empty() ? c.get_name() : override_name,
+                                 c.get_class_type());
 
         if (top_level)
         {
@@ -221,20 +155,12 @@ namespace
                 out << " final";
             out << newl;
 
-            write_bases(out, c);
+            detail::write_bases(out, c);
 
             out << '{' << newl;
             out.indent(tab_width);
 
-            auto need = false;
-            for (auto &e : c)
-            {
-                if (need)
-                    out << blankl;
-                else
-                    need = true;
-                dispatch(out, e, false);
-            }
+            detail::write_range(out, c, blankl, write_entity);
 
             out.unindent(tab_width);
             out << newl << '}';
@@ -243,8 +169,8 @@ namespace
         out << ';';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_variable &v,
-                           bool, const cpp_name &)
+    //=== variables ===//
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_variable &v)
     {
         switch (v.get_linkage())
         {
@@ -265,8 +191,7 @@ namespace
         out << ';';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_bitfield &v,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_bitfield &v)
     {
         detail::write_type_value_default(out, v.get_type(), v.get_name());
         out << " : " << (unsigned long long) v.no_bits();
@@ -275,63 +200,7 @@ namespace
         out << ';';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_parameter &p,
-                           bool, const cpp_name &)
-    {
-        detail::write_type_value_default(out, p.get_type(), p.get_name(), p.get_default_value());
-    }
-
-    void write_parameters(output_base::code_block_writer &out, const cpp_function_base &f, const cpp_name &override_name)
-    {
-        if (override_name.empty())
-            out << f.get_name();
-        else
-            out << override_name;
-        out << '(';
-
-        auto need = false;
-        for (auto &param : f.get_parameters())
-        {
-            if (need)
-                out << ", ";
-            else
-                need = true;
-
-            do_write_synopsis(out, param, true, "");
-        }
-
-        if (f.is_variadic())
-        {
-            if (need)
-                out << ", ";
-            out << "...";
-        }
-
-        out << ')';
-    }
-
-    void write_noexcept(output_base::code_block_writer &out, const cpp_function_base &f)
-    {
-        if (!f.get_noexcept().empty())
-            out << " noexcept(" << f.get_noexcept() << ')';
-    }
-
-    void write_definition(output_base::code_block_writer &out, const cpp_function_base &f)
-    {
-        switch (f.get_definition())
-        {
-            case cpp_function_definition_normal:
-                out << ';';
-                break;
-            case cpp_function_definition_defaulted:
-                out << " = default;";
-                break;
-            case cpp_function_definition_deleted:
-                out << " = delete";
-                break;
-        }
-    }
-
+    //=== functions ===//
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_function &f,
                            bool, const cpp_name &override_name)
     {
@@ -339,99 +208,54 @@ namespace
             out << "constexpr ";
 
         out << f.get_return_type().get_name() << ' ';
-        write_parameters(out, f, override_name);
-        write_noexcept(out, f);
-        write_definition(out, f);
-    }
-
-    void write_cv(output_base::code_block_writer &out, cpp_cv cv)
-    {
-        if (cv & cpp_cv_const)
-            out << " const";
-        if (cv & cpp_cv_volatile)
-            out << " volatile";
-    }
-
-    void write_ref(output_base::code_block_writer &out, cpp_ref_qualifier ref)
-    {
-        if (ref == cpp_ref_rvalue)
-            out << " &&";
-        else if (ref == cpp_ref_lvalue)
-            out << " &";
-    }
-
-    void write_prefix(output_base::code_block_writer &out, const cpp_function_base &f, cpp_virtual virt)
-    {
-        if (f.is_constexpr())
-            out << "constexpr ";
-        else if (is_virtual(virt))
-            out << "virtual ";
-        if (virt == cpp_virtual_static)
-            out << "static ";
-    }
-
-    void write_suffix(output_base::code_block_writer &out, const cpp_function_base &f, cpp_virtual virt)
-    {
-        if (virt == cpp_virtual_overriden)
-            out << " override";
-        else if (virt == cpp_virtual_final)
-            out << " final";
-
-        if (virt == cpp_virtual_pure)
-            out << " = 0;";
-        else
-            write_definition(out, f);
+        detail::write_parameters(out, f, override_name);
+        detail::write_noexcept(out, f);
+        detail::write_definition(out, f);
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_member_function &f,
                            bool, const cpp_name &override_name)
     {
-        write_prefix(out, f, f.get_virtual());
+        detail::write_prefix(out, f.get_virtual(), f.is_constexpr());
         out << f.get_return_type().get_name() << ' ';
-        write_parameters(out, f, override_name);
-        write_cv(out, f.get_cv());
-        write_ref(out, f.get_ref_qualifier());
-        write_noexcept(out, f);
-        write_suffix(out, f, f.get_virtual());
+        detail::write_parameters(out, f, override_name);
+        detail::write_cv_ref(out, f.get_cv(), f.get_ref_qualifier());
+        detail::write_noexcept(out, f);
+        detail::write_override_final(out, f.get_virtual());
+        detail::write_definition(out, f, f.get_virtual() == cpp_virtual_pure);
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_conversion_op &f,
                            bool, const cpp_name &override_name)
     {
-        write_prefix(out, f, f.get_virtual());
-        if (f.is_explicit())
-            out << "explicit ";
-        write_parameters(out, f, override_name);
-        write_cv(out, f.get_cv());
-        write_ref(out, f.get_ref_qualifier());
-        write_noexcept(out, f);
-        write_suffix(out, f, f.get_virtual());
+        detail::write_prefix(out, f.get_virtual(), f.is_constexpr(), f.is_explicit());
+        detail::write_parameters(out, f, override_name);
+        detail::write_cv_ref(out, f.get_cv(), f.get_ref_qualifier());
+        detail::write_noexcept(out, f);
+        detail::write_override_final(out, f.get_virtual());
+        detail::write_definition(out, f, f.get_virtual() == cpp_virtual_pure);
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_constructor &f,
                            bool, const cpp_name &override_name)
     {
-        if (f.is_explicit())
-            out << "explicit ";
-        if (f.is_constexpr())
-            out << "constexpr ";
-        write_parameters(out, f, override_name);
-        write_noexcept(out, f);
-        write_definition(out, f);
+        detail::write_prefix(out, cpp_virtual_none, f.is_constexpr(), f.is_explicit());
+        detail::write_parameters(out, f, override_name);
+        detail::write_noexcept(out, f);
+        detail::write_definition(out, f);
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_destructor &f,
                            bool, const cpp_name &override_name)
     {
-        if (f.is_constexpr())
-            out << "constexpr ";
-        write_parameters(out, f, override_name);
-        write_noexcept(out, f);
-        write_definition(out, f);
+        detail::write_prefix(out, f.get_virtual(), f.is_constexpr());
+        detail::write_parameters(out, f, override_name);
+        detail::write_noexcept(out, f);
+        detail::write_definition(out, f, f.get_virtual() == cpp_virtual_pure);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_template_type_parameter &p,
-                           bool, const cpp_name &)
+    //=== templates ===//
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_template_type_parameter &p)
     {
         out << "typename";
         if (!p.get_name().empty())
@@ -440,14 +264,12 @@ namespace
             out << " = " << p.get_default_type().get_name();
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_non_type_template_parameter &p,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_non_type_template_parameter &p)
     {
         detail::write_type_value_default(out, p.get_type(), p.get_name(), p.get_default_value());
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_template_template_parameter &p,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_template_template_parameter &p)
     {
         out << "template <";
 
@@ -460,8 +282,7 @@ namespace
             out << " = " << p.get_default_template().get_name();
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_template &f,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_template &f)
     {
         out << "template <";
 
@@ -472,15 +293,13 @@ namespace
         dispatch(out, f.get_function(), false);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_template_specialization &f,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_template_specialization &f)
     {
         out << "template <>" << newl;
         dispatch(out, f.get_function(), false, f.get_name());
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template &c,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template &c)
     {
         out << "template <";
 
@@ -491,15 +310,13 @@ namespace
         dispatch(out, c.get_class(), false);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template_full_specialization &c,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template_full_specialization &c)
     {
         out << "template <>" << newl;
         dispatch(out, c.get_class(), false, c.get_name());
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template_partial_specialization &c,
-                           bool, const cpp_name &)
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template_partial_specialization &c)
     {
         out << "template <";
 
@@ -508,6 +325,19 @@ namespace
         out << '>' << newl;
 
         dispatch(out, c.get_class(), false, c.get_name());
+    }
+
+    //=== dispatching ===//
+    template <typename T>
+    void do_write_synopsis(output_base::code_block_writer &out, const T &e, bool)
+    {
+        do_write_synopsis(out, e);
+    }
+
+    template <typename T>
+    void do_write_synopsis(output_base::code_block_writer &out, const T &e, bool top_level, const cpp_name &)
+    {
+        do_write_synopsis(out, e, top_level);
     }
 
     void dispatch(output_base::code_block_writer &out, const cpp_entity &e, bool top_level,
