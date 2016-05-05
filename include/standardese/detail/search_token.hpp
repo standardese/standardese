@@ -24,6 +24,9 @@ namespace standardese { namespace detail
         unsigned no_tokens;
         clang_tokenize(tu, source, &tokens, &no_tokens);
 
+        if (no_tokens == 0u)
+            return;
+
         try
         {
             // don't use the last token, it doesn't really belong to cursor
