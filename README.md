@@ -12,6 +12,8 @@ It parses C++ code with the help of [libclang](http://clang.llvm.org/doxygen/gro
 The tool drives the library to generate documentation for user-specified files.
 It currently only supports Markdown as an output format but might be extended in the future.
 
+Read more in the introductory [blog post](http://foonathan.github.io/blog/2016/05/06/standardese-nextgen-doxygen.html).
+
 ## Basic example
 
 Consider the following C++ header file:
