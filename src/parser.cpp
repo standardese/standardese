@@ -14,13 +14,20 @@
 
 using namespace standardese;
 
-const char* const cpp_standard::cpp_98 = "-std=c++98";
-const char* const cpp_standard::cpp_03 = "-std=c++03";
-const char* const cpp_standard::cpp_11 = "-std=c++11";
-const char* const cpp_standard::cpp_14 = "-std=c++14";
-
 namespace
 {
+    const char* standards[int(cpp_standard::count)];
+
+    void init_standards()
+    {
+        standards[int(cpp_standard::cpp_98)] = "-std=c++98";
+        standards[int(cpp_standard::cpp_03)] = "-std=c++03";
+        standards[int(cpp_standard::cpp_11)] = "-std=c++11";
+        standards[int(cpp_standard::cpp_14)] = "-std=c++14";
+    }
+
+    auto standards_initializer = (init_standards(), 0);
+
     struct type_compare
     {
         bool operator()(cpp_type *a, cpp_type *b) const
@@ -49,9 +56,9 @@ parser::parser()
 
 parser::~parser() STANDARDESE_NOEXCEPT {}
 
-translation_unit parser::parse(const char *path, const char *standard) const
+translation_unit parser::parse(const char *path, const compile_config &c) const
 {
-    const char* args[] = {"-x", "c++", standard, "-I", LIBCLANG_SYSTEM_INCLUDE_DIR};
+    const char* args[] = {"-x", "c++", standards[int(c.cpp_standard)], "-I", LIBCLANG_SYSTEM_INCLUDE_DIR};
 
     auto tu = clang_parseTranslationUnit(index_.get(), path, args, sizeof(args) / sizeof(const char*), nullptr, 0,
                                          CXTranslationUnit_Incomplete | CXTranslationUnit_DetailedPreprocessingRecord);

@@ -12,13 +12,13 @@
 #include <standardese/translation_unit.hpp>
 
 inline standardese::translation_unit parse(standardese::parser &p, const char *name, const char *code,
-                                           const char *standard = standardese::cpp_standard::cpp_14)
+                                           const standardese::compile_config &c = standardese::cpp_standard::cpp_14)
 {
     std::ofstream file(name);
     file << code;
     file.close();
 
-    return p.parse(name, standard);
+    return p.parse(name, c);
 }
 
 template <typename T>

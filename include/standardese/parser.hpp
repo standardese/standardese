@@ -21,12 +21,21 @@ namespace standardese
     class cpp_type_ref;
 
     /// C++ standard to be used
-    struct cpp_standard
+    enum class cpp_standard
     {
-        static const char* const cpp_98;
-        static const char* const cpp_03;
-        static const char* const cpp_11;
-        static const char* const cpp_14;
+        cpp_98,
+        cpp_03,
+        cpp_11,
+        cpp_14,
+        count
+    };
+
+    struct compile_config
+    {
+        standardese::cpp_standard cpp_standard;
+
+        compile_config(standardese::cpp_standard s) STANDARDESE_NOEXCEPT
+        : cpp_standard(s) {}
     };
 
     /// Parser class used for parsing the C++ classes.
@@ -45,8 +54,7 @@ namespace standardese
         parser& operator=(const parser&) = delete;
 
         /// Parses a translation unit.
-        /// standard must be one of the cpp_standard values.
-        translation_unit parse(const char *path, const char *standard) const;
+        translation_unit parse(const char *path, const compile_config &c) const;
 
         void register_file(cpp_ptr<cpp_file> file) const;
 
