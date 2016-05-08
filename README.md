@@ -1,5 +1,7 @@
 # standardese
 
+[![Join the chat at https://gitter.im/foonathan/standardese](https://badges.gitter.im/foonathan/standardese.svg)](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 > Note: This is an early prototype and highly WIP.
 > Many features are missing and there are probably bugs everywhere.
 
