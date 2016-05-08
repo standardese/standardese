@@ -58,9 +58,18 @@ parser::~parser() STANDARDESE_NOEXCEPT {}
 
 translation_unit parser::parse(const char *path, const compile_config &c) const
 {
-    const char* args[] = {"-x", "c++", standards[int(c.cpp_standard)], "-I", LIBCLANG_SYSTEM_INCLUDE_DIR};
+    const char* basic_args[] = {"-x", "c++", standards[int(c.cpp_standard)], "-I", LIBCLANG_SYSTEM_INCLUDE_DIR};
 
-    auto tu = clang_parseTranslationUnit(index_.get(), path, args, sizeof(args) / sizeof(const char*), nullptr, 0,
+    std::vector<const char*> args(basic_args, basic_args + sizeof(basic_args) / sizeof(const char*));
+
+    args.reserve(args.size() + 2 * c.include_directories.size());
+    for (auto& i : c.include_directories)
+    {
+        args.push_back("-I");
+        args.push_back(i.c_str());
+    }
+
+    auto tu = clang_parseTranslationUnit(index_.get(), path, args.data(), args.size(), nullptr, 0,
                                          CXTranslationUnit_Incomplete | CXTranslationUnit_DetailedPreprocessingRecord);
 
     return translation_unit(*this, tu, path);

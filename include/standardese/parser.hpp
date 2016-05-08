@@ -7,7 +7,8 @@
 
 #include <clang-c/Index.h>
 #include <memory>
-#include <utility>
+#include <string>
+#include <vector>
 
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/cpp_entity.hpp>
@@ -33,9 +34,13 @@ namespace standardese
     struct compile_config
     {
         standardese::cpp_standard cpp_standard;
+        std::vector<std::string> include_directories;
 
         compile_config(standardese::cpp_standard s) STANDARDESE_NOEXCEPT
         : cpp_standard(s) {}
+
+        compile_config(standardese::cpp_standard s, std::vector<std::string> includes) STANDARDESE_NOEXCEPT
+        : cpp_standard(s), include_directories(std::move(includes)) {}
     };
 
     /// Parser class used for parsing the C++ classes.
