@@ -36,6 +36,12 @@ namespace standardese
         standardese::cpp_standard cpp_standard;
         std::vector<std::string> options;
 
+        static std::string include_directory(std::string s);
+
+        static std::string macro_definition(std::string s);
+
+        static std::string macro_undefinition(std::string s);
+
         compile_config(standardese::cpp_standard s) STANDARDESE_NOEXCEPT
         : cpp_standard(s) {}
 

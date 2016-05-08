@@ -37,6 +37,21 @@ namespace
     };
 }
 
+std::string compile_config::include_directory(std::string s)
+{
+    return "-I" + std::move(s);
+}
+
+std::string compile_config::macro_definition(std::string s)
+{
+    return "-D" + std::move(s);
+}
+
+std::string compile_config::macro_undefinition(std::string s)
+{
+    return "-U" + std::move(s);
+}
+
 struct parser::impl
 {
     std::mutex file_mutex;
