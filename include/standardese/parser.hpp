@@ -34,13 +34,13 @@ namespace standardese
     struct compile_config
     {
         standardese::cpp_standard cpp_standard;
-        std::vector<std::string> include_directories;
+        std::vector<std::string> options;
 
         compile_config(standardese::cpp_standard s) STANDARDESE_NOEXCEPT
         : cpp_standard(s) {}
 
-        compile_config(standardese::cpp_standard s, std::vector<std::string> includes) STANDARDESE_NOEXCEPT
-        : cpp_standard(s), include_directories(std::move(includes)) {}
+        compile_config(standardese::cpp_standard s, std::vector<std::string> options) STANDARDESE_NOEXCEPT
+        : cpp_standard(s), options(std::move(options)) {}
     };
 
     /// Parser class used for parsing the C++ classes.

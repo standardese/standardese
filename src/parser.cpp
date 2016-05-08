@@ -62,12 +62,9 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
 
     std::vector<const char*> args(basic_args, basic_args + sizeof(basic_args) / sizeof(const char*));
 
-    args.reserve(args.size() + 2 * c.include_directories.size());
-    for (auto& i : c.include_directories)
-    {
-        args.push_back("-I");
-        args.push_back(i.c_str());
-    }
+    args.reserve(args.size() + 2 * c.options.size());
+    for (auto& o : c.options)
+        args.push_back(o.c_str());
 
     auto tu = clang_parseTranslationUnit(index_.get(), path, args.data(), args.size(), nullptr, 0,
                                          CXTranslationUnit_Incomplete | CXTranslationUnit_DetailedPreprocessingRecord);
