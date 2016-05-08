@@ -88,6 +88,10 @@ standardese::compile_config parse_config(const po::variables_map &map)
     using namespace standardese;
     compile_config result(parse_standard(map.at("compilation.standard").as<std::string>()));
 
+    auto dir = map.find("compilation.commands_dir");
+    if (dir != map.end())
+        result.commands_dir = dir->second.as<std::string>();
+
     auto incs = map.find("compilation.include_dir");
     if (incs != map.end())
         for (auto& val : incs->second.as<std::vector<std::string>>())
@@ -126,6 +130,8 @@ int main(int argc, char** argv)
              "directory that is forbidden, relative to traversed directory")
             ("input.force_blacklist", "force the blacklist for explictly given files")
 
+            ("compilation.commands_dir", po::value<std::string>(),
+             "the directory where a compile_commands.json is located, its options have lower priority than the other ones")
             ("compilation.standard", po::value<std::string>()->default_value("c++14"),
              "the C++ standard to use for parsing, valid values are c++98/03/11/14")
             ("compilation.include_dir,I", po::value<std::vector<std::string>>(),
@@ -155,7 +161,7 @@ int main(int argc, char** argv)
     cmd.add(generic).add(configuration).add(input);
 
     po::variables_map map;
-    standardese::compile_config config(standardese::cpp_standard::cpp_14);
+    standardese::compile_config config("");
     try
     {
         auto cmd_result = po::command_line_parser(argc, argv).options(cmd)

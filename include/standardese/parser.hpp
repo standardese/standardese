@@ -35,7 +35,7 @@ namespace standardese
     {
         standardese::cpp_standard cpp_standard;
         std::vector<std::string> options;
-        std::string build_dir; // if non-empty looks for a compile_commands.json specification
+        std::string commands_dir; // if non-empty looks for a compile_commands.json specification
 
         static std::string include_directory(std::string s);
 
@@ -43,8 +43,8 @@ namespace standardese
 
         static std::string macro_undefinition(std::string s);
 
-        compile_config(std::string build_dir)
-        : cpp_standard(cpp_standard::count), build_dir(std::move(build_dir)) {}
+        compile_config(std::string commands_dir)
+        : cpp_standard(cpp_standard::count), commands_dir(std::move(commands_dir)) {}
 
         compile_config(standardese::cpp_standard s, std::vector<std::string> options = {})
         : cpp_standard(s), options(std::move(options)) {}

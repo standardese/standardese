@@ -74,10 +74,10 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
     std::vector<const char*> args(basic_args, basic_args + sizeof(basic_args) / sizeof(const char*));
 
     std::vector<std::string> db_args; // need std::string to own the arguments
-    if (!c.build_dir.empty())
+    if (!c.commands_dir.empty())
     {
         auto error = CXCompilationDatabase_NoError;
-        database db(clang_CompilationDatabase_fromDirectory(c.build_dir.c_str(), &error));
+        database db(clang_CompilationDatabase_fromDirectory(c.commands_dir.c_str(), &error));
         assert(error == CXCompilationDatabase_NoError);
 
         commands cmds(clang_CompilationDatabase_getCompileCommands(db.get(), path));
