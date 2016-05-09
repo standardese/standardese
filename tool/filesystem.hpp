@@ -52,8 +52,13 @@ namespace standardese_tool
     template <typename Fun>
     bool handle_path(const fs::path &path,
                      const blacklist &extensions, const blacklist &files, blacklist dirs,
-                     Fun f)
+                     Fun function)
     {
+        auto f = [&](const fs::path &path)
+        {
+            function(fs::canonical(path));
+        };
+
         // remove trailing slash if any
         // otherwise Boost.Filesystem can't handle it
         for (auto& dir : dirs)

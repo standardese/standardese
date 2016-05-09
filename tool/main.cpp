@@ -67,6 +67,49 @@ void handle_unparsed_options(const po::parsed_options &options)
         }
 }
 
+standardese::cpp_standard parse_standard(const std::string &str)
+{
+    using namespace standardese;
+
+    if (str == "c++98")
+        return cpp_standard::cpp_98;
+    else if (str == "c++03")
+        return cpp_standard::cpp_03;
+    else if (str == "c++11")
+        return cpp_standard::cpp_11;
+    else if (str == "c++14")
+        return cpp_standard::cpp_14;
+    else
+        throw std::invalid_argument("invalid C++ standard '" + str + "'");
+}
+
+standardese::compile_config parse_config(const po::variables_map &map)
+{
+    using namespace standardese;
+    compile_config result(parse_standard(map.at("compilation.standard").as<std::string>()));
+
+    auto dir = map.find("compilation.commands_dir");
+    if (dir != map.end())
+        result.commands_dir = dir->second.as<std::string>();
+
+    auto incs = map.find("compilation.include_dir");
+    if (incs != map.end())
+        for (auto& val : incs->second.as<std::vector<std::string>>())
+            result.options.push_back(compile_config::include_directory(val));
+
+    auto defs = map.find("compilation.macro_definition");
+    if (defs != map.end())
+        for (auto& val : defs->second.as<std::vector<std::string>>())
+            result.options.push_back(compile_config::macro_definition(val));
+
+    auto undefs = map.find("compilation.macro_undefinition");
+    if (undefs != map.end())
+        for (auto& val : undefs->second.as<std::vector<std::string>>())
+            result.options.push_back(compile_config::macro_undefinition(val));
+
+    return result;
+}
+
 int main(int argc, char** argv)
 {
     po::options_description generic("Generic options"), configuration("Configuration");
@@ -74,6 +117,7 @@ int main(int argc, char** argv)
             ("version,v", "prints version information and exits")
             ("help,h", "prints this help message and exits")
             ("config,c", po::value<fs::path>(), "read options from additional config file as well");
+
     configuration.add_options()
             ("input.blacklist_ext",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
@@ -85,6 +129,17 @@ int main(int argc, char** argv)
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
              "directory that is forbidden, relative to traversed directory")
             ("input.force_blacklist", "force the blacklist for explictly given files")
+
+            ("compilation.commands_dir", po::value<std::string>(),
+             "the directory where a compile_commands.json is located, its options have lower priority than the other ones")
+            ("compilation.standard", po::value<std::string>()->default_value("c++14"),
+             "the C++ standard to use for parsing, valid values are c++98/03/11/14")
+            ("compilation.include_dir,I", po::value<std::vector<std::string>>(),
+             "adds an additional include directory to use for parsing")
+            ("compilation.macro_definition,D", po::value<std::vector<std::string>>(),
+             "adds an implicit #define before parsing")
+            ("compilation.macro_undefinition,U", po::value<std::vector<std::string>>(),
+             "adds an implicit #undef before parsing")
 
             ("comment.command_character", po::value<char>()->default_value('\\'),
              "character used to introduce special commands")
@@ -106,6 +161,7 @@ int main(int argc, char** argv)
     cmd.add(generic).add(configuration).add(input);
 
     po::variables_map map;
+    standardese::compile_config config("");
     try
     {
         auto cmd_result = po::command_line_parser(argc, argv).options(cmd)
@@ -132,6 +188,8 @@ int main(int argc, char** argv)
 
         handle_unparsed_options(cmd_result);
         handle_unparsed_options(file_result);
+
+        config = parse_config(map);
     }
     catch (std::exception &ex)
     {
@@ -173,7 +231,7 @@ int main(int argc, char** argv)
             {
                 std::clog << "Generating documentation for " << p << "...\n";
 
-                auto tu = parser.parse(p.generic_string().c_str(), cpp_standard::cpp_14);
+                auto tu = parser.parse(p.generic_string().c_str(), config);
                 auto& f = tu.build_ast();
 
                 file_output file(p.stem().generic_string() + ".md");

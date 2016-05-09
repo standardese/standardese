@@ -4,20 +4,122 @@
 
 #include <standardese/parser.hpp>
 
+#include <clang-c/CXCompilationDatabase.h>
 #include <mutex>
 #include <set>
-#include <vector>
 
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_type.hpp>
 #include <standardese/translation_unit.hpp>
+#include <standardese/string.hpp>
 
 using namespace standardese;
 
-const char* const cpp_standard::cpp_98 = "-std=c++98";
-const char* const cpp_standard::cpp_03 = "-std=c++03";
-const char* const cpp_standard::cpp_11 = "-std=c++11";
-const char* const cpp_standard::cpp_14 = "-std=c++14";
+namespace
+{
+    const char* standards[int(cpp_standard::count)];
+
+    void init_standards()
+    {
+        standards[int(cpp_standard::cpp_98)] = "-std=c++98";
+        standards[int(cpp_standard::cpp_03)] = "-std=c++03";
+        standards[int(cpp_standard::cpp_11)] = "-std=c++11";
+        standards[int(cpp_standard::cpp_14)] = "-std=c++14";
+    }
+
+    auto standards_initializer = (init_standards(), 0);
+}
+
+std::string compile_config::include_directory(std::string s)
+{
+    return "-I" + std::move(s);
+}
+
+std::string compile_config::macro_definition(std::string s)
+{
+    return "-D" + std::move(s);
+}
+
+std::string compile_config::macro_undefinition(std::string s)
+{
+    return "-U" + std::move(s);
+}
+
+namespace
+{
+    struct database_deleter
+    {
+        void operator()(CXCompilationDatabase db) const STANDARDESE_NOEXCEPT
+        {
+            clang_CompilationDatabase_dispose(db);
+        }
+    };
+
+    using database = detail::wrapper<CXCompilationDatabase, database_deleter>;
+
+    struct commands_deleter
+    {
+        void operator()(CXCompileCommands db) const STANDARDESE_NOEXCEPT
+        {
+            clang_CompileCommands_dispose(db);
+        }
+    };
+
+    using commands = detail::wrapper<CXCompileCommands, commands_deleter>;
+}
+
+translation_unit parser::parse(const char *path, const compile_config &c) const
+{
+    const char* basic_args[] = {"-x", "c++", "-I", LIBCLANG_SYSTEM_INCLUDE_DIR};
+    std::vector<const char*> args(basic_args, basic_args + sizeof(basic_args) / sizeof(const char*));
+
+    std::set<std::string> db_args; // need std::string to own the arguments
+    if (!c.commands_dir.empty())
+    {
+        auto error = CXCompilationDatabase_NoError;
+        database db(clang_CompilationDatabase_fromDirectory(c.commands_dir.c_str(), &error));
+        assert(error == CXCompilationDatabase_NoError);
+
+        commands cmds(clang_CompilationDatabase_getAllCompileCommands(db.get()));
+        auto num = clang_CompileCommands_getSize(cmds.get());
+        for (auto i = 0u; i != num; ++i)
+        {
+            auto cmd = clang_CompileCommands_getCommand(cmds.get(), i);
+            auto no_args = clang_CompileCommand_getNumArgs(cmd);
+
+            auto was_ignored = false;
+            for (auto j = 1u; j != no_args; ++j)
+            {
+                string str(clang_CompileCommand_getArg(cmd, j));
+
+                // skip -c arg and -o arg
+                if (str == "-c" || str == "-o")
+                    was_ignored = true;
+                else if (was_ignored)
+                    was_ignored = false;
+                else
+                    db_args.insert(str.get());
+            }
+        }
+
+
+        args.reserve(args.size() + db_args.size());
+        for (auto &arg : db_args)
+            args.push_back(arg.c_str());
+    }
+
+    if (c.cpp_standard != cpp_standard::count)
+        args.push_back(standards[int(c.cpp_standard)]);
+
+    args.reserve(args.size() + 2 * c.options.size());
+    for (auto& o : c.options)
+        args.push_back(o.c_str());
+
+    auto tu = clang_parseTranslationUnit(index_.get(), path, args.data(), args.size(), nullptr, 0,
+                                         CXTranslationUnit_Incomplete | CXTranslationUnit_DetailedPreprocessingRecord);
+
+    return translation_unit(*this, tu, path);
+}
 
 namespace
 {
@@ -48,16 +150,6 @@ parser::parser()
 {}
 
 parser::~parser() STANDARDESE_NOEXCEPT {}
-
-translation_unit parser::parse(const char *path, const char *standard) const
-{
-    const char* args[] = {"-x", "c++", standard, "-I", LIBCLANG_SYSTEM_INCLUDE_DIR};
-
-    auto tu = clang_parseTranslationUnit(index_.get(), path, args, sizeof(args) / sizeof(const char*), nullptr, 0,
-                                         CXTranslationUnit_Incomplete | CXTranslationUnit_DetailedPreprocessingRecord);
-
-    return translation_unit(*this, tu, path);
-}
 
 void parser::register_file(cpp_ptr<cpp_file> file) const
 {
