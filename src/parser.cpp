@@ -73,14 +73,14 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
     const char* basic_args[] = {"-x", "c++", "-I", LIBCLANG_SYSTEM_INCLUDE_DIR};
     std::vector<const char*> args(basic_args, basic_args + sizeof(basic_args) / sizeof(const char*));
 
-    std::vector<std::string> db_args; // need std::string to own the arguments
+    std::set<std::string> db_args; // need std::string to own the arguments
     if (!c.commands_dir.empty())
     {
         auto error = CXCompilationDatabase_NoError;
         database db(clang_CompilationDatabase_fromDirectory(c.commands_dir.c_str(), &error));
         assert(error == CXCompilationDatabase_NoError);
 
-        commands cmds(clang_CompilationDatabase_getCompileCommands(db.get(), path));
+        commands cmds(clang_CompilationDatabase_getAllCompileCommands(db.get()));
         auto num = clang_CompileCommands_getSize(cmds.get());
         for (auto i = 0u; i != num; ++i)
         {
@@ -98,7 +98,7 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
                 else if (was_ignored)
                     was_ignored = false;
                 else
-                    db_args.push_back(str.get());
+                    db_args.insert(str.get());
             }
         }
 
