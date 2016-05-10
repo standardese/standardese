@@ -30,29 +30,29 @@ function(standardese_generate target)
                           ${ARGN})
 
     if(STANDARDESE_CONFIG)
-        set(options ${options} --config ${STANDARDESE_CONFIG})
+        list(APPEND options --config ${STANDARDESE_CONFIG})
     endif()
 
     if(STANDARDESE_INCLUDE_DIRECTORY)
         foreach(dir ${STANDARDESE_INCLUDE_DIRECTORY})
-            set(options ${options} -I ${dir})
+            list(APPEND options -I ${dir})
         endforeach()
     endif()
 
     if(STANDARDESE_MACRO_DEFINITION)
         foreach(def ${STANDARDESE_MACRO_DEFINITION})
-            set(options ${options} -D ${def})
+            list(APPEND options -D ${def})
         endforeach()
     endif()
 
     if(STANDARDESE_MACRO_UNDEFINITION)
         foreach(def ${STANDARDESE_MACRO_UNDEFINITION})
-            set(options ${options} -U ${def})
+            list(APPEND options -U ${def})
         endforeach()
     endif()
 
     foreach(input ${STANDARDESE_INPUT})
-        set(sources ${sources} ${input})
+        list(APPEND options ${input})
     endforeach()
 
     if(STANDARDESE_ALL)
@@ -61,7 +61,7 @@ function(standardese_generate target)
 
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/standardese_${target})
     add_custom_target(standardese_${target} ${all}
-                      ${STANDARDESE_TOOL} ${options} ${sources}
+                      ${STANDARDESE_TOOL} ${options}
                       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/standardese_${target}
                       COMMENT "Generating documentation for target ${target}..."
                       VERBATIM)
