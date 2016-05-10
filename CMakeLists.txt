@@ -39,3 +39,6 @@ endif()
 if (STANDARDESE_BUILD_TEST)
     add_subdirectory(test)
 endif()
+
+# install configuration
+install(FILES standardese-config.cmake DESTINATION "lib/cmake/standardese/")
