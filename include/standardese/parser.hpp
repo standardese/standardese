@@ -33,7 +33,7 @@ namespace standardese
 
     struct compile_config
     {
-        standardese::cpp_standard cpp_standard;
+        cpp_standard standard;
         std::vector<std::string> options;
         std::string commands_dir; // if non-empty looks for a compile_commands.json specification
 
@@ -44,10 +44,10 @@ namespace standardese
         static std::string macro_undefinition(std::string s);
 
         compile_config(std::string commands_dir)
-        : cpp_standard(cpp_standard::count), commands_dir(std::move(commands_dir)) {}
+        : standard(cpp_standard::count), commands_dir(std::move(commands_dir)) {}
 
-        compile_config(standardese::cpp_standard s, std::vector<std::string> options = {})
-        : cpp_standard(s), options(std::move(options)) {}
+        compile_config(cpp_standard s, std::vector<std::string> options = {})
+        : standard(s), options(std::move(options)) {}
     };
 
     /// Parser class used for parsing the C++ classes.
