@@ -108,8 +108,8 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
             args.push_back(arg.c_str());
     }
 
-    if (c.cpp_standard != cpp_standard::count)
-        args.push_back(standards[int(c.cpp_standard)]);
+    if (c.standard != cpp_standard::count)
+        args.push_back(standards[int(c.standard)]);
 
     args.reserve(args.size() + 2 * c.options.size());
     for (auto& o : c.options)
