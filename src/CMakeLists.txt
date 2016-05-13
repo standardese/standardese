@@ -54,7 +54,7 @@ target_compile_definitions(standardese_library PUBLIC
                                 STANDARDESE=1
                                 STANDARDESE_VERSION_MAJOR=${STANDARDESE_VERSION_MAJOR}
                                 STANDARDESE_VERSION_MINOR=${STANDARDESE_VERSION_MINOR}
-                                LIBCLANG_SYSTEM_INCLUDE_DIR="${LIBCLANG_SYSTEM_INCLUDE_DIR}/clang/3.7.1/include")
+                                LIBCLANG_SYSTEM_INCLUDE_DIR="${LIBCLANG_SYSTEM_INCLUDE_DIR}")
 
 # link libclang
 target_include_directories(standardese_library PUBLIC ${LIBCLANG_INCLUDE_DIR})

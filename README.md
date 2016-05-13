@@ -82,7 +82,8 @@ Simply clone the project and run `cmake --build .` to build the library and the 
 
 Both require libclang - only tested with version `3.7.1`.
 If it isn't found, set the CMake variable `LIBCLANG_INCLUDE_DIR` to the folder where `clang-c/Index.h` is located,
-`LIBCLANG_LIBRARY` to the library binary and `LIBCLANG_SYSTEM_INCLUDE_DIR` where e.g. `clang/3.7.1/include/cstddef` is.
+`LIBCLANG_LIBRARY` to the library binary and `LIBCLANG_SYSTEM_INCLUDE_DIR` where the system include files are located,
+under a normal installation it is `/lib/clang/<version>/include`.
 
 The tool requires Boost.ProgramOptions and Boost.Filesystem, only tested with 1.60.
 

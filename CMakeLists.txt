@@ -26,9 +26,12 @@ if(NOT LIBCLANG_LIBRARY)
     message(FATAL_ERROR "unable to find libclang library, please set LIBCLANG_LIBRARY by yourself")
 endif()
 
-find_path(LIBCLANG_SYSTEM_INCLUDE_DIR "clang/3.7.1/include" "/usr/lib/" "/usr/local/lib")
 if(NOT LIBCLANG_SYSTEM_INCLUDE_DIR)
-    message(FATAL_ERROR "unable to find clang's system header files, please set LIBCLANG_SYSTEM_INCLUDE_DIR by yourself")
+    find_path(LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL "clang/3.7.1/include" "/usr/lib/" "/usr/local/lib")
+    if(NOT LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL)
+        message(FATAL_ERROR "unable to find clang's system header files, please set LIBCLANG_SYSTEM_INCLUDE_DIR by yourself")
+    endif()
+    set(LIBCLANG_SYSTEM_INCLUDE_DIR "${LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL}/clang/3.7.1/include")
 endif()
 
 # subdirectories
