@@ -56,7 +56,7 @@ namespace
     }
 }
 
-cpp_ptr<cpp_enum_value> cpp_enum_value::parse(const parser &, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_enum_value> cpp_enum_value::parse(translation_unit &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_EnumConstantDecl);
 
@@ -93,7 +93,7 @@ namespace
     }
 }
 
-cpp_enum::parser::parser(const standardese::parser &, cpp_name scope, cpp_cursor cur)
+cpp_enum::parser::parser(translation_unit &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_EnumDecl);
 

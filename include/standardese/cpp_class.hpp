@@ -22,7 +22,7 @@ namespace standardese
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_access_specifier> parse(const parser &p,  cpp_cursor cur);
+        static cpp_ptr<cpp_access_specifier> parse(translation_unit &tu,  cpp_cursor cur);
 
         cpp_access_specifier(cpp_access_specifier_t a)
         : cpp_entity(access_specifier_t, "", to_string(a), ""), access_(a) {}
@@ -40,7 +40,7 @@ namespace standardese
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_base_class> parse(const parser &p,  cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<cpp_base_class> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
         cpp_base_class(cpp_name scope,
                        cpp_name name, CXType type,
@@ -84,7 +84,7 @@ namespace standardese
         class parser : public cpp_entity_parser
         {
         public:
-            parser(const standardese::parser &p, cpp_name scope, cpp_cursor cur);
+            parser(translation_unit &tu, cpp_name scope, cpp_cursor cur);
 
             void add_entity(cpp_entity_ptr ptr) override;
 

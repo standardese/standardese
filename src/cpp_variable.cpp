@@ -61,7 +61,7 @@ namespace
     }
 }
 
-cpp_ptr<cpp_variable> cpp_variable::parse(const parser &, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_variable> cpp_variable::parse(translation_unit &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_VarDecl);
 
@@ -77,7 +77,7 @@ cpp_ptr<cpp_variable> cpp_variable::parse(const parser &, cpp_name scope, cpp_cu
                                           std::move(type), std::move(initializer), linkage, is_thread_local);
 }
 
-cpp_ptr<cpp_member_variable> cpp_member_variable::parse(const parser &, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_member_variable> cpp_member_variable::parse(translation_unit &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_FieldDecl);
 

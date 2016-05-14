@@ -11,7 +11,7 @@
 
 using namespace standardese;
 
-cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(const parser &, cpp_cursor cur)
+cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit &, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_InclusionDirective);
 
@@ -37,7 +37,7 @@ cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(const parser &, 
     return detail::make_ptr<cpp_inclusion_directive>(detail::parse_name(cur), detail::parse_comment(cur), k);
 }
 
-cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(const parser &, cpp_cursor cur)
+cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit &, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_MacroDefinition);
 

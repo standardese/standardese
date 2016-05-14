@@ -25,7 +25,7 @@ namespace
     }
 }
 
-cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(const parser &, cpp_cursor cur)
+cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(translation_unit &, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_ParmDecl);
 
@@ -37,7 +37,7 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(const parser &, cp
                                                     std::move(type), std::move(default_value));
 }
 
-cpp_ptr<standardese::cpp_function_base> cpp_function_base::try_parse(const parser &p, cpp_name scope,
+cpp_ptr<standardese::cpp_function_base> cpp_function_base::try_parse(translation_unit &p, cpp_name scope,
                                                                     cpp_cursor cur)
 {
     auto kind = clang_getCursorKind(cur);
@@ -83,7 +83,7 @@ namespace
         return {type, std::move(type_name)};
     }
 
-    void parse_parameters(const parser &p, cpp_function_base *base, cpp_cursor cur)
+    void parse_parameters(translation_unit &p, cpp_function_base *base, cpp_cursor cur)
     {
         // we cannot use clang_Cursor_getNumArguments(),
         // doesn't work for templates
@@ -107,7 +107,7 @@ namespace
     }
 }
 
-cpp_ptr<cpp_function> cpp_function::parse(const parser &p, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_function> cpp_function::parse(translation_unit &p, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_FunctionDecl
           || clang_getTemplateCursorKind(cur) == CXCursor_FunctionDecl);
@@ -148,7 +148,7 @@ namespace
     }
 }
 
-cpp_ptr<cpp_member_function> cpp_member_function::parse(const parser &p, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit &p, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_CXXMethod
            || clang_getTemplateCursorKind(cur) == CXCursor_CXXMethod);
@@ -167,7 +167,7 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(const parser &p, cpp_nam
     return result;
 }
 
-cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(const parser &, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_ConversionFunction
            || clang_getTemplateCursorKind(cur) == CXCursor_ConversionFunction);
@@ -211,7 +211,7 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(const parser &, cpp_name sco
                                                type, std::move(finfo), std::move(minfo));
 }
 
-cpp_ptr<cpp_constructor> cpp_constructor::parse(const parser &p, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &p, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_Constructor
            || clang_getTemplateCursorKind(cur) == CXCursor_Constructor);
@@ -231,7 +231,7 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(const parser &p, cpp_name scope,
     return result;
 }
 
-cpp_ptr<cpp_destructor> cpp_destructor::parse(const parser &, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_Destructor
            || clang_getTemplateCursorKind(cur) == CXCursor_Destructor);

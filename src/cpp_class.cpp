@@ -46,14 +46,14 @@ namespace
    }
 }
 
-cpp_ptr<cpp_access_specifier> cpp_access_specifier::parse(const parser &, cpp_cursor cur)
+cpp_ptr<cpp_access_specifier> cpp_access_specifier::parse(translation_unit &, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_CXXAccessSpecifier);
 
     return detail::make_ptr<cpp_access_specifier>(parse_access_specifier(clang_getCXXAccessSpecifier(cur)));
 }
 
-cpp_ptr<cpp_base_class> cpp_base_class::parse(const parser &, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_base_class> cpp_base_class::parse(translation_unit &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_CXXBaseSpecifier);
 
@@ -98,7 +98,7 @@ namespace
     }
 }
 
-cpp_class::parser::parser(const standardese::parser &, cpp_name scope, cpp_cursor cur)
+cpp_class::parser::parser(translation_unit &, cpp_name scope, cpp_cursor cur)
 {
     cpp_class_type ctype;
 

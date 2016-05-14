@@ -8,7 +8,7 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/parser.hpp>
-#include <standardese/string.hpp>
+#include <standardese/translation_unit.hpp>
 
 using namespace standardese;
 
@@ -33,7 +33,7 @@ cpp_name cpp_type_ref::get_full_name() const
     return detail::parse_name(type_);
 }
 
-cpp_ptr<cpp_type_alias> cpp_type_alias::parse(const parser &p, const cpp_name &scope, cpp_cursor cur)
+cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit &tu, const cpp_name &scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl
            || clang_getCursorKind(cur) == CXCursor_TypeAliasDecl);
@@ -43,7 +43,7 @@ cpp_ptr<cpp_type_alias> cpp_type_alias::parse(const parser &p, const cpp_name &s
     auto result = detail::make_ptr<cpp_type_alias>(scope, std::move(name), detail::parse_comment(cur),
                                                    clang_getCursorType(cur), target);
 
-    p.register_type(*result);
+    tu.get_parser().register_type(*result);
 
     return result;
 }

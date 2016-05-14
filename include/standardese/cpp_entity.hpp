@@ -19,6 +19,7 @@ namespace standardese
     class cpp_entity_container;
 
     class parser;
+    class translation_unit;
 
     using cpp_name = std::string;
     using cpp_raw_comment = std::string;
