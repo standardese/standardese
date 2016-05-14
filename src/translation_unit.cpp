@@ -165,6 +165,13 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_MacroDefinition:
             stack.add_entity(cpp_macro_definition::parse(*this, cur));
             return CXChildVisit_Continue;
+        case CXCursor_MacroExpansion:
+        {
+            auto macro = cpp_macro_definition::parse(*this, clang_getCursorReferenced(cur));
+            context_->add_macro_definition(macro->get_name() + macro->get_argument_string()
+                                           + "=" + macro->get_replacement());
+            return CXChildVisit_Continue;
+        }
 
         case CXCursor_Namespace:
             stack.push_container(detail::make_ptr<cpp_namespace::parser>(*this, scope, cur), parent);
