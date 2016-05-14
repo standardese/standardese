@@ -26,7 +26,9 @@ cpp_file::cpp_file(const char *name)
 {}
 
 translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, const char *path)
-: tu_(tu), path_(path), parser_(&par)
+: tu_(tu), path_(path),
+  context_(new detail::context(path_.end(), path_.end(), path)), // initialize with empty range
+  parser_(&par)
 {}
 
 class translation_unit::scope_stack
@@ -118,7 +120,7 @@ private:
     std::vector<container> stack_;
 };
 
-cpp_file& translation_unit::build_ast() const
+cpp_file& translation_unit::build_ast()
 {
     cpp_ptr<cpp_file> result(new cpp_file(get_path()));
 
@@ -143,7 +145,7 @@ void translation_unit::deleter::operator()(CXTranslationUnit tu) const STANDARDE
     clang_disposeTranslationUnit(tu);
 }
 
-CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cur, CXCursor parent) const
+CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cur, CXCursor parent)
 {
     stack.pop_if_needed(parent, *parser_);
 
@@ -197,25 +199,25 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
             return CXChildVisit_Continue;
 
         case CXCursor_FunctionDecl:
-            if (is_full_specialization(cur))
+            if (is_full_specialization(*this, cur))
                 stack.add_entity(cpp_function_template_specialization::parse(*this, scope, cur));
             else
                 stack.add_entity(cpp_function::parse(*this, scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_CXXMethod:
-            if (is_full_specialization(cur))
+            if (is_full_specialization(*this, cur))
                 stack.add_entity(cpp_function_template_specialization::parse(*this, scope, cur));
             else
                 stack.add_entity(cpp_member_function::parse(*this, scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_ConversionFunction:
-            if (is_full_specialization(cur))
+            if (is_full_specialization(*this, cur))
                 stack.add_entity(cpp_function_template_specialization::parse(*this, scope, cur));
             else
                 stack.add_entity(cpp_conversion_op::parse(*this, scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_Constructor:
-            if (is_full_specialization(cur))
+            if (is_full_specialization(*this, cur))
                 stack.add_entity(cpp_function_template_specialization::parse(*this, scope, cur));
             else
                 stack.add_entity(cpp_constructor::parse(*this, scope, cur));
@@ -231,7 +233,7 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_ClassDecl:
         case CXCursor_StructDecl:
         case CXCursor_UnionDecl:
-            if (is_full_specialization(cur))
+            if (is_full_specialization(*this, cur))
                 stack.push_container(detail::make_ptr<cpp_class_template_full_specialization::parser>
                                                        (*this, scope, cur), parent);
             else

@@ -155,7 +155,7 @@ namespace standardese
 
     /// Returns whether cur refers to a full specialization of a template.
     /// cur must refer to a class or function.
-    bool is_full_specialization(cpp_cursor cur);
+    bool is_full_specialization(translation_unit &tu, cpp_cursor cur);
 
     class cpp_function_base;
 

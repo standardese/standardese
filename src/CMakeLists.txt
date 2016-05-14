@@ -4,9 +4,9 @@
 
 set(detail_header
         ../include/standardese/detail/parse_utils.hpp
-        ../include/standardese/detail/search_token.hpp
         ../include/standardese/detail/sequence_stream.hpp
         ../include/standardese/detail/synopsis_utils.hpp
+        ../include/standardese/detail/tokenizer.hpp
         ../include/standardese/detail/wrapper.hpp)
 set(header
         ../include/standardese/comment.hpp
@@ -29,6 +29,7 @@ set(header
 set(src
         detail/parse_utils.cpp
         detail/synopsis_utils.cpp
+        detail/tokenizer.cpp
         comment.cpp
         cpp_class.cpp
         cpp_enum.cpp

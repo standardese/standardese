@@ -8,6 +8,7 @@
 #include <clang-c/Index.h>
 #include <string>
 
+#include <standardese/detail/tokenizer.hpp>
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/cpp_entity.hpp>
 
@@ -52,7 +53,7 @@ namespace standardese
             clang_visitChildren(clang_getTranslationUnitCursor(tu_.get()), visitor_impl, &data);
         }
 
-        cpp_file& build_ast() const;
+        cpp_file& build_ast();
 
         const char* get_path() const STANDARDESE_NOEXCEPT
         {
@@ -66,11 +67,16 @@ namespace standardese
             return *parser_;
         }
 
+        detail::context& get_preprocessing_context() STANDARDESE_NOEXCEPT
+        {
+            return *context_;
+        }
+
     private:
         translation_unit(const parser &par, CXTranslationUnit tu, const char *path);
 
         class scope_stack;
-        CXChildVisitResult parse_visit(scope_stack &stack, CXCursor cur, CXCursor parent) const;
+        CXChildVisitResult parse_visit(scope_stack &stack, CXCursor cur, CXCursor parent);
 
         struct deleter
         {
@@ -79,6 +85,7 @@ namespace standardese
 
         detail::wrapper<CXTranslationUnit, deleter> tu_;
         std::string path_;
+        std::unique_ptr<detail::context> context_;
         const parser *parser_;
 
         friend parser;

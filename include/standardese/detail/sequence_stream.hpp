@@ -22,7 +22,7 @@ namespace standardese { namespace detail
         using value_type = typename std::iterator_traits<Iter>::value_type;
 
         template <typename Cont>
-        explicit sequence_stream(const Cont &array, value_type out_of_range)
+        explicit sequence_stream(Cont &array, value_type out_of_range = {})
         : out_of_range_(std::move(out_of_range))
         {
             using std::begin;

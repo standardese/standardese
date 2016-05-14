@@ -156,6 +156,7 @@ namespace standardese
 
     enum cpp_cv
     {
+        cpp_cv_none     = 0,
         cpp_cv_const    = 1,
         cpp_cv_volatile = 2,
     };
