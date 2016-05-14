@@ -61,6 +61,11 @@ namespace standardese
 
         CXFile get_cxfile() const STANDARDESE_NOEXCEPT;
 
+        const parser& get_parser() const STANDARDESE_NOEXCEPT
+        {
+            return *parser_;
+        }
+
     private:
         translation_unit(const parser &par, CXTranslationUnit tu, const char *path);
 

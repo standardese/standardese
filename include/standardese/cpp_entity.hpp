@@ -18,6 +18,8 @@ namespace standardese
     template <typename T>
     class cpp_entity_container;
 
+    class parser;
+
     using cpp_name = std::string;
     using cpp_raw_comment = std::string;
 

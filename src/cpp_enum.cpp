@@ -14,7 +14,7 @@ using namespace standardese;
 
 namespace
 {
-    cpp_type_ref parse_enum_underlying(cpp_cursor cur, const cpp_name &name, bool &definition)
+    cpp_type_ref parse_enum_underlying(cpp_cursor cur, bool &definition)
     {
         assert(clang_getCursorKind(cur) == CXCursor_EnumDecl);
 
@@ -56,7 +56,7 @@ namespace
     }
 }
 
-cpp_ptr<cpp_enum_value> cpp_enum_value::parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_enum_value> cpp_enum_value::parse(const parser &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_EnumConstantDecl);
 
@@ -93,7 +93,7 @@ namespace
     }
 }
 
-cpp_enum::parser::parser(cpp_name scope, cpp_cursor cur)
+cpp_enum::parser::parser(const standardese::parser &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_EnumDecl);
 
@@ -101,7 +101,7 @@ cpp_enum::parser::parser(cpp_name scope, cpp_cursor cur)
     auto type = clang_getCursorType(cur);
 
     bool definition;
-    auto underlying = parse_enum_underlying(cur, name, definition);
+    auto underlying = parse_enum_underlying(cur, definition);
     if (definition)
     {
         enum_ = cpp_ptr<cpp_enum>(new cpp_enum(std::move(scope), std::move(name), detail::parse_comment(cur),

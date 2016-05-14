@@ -46,14 +46,17 @@ namespace
                     output.write_seperator(); \
                     break;
 
-            STANDARDESE_DETAIL_HANDLE(class)
+            #define STANDARDESE_DETAIL_NOTHING
+
+            STANDARDESE_DETAIL_HANDLE(class, STANDARDESE_DETAIL_NOTHING)
             STANDARDESE_DETAIL_HANDLE(class_template, .get_class())
             STANDARDESE_DETAIL_HANDLE(class_template_full_specialization, .get_class())
             STANDARDESE_DETAIL_HANDLE(class_template_partial_specialization, .get_class())
 
-            STANDARDESE_DETAIL_HANDLE(enum)
+            STANDARDESE_DETAIL_HANDLE(enum, STANDARDESE_DETAIL_NOTHING)
 
             #undef STANDARDESE_DETAIL_HANDLE
+            #undef STANDARDESE_DETAIL_NOTHING
 
             default:
                 if (!e.get_comment().empty())

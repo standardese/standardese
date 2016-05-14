@@ -158,23 +158,23 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
     switch (kind)
     {
         case CXCursor_InclusionDirective:
-            stack.add_entity(cpp_inclusion_directive::parse(cur));
+            stack.add_entity(cpp_inclusion_directive::parse(*parser_, cur));
             return CXChildVisit_Continue;
         case CXCursor_MacroDefinition:
-            stack.add_entity(cpp_macro_definition::parse(cur));
+            stack.add_entity(cpp_macro_definition::parse(*parser_, cur));
             return CXChildVisit_Continue;
 
         case CXCursor_Namespace:
-            stack.push_container(detail::make_ptr<cpp_namespace::parser>(scope, cur), parent);
+            stack.push_container(detail::make_ptr<cpp_namespace::parser>(*parser_, scope, cur), parent);
             return CXChildVisit_Recurse;
         case CXCursor_NamespaceAlias:
-            stack.add_entity(cpp_namespace_alias::parse(scope, cur));
+            stack.add_entity(cpp_namespace_alias::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_UsingDirective:
-            stack.add_entity(cpp_using_directive::parse(cur));
+            stack.add_entity(cpp_using_directive::parse(*parser_, cur));
             return CXChildVisit_Continue;
         case CXCursor_UsingDeclaration:
-            stack.add_entity(cpp_using_declaration::parse(cur));
+            stack.add_entity(cpp_using_declaration::parse(*parser_, cur));
             return CXChildVisit_Continue;
 
         case CXCursor_TypedefDecl:
@@ -183,49 +183,49 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
             return CXChildVisit_Continue;
 
         case CXCursor_EnumDecl:
-            stack.push_container(detail::make_ptr<cpp_enum::parser>(scope, cur), parent);
+            stack.push_container(detail::make_ptr<cpp_enum::parser>(*parser_, scope, cur), parent);
             return CXChildVisit_Recurse;
         case CXCursor_EnumConstantDecl:
-            stack.add_entity(cpp_enum_value::parse(scope, cur));
+            stack.add_entity(cpp_enum_value::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
 
         case CXCursor_VarDecl:
-            stack.add_entity(cpp_variable::parse(scope, cur));
+            stack.add_entity(cpp_variable::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_FieldDecl:
-            stack.add_entity(cpp_member_variable::parse(scope, cur));
+            stack.add_entity(cpp_member_variable::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
 
         case CXCursor_FunctionDecl:
             if (is_full_specialization(cur))
-                stack.add_entity(cpp_function_template_specialization::parse(scope, cur));
+                stack.add_entity(cpp_function_template_specialization::parse(*parser_, scope, cur));
             else
-                stack.add_entity(cpp_function::parse(scope, cur));
+                stack.add_entity(cpp_function::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_CXXMethod:
             if (is_full_specialization(cur))
-                stack.add_entity(cpp_function_template_specialization::parse(scope, cur));
+                stack.add_entity(cpp_function_template_specialization::parse(*parser_, scope, cur));
             else
-                stack.add_entity(cpp_member_function::parse(scope, cur));
+                stack.add_entity(cpp_member_function::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_ConversionFunction:
             if (is_full_specialization(cur))
-                stack.add_entity(cpp_function_template_specialization::parse(scope, cur));
+                stack.add_entity(cpp_function_template_specialization::parse(*parser_, scope, cur));
             else
-                stack.add_entity(cpp_conversion_op::parse(scope, cur));
+                stack.add_entity(cpp_conversion_op::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_Constructor:
             if (is_full_specialization(cur))
-                stack.add_entity(cpp_function_template_specialization::parse(scope, cur));
+                stack.add_entity(cpp_function_template_specialization::parse(*parser_, scope, cur));
             else
-                stack.add_entity(cpp_constructor::parse(scope, cur));
+                stack.add_entity(cpp_constructor::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_Destructor:
-            stack.add_entity(cpp_destructor::parse(scope, cur));
+            stack.add_entity(cpp_destructor::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
 
         case CXCursor_FunctionTemplate:
-            stack.add_entity(cpp_function_template::parse(scope, cur));
+            stack.add_entity(cpp_function_template::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
 
         case CXCursor_ClassDecl:
@@ -233,22 +233,22 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_UnionDecl:
             if (is_full_specialization(cur))
                 stack.push_container(detail::make_ptr<cpp_class_template_full_specialization::parser>
-                                                       (scope, cur), parent);
+                                                       (*parser_, scope, cur), parent);
             else
-                stack.push_container(detail::make_ptr<cpp_class::parser>(scope, cur), parent);
+                stack.push_container(detail::make_ptr<cpp_class::parser>(*parser_, scope, cur), parent);
             return CXChildVisit_Recurse;
         case CXCursor_ClassTemplate:
-            stack.push_container(detail::make_ptr<cpp_class_template::parser>(scope, cur), parent);
+            stack.push_container(detail::make_ptr<cpp_class_template::parser>(*parser_, scope, cur), parent);
             return CXChildVisit_Recurse;
         case CXCursor_ClassTemplatePartialSpecialization:
             stack.push_container(detail::make_ptr<cpp_class_template_partial_specialization::parser>
-                                                    (scope, cur), parent);
+                                                    (*parser_, scope, cur), parent);
             return CXChildVisit_Recurse;
         case CXCursor_CXXBaseSpecifier:
-            stack.add_entity(cpp_base_class::parse(scope, cur));
+            stack.add_entity(cpp_base_class::parse(*parser_, scope, cur));
             return CXChildVisit_Continue;
         case CXCursor_CXXAccessSpecifier:
-            stack.add_entity(cpp_access_specifier::parse(cur));
+            stack.add_entity(cpp_access_specifier::parse(*parser_, cur));
             return CXChildVisit_Continue;
 
         // ignored, because handled elsewhere

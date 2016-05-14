@@ -21,7 +21,7 @@ namespace
     }
 }
 
-cpp_namespace::parser::parser(const cpp_name &scope, cpp_cursor cur)
+cpp_namespace::parser::parser(const standardese::parser &, const cpp_name &scope, cpp_cursor cur)
 : ns_(new cpp_namespace(scope, detail::parse_name(cur), detail::parse_comment(cur)))
 {
     assert(clang_getCursorKind(cur) == CXCursor_Namespace);
@@ -41,7 +41,7 @@ namespace
     void parse_target(CXCursor cur, cpp_name &target, cpp_name &scope)
     {
         auto first = true;
-        detail::visit_children(cur, [&](CXCursor cur, CXCursor parent)
+        detail::visit_children(cur, [&](CXCursor cur, CXCursor)
         {
             assert(clang_isReference(clang_getCursorKind(cur)));
 
@@ -64,7 +64,7 @@ namespace
     }
 }
 
-cpp_ptr<cpp_namespace_alias> cpp_namespace_alias::parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_namespace_alias> cpp_namespace_alias::parse(const parser &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_NamespaceAlias);
     cpp_name target, target_scope;
@@ -75,7 +75,7 @@ cpp_ptr<cpp_namespace_alias> cpp_namespace_alias::parse(cpp_name scope, cpp_curs
     return result;
 }
 
-cpp_ptr<cpp_using_directive> cpp_using_directive::parse(cpp_cursor cur)
+cpp_ptr<cpp_using_directive> cpp_using_directive::parse(const parser &, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_UsingDirective);
     cpp_name target, target_scope;
@@ -83,7 +83,7 @@ cpp_ptr<cpp_using_directive> cpp_using_directive::parse(cpp_cursor cur)
     return detail::make_ptr<cpp_using_directive>(std::move(target_scope), std::move(target), detail::parse_comment(cur));
 }
 
-cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(cpp_cursor cur)
+cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(const parser &, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_UsingDeclaration);
 

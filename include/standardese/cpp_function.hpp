@@ -16,7 +16,7 @@ namespace standardese
     : public cpp_parameter_base
     {
     public:
-        static cpp_ptr<cpp_function_parameter> parse(cpp_cursor cur);
+        static cpp_ptr<cpp_function_parameter> parse(const parser &p,  cpp_cursor cur);
 
         cpp_function_parameter(cpp_name name, cpp_raw_comment comment,
                                cpp_type_ref type, std::string default_value = "")
@@ -75,7 +75,8 @@ namespace standardese
     : public cpp_entity, private cpp_entity_container<cpp_function_parameter>
     {
     public:
-        static cpp_ptr<cpp_function_base> try_parse(cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<standardese::cpp_function_base> try_parse(const parser &p, cpp_name scope,
+                                                                        cpp_cursor cur);
 
         void add_parameter(cpp_ptr<cpp_function_parameter> param)
         {
@@ -135,7 +136,7 @@ namespace standardese
     : public cpp_function_base
     {
     public:
-        static cpp_ptr<cpp_function> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<cpp_function> parse(const parser &p,  cpp_name scope, cpp_cursor cur);
 
         cpp_function(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                      cpp_type_ref return_type, cpp_function_info info)
@@ -212,7 +213,7 @@ namespace standardese
     : public cpp_function
     {
     public:
-        static cpp_ptr<cpp_member_function> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<cpp_member_function> parse(const parser &p,  cpp_name scope, cpp_cursor cur);
 
         cpp_member_function(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                             cpp_type_ref return_type,
@@ -247,7 +248,7 @@ namespace standardese
     : public cpp_function_base
     {
     public:
-        static cpp_ptr<cpp_conversion_op> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<cpp_conversion_op> parse(const parser &p,  cpp_name scope, cpp_cursor cur);
 
         cpp_conversion_op(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                           cpp_type_ref target_type,
@@ -286,7 +287,7 @@ namespace standardese
     : public cpp_function_base
     {
     public:
-        static cpp_ptr<cpp_constructor> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<cpp_constructor> parse(const parser &p,  cpp_name scope, cpp_cursor cur);
 
         cpp_constructor(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                         cpp_function_info info)
@@ -299,7 +300,7 @@ namespace standardese
     : public cpp_function_base
     {
     public:
-        static cpp_ptr<cpp_destructor> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<cpp_destructor> parse(const parser &p,  cpp_name scope, cpp_cursor cur);
 
         cpp_destructor(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                        cpp_function_info info, cpp_virtual virtual_flag)

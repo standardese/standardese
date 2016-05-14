@@ -25,7 +25,7 @@ namespace
     }
 }
 
-cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(cpp_cursor cur)
+cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(const parser &, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_ParmDecl);
 
@@ -37,7 +37,8 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(cpp_cursor cur)
                                                     std::move(type), std::move(default_value));
 }
 
-cpp_ptr<cpp_function_base> cpp_function_base::try_parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<standardese::cpp_function_base> cpp_function_base::try_parse(const parser &p, cpp_name scope,
+                                                                    cpp_cursor cur)
 {
     auto kind = clang_getCursorKind(cur);
     if (kind == CXCursor_FunctionTemplate)
@@ -46,15 +47,15 @@ cpp_ptr<cpp_function_base> cpp_function_base::try_parse(cpp_name scope, cpp_curs
     switch (kind)
     {
         case CXCursor_FunctionDecl:
-            return cpp_function::parse(std::move(scope), cur);
+            return cpp_function::parse(p, std::move(scope), cur);
         case CXCursor_CXXMethod:
-            return cpp_member_function::parse(std::move(scope), cur);
+            return cpp_member_function::parse(p, std::move(scope), cur);
         case CXCursor_ConversionFunction:
-            return cpp_conversion_op::parse(std::move(scope), cur);
+            return cpp_conversion_op::parse(p, std::move(scope), cur);
         case CXCursor_Constructor:
-            return cpp_constructor::parse(std::move(scope), cur);
+            return cpp_constructor::parse(p, std::move(scope), cur);
         case CXCursor_Destructor:
-            return cpp_destructor::parse(std::move(scope), cur);
+            return cpp_destructor::parse(p, std::move(scope), cur);
         default:
             break;
     }
@@ -82,7 +83,7 @@ namespace
         return {type, std::move(type_name)};
     }
 
-    void parse_parameters(cpp_function_base *base, cpp_cursor cur)
+    void parse_parameters(const parser &p, cpp_function_base *base, cpp_cursor cur)
     {
         // we cannot use clang_Cursor_getNumArguments(),
         // doesn't work for templates
@@ -100,13 +101,13 @@ namespace
         detail::visit_children(cur, [&](CXCursor cur, CXCursor)
         {
             if (clang_getCursorKind(cur) == CXCursor_ParmDecl && i++ >= no_params_return)
-                base->add_parameter(cpp_function_parameter::parse(cur));
+                base->add_parameter(cpp_function_parameter::parse(p, cur));
             return CXChildVisit_Continue;
         });
     }
 }
 
-cpp_ptr<cpp_function> cpp_function::parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_function> cpp_function::parse(const parser &p, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_FunctionDecl
           || clang_getTemplateCursorKind(cur) == CXCursor_FunctionDecl);
@@ -118,7 +119,7 @@ cpp_ptr<cpp_function> cpp_function::parse(cpp_name scope, cpp_cursor cur)
     auto result = detail::make_ptr<cpp_function>(std::move(scope), std::move(name), detail::parse_comment(cur),
                                                  std::move(return_type), std::move(info));
 
-    parse_parameters(result.get(), cur);
+    parse_parameters(p, result.get(), cur);
 
     return result;
 }
@@ -147,7 +148,7 @@ namespace
     }
 }
 
-cpp_ptr<cpp_member_function> cpp_member_function::parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_member_function> cpp_member_function::parse(const parser &p, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_CXXMethod
            || clang_getTemplateCursorKind(cur) == CXCursor_CXXMethod);
@@ -161,12 +162,12 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(cpp_name scope, cpp_curs
                                                         std::move(return_type),
                                                         std::move(finfo), std::move(minfo));
 
-    parse_parameters(result.get(), cur);
+    parse_parameters(p, result.get(), cur);
 
     return result;
 }
 
-cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(const parser &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_ConversionFunction
            || clang_getTemplateCursorKind(cur) == CXCursor_ConversionFunction);
@@ -210,7 +211,7 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(cpp_name scope, cpp_cursor c
                                                type, std::move(finfo), std::move(minfo));
 }
 
-cpp_ptr<cpp_constructor> cpp_constructor::parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_constructor> cpp_constructor::parse(const parser &p, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_Constructor
            || clang_getTemplateCursorKind(cur) == CXCursor_Constructor);
@@ -226,11 +227,11 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(cpp_name scope, cpp_cursor cur)
 
     auto result =  detail::make_ptr<cpp_constructor>(std::move(scope), std::move(name), detail::parse_comment(cur),
                                                      std::move(info));
-    parse_parameters(result.get(), cur);
+    parse_parameters(p, result.get(), cur);
     return result;
 }
 
-cpp_ptr<cpp_destructor> cpp_destructor::parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_destructor> cpp_destructor::parse(const parser &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_Destructor
            || clang_getTemplateCursorKind(cur) == CXCursor_Destructor);
