@@ -5,6 +5,7 @@
 set(detail_header
         ../include/standardese/detail/parse_utils.hpp
         ../include/standardese/detail/search_token.hpp
+        ../include/standardese/detail/sequence_stream.hpp
         ../include/standardese/detail/synopsis_utils.hpp
         ../include/standardese/detail/wrapper.hpp)
 set(header
