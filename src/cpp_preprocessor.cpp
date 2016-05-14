@@ -11,12 +11,11 @@
 
 using namespace standardese;
 
-cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit &tu, cpp_cursor cur)
+cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit &, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_InclusionDirective);
 
-    detail::tokenizer tokenizer(tu, cur);
-    auto& source = tokenizer.get_source();
+    auto source = detail::tokenizer::read_source(cur);
 
     auto i = 1u; // skip #
     while (std::isspace(source[i]))
@@ -31,45 +30,46 @@ cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit
     return detail::make_ptr<cpp_inclusion_directive>(detail::parse_name(cur), detail::parse_comment(cur), k);
 }
 
-cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit &tu, cpp_cursor cur)
+cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit &, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_MacroDefinition);
 
-    detail::tokenizer tokenizer(tu, cur);
-    auto stream = detail::make_stream(tokenizer);
+    auto source = detail::tokenizer::read_source(cur);
 
     auto name = detail::parse_name(cur);
-    detail::skip(stream, {name.c_str()});
+    auto i = name.size();
+    while (std::isspace(source[i]))
+        ++i;
 
     // arguments
     std::string args;
-    if (stream.peek().get_value() == "(")
+    if (source[i] == '(')
     {
         args += "(";
-        stream.bump();
+        ++i;
 
         auto bracket_count = 1;
         while (bracket_count != 0)
         {
-            auto spelling = stream.get().get_value();
+            auto spelling = source[i];
+            ++i;
 
-            if (spelling == "(")
+            if (spelling == '(')
                 ++bracket_count;
-            else if (spelling == ")")
+            else if (spelling == ')')
                 --bracket_count;
 
-            args += spelling.c_str();
+            args += spelling;
         }
-        detail::skip_whitespace(stream);
 
-        while (std::isspace(args.back()))
-            args.pop_back();
+        while (std::isspace(source[i]))
+            ++i;
     }
 
     // replacement
     std::string rep;
-    while (!stream.done())
-        rep += stream.get().get_value().c_str();
+    while (i < source.size())
+        rep += source[i++];
 
     while (std::isspace(rep.back()))
         rep.pop_back();

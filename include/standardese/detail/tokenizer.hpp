@@ -68,6 +68,8 @@ namespace standardese { namespace detail
     class tokenizer
     {
     public:
+        static std::string read_source(cpp_cursor cur);
+
         tokenizer(translation_unit &tu, cpp_cursor cur);
 
         context::iterator_type begin()
