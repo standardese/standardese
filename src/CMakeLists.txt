@@ -59,3 +59,9 @@ target_compile_definitions(standardese_library PUBLIC
 # link libclang
 target_include_directories(standardese_library PUBLIC ${LIBCLANG_INCLUDE_DIR})
 target_link_libraries(standardese_library PUBLIC ${LIBCLANG_LIBRARY})
+
+# link Boost
+find_package(Boost COMPONENTS wave REQUIRED)
+target_include_directories(standardese_library PUBLIC ${Boost_INCLUDE_DIR})
+target_link_libraries(standardese_library PUBLIC ${Boost_LIBRARIES})
+

@@ -85,6 +85,6 @@ If it isn't found, set the CMake variable `LIBCLANG_INCLUDE_DIR` to the folder w
 `LIBCLANG_LIBRARY` to the library binary and `LIBCLANG_SYSTEM_INCLUDE_DIR` where the system include files are located,
 under a normal installation it is `/lib/clang/<version>/include`.
 
-The tool requires Boost.ProgramOptions and Boost.Filesystem, only tested with 1.60.
+The library requires Boost.Wave and the tool requires Boost.ProgramOptions and Boost.Filesystem, only tested with 1.60.
 
 Once build simply run `./standardese --help` for usage.
