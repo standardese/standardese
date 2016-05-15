@@ -74,6 +74,10 @@ namespace
 
         auto stream = detail::make_stream(tokenizer);
 
+        // handle extern templates
+        if (detail::skip_if_token(stream, "extern"))
+            return false;
+
         if (detail::skip_if_token(stream, "template"))
         {
             detail::skip_bracket_count(stream, "<", ">");
