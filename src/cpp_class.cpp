@@ -89,6 +89,12 @@ namespace
         detail::skip_whitespace(stream);
         detail::skip(stream, {name.c_str()});
 
+        if (stream.peek().get_value() == "<")
+        {
+            detail::skip_bracket_count(stream, "<", ">");
+            detail::skip_whitespace(stream);
+        }
+
         if (stream.peek().get_value() == "final")
         {
             stream.bump();
@@ -97,12 +103,6 @@ namespace
         }
         else
             is_final = false;
-
-        if (stream.peek().get_value() == "<")
-        {
-            detail::skip_bracket_count(stream, "<", ">");
-            detail::skip_whitespace(stream);
-        }
 
         return stream.peek().get_value() != ";";
     }

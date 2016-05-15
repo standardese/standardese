@@ -54,6 +54,11 @@ namespace standardese { namespace detail
                 ++bracket_count;
             else if (spelling == close)
                 --bracket_count;
+            else if (std::strcmp(close, ">") == 0 && spelling == ">>")
+            {
+                // just hope nobody uses a right shift operator
+                bracket_count -= 2;
+            }
 
             f(spelling.c_str());
         }

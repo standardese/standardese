@@ -33,7 +33,8 @@ translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, cons
     using namespace boost::wave;
 
     auto lang = support_cpp | support_option_variadics | support_option_long_long
-                | support_option_insert_whitespace;
+                | support_option_insert_whitespace
+                | support_option_single_line;
     context_->set_language(language_support(lang));
 }
 
@@ -159,7 +160,6 @@ namespace
 
         auto string = macro->get_name() + macro->get_argument_string()
                       + "=" + macro->get_replacement();
-        std::cerr << string << '\n';
         context.add_macro_definition(std::move(string));
     }
 }

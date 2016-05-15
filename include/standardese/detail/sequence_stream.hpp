@@ -40,6 +40,13 @@ namespace standardese { namespace detail
             return *cur_;
         }
 
+        value_type peek(std::size_t offset) const STANDARDESE_NOEXCEPT
+        {
+            if (std::ptrdiff_t(offset) > left())
+                return out_of_range_;
+            return *std::next(cur_, offset);
+        }
+
         void bump() STANDARDESE_NOEXCEPT
         {
             if (cur_ != end_)
