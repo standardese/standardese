@@ -7,6 +7,7 @@
 #include <cassert>
 
 #include <standardese/detail/parse_utils.hpp>
+#include <standardese/detail/tokenizer.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/translation_unit.hpp>
 

@@ -90,8 +90,17 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
     return result;
 }
 
+namespace standardese { namespace detail
+{
+    struct context_impl;
+
+    context_impl& get_context_impl(translation_unit &tu);
+
+    context& get_preprocessing_context(context_impl &impl);
+}} // namespace standardese::detail
+
 detail::tokenizer::tokenizer(translation_unit &tu, cpp_cursor cur)
-: source_(read_source(cur)), impl_(&tu.get_preprocessing_context())
+: source_(read_source(cur)), impl_(&get_preprocessing_context(get_context_impl(tu)))
 {
     // append trailing newline
     // required for parsing code

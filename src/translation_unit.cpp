@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 
+#include <standardese/detail/tokenizer.hpp>
 #include <standardese/cpp_class.hpp>
 #include <standardese/cpp_cursor.hpp>
 #include <standardese/cpp_enum.hpp>
@@ -25,17 +26,54 @@ cpp_file::cpp_file(const char *name)
 : cpp_entity(file_t, "", name, "")
 {}
 
+struct detail::context_impl::impl
+{
+    detail::context context;
+
+    impl(const std::string &path)
+    : context(path.begin(), path.end(), path.c_str()) {} // initialize with empty range
+};
+
+detail::context_impl::context_impl(context_impl &&other) STANDARDESE_NOEXCEPT
+: pimpl(std::move(other.pimpl)) {}
+
+detail::context_impl::~context_impl() STANDARDESE_NOEXCEPT {}
+
+detail::context_impl& detail::context_impl::operator=(context_impl &&other) STANDARDESE_NOEXCEPT
+{
+    pimpl = std::move(other.pimpl);
+    return *this;
+}
+
+namespace standardese { namespace detail
+{
+    // get context impl from translation unit
+    // needed because this must be a friend of translation_unit
+    // and context cannot be forward declared
+    context_impl& get_context_impl(translation_unit &tu)
+    {
+        return tu.impl_;
+    }
+
+    // hidden function to get the context from the impl
+    context& get_preprocessing_context(context_impl &impl)
+    {
+        return impl.pimpl->context;
+    }
+}} // namespace standardese::detail
+
 translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, const char *path)
 : tu_(tu), path_(path),
-  context_(new detail::context(path_.end(), path_.end(), path)), // initialize with empty range
   parser_(&par)
 {
     using namespace boost::wave;
 
+    impl_.pimpl = std::unique_ptr<detail::context_impl::impl>(new detail::context_impl::impl(path_));
+
     auto lang = support_cpp | support_option_variadics | support_option_long_long
                 | support_option_insert_whitespace
                 | support_option_single_line;
-    context_->set_language(language_support(lang));
+    impl_.pimpl->context.set_language(language_support(lang));
 }
 
 class translation_unit::scope_stack
@@ -185,7 +223,7 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
             stack.add_entity(cpp_macro_definition::parse(*this, cur));
             return CXChildVisit_Continue;
         case CXCursor_MacroExpansion:
-            add_macro_definition(*this, *context_, clang_getCursorReferenced(cur));
+            add_macro_definition(*this, impl_.pimpl->context, clang_getCursorReferenced(cur));
             return CXChildVisit_Continue;
 
         case CXCursor_Namespace:

@@ -8,7 +8,6 @@
 #include <clang-c/Index.h>
 #include <string>
 
-#include <standardese/detail/tokenizer.hpp>
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/cpp_entity.hpp>
 
@@ -24,6 +23,24 @@ namespace standardese
 
         friend class translation_unit;
     };
+
+    namespace detail
+    {
+        // wrapper for the pimpl of translation_unit
+        // this prevents writing move ctors for translation_unit
+        struct context_impl
+        {
+            context_impl() STANDARDESE_NOEXCEPT = default;
+            context_impl(context_impl &&other) STANDARDESE_NOEXCEPT;
+            ~context_impl() STANDARDESE_NOEXCEPT;
+            context_impl& operator=(context_impl &&other) STANDARDESE_NOEXCEPT;
+
+            struct impl;
+            std::unique_ptr<impl> pimpl;
+        };
+
+        context_impl& get_context_impl(translation_unit &tu);
+    } // namespace detail
 
     class translation_unit
     {
@@ -67,11 +84,6 @@ namespace standardese
             return *parser_;
         }
 
-        detail::context& get_preprocessing_context() STANDARDESE_NOEXCEPT
-        {
-            return *context_;
-        }
-
     private:
         translation_unit(const parser &par, CXTranslationUnit tu, const char *path);
 
@@ -85,10 +97,11 @@ namespace standardese
 
         detail::wrapper<CXTranslationUnit, deleter> tu_;
         std::string path_;
-        std::unique_ptr<detail::context> context_;
+        detail::context_impl impl_;
         const parser *parser_;
 
         friend parser;
+        friend detail::context_impl& detail::get_context_impl(translation_unit &tu);
     };
 } // namespace standardese
 
