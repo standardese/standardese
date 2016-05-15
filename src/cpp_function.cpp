@@ -195,6 +195,9 @@ namespace
 
     bool is_declaration_end(detail::token_stream &stream, bool &is_special_definition)
     {
+        if (stream.peek().get_value().size() > 1u)
+            return false;
+
         auto c = stream.peek().get_value()[0];
         if (c == ':' || c == ';' || c == '{')
         {
