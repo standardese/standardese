@@ -496,6 +496,7 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name s
     auto stream = detail::make_stream(tokenizer);
 
     auto name = detail::parse_name(cur);
+    detail::clean_name(name);
     cpp_function_info info;
 
     skip_template_parameter_declaration(stream);
@@ -559,6 +560,7 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_name sco
     auto stream = detail::make_stream(tokenizer);
 
     auto name = detail::parse_name(cur);
+    detail::clean_name(name);
     cpp_function_info info;
     auto virtual_flag = cpp_virtual_none;
 

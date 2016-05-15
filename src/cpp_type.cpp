@@ -54,7 +54,15 @@ namespace
 
 cpp_name cpp_type_ref::get_full_name() const
 {
-    return detail::parse_name(type_);
+    auto name = detail::parse_name(type_);
+
+    // when the name of the class is mentioned in a partial specialization
+    // clang appends the template parameters with an internal name at the end
+    // erase that part
+    if (name.find("-parameter") != cpp_name::npos)
+        detail::clean_name(name);
+
+    return name;
 }
 
 cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit &tu, const cpp_name &scope, cpp_cursor cur)

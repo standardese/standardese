@@ -18,6 +18,9 @@ namespace standardese
 
     namespace detail
     {
+        // erases template arguments
+        void clean_name(cpp_name &name);
+
         // obtains the name from cursor
         cpp_name parse_name(cpp_cursor cur);
 
