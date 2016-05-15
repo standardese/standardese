@@ -119,9 +119,23 @@ namespace
                 // we have an operator
                 // they can have multiple tokens as part of the name
                 // so need to skip until either template parameters or normal parameters
-                while (stream.peek().get_value() != "("
-                       && stream.peek().get_value() != "<")
+                const char *ptr = &name[std::strlen("operator")];
+                while (true)
+                {
+                    while (std::isspace(*ptr))
+                        ++ptr;
+
+                    auto& spelling = stream.peek().get_value();
+                    if (!std::isspace(spelling[0]))
+                    {
+                        auto res = std::strncmp(ptr, spelling.c_str(), spelling.size());
+                        if (res != 0)
+                            break;
+                        ptr += spelling.size();
+                    }
+
                     stream.bump();
+                }
                 break;
             }
             else
