@@ -8,6 +8,8 @@
 #include <iostream>
 #include <unordered_map>
 
+#include <standardese/detail/sequence_stream.hpp>
+
 using namespace standardese;
 
 namespace
@@ -49,30 +51,6 @@ namespace
             return section_type::invalid;
         return iter->second;
     }
-
-    // allows out of range access
-    class comment_stream
-    {
-    public:
-        comment_stream(const cpp_raw_comment &c)
-        : comment_(&c) {}
-
-        char operator[](std::size_t i) const STANDARDESE_NOEXCEPT
-        {
-            if (i == 0u || i >= size())
-                // to terminate any section
-                return '\n';
-            return (*comment_)[i - 1];
-        }
-
-        std::size_t size() const STANDARDESE_NOEXCEPT
-        {
-            return comment_->size() + 1;
-        }
-
-    private:
-        const cpp_raw_comment *comment_;
-    };
 
     void trim_whitespace(std::string &str)
     {
@@ -135,7 +113,7 @@ void comment::parser::set_section_name(const std::string &type, std::string name
 
 comment::parser::parser(const char *entity_name, const cpp_raw_comment &raw_comment)
 {
-    comment_stream stream(raw_comment);
+    detail::sequence_stream<cpp_raw_comment::const_iterator> stream(raw_comment, '\n');
     auto cur_section_t = section_type::brief;
     std::string cur_body;
 
@@ -155,28 +133,29 @@ comment::parser::parser(const char *entity_name, const cpp_raw_comment &raw_comm
                     cur_body.clear();
                 };
 
-    auto i = 0u;
     auto line = 0u;
-    while (i < stream.size())
+    while (!stream.done())
     {
-        if (stream[i] == '\n')
+        if (line == 0u || stream.peek() == '\n')
         {
-            ++i; // consume newl
+            stream.bump(); // consume newl
             ++line;
 
             // section is finished
             finish_section();
 
             // ignore all comment characters
-            while (stream[i] == ' ' || stream[i] == '/')
-                ++i;
+            while (stream.peek() == ' ' || stream.peek() == '/')
+                stream.bump();
         }
-        else if (stream[i] == command_character)
+        else if (stream.peek() == command_character)
         {
+            stream.bump();
+
             // add new section
             std::string section_name;
-            while (stream[++i] != ' ')
-                section_name += stream[i];
+            while (stream.peek() != ' ')
+                section_name += stream.get();
 
             auto type = parse_section_name(section_name);
             if (type == section_type::invalid)
@@ -191,8 +170,7 @@ comment::parser::parser(const char *entity_name, const cpp_raw_comment &raw_comm
         else
         {
             // add to body
-            cur_body += stream[i];
-            ++i;
+            cur_body += stream.get();
         }
     }
     finish_section();

@@ -30,7 +30,7 @@ std::vector<standardese::cpp_ptr<T>> parse_entity(standardese::translation_unit 
                {
                     if (clang_getCursorKind(cur) == kind)
                     {
-                        result.push_back(T::parse(cur));
+                        result.push_back(T::parse(unit, cur));
                         return CXChildVisit_Continue;
                     }
                     return CXChildVisit_Recurse;

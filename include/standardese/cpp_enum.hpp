@@ -13,7 +13,7 @@ namespace standardese
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_enum_value> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<cpp_enum_value> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
         cpp_enum_value(cpp_name scope, cpp_name name, cpp_raw_comment comment)
         : cpp_enum_value(enum_value_t, std::move(scope), std::move(name), std::move(comment)) {}
@@ -79,7 +79,7 @@ namespace standardese
         : public cpp_entity_parser
         {
         public:
-            parser(cpp_name scope, cpp_cursor cur);
+            parser(translation_unit &tu, cpp_name scope, cpp_cursor cur);
 
             void add_entity(cpp_entity_ptr ptr) override;
 

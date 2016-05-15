@@ -71,7 +71,7 @@ TEST_CASE("cpp_variable", "[cpp]")
             else if (var->get_name() == "d")
             {
                 ++count;
-                REQUIRE(type.get_name() == "const float *const");
+                REQUIRE(type.get_name() == "const float * const");
                 REQUIRE(type.get_full_name() == "const float *const");
                 REQUIRE(var->get_initializer() == "nullptr");
                 REQUIRE(var->get_linkage() == cpp_internal_linkage);
@@ -89,7 +89,7 @@ TEST_CASE("cpp_variable", "[cpp]")
             else if (var->get_name() == "f")
             {
                 ++count;
-                REQUIRE(type.get_name() == "unsigned int(*)(int x)");
+                REQUIRE(type.get_name() == "unsigned int (*)(int x)");
                 REQUIRE(type.get_full_name() == "unsigned int (*)(int)");
                 REQUIRE(var->get_initializer() == "nullptr");
                 REQUIRE(var->get_linkage() == cpp_no_linkage);
@@ -107,7 +107,7 @@ TEST_CASE("cpp_variable", "[cpp]")
             else if (var->get_name() == "h")
             {
                 ++count;
-                REQUIRE(type.get_name() == "int[5]");
+                REQUIRE(type.get_name() == "int [5]");
                 REQUIRE(type.get_full_name() == "int [5]");
                 REQUIRE(var->get_initializer() == "");
                 REQUIRE(var->get_linkage() == cpp_no_linkage);
@@ -178,7 +178,7 @@ TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
             else if (var.get_name() == "c")
             {
                 ++count;
-                REQUIRE(var.get_type().get_name() == "const int[42]");
+                REQUIRE(var.get_type().get_name() == "const int [42]");
                 REQUIRE(var.get_initializer() == "");
                 REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
             }
@@ -192,7 +192,7 @@ TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
             else if (var.get_name() == "e")
             {
                 ++count;
-                REQUIRE(var.get_type().get_name() == "int &");
+                REQUIRE(var.get_type().get_name() == "int&");
                 REQUIRE(var.get_initializer() == "");
                 REQUIRE(var.get_linkage() == cpp_external_linkage);
             }

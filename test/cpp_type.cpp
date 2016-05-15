@@ -17,14 +17,14 @@ TEST_CASE("cpp_type_alias", "[cpp]")
     parser p;
 
     auto code = R"(
-        using type_1 = int;
+        using /* comment */ type_1 = int;
         using type_2 = char[];
 
         typedef int type_3;
 
         struct foo {};
 
-        using type_4 = const foo;
+        using type_4 = const foo *;
 
         namespace ns
         {
@@ -78,8 +78,8 @@ TEST_CASE("cpp_type_alias", "[cpp]")
             ++count;
             REQUIRE(t.get_unique_name() == "type_4");
             auto& target = t.get_target();
-            REQUIRE(target.get_name() == "const foo");
-            REQUIRE(target.get_full_name() == "const foo");
+            REQUIRE(target.get_name() == "const foo *");
+            REQUIRE(target.get_full_name() == "const foo *");
         }
         else if (t.get_name() == "type_5")
         {

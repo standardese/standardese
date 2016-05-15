@@ -136,7 +136,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
             else if (func.get_name() == "f")
             {
                 ++count;
-                REQUIRE(func.get_return_type().get_name() == "int(*)(volatile char &&)");
+                REQUIRE(func.get_return_type().get_name() == "int (*)(volatile char&&)");
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
@@ -146,7 +146,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
             else if (func.get_name() == "g")
             {
                 ++count;
-                REQUIRE(func.get_return_type().get_name() == "const char &&");
+                REQUIRE(func.get_return_type().get_name() == "const char&&");
                 REQUIRE(func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
@@ -201,7 +201,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 else if (func.get_name() == "k")
                 {
                     ++count;
-                    REQUIRE(func.get_return_type().get_name() == "int &");
+                    REQUIRE(func.get_return_type().get_name() == "int&");
                     REQUIRE(func.get_virtual() == cpp_virtual_pure);
                     REQUIRE(is_const(func.get_cv()));
                     REQUIRE(!is_volatile(func.get_cv()));
@@ -252,7 +252,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 if (func.get_name() == "k")
                 {
                     ++count;
-                    REQUIRE(func.get_return_type().get_name() == "int &");
+                    REQUIRE(func.get_return_type().get_name() == "int&");
                     REQUIRE(func.get_virtual() == cpp_virtual_overriden);
                     REQUIRE(is_const(func.get_cv()));
                     REQUIRE(!is_volatile(func.get_cv()));
@@ -274,7 +274,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 else if (func.get_name() == "operator=")
                 {
                     ++count;
-                    REQUIRE(func.get_return_type().get_name() == "derived &");
+                    REQUIRE(func.get_return_type().get_name() == "derived&");
                     REQUIRE(func.get_virtual() == cpp_virtual_none);
                     REQUIRE(!is_const(func.get_cv()));
                     REQUIRE(!is_volatile(func.get_cv()));

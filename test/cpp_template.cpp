@@ -161,14 +161,14 @@ TEST_CASE("cpp_non_type_template_parameter", "[cpp]")
         {
             ++count;
             REQUIRE(!param->is_variadic());
-            REQUIRE(param->get_type().get_name() == "int(*)(float, ...)");
+            REQUIRE(param->get_type().get_name() == "int (*)(float, ...)");
             REQUIRE(!param->has_default_value());
         }
         else if (param->get_name() == "F")
         {
             ++count;
             REQUIRE(param->is_variadic());
-            REQUIRE(param->get_type().get_name() == "int(*)(float, ...)");
+            REQUIRE(param->get_type().get_name() == "int (*)(float, ...)");
             REQUIRE(!param->has_default_value());
         }
         else if (param->get_name() == "G")
@@ -433,7 +433,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                 ++count;
                 REQUIRE(ptr->get_name() == "b<A, B>");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
-                REQUIRE(func.get_return_type().get_name() == "B(*)()");
+                REQUIRE(func.get_return_type().get_name() == "B (*)()");
 
                 auto size = 0u;
                 for (auto& param : ptr->get_template_parameters())
@@ -470,9 +470,9 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             else if (ptr->get_function().get_name() == "b")
             {
                 ++count;
-                REQUIRE(ptr->get_name() == "b<0, int *>");
+                REQUIRE(ptr->get_name() == "b<0, int*>");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
-                REQUIRE(func.get_return_type().get_name() == "int *(*)()");
+                REQUIRE(func.get_return_type().get_name() == "int* (*)()");
             }
             else
                 REQUIRE(false);
@@ -486,6 +486,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                     {
                         ++count;
                         REQUIRE_NOTHROW(dynamic_cast<const cpp_member_function&>(ptr->get_function()));
+                        REQUIRE(!ptr->get_function().is_variadic());
                         REQUIRE(ptr->get_name() == "c<A...>");
 
                         auto size = 0u;

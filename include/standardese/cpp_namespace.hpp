@@ -19,7 +19,7 @@ namespace standardese
         class parser : public cpp_entity_parser
         {
         public:
-            parser(const cpp_name &scope, cpp_cursor cur);
+            parser(translation_unit &tu, const cpp_name &scope, cpp_cursor cur);
 
             void add_entity(cpp_entity_ptr ptr) override
             {
@@ -59,7 +59,7 @@ namespace standardese
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_namespace_alias> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<cpp_namespace_alias> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
         cpp_namespace_alias(cpp_name scope, cpp_name name, cpp_raw_comment comment, cpp_name target)
         : cpp_entity(namespace_alias_t, std::move(scope), std::move(name), std::move(comment)),
@@ -83,7 +83,7 @@ namespace standardese
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_using_directive> parse(cpp_cursor cur);
+        static cpp_ptr<cpp_using_directive> parse(translation_unit &tu,  cpp_cursor cur);
 
         cpp_using_directive(cpp_name target_scope, cpp_name target_name, cpp_raw_comment comment)
         : cpp_entity(using_directive_t, std::move(target_scope),
@@ -94,7 +94,7 @@ namespace standardese
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_using_declaration> parse(cpp_cursor cur);
+        static cpp_ptr<cpp_using_declaration> parse(translation_unit &tu,  cpp_cursor cur);
 
         cpp_using_declaration(cpp_name target_scope, cpp_name target_name, cpp_raw_comment comment)
         : cpp_entity(using_declaration_t, std::move(target_scope),

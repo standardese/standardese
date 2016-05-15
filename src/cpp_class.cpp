@@ -7,8 +7,8 @@
 #include <cassert>
 
 #include <standardese/detail/parse_utils.hpp>
-#include <standardese/detail/search_token.hpp>
 #include <standardese/parser.hpp>
+#include <standardese/detail/tokenizer.hpp>
 
 using namespace standardese;
 
@@ -46,14 +46,14 @@ namespace
    }
 }
 
-cpp_ptr<cpp_access_specifier> cpp_access_specifier::parse(cpp_cursor cur)
+cpp_ptr<cpp_access_specifier> cpp_access_specifier::parse(translation_unit &, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_CXXAccessSpecifier);
 
     return detail::make_ptr<cpp_access_specifier>(parse_access_specifier(clang_getCXXAccessSpecifier(cur)));
 }
 
-cpp_ptr<cpp_base_class> cpp_base_class::parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_base_class> cpp_base_class::parse(translation_unit &, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_CXXBaseSpecifier);
 
@@ -67,38 +67,48 @@ cpp_ptr<cpp_base_class> cpp_base_class::parse(cpp_name scope, cpp_cursor cur)
 
 namespace
 {
-    bool parse_class(cpp_cursor cur, const cpp_name &name, bool &is_final)
+    bool parse_class(translation_unit &tu, cpp_cursor cur,
+                     const cpp_name &name, bool &is_final)
     {
-        auto result = false;
-        auto found = false;
-        detail::visit_tokens(cur, [&](CXToken, const string &spelling)
+        detail::tokenizer tokenizer(tu, cur);
+
+        auto stream = detail::make_stream(tokenizer);
+
+        // handle extern templates
+        if (detail::skip_if_token(stream, "extern"))
+            return false;
+
+        if (detail::skip_if_token(stream, "template"))
         {
-            if (found)
-            {
-                if (spelling == "final")
-                    is_final = true;
-                else if (spelling == ":" || spelling == "{")
-                {
-                    result = true;
-                    return false; // class body
-                }
-                else if (spelling == ";")
-                {
-                    result = false;
-                    return false; // forward declaration
-                }
-            }
-            else if (spelling == name.c_str())
-                found = true;
+            detail::skip_bracket_count(stream, "<", ">");
+            detail::skip_whitespace(stream);
+        }
 
-            return true;
-        });
+        // skip class/struct/union/keyword and name
+        stream.bump();
+        detail::skip_whitespace(stream);
+        detail::skip(stream, {name.c_str()});
 
-        return result;
+        if (stream.peek().get_value() == "<")
+        {
+            detail::skip_bracket_count(stream, "<", ">");
+            detail::skip_whitespace(stream);
+        }
+
+        if (stream.peek().get_value() == "final")
+        {
+            stream.bump();
+            detail::skip_whitespace(stream);
+            is_final = true;
+        }
+        else
+            is_final = false;
+
+        return stream.peek().get_value() != ";";
     }
 }
 
-cpp_class::parser::parser(cpp_name scope, cpp_cursor cur)
+cpp_class::parser::parser(translation_unit &tu, cpp_name scope, cpp_cursor cur)
 {
     cpp_class_type ctype;
 
@@ -118,7 +128,7 @@ cpp_class::parser::parser(cpp_name scope, cpp_cursor cur)
 
     auto name = detail::parse_name(cur);
     bool is_final;
-    auto definition = parse_class(cur, name, is_final);
+    auto definition = parse_class(tu, cur, name, is_final);
     if (definition)
         class_ = cpp_ptr<cpp_class>(new cpp_class(std::move(scope), std::move(name), detail::parse_comment(cur),
                                     clang_getCursorType(cur), ctype, is_final));

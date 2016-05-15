@@ -66,7 +66,7 @@ namespace standardese
     : public cpp_type
     {
     public:
-        static cpp_ptr<cpp_type_alias> parse(const parser &p, const cpp_name &scope, cpp_cursor cur);
+        static cpp_ptr<cpp_type_alias> parse(translation_unit &tu, const cpp_name &scope, cpp_cursor cur);
 
         cpp_type_alias(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                        CXType type, cpp_type_ref target)

@@ -7,19 +7,57 @@
 #include <cassert>
 
 #include <standardese/detail/parse_utils.hpp>
-#include <standardese/detail/search_token.hpp>
+#include <standardese/detail/tokenizer.hpp>
 
 using namespace standardese;
 
 namespace
 {
-    cpp_type_ref parse_variable_type(cpp_cursor cur, const cpp_name &name, std::string &initializer)
+    cpp_type_ref parse_variable_type(translation_unit &tu, cpp_cursor cur,
+                                     const cpp_name &name, std::string &initializer,
+                                     bool &is_thread_local, bool &is_mutable)
     {
         assert(clang_getCursorKind(cur) == CXCursor_VarDecl
              || clang_getCursorKind(cur) == CXCursor_FieldDecl);
 
+        is_thread_local = is_mutable = false;
+
         auto type = clang_getCursorType(cur);
-        auto type_name = detail::parse_variable_type_name(cur, name, initializer);
+        cpp_name type_name;
+
+        detail::tokenizer tokenizer(tu, cur);
+        auto stream = detail::make_stream(tokenizer);
+
+        for (auto in_type = true, was_bitfield = false; stream.peek().get_value() != ";";)
+        {
+            if (detail::skip_if_token(stream, name.c_str())
+                || detail::skip_if_token(stream, "extern")
+                || detail::skip_if_token(stream, "static"))
+                // ignore
+                continue;
+            else if (detail::skip_if_token(stream, "thread_local"))
+                is_thread_local = true;
+            else if (detail::skip_if_token(stream, "mutable"))
+                is_mutable = true;
+            else if (detail::skip_if_token(stream, ":"))
+                was_bitfield = true;
+            else if (was_bitfield)
+            {
+                stream.bump();
+                was_bitfield = false;
+                detail::skip_whitespace(stream);
+            }
+            else if (detail::skip_if_token(stream, "="))
+                in_type = false;
+            else
+                (in_type ? type_name : initializer) += stream.get().get_value().c_str();
+        }
+
+        while (std::isspace(type_name.back()))
+            type_name.pop_back();
+
+        while (std::isspace(initializer.back()))
+            initializer.pop_back();
 
         return {type, std::move(type_name)};
     }
@@ -49,46 +87,36 @@ namespace
                 assert(false);
         }
     }
-
-    bool is_variable_thread_local(cpp_cursor cur, const cpp_name &name)
-    {
-        return detail::has_prefix_token(cur, "thread_local", name.c_str());
-    }
-
-    bool is_variable_mutable(cpp_cursor cur, const cpp_name &name)
-    {
-        return detail::has_prefix_token(cur, "mutable", name.c_str());
-    }
 }
 
-cpp_ptr<cpp_variable> cpp_variable::parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_variable> cpp_variable::parse(translation_unit &tu, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_VarDecl);
 
     auto name = detail::parse_name(cur);
 
     std::string initializer;
-    auto type = parse_variable_type(cur, name, initializer);
+    bool is_thread_local, is_mutable;
+    auto type = parse_variable_type(tu, cur, name, initializer, is_thread_local, is_mutable);
+    assert(!is_mutable);
 
     auto linkage = convert_linkage(is_variable_static_class(cur), type.get_type(), clang_Cursor_getStorageClass(cur));
-    auto is_thread_local = is_variable_thread_local(cur, name);
 
     return detail::make_ptr<cpp_variable>(std::move(scope), std::move(name), detail::parse_comment(cur),
                                           std::move(type), std::move(initializer), linkage, is_thread_local);
 }
 
-cpp_ptr<cpp_member_variable> cpp_member_variable::parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_member_variable> cpp_member_variable::parse(translation_unit &tu, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_FieldDecl);
 
     auto name = detail::parse_name(cur);
 
     std::string initializer;
-    auto type = parse_variable_type(cur, name, initializer);
+    bool is_thread_local, is_mutable;
+    auto type = parse_variable_type(tu, cur, name, initializer, is_thread_local, is_mutable);
 
     auto linkage = convert_linkage(false, type.get_type(), clang_Cursor_getStorageClass(cur));
-    auto is_thread_local = is_variable_thread_local(cur, name);
-    auto is_mutable = is_variable_mutable(cur, name);
 
     if (clang_Cursor_isBitField(cur))
     {

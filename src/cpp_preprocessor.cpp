@@ -7,43 +7,72 @@
 #include <cassert>
 
 #include <standardese/detail/parse_utils.hpp>
-#include <standardese/detail/search_token.hpp>
+#include <standardese/detail/tokenizer.hpp>
 
 using namespace standardese;
 
-cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(cpp_cursor cur)
+cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit &, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_InclusionDirective);
 
-    kind k = local; // set to local because " isn't reached in the tokens
-    auto found = false;
-    detail::visit_tokens(cur, [&](CXToken, const string &spelling)
-    {
-        if (found)
-        {
-            if (spelling == "<")
-                k = system;
-            else if (spelling == "\"")
-                k = local;
+    auto source = detail::tokenizer::read_source(cur);
 
-            return false;
-        }
-        else if (spelling == "include")
-            found = true;
+    auto i = 1u; // skip #
+    while (std::isspace(source[i]))
+        ++i;
 
-        return true;
-    });
+    i += std::strlen("include");
+    while (std::isspace(source[i]))
+        ++i;
+
+    auto k = source[i] == '<' ? kind::system : kind::local;
 
     return detail::make_ptr<cpp_inclusion_directive>(detail::parse_name(cur), detail::parse_comment(cur), k);
 }
 
-cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(cpp_cursor cur)
+cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit &, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_MacroDefinition);
 
+    auto source = detail::tokenizer::read_source(cur);
+
     auto name = detail::parse_name(cur);
+    auto i = name.size();
+    while (std::isspace(source[i]))
+        ++i;
+
+    // arguments
     std::string args;
-    auto rep = detail::parse_macro_replacement(cur, name, args);
+    if (source[i] == '(')
+    {
+        args += "(";
+        ++i;
+
+        auto bracket_count = 1;
+        while (bracket_count != 0)
+        {
+            auto spelling = source[i];
+            ++i;
+
+            if (spelling == '(')
+                ++bracket_count;
+            else if (spelling == ')')
+                --bracket_count;
+
+            args += spelling;
+        }
+
+        while (std::isspace(source[i]))
+            ++i;
+    }
+
+    // replacement
+    std::string rep;
+    while (i < source.size())
+        rep += source[i++];
+
+    while (std::isspace(rep.back()))
+        rep.pop_back();
 
     return detail::make_ptr<cpp_macro_definition>(std::move(name), detail::parse_comment(cur),
                                                   std::move(args), std::move(rep));

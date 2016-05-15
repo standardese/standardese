@@ -22,7 +22,7 @@ namespace standardese
             local
         };
 
-        static cpp_ptr<cpp_inclusion_directive> parse(cpp_cursor cur);
+        static cpp_ptr<cpp_inclusion_directive> parse(translation_unit &tu,  cpp_cursor cur);
 
         cpp_inclusion_directive(cpp_name file_name, cpp_raw_comment comment, kind k)
         : cpp_entity(inclusion_directive_t, "", std::move(file_name), std::move(comment)),
@@ -41,7 +41,7 @@ namespace standardese
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_macro_definition> parse(cpp_cursor cur);
+        static cpp_ptr<cpp_macro_definition> parse(translation_unit &tu,  cpp_cursor cur);
 
         cpp_macro_definition(cpp_name name, cpp_raw_comment c,
                              std::string args, std::string rep)

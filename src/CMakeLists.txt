@@ -4,8 +4,9 @@
 
 set(detail_header
         ../include/standardese/detail/parse_utils.hpp
-        ../include/standardese/detail/search_token.hpp
+        ../include/standardese/detail/sequence_stream.hpp
         ../include/standardese/detail/synopsis_utils.hpp
+        ../include/standardese/detail/tokenizer.hpp
         ../include/standardese/detail/wrapper.hpp)
 set(header
         ../include/standardese/comment.hpp
@@ -28,6 +29,7 @@ set(header
 set(src
         detail/parse_utils.cpp
         detail/synopsis_utils.cpp
+        detail/tokenizer.cpp
         comment.cpp
         cpp_class.cpp
         cpp_enum.cpp
@@ -59,3 +61,9 @@ target_compile_definitions(standardese_library PUBLIC
 # link libclang
 target_include_directories(standardese_library PUBLIC ${LIBCLANG_INCLUDE_DIR})
 target_link_libraries(standardese_library PUBLIC ${LIBCLANG_LIBRARY})
+
+# link Boost
+find_package(Boost COMPONENTS wave REQUIRED)
+target_include_directories(standardese_library PUBLIC ${Boost_INCLUDE_DIR})
+target_link_libraries(standardese_library PUBLIC ${Boost_LIBRARIES})
+

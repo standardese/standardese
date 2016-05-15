@@ -21,7 +21,7 @@ namespace standardese
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_variable> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<cpp_variable> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
         cpp_variable(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                      cpp_type_ref type, std::string initializer,
@@ -64,7 +64,7 @@ namespace standardese
     : public cpp_variable
     {
     public:
-        static cpp_ptr<cpp_member_variable> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<cpp_member_variable> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
         cpp_member_variable(cpp_name scope, cpp_name name, cpp_raw_comment comment,
                          cpp_type_ref type, std::string initializer,

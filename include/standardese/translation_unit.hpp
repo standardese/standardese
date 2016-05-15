@@ -24,6 +24,24 @@ namespace standardese
         friend class translation_unit;
     };
 
+    namespace detail
+    {
+        // wrapper for the pimpl of translation_unit
+        // this prevents writing move ctors for translation_unit
+        struct context_impl
+        {
+            context_impl() STANDARDESE_NOEXCEPT = default;
+            context_impl(context_impl &&other) STANDARDESE_NOEXCEPT;
+            ~context_impl() STANDARDESE_NOEXCEPT;
+            context_impl& operator=(context_impl &&other) STANDARDESE_NOEXCEPT;
+
+            struct impl;
+            std::unique_ptr<impl> pimpl;
+        };
+
+        context_impl& get_context_impl(translation_unit &tu);
+    } // namespace detail
+
     class translation_unit
     {
     public:
@@ -52,7 +70,7 @@ namespace standardese
             clang_visitChildren(clang_getTranslationUnitCursor(tu_.get()), visitor_impl, &data);
         }
 
-        cpp_file& build_ast() const;
+        cpp_file& build_ast();
 
         const char* get_path() const STANDARDESE_NOEXCEPT
         {
@@ -61,11 +79,16 @@ namespace standardese
 
         CXFile get_cxfile() const STANDARDESE_NOEXCEPT;
 
+        const parser& get_parser() const STANDARDESE_NOEXCEPT
+        {
+            return *parser_;
+        }
+
     private:
         translation_unit(const parser &par, CXTranslationUnit tu, const char *path);
 
         class scope_stack;
-        CXChildVisitResult parse_visit(scope_stack &stack, CXCursor cur, CXCursor parent) const;
+        CXChildVisitResult parse_visit(scope_stack &stack, CXCursor cur, CXCursor parent);
 
         struct deleter
         {
@@ -74,9 +97,11 @@ namespace standardese
 
         detail::wrapper<CXTranslationUnit, deleter> tu_;
         std::string path_;
+        detail::context_impl impl_;
         const parser *parser_;
 
         friend parser;
+        friend detail::context_impl& detail::get_context_impl(translation_unit &tu);
     };
 } // namespace standardese
 

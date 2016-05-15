@@ -46,7 +46,7 @@ namespace standardese
     : public cpp_parameter_base
     {
     public:
-        static cpp_ptr<cpp_template_parameter> try_parse(cpp_cursor cur);
+        static cpp_ptr<standardese::cpp_template_parameter> try_parse(translation_unit &tu, cpp_cursor cur);
 
         bool is_variadic() const STANDARDESE_NOEXCEPT
         {
@@ -67,7 +67,7 @@ namespace standardese
     : public cpp_template_parameter
     {
     public:
-        static cpp_ptr<cpp_template_type_parameter> parse(cpp_cursor cur);
+        static cpp_ptr<cpp_template_type_parameter> parse(translation_unit &tu,  cpp_cursor cur);
 
         cpp_template_type_parameter(cpp_name name, cpp_raw_comment comment,
                                     cpp_type_ref def, bool is_variadic)
@@ -93,7 +93,7 @@ namespace standardese
     : public cpp_template_parameter
     {
     public:
-        static cpp_ptr<cpp_non_type_template_parameter> parse(cpp_cursor cur);
+        static cpp_ptr<cpp_non_type_template_parameter> parse(translation_unit &tu,  cpp_cursor cur);
 
         cpp_non_type_template_parameter(cpp_name name, cpp_raw_comment comment,
                                         cpp_type_ref type, std::string default_value,
@@ -126,7 +126,7 @@ namespace standardese
     : public cpp_template_parameter, public cpp_entity_container<cpp_template_parameter>
     {
     public:
-        static cpp_ptr<cpp_template_template_parameter> parse(cpp_cursor cur);
+        static cpp_ptr<cpp_template_template_parameter> parse(translation_unit &tu,  cpp_cursor cur);
 
         cpp_template_template_parameter(cpp_name name, cpp_raw_comment comment,
                                         cpp_template_ref def, bool is_variadic)
@@ -155,7 +155,7 @@ namespace standardese
 
     /// Returns whether cur refers to a full specialization of a template.
     /// cur must refer to a class or function.
-    bool is_full_specialization(cpp_cursor cur);
+    bool is_full_specialization(translation_unit &tu, cpp_cursor cur);
 
     class cpp_function_base;
 
@@ -163,7 +163,7 @@ namespace standardese
     : public cpp_entity, private cpp_entity_container<cpp_template_parameter>
     {
     public:
-        static cpp_ptr<cpp_function_template> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<cpp_function_template> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
         cpp_function_template(cpp_name template_name, cpp_ptr<cpp_function_base> ptr);
 
@@ -190,7 +190,7 @@ namespace standardese
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_function_template_specialization> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_ptr<cpp_function_template_specialization> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
         cpp_function_template_specialization(cpp_name template_name, cpp_ptr<cpp_function_base> ptr);
 
@@ -216,7 +216,7 @@ namespace standardese
         class parser : public cpp_entity_parser
         {
         public:
-            parser(cpp_name scope, cpp_cursor cur);
+            parser(translation_unit &tu, cpp_name scope, cpp_cursor cur);
 
             void add_entity(cpp_entity_ptr ptr) override
             {
@@ -265,7 +265,7 @@ namespace standardese
         class parser : public cpp_entity_parser
         {
         public:
-            parser(cpp_name scope, cpp_cursor cur);
+            parser(translation_unit &p, cpp_name scope, cpp_cursor cur);
 
             void add_entity(cpp_entity_ptr ptr) override
             {
@@ -312,7 +312,7 @@ namespace standardese
         class parser : public cpp_entity_parser
         {
         public:
-            parser(cpp_name scope, cpp_cursor cur);
+            parser(translation_unit &tu, cpp_name scope, cpp_cursor cur);
 
             void add_entity(cpp_entity_ptr ptr) override
             {
