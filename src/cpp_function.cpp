@@ -37,6 +37,9 @@ namespace
         while (std::isspace(type_name.back()))
             type_name.pop_back();
 
+        while (std::isspace(default_value.back()))
+            default_value.pop_back();
+
         return {type, std::move(type_name)};
     }
 }
