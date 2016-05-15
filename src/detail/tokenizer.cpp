@@ -72,6 +72,21 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
     std::string result(end_offset - begin_offset, '\0');
     buf.sgetn(&result[0], result.size());
 
+    // awesome libclang bug:
+    // if there is a macro expansion at the end, the closing bracket is missing
+    // ie.: using foo = IMPL_DEFINED(bar
+    // go backwards, if a '(' is found before a ')', append a ')'
+    for (auto iter = result.rbegin(); iter != result.rend(); ++iter)
+    {
+        if (*iter == ')')
+            break;
+        else if (*iter == '(')
+        {
+            result += ')';
+            break;
+        }
+    }
+
     return result;
 }
 
@@ -79,6 +94,6 @@ detail::tokenizer::tokenizer(translation_unit &tu, cpp_cursor cur)
 : source_(read_source(cur)), impl_(&tu.get_preprocessing_context())
 {
     // append trailing newline
-    // required for Boost.Wave
+    // required for parsing code
     source_ += '\n';
 }
