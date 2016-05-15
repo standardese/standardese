@@ -29,7 +29,13 @@ translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, cons
 : tu_(tu), path_(path),
   context_(new detail::context(path_.end(), path_.end(), path)), // initialize with empty range
   parser_(&par)
-{}
+{
+    using namespace boost::wave;
+
+    auto lang = support_cpp | support_option_variadics | support_option_long_long
+                | support_option_insert_whitespace;
+    context_->set_language(language_support(lang));
+}
 
 class translation_unit::scope_stack
 {
@@ -145,6 +151,19 @@ void translation_unit::deleter::operator()(CXTranslationUnit tu) const STANDARDE
     clang_disposeTranslationUnit(tu);
 }
 
+namespace
+{
+    void add_macro_definition(translation_unit &tu, detail::context &context, cpp_cursor definition)
+    {
+        auto macro = cpp_macro_definition::parse(tu, definition);
+
+        auto string = macro->get_name() + macro->get_argument_string()
+                      + "=" + macro->get_replacement();
+        std::cerr << string << '\n';
+        context.add_macro_definition(std::move(string));
+    }
+}
+
 CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cur, CXCursor parent)
 {
     stack.pop_if_needed(parent, *parser_);
@@ -166,12 +185,8 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
             stack.add_entity(cpp_macro_definition::parse(*this, cur));
             return CXChildVisit_Continue;
         case CXCursor_MacroExpansion:
-        {
-            auto macro = cpp_macro_definition::parse(*this, clang_getCursorReferenced(cur));
-            context_->add_macro_definition(macro->get_name() + macro->get_argument_string()
-                                           + "=" + macro->get_replacement());
+            add_macro_definition(*this, *context_, clang_getCursorReferenced(cur));
             return CXChildVisit_Continue;
-        }
 
         case CXCursor_Namespace:
             stack.push_container(detail::make_ptr<cpp_namespace::parser>(*this, scope, cur), parent);
