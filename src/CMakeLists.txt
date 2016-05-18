@@ -51,12 +51,17 @@ comp_target_features(standardese_library PUBLIC
                      cpp11_lang/noexcept
                      PREFIX "STANDARDESE_" NAMESPACE "standardese_comp")
 target_include_directories(standardese_library PUBLIC
-                                $<BUILD_INTERFACE:${STANDARDESE_SOURCE_DIR}/include>)
+                                $<BUILD_INTERFACE:${STANDARDESE_SOURCE_DIR}/include>
+                                $<BUILD_INTERFACE:${SPDLOG_INCLUDE_DIR}>)
 target_compile_definitions(standardese_library PUBLIC
                                 STANDARDESE=1
                                 STANDARDESE_VERSION_MAJOR=${STANDARDESE_VERSION_MAJOR}
                                 STANDARDESE_VERSION_MINOR=${STANDARDESE_VERSION_MINOR}
                                 LIBCLANG_SYSTEM_INCLUDE_DIR="${LIBCLANG_SYSTEM_INCLUDE_DIR}")
+
+# add threading support
+find_package(Threads REQUIRED)
+target_link_libraries(standardese_library PUBLIC Threads::Threads)
 
 # link libclang
 target_include_directories(standardese_library PUBLIC ${LIBCLANG_INCLUDE_DIR})
