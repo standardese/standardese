@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include <spdlog/logger.h>
+
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/cpp_entity.hpp>
 
@@ -57,6 +59,8 @@ namespace standardese
     public:
         parser();
 
+        explicit parser(std::shared_ptr<spdlog::logger> logger);
+
         parser(parser&&) = delete;
         parser(const parser&) = delete;
 
@@ -69,6 +73,11 @@ namespace standardese
         translation_unit parse(const char *path, const compile_config &c) const;
 
         void register_file(cpp_ptr<cpp_file> file) const;
+
+        const std::shared_ptr<spdlog::logger>& get_logger() const STANDARDESE_NOEXCEPT
+        {
+            return logger_;
+        }
 
         // void(const cpp_file &file)
         template <typename Fnc>
@@ -159,6 +168,7 @@ namespace standardese
         struct impl;
 
         detail::wrapper<CXIndex, deleter> index_;
+        std::shared_ptr<spdlog::logger> logger_;
         std::unique_ptr<impl> pimpl_;
     };
 } // namespace standardese

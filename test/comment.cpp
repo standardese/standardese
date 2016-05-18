@@ -6,13 +6,18 @@
 
 #include <catch.hpp>
 
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/null_sink.h>
+
 using namespace standardese;
 
 TEST_CASE("comment", "[doc]")
 {
+    auto log = std::make_shared<spdlog::logger>("test logger", std::make_shared<spdlog::sinks::null_sink_st>());
+
     SECTION("simple parsing")
     {
-        comment::parser p("", R"(/// Hello World.)");
+        comment::parser p(log, "", R"(/// Hello World.)");
         auto comment = p.finish();
         auto sections = comment.get_sections();
         REQUIRE(sections.size() == 1u);
@@ -23,11 +28,11 @@ TEST_CASE("comment", "[doc]")
     }
     SECTION("multiple sections explicit")
     {
-        comment::parser p("", R"(/// \brief A
-                                 ///
-                                 /// \details B
-                                 /// C /// C
-                                )");
+        comment::parser p(log, "", R"(/// \brief A
+                                      ///
+                                      /// \details B
+                                      /// C /// C
+                                     )");
         auto comment = p.finish();
         auto sections = comment.get_sections();
         REQUIRE(sections.size() == 3u);
@@ -46,10 +51,10 @@ TEST_CASE("comment", "[doc]")
     }
     SECTION("multiple sections implicit")
     {
-        comment::parser p("", R"(/// A
-                                 ///
-                                 /// B
-                                 /// C
+        comment::parser p(log, "", R"(/// A
+                                      ///
+                                      /// B
+                                      /// C
                                 )");
         auto comment = p.finish();
         auto sections = comment.get_sections();
@@ -69,10 +74,10 @@ TEST_CASE("comment", "[doc]")
     }
     SECTION("cherry pick other commands")
     {
-        comment::parser p("", R"(/// \effects A A
-                                 /// A A
-                                 /// \returns B B
-                                 /// \error_conditions C C)");
+        comment::parser p(log, "", R"(/// \effects A A
+                                      /// A A
+                                      /// \returns B B
+                                      /// \error_conditions C C)");
 
         auto comment = p.finish();
         auto sections = comment.get_sections();

@@ -5,7 +5,6 @@
 #include <standardese/comment.hpp>
 
 #include <cassert>
-#include <iostream>
 #include <unordered_map>
 
 #include <standardese/detail/sequence_stream.hpp>
@@ -66,11 +65,6 @@ namespace
             str.erase(end);
         str.erase(0, start);
     }
-
-    void parse_error(const char *entity_name, unsigned line, const std::string &message)
-    {
-        std::cerr << entity_name << ':' << line << ": comment parse error: " << message << '\n';
-    }
 }
 
 void comment::parser::set_command_character(char c)
@@ -111,7 +105,8 @@ void comment::parser::set_section_name(const std::string &type, std::string name
     section_names[int(iter->second)] = std::move(name);
 }
 
-comment::parser::parser(const char *entity_name, const cpp_raw_comment &raw_comment)
+comment::parser::parser(std::shared_ptr<spdlog::logger> logger,
+                        const char *entity_name, const cpp_raw_comment &raw_comment)
 {
     detail::sequence_stream<cpp_raw_comment::const_iterator> stream(raw_comment, '\n');
     auto cur_section_t = section_type::brief;
@@ -159,8 +154,7 @@ comment::parser::parser(const char *entity_name, const cpp_raw_comment &raw_comm
 
             auto type = parse_section_name(section_name);
             if (type == section_type::invalid)
-                parse_error(entity_name, line,
-                            "invalid section name '" + section_name + "'");
+                logger->error("in comment of {}:{}: invalid section name '{}'", entity_name, line, section_name);
             else
             {
                 finish_section();

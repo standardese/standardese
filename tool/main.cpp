@@ -229,7 +229,7 @@ int main(int argc, char** argv)
 
         for (auto& path : input)
         {
-            parser parser;
+            parser parser(log);
 
             auto handle = [&](const fs::path &p)
             {
@@ -240,7 +240,7 @@ int main(int argc, char** argv)
 
                 file_output file(p.stem().generic_string() + ".md");
                 markdown_output out(file);
-                generate_doc_file(out, f);
+                generate_doc_file(parser, out, f);
             };
 
             auto res = standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir, handle);

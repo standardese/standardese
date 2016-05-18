@@ -4,7 +4,6 @@
 
 #include <standardese/translation_unit.hpp>
 
-#include <iostream>
 #include <vector>
 
 #include <standardese/detail/tokenizer.hpp>
@@ -324,7 +323,7 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         default:
         {
             string str(clang_getCursorKindSpelling(kind));
-            std::cerr << "Unknown cursor kind: " << str << '\n';
+            parser_->get_logger()->warn("Unknown cursor kind \'{}\'", str);
             break;
         }
     }

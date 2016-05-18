@@ -9,6 +9,7 @@
 #include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_template.hpp>
+#include <standardese/parser.hpp>
 #include <standardese/synopsis.hpp>
 
 using namespace standardese;
@@ -24,7 +25,7 @@ namespace
             || t == cpp_entity::using_directive_t;
     }
 
-    void dispatch(output_base &output, unsigned level, const cpp_entity &e)
+    void dispatch(const parser &p, output_base &output, unsigned level, const cpp_entity &e)
     {
         if (is_blacklisted(e.get_entity_type()))
             return;
@@ -33,16 +34,16 @@ namespace
         {
             case cpp_entity::namespace_t:
                 for (auto& child : static_cast<const cpp_namespace &>(e))
-                    dispatch(output, level, child);
+                    dispatch(p, output, level, child);
                 break;
 
             #define STANDARDESE_DETAIL_HANDLE(name, ...) \
                 case cpp_entity::name##_t: \
                     if (e.get_comment().empty()) \
                         break; \
-                    generate_doc_entity(output, level, e); \
+                    generate_doc_entity(p, output, level, e); \
                     for (auto& child : static_cast<const cpp_##name &>(e)__VA_ARGS__) \
-                        dispatch(output, level + 1, child); \
+                        dispatch(p, output, level + 1, child); \
                     output.write_seperator(); \
                     break;
 
@@ -60,7 +61,7 @@ namespace
 
             default:
                 if (!e.get_comment().empty())
-                    generate_doc_entity(output, level, e);
+                    generate_doc_entity(p, output, level, e);
                 break;
         }
     }
@@ -139,7 +140,9 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
     return "should never get here";
 }
 
-void standardese::generate_doc_entity(output_base &output, unsigned level, const cpp_entity &e)
+void standardese::generate_doc_entity(const parser &p,
+                                      output_base &output, unsigned level,
+                                      const cpp_entity &e)
 {
     auto type = get_entity_type_spelling(e.get_entity_type());
 
@@ -148,7 +151,7 @@ void standardese::generate_doc_entity(output_base &output, unsigned level, const
 
     write_synopsis(output, e);
 
-    auto comment = comment::parser(e).finish();
+    auto comment = comment::parser(p.get_logger(), e).finish();
 
     auto last_type = section_type::brief;
     output_base::paragraph_writer writer(output);
@@ -166,10 +169,10 @@ void standardese::generate_doc_entity(output_base &output, unsigned level, const
     }
 }
 
-void standardese::generate_doc_file(output_base &output, const cpp_file &f)
+void standardese::generate_doc_file(const parser &p, output_base &output, const cpp_file &f)
 {
-    generate_doc_entity(output, 1, f);
+    generate_doc_entity(p, output, 1, f);
 
     for (auto& e : f)
-        dispatch(output, 2, e);
+        dispatch(p, output, 2, e);
 }
