@@ -10,6 +10,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include <standardese/comment.hpp>
 #include <standardese/generator.hpp>
 #include <standardese/parser.hpp>
@@ -112,6 +114,9 @@ standardese::compile_config parse_config(const po::variables_map &map)
 
 int main(int argc, char** argv)
 {
+    auto log = spdlog::stdout_logger_mt("standardese_log", true);
+    log->set_pattern("[%l] %v");
+
     po::options_description generic("Generic options"), configuration("Configuration");
     generic.add_options()
             ("version,v", "prints version information and exits")
@@ -193,7 +198,7 @@ int main(int argc, char** argv)
     }
     catch (std::exception &ex)
     {
-        std::cerr << "Error: " << ex.what() << '\n';
+        log->critical(ex.what());
         print_usage(argv[0], generic, configuration);
         return 1;
     }
@@ -204,8 +209,7 @@ int main(int argc, char** argv)
         print_version(argv[0]);
     else if (map.count("input-files") == 0u)
     {
-        std::cerr << "Error: no input file specified\n";
-        std::cerr << '\n';
+        log->critical("no input file(s) specified");
         print_usage(argv[0], generic, configuration);
         return 1;
     }
@@ -229,7 +233,7 @@ int main(int argc, char** argv)
 
             auto handle = [&](const fs::path &p)
             {
-                std::clog << "Generating documentation for " << p << "...\n";
+                log->info() << "Generating documentation for " << p << "...";
 
                 auto tu = parser.parse(p.generic_string().c_str(), config);
                 auto& f = tu.build_ast();
@@ -248,7 +252,7 @@ int main(int argc, char** argv)
     }
     catch (std::exception &ex)
     {
-        std::cerr << "Error: " << ex.what() << '\n';
+        log->critical(ex.what());
         return 1;
     }
 }
