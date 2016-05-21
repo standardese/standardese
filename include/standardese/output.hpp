@@ -14,8 +14,20 @@
 
 namespace standardese
 {
-    const struct newl_t {} newl;
-    const struct blankl_t {} blankl;
+    namespace detail
+    {
+        struct newl_t
+        {
+            constexpr newl_t(){};
+        };
+        struct blankl_t
+        {
+            constexpr blankl_t(){};
+        };
+    }
+
+    constexpr detail::newl_t newl;
+    constexpr detail::blankl_t blankl;
 
     class output_base
     {
@@ -78,13 +90,13 @@ namespace standardese
                 return *this << std::to_string(value);
             }
 
-            writer& operator<<(newl_t)
+            writer& operator<<(detail::newl_t)
             {
                 output_.get_output().write_new_line();
                 return *this;
             }
 
-            writer& operator<<(blankl_t)
+            writer& operator<<(detail::blankl_t)
             {
                 output_.get_output().write_blank_line();
                 return *this;
