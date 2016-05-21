@@ -220,8 +220,12 @@ namespace
     {
         name += "<";
         auto needs_comma = false;
+
         for (auto& param : result->get_template_parameters())
         {
+            if (param.get_name().empty())
+                continue;
+
             if (needs_comma)
                 name += ", ";
             else
