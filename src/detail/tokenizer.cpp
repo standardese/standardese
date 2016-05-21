@@ -55,8 +55,8 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
     // translate location into offset and file
     CXFile file;
     unsigned begin_offset = 0u, end_offset = 0u;
-    clang_getFileLocation(begin, &file, nullptr, nullptr, &begin_offset);
-    clang_getFileLocation(end, nullptr, nullptr, nullptr, &end_offset);
+    clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
+    clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
     assert(end_offset > begin_offset);
 
     // open file buffer
