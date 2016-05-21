@@ -12,6 +12,7 @@
 
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_type.hpp>
+#include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
 #include <standardese/string.hpp>
 
@@ -80,7 +81,10 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
     {
         auto error = CXCompilationDatabase_NoError;
         database db(clang_CompilationDatabase_fromDirectory(c.commands_dir.c_str(), &error));
-        assert(error == CXCompilationDatabase_NoError);
+        if (error != CXCompilationDatabase_NoError)
+            throw libclang_error(error == CXCompilationDatabase_CanNotLoadDatabase ? CXError_InvalidArguments
+                                                                                   : CXError_Failure,
+                                 "CXCompilationDatabase (" + c.commands_dir + ")");
 
         commands cmds(clang_CompilationDatabase_getAllCompileCommands(db.get()));
         auto num = clang_CompileCommands_getSize(cmds.get());
@@ -117,8 +121,12 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
     for (auto& o : c.options)
         args.push_back(o.c_str());
 
-    auto tu = clang_parseTranslationUnit(index_.get(), path, args.data(), args.size(), nullptr, 0,
-                                         CXTranslationUnit_Incomplete | CXTranslationUnit_DetailedPreprocessingRecord);
+    CXTranslationUnit tu;
+    auto error = clang_parseTranslationUnit2(index_.get(), path, args.data(), args.size(), nullptr, 0,
+                                         CXTranslationUnit_Incomplete | CXTranslationUnit_DetailedPreprocessingRecord,
+                                         &tu);
+    if (error != CXError_Success)
+        throw libclang_error(error, "CXTranslationUnit (" + std::string(path) + ")");
 
     return translation_unit(*this, tu, path);
 }

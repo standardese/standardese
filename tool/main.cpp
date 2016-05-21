@@ -13,6 +13,7 @@
 #include <spdlog/spdlog.h>
 
 #include <standardese/comment.hpp>
+#include <standardese/error.hpp>
 #include <standardese/generator.hpp>
 #include <standardese/parser.hpp>
 
@@ -235,12 +236,19 @@ int main(int argc, char** argv)
             {
                 log->info() << "Generating documentation for " << p << "...";
 
-                auto tu = parser.parse(p.generic_string().c_str(), config);
-                auto& f = tu.build_ast();
+                try
+                {
+                    auto tu = parser.parse(p.generic_string().c_str(), config);
+                    auto& f = tu.build_ast();
 
-                file_output file(p.stem().generic_string() + ".md");
-                markdown_output out(file);
-                generate_doc_file(parser, out, f);
+                    file_output file(p.stem().generic_string() + ".md");
+                    markdown_output out(file);
+                    generate_doc_file(parser, out, f);
+                }
+                catch (libclang_error &ex)
+                {
+                    log->error("libclang error on {}", ex.what());
+                }
             };
 
             auto res = standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir, handle);

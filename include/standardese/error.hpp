@@ -13,6 +13,21 @@
 
 namespace standardese
 {
+    class libclang_error
+    : public std::runtime_error
+    {
+    public:
+        libclang_error(CXErrorCode error, std::string type);
+
+        CXErrorCode error_code() const STANDARDESE_NOEXCEPT
+        {
+            return error_;
+        }
+
+    private:
+        CXErrorCode error_;
+    };
+
     struct source_location
     {
         std::string entity_name, file_name;
