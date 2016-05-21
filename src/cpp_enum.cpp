@@ -22,10 +22,11 @@ namespace
 
         detail::tokenizer tokenizer(tu, cur);
         auto stream = detail::make_stream(tokenizer);
+        source_location location(clang_getCursorLocation(cur), name);
 
         cpp_name underlying;
 
-        detail::skip(stream, {"enum"});
+        detail::skip(stream, location, {"enum"});
 
         if (stream.peek().get_value() == "class")
         {
@@ -34,7 +35,7 @@ namespace
             is_scoped = true;
         }
 
-        detail::skip(stream, {name.c_str()});
+        detail::skip(stream, location, {name.c_str()});
 
         if (stream.peek().get_value() == ":")
         {

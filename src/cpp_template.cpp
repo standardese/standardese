@@ -9,6 +9,7 @@
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/cpp_function.hpp>
+#include <standardese/error.hpp>
 #include <standardese/string.hpp>
 
 using namespace standardese;
@@ -47,12 +48,17 @@ cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translat
     auto stream = detail::make_stream(tokenizer);
 
     auto name = detail::parse_name(cur);
+    source_location location(clang_getCursorLocation(cur), name);
 
     // skip typename
     auto res = detail::skip_if_token(stream, "typename");
     if (!res)
+    {
         res = detail::skip_if_token(stream, "class");
-    assert(res);
+        if (!res)
+            throw parse_error(location,
+                              "unexpected token \'" + std::string(stream.peek().get_value().c_str()) + "\'");
+    }
 
     // variadic parameter
     auto is_variadic = false;
@@ -65,7 +71,7 @@ cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translat
 
     // skip name
     if (!name.empty())
-        detail::skip(stream, {name.c_str()});
+        detail::skip(stream, location, {name.c_str()});
 
     // default
     cpp_name def_name;
@@ -94,6 +100,7 @@ cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
     auto stream = detail::make_stream(tokenizer);
 
     auto name = detail::parse_name(cur);
+    source_location location(clang_getCursorLocation(cur), name);
 
     // given type
     cpp_name type_given;
@@ -112,7 +119,7 @@ cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
 
     // skip name
     if (!name.empty())
-        detail::skip(stream, {name.c_str()});
+        detail::skip(stream, location, {name.c_str()});
 
     // continue with type
     while (!stream.done() && stream.peek().get_value() != "=")
@@ -236,6 +243,7 @@ namespace
 
         detail::tokenizer tokenizer(tu, cur);
         auto stream = detail::make_stream(tokenizer);
+        source_location location(clang_getCursorLocation(cur), name);
 
         while (stream.get().get_value() != name.c_str())
             ;
@@ -243,7 +251,7 @@ namespace
         auto result = name + "<";
 
         auto bracket_count = 1;
-        detail::skip(stream, "<");
+        detail::skip(stream, location, "<");
         while (bracket_count == 1)
         {
             auto spelling = stream.get().get_value();

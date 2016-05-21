@@ -19,18 +19,19 @@ void detail::skip_whitespace(token_stream &stream)
         stream.bump();
 }
 
-void detail::skip(token_stream &stream, const char *value)
+void detail::skip(token_stream &stream, const source_location &location, const char *value)
 {
     auto& val = stream.peek();
-    assert(val.get_value() == value);
+    if (val.get_value() != value)
+        throw parse_error(location, std::string("expected \'") + value + "\' got \'" + val.get_value().c_str() + "\'");
     stream.bump();
 }
 
-void detail::skip(token_stream &stream, std::initializer_list<const char *> values)
+void detail::skip(token_stream &stream, const source_location &location, std::initializer_list<const char *> values)
 {
     for (auto val : values)
     {
-        skip(stream, val);
+        skip(stream, location, val);
         skip_whitespace(stream);
     }
 }
