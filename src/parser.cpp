@@ -110,6 +110,7 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
             auto no_args = clang_CompileCommand_getNumArgs(cmd);
 
             auto was_ignored = false;
+            std::string cur;
             for (auto j = 1u; j != no_args; ++j)
             {
                 string str(clang_CompileCommand_getArg(cmd, j));
@@ -119,11 +120,25 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
                     was_ignored = true;
                 else if (was_ignored)
                     was_ignored = false;
+                else if (*str == '-')
+                {
+                    // we have an option
+                    // store it to later append with parameter
+                    // but if there is no option, it will be non-empty on the next option
+                    if (!cur.empty())
+                    {
+                        db_args.insert(std::move(cur));
+                        cur.clear();
+                    }
+                    cur += str.get();
+                }
                 else
-                    db_args.insert(str.get());
+                {
+                    db_args.insert(cur + str.get());
+                    cur.clear();
+                }
             }
         }
-
 
         args.reserve(args.size() + db_args.size());
         for (auto &arg : db_args)
