@@ -71,10 +71,26 @@ namespace
     using commands = detail::wrapper<CXCompileCommands, commands_deleter>;
 }
 
+#define STANDARDESE_DETAIL_STRINGIFY_IMPL(x) #x
+#define STANDARDESE_DETAIL_STRINGIFY(x) STANDARDESE_DETAIL_STRINGIFY_IMPL(x)
+
 translation_unit parser::parse(const char *path, const compile_config &c) const
 {
-    const char* basic_args[] = {"-x", "c++", "-I", LIBCLANG_SYSTEM_INCLUDE_DIR};
+    // cmake sucks at string handling, so sometimes LIBCLANG_SYSTEM_INCLUDE_DIR isn't a string
+    // so we need to stringify it
+    // but if the argument was a string, libclang can't handle the double qoutes
+    // so unstringify it then at runtime (you can't do that in the preprocessor...)
+    const char* basic_args[] = {"-x", "c++", "-I", STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR)};
+
     std::vector<const char*> args(basic_args, basic_args + sizeof(basic_args) / sizeof(const char*));
+    std::string include_dir;
+    if (args.back()[0] == '"')
+    {
+        // unstringify
+        include_dir = args.back() + 1;
+        include_dir.pop_back();
+        args.back() = include_dir.c_str();
+    }
 
     std::set<std::string> db_args; // need std::string to own the arguments
     if (!c.commands_dir.empty())
