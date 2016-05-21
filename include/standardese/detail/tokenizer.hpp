@@ -13,6 +13,7 @@
 #include <boost/wave.hpp>
 
 #include <standardese/detail/sequence_stream.hpp>
+#include <standardese/error.hpp>
 #include <standardese/string.hpp>
 
 namespace standardese
@@ -31,20 +32,19 @@ namespace standardese { namespace detail
     void skip_whitespace(token_stream &stream);
 
     // skips "value" and asserts that it is actually there
-    void skip(token_stream &stream, const char *value);
+    void skip(token_stream &stream, const source_location &location, const char *value);
 
     // skips values and whitespace after each
-    void skip(token_stream &stream, std::initializer_list<const char *> values);
+    void skip(token_stream &stream, const source_location &location, std::initializer_list<const char *> values);
 
     bool skip_if_token(detail::token_stream &stream, const char *token);
 
     template <typename Func>
-    void skip_bracket_count(detail::token_stream &stream,
-                            const char *open, const char *close,
-                            Func f)
+    void skip_bracket_count(detail::token_stream &stream, const source_location &location,
+                            const char *open, const char *close, Func f)
     {
         detail::skip_whitespace(stream);
-        detail::skip(stream, open);
+        detail::skip(stream, location, open);
 
         auto bracket_count = 1;
         while (bracket_count != 0)
@@ -65,9 +65,11 @@ namespace standardese { namespace detail
     }
 
     inline void skip_bracket_count(detail::token_stream &stream,
-                            const char *open, const char *close)
+                                   const source_location &location,
+                                   const char *open, const char *close)
     {
-        skip_bracket_count(stream, open, close, [](const char *) {});
+        skip_bracket_count(stream, location, open, close,
+                            [](const char*){});
     }
 
     class tokenizer

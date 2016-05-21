@@ -8,6 +8,8 @@
 #include <mutex>
 #include <set>
 
+#include <spdlog/sinks/null_sink.h>
+
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_type.hpp>
 #include <standardese/translation_unit.hpp>
@@ -146,7 +148,11 @@ struct parser::impl
 };
 
 parser::parser()
-: index_(clang_createIndex(1, 1)), pimpl_(new impl)
+: parser(std::make_shared<spdlog::logger>("null", std::make_shared<spdlog::sinks::null_sink_mt>()))
+{}
+
+parser::parser(std::shared_ptr<spdlog::logger> logger)
+: index_(clang_createIndex(1, 1)), logger_(std::move(logger)), pimpl_(new impl)
 {}
 
 parser::~parser() STANDARDESE_NOEXCEPT {}

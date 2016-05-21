@@ -22,10 +22,11 @@ namespace
 
         detail::tokenizer tokenizer(tu, cur);
         auto stream = detail::make_stream(tokenizer);
+        source_location location(clang_getCursorLocation(cur), name);
 
         if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl)
         {
-            skip(stream, {"using", name.c_str(), "="});
+            skip(stream, location, {"using", name.c_str(), "="});
 
             while (stream.peek().get_value() != ";")
                 target_name += stream.get().get_value().c_str();
@@ -34,7 +35,7 @@ namespace
         {
             assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl);
 
-            skip(stream, {"typedef"});
+            skip(stream, location, {"typedef"});
 
             while (stream.peek().get_value() != ";")
             {

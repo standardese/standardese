@@ -34,6 +34,17 @@ if(NOT LIBCLANG_SYSTEM_INCLUDE_DIR)
     set(LIBCLANG_SYSTEM_INCLUDE_DIR "${LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL}/clang/3.7.1/include")
 endif()
 
+# add spdlog
+if((NOT SPDLOG_INCLUDE_DIR) OR (NOT EXISTS ${SPDLOG_INCLUDE_DIR}))
+    message("Unable to find spdlog, downloading...")
+    file(DOWNLOAD https://github.com/gabime/spdlog/archive/master.zip
+         ${CMAKE_CURRENT_BINARY_DIR}/spdlog.zip)
+    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf spdlog.zip
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+    set(SPDLOG_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/spdlog-master/include/
+        CACHE PATH "spdlog include directory")
+endif()
+
 # subdirectories
 add_subdirectory(src)
 if(STANDARDESE_BUILD_TOOL)

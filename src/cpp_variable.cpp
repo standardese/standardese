@@ -8,6 +8,7 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
+#include <standardese/error.hpp>
 
 using namespace standardese;
 
@@ -94,11 +95,13 @@ cpp_ptr<cpp_variable> cpp_variable::parse(translation_unit &tu, cpp_name scope, 
     assert(clang_getCursorKind(cur) == CXCursor_VarDecl);
 
     auto name = detail::parse_name(cur);
+    source_location location(clang_getCursorLocation(cur), name);
 
     std::string initializer;
     bool is_thread_local, is_mutable;
     auto type = parse_variable_type(tu, cur, name, initializer, is_thread_local, is_mutable);
-    assert(!is_mutable);
+    if (is_mutable)
+        throw parse_error(location, "non-member variable is mutable");
 
     auto linkage = convert_linkage(is_variable_static_class(cur), type.get_type(), clang_Cursor_getStorageClass(cur));
 

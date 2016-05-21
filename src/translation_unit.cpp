@@ -4,7 +4,6 @@
 
 #include <standardese/translation_unit.hpp>
 
-#include <iostream>
 #include <vector>
 
 #include <standardese/detail/tokenizer.hpp>
@@ -17,6 +16,7 @@
 #include <standardese/cpp_template.hpp>
 #include <standardese/cpp_type.hpp>
 #include <standardese/cpp_variable.hpp>
+#include <standardese/error.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/string.hpp>
 
@@ -202,7 +202,7 @@ namespace
     }
 }
 
-CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cur, CXCursor parent)
+CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cur, CXCursor parent) try
 {
     stack.pop_if_needed(parent, *parser_);
 
@@ -324,10 +324,17 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         default:
         {
             string str(clang_getCursorKindSpelling(kind));
-            std::cerr << "Unknown cursor kind: " << str << '\n';
+            parser_->get_logger()->warn("Unknown cursor kind \'{}\'", str);
             break;
         }
     }
 
-    return CXChildVisit_Recurse;
+    return CXChildVisit_Continue;
+}
+catch (parse_error &ex)
+{
+    parser_->get_logger()->error("when parsing {} ({}:{}): {}",
+                                 ex.get_location().entity_name, ex.get_location().file_name, ex.get_location().line,
+                                 ex.what());
+    return CXChildVisit_Continue;
 }

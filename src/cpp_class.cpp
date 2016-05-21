@@ -73,6 +73,7 @@ namespace
         detail::tokenizer tokenizer(tu, cur);
 
         auto stream = detail::make_stream(tokenizer);
+        source_location location(clang_getCursorLocation(cur), name);
 
         // handle extern templates
         if (detail::skip_if_token(stream, "extern"))
@@ -80,18 +81,18 @@ namespace
 
         if (detail::skip_if_token(stream, "template"))
         {
-            detail::skip_bracket_count(stream, "<", ">");
+            detail::skip_bracket_count(stream, location, "<", ">");
             detail::skip_whitespace(stream);
         }
 
         // skip class/struct/union/keyword and name
         stream.bump();
         detail::skip_whitespace(stream);
-        detail::skip(stream, {name.c_str()});
+        detail::skip(stream, location, {name.c_str()});
 
         if (stream.peek().get_value() == "<")
         {
-            detail::skip_bracket_count(stream, "<", ">");
+            detail::skip_bracket_count(stream, location, "<", ">");
             detail::skip_whitespace(stream);
         }
 

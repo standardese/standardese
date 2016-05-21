@@ -8,6 +8,7 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
+#include <standardese/error.hpp>
 
 using namespace standardese;
 
@@ -84,12 +85,12 @@ cpp_ptr<standardese::cpp_function_base> cpp_function_base::try_parse(translation
 
 namespace
 {
-    void skip_template_parameter_declaration(detail::token_stream &stream)
+    void skip_template_parameter_declaration(detail::token_stream &stream, const source_location &location)
     {
         if (stream.peek().get_value() == "template")
         {
             stream.bump();
-            skip_bracket_count(stream, "<", ">");
+            skip_bracket_count(stream, location, "<", ">");
             detail::skip_whitespace(stream);
         }
     }
@@ -150,20 +151,20 @@ namespace
         return return_type;
     }
 
-    void skip_template_arguments(detail::token_stream &stream)
+    void skip_template_arguments(detail::token_stream &stream, const source_location &location)
     {
         if (stream.peek().get_value() == "<")
-            skip_bracket_count(stream, "<", ">");
+            skip_bracket_count(stream, location, "<", ">");
     }
 
-    void skip_parameters(detail::token_stream &stream, bool &variadic)
+    void skip_parameters(detail::token_stream &stream, const source_location &location, bool &variadic)
     {
         variadic = false;
 
         // whether or not a variadic parameter can come
         // i.e. after first bracket or comma
         auto variadic_param = true;
-        skip_bracket_count(stream, "(", ")",
+        skip_bracket_count(stream, location, "(", ")",
                            [&](const char *spelling)
                            {
                                if (variadic_param && std::strcmp(spelling, "...") == 0)
@@ -233,7 +234,7 @@ namespace
 
     // return cpp_function_definition_normal for pure virtual
     // yes, this is hacky
-    cpp_function_definition parse_special_definition(detail::token_stream &stream)
+    cpp_function_definition parse_special_definition(detail::token_stream &stream, const source_location &location)
     {
         auto spelling = stream.get().get_value();
 
@@ -247,11 +248,10 @@ namespace
             // pure virtual function
             return cpp_function_definition_normal;
 
-        assert(false);
-        return cpp_function_definition_normal;
+        throw parse_error(location, std::string("unknown function definition \'= ") + spelling.c_str() + "\'");
     }
 
-    cpp_name parse_member_function_suffix(detail::token_stream &stream,
+    cpp_name parse_member_function_suffix(detail::token_stream &stream, const source_location &location,
                                     cpp_function_info &finfo, cpp_member_function_info &minfo)
     {
         cpp_name trailing_return_type;
@@ -267,11 +267,11 @@ namespace
                 // now come the arguments
                 trailing_return_type += ")(";
 
-                skip_bracket_count(stream, "(", ")",
-                                [&](const char *str)
-                                {
-                                    trailing_return_type += str;
-                                });
+                skip_bracket_count(stream, location, "(", ")",
+                                   [&](const char *str)
+                                   {
+                                       trailing_return_type += str;
+                                   });
             }
             else if (detail::skip_if_token(stream, "->"))
             {
@@ -300,13 +300,19 @@ namespace
                 finfo.explicit_noexcept = true;
                 finfo.noexcept_expression = parse_noexcept(stream);
             }
+            else if (!std::isspace(stream.peek().get_value()[0]))
+            {
+                auto str = stream.get().get_value();
+                throw parse_error(location, "unexpected token \'" + std::string(str.c_str()) + "\'");
+            }
             else
-                assert(std::isspace(stream.get().get_value()[0]));
+                // is whitespace, so consume
+                stream.get();
         }
 
         if (special_definition)
         {
-            auto res = parse_special_definition(stream);
+            auto res = parse_special_definition(stream, location);
             if (res == cpp_function_definition_normal)
                 minfo.virtual_flag = cpp_virtual_pure;
             else
@@ -316,24 +322,25 @@ namespace
         return trailing_return_type;
     }
 
-    cpp_type_ref parse_member_function(detail::token_stream &stream, cpp_cursor cur, const cpp_name &name,
-                                        cpp_function_info &finfo, cpp_member_function_info &minfo)
+    cpp_type_ref parse_member_function(detail::token_stream &stream, const source_location &location,
+                                       cpp_cursor cur, const cpp_name &name,
+                                       cpp_function_info &finfo, cpp_member_function_info &minfo)
     {
         auto type = clang_getCursorResultType(cur);
 
-        skip_template_parameter_declaration(stream);
+        skip_template_parameter_declaration(stream, location);
 
         auto return_type = parse_member_function_prefix(stream, name, finfo, minfo);
 
-        skip_template_arguments(stream);
+        skip_template_arguments(stream, location);
 
         // handle parameters
         auto variadic = false;
-        skip_parameters(stream, variadic);
+        skip_parameters(stream, location, variadic);
         if (variadic)
             finfo.set_flag(cpp_variadic_fnc);
 
-        return_type += parse_member_function_suffix(stream, finfo, minfo);
+        return_type += parse_member_function_suffix(stream, location, finfo, minfo);
         if (return_type.empty())
         {
             // we have a deduced return type
@@ -387,10 +394,15 @@ cpp_ptr<cpp_function> cpp_function::parse(translation_unit &tu, cpp_name scope, 
     cpp_function_info finfo;
     cpp_member_function_info minfo;
 
-    auto return_type = parse_member_function(stream, cur, name, finfo, minfo);
-    assert(minfo.virtual_flag == cpp_virtual_none || minfo.virtual_flag == cpp_virtual_static);
-    assert(minfo.cv_qualifier == cpp_cv_none);
-    assert(minfo.ref_qualifier == cpp_ref_none);
+    source_location location(clang_getCursorLocation(cur), name);
+
+    auto return_type = parse_member_function(stream, location, cur, name, finfo, minfo);
+    if (is_virtual(minfo.virtual_flag))
+        throw parse_error(location, "virtual specifier on normal function");
+    if (minfo.cv_qualifier != cpp_cv_none)
+        throw parse_error(location, "cv qualifier on normal function");
+    if (minfo.ref_qualifier != cpp_ref_none)
+        throw parse_error(location, "ref qualifier on normal function");
 
     auto result = detail::make_ptr<cpp_function>(std::move(scope), std::move(name), detail::parse_comment(cur),
                                                  std::move(return_type), std::move(finfo));
@@ -412,7 +424,9 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit &tu, cp
     cpp_function_info finfo;
     cpp_member_function_info minfo;
 
-    auto return_type = parse_member_function(stream, cur, name, finfo, minfo);
+    source_location location(clang_getCursorLocation(cur), name);
+
+    auto return_type = parse_member_function(stream, location, cur, name, finfo, minfo);
 
     auto result = detail::make_ptr<cpp_member_function>(std::move(scope), std::move(name), detail::parse_comment(cur),
                                                         std::move(return_type),
@@ -469,10 +483,12 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit &tu, cpp_na
     cpp_type_ref type;
     auto name = parse_conversion_op_name(cur, type);
 
+    source_location location(clang_getCursorLocation(cur), name);
+
     cpp_function_info finfo;
     cpp_member_function_info minfo;
 
-    skip_template_parameter_declaration(stream);
+    skip_template_parameter_declaration(stream, location);
 
     // handle prefix
     while (!detail::skip_if_token(stream, "operator"))
@@ -483,22 +499,30 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit &tu, cpp_na
             finfo.set_flag(cpp_constexpr_fnc);
         else if (detail::skip_if_token(stream, "virtual"))
             minfo.virtual_flag = cpp_virtual_new;
+        else if (!std::isspace(stream.peek().get_value()[0]))
+        {
+            auto str = stream.get().get_value();
+            throw parse_error(location, "unexpected token \'" + std::string(str.c_str()) + "\'");
+        }
         else
-            assert(std::isspace(stream.get().get_value()[0]));
+            // is whitespace, so consume
+            stream.get();
     }
 
     // skip until parameters
     while (stream.peek().get_value() != "(" && stream.peek().get_value() != "<")
         stream.bump();
 
-    skip_template_arguments(stream);
+    skip_template_arguments(stream, location);
 
     auto variadic = false;
-    skip_parameters(stream, variadic);
-    assert(!variadic);
+    skip_parameters(stream, location, variadic);
+    if (variadic)
+        throw parse_error(location, "conversion op is variadic");
 
-    auto trailing_return_type = parse_member_function_suffix(stream, finfo, minfo);
-    assert(trailing_return_type.empty());
+    auto trailing_return_type = parse_member_function_suffix(stream, location, finfo, minfo);
+    if (!trailing_return_type.empty())
+        throw parse_error(location, "conversion op has trailing return type");
 
     if (finfo.noexcept_expression.empty())
         finfo.noexcept_expression = "false";
@@ -519,7 +543,9 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name s
     detail::clean_name(name);
     cpp_function_info info;
 
-    skip_template_parameter_declaration(stream);
+    source_location location(clang_getCursorLocation(cur), name);
+
+    skip_template_parameter_declaration(stream, location);
 
     // handle prefix
     while (!detail::skip_if_token(stream, name.c_str()))
@@ -528,15 +554,21 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name s
             info.set_flag(cpp_explicit_conversion);
         else if (detail::skip_if_token(stream, "constexpr"))
             info.set_flag(cpp_constexpr_fnc);
+        else if (!std::isspace(stream.peek().get_value()[0]))
+        {
+            auto str = stream.get().get_value();
+            throw parse_error(location, "unexpected token \'" + std::string(str.c_str()) + "\'");
+        }
         else
-            assert(std::isspace(stream.get().get_value()[0]));
+            // is whitespace, so consume
+            stream.get();
     }
 
-    skip_template_arguments(stream);
+    skip_template_arguments(stream, location);
 
     // handle parameters
     auto variadic = false;
-    skip_parameters(stream, variadic);
+    skip_parameters(stream, location, variadic);
     if (variadic)
         info.set_flag(cpp_variadic_fnc);
 
@@ -551,15 +583,22 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name s
             info.explicit_noexcept = true;
             info.noexcept_expression = parse_noexcept(stream);
         }
+        else if (!std::isspace(stream.peek().get_value()[0]))
+        {
+            auto str = stream.get().get_value();
+            throw parse_error(location, "unexpected token \'" + std::string(str.c_str()) + "\'");
+        }
         else
-            assert(std::isspace(stream.get().get_value()[0]));
+            // is whitespace, so consume
+            stream.get();
     }
 
     // parse special definition
     if (special_definition)
     {
-        info.definition = parse_special_definition(stream);
-        assert(info.definition != cpp_function_definition_normal);
+        info.definition = parse_special_definition(stream, location);
+        if (info.definition == cpp_function_definition_normal)
+            throw parse_error(location, "constructor is pure virtual");
     }
 
     if (!info.explicit_noexcept)
@@ -584,13 +623,15 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_name sco
     cpp_function_info info;
     auto virtual_flag = cpp_virtual_none;
 
+    source_location location(clang_getCursorLocation(cur), name);
+
     if (detail::skip_if_token(stream, "virtual"))
         virtual_flag = cpp_virtual_new;
     else if (detail::skip_if_token(stream, "constexpr"))
         info.set_flag(cpp_constexpr_fnc);
 
     // skip name and arguments
-    detail::skip(stream, {"~", &name[1], "(", ")"});
+    detail::skip(stream, location, {"~", &name[1], "(", ")"});
 
     // parse suffix
     auto special_definition = false;
@@ -607,14 +648,20 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_name sco
             info.explicit_noexcept = true;
             info.noexcept_expression = parse_noexcept(stream);
         }
+        else if (!std::isspace(stream.peek().get_value()[0]))
+        {
+            auto str = stream.get().get_value();
+            throw parse_error(location, "unexpected token \'" + std::string(str.c_str()) + "\'");
+        }
         else
-            assert(std::isspace(stream.get().get_value()[0]));
+            // is whitespace, so consume
+            stream.get();
     }
 
     // parse special definition
     if (special_definition)
     {
-        auto res = parse_special_definition(stream);
+        auto res = parse_special_definition(stream, location);
         if (res == cpp_function_definition_normal)
             virtual_flag = cpp_virtual_pure;
         else
