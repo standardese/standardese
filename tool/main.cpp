@@ -135,6 +135,9 @@ int main(int argc, char** argv)
             ("input.blacklist_dir",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
              "directory that is forbidden, relative to traversed directory")
+            ("input.blacklist_entity_name",
+             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+             "C++ entity names (and all children) that are forbidden")
             ("input.force_blacklist", "force the blacklist for explictly given files")
 
             ("compilation.commands_dir", po::value<std::string>(),
@@ -231,9 +234,10 @@ int main(int argc, char** argv)
         auto force_blacklist = map.count("input.force_blacklist") != 0u;
 
         entity_blacklist blacklist_entity;
+        for (auto& str : map["input.blacklist_entity_name"].as<std::vector<std::string>>())
+            blacklist_entity.names.insert(str);
 
         assert(!input.empty());
-
         for (auto& path : input)
         {
             parser parser(log);
