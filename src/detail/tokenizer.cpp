@@ -94,14 +94,30 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
     // if there is a macro expansion at the end, the closing bracket is missing
     // ie.: using foo = IMPL_DEFINED(bar
     // go backwards, if a '(' is found before a ')', append a ')'
-    for (auto iter = result.rbegin(); iter != result.rend(); ++iter)
-    {
-        if (*iter == ')')
-            break;
-        else if (*iter == '(')
+    if (clang_getCursorKind(cur) == CXCursor_MacroDefinition)
+        for (auto iter = result.rbegin(); iter != result.rend(); ++iter)
         {
-            result += ')';
-            break;
+            if (*iter == ')')
+                break;
+            else if (*iter == '(')
+            {
+                result += ')';
+                break;
+            }
+        }
+
+    // awesome libclang bug 2.0:
+    // the extent of a function cursor doesn't cover any "= delete"
+    // so append all further characters until a ';' is reached
+    auto is_function = clang_getCursorKind(cur) == CXCursor_FunctionDecl
+                       || clang_getTemplateCursorKind(cur) == CXCursor_FunctionDecl;
+    auto needs_definition = result.back() != ';' && result.back() != '}';
+    if (is_function && needs_definition)
+    {
+        while (buf.sgetc() != ';')
+        {
+            result += buf.sgetc();
+            buf.sbumpc();
         }
     }
 

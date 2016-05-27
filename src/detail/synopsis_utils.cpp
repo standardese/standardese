@@ -160,7 +160,7 @@ void detail::write_definition(output_base::code_block_writer &out, const cpp_fun
             out << " = default;";
             break;
         case cpp_function_definition_deleted:
-            out << " = delete";
+            out << " = delete;";
             break;
     }
 }
