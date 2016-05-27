@@ -49,7 +49,8 @@ namespace
         auto first = true;
         detail::visit_children(cur, [&](CXCursor cur, CXCursor)
         {
-            assert(clang_isReference(clang_getCursorKind(cur)));
+            if (!clang_isReference(clang_getCursorKind(cur)))
+                return CXChildVisit_Continue;
 
             auto ref_cursor = clang_getCursorReferenced(cur);
             if (first)
@@ -65,7 +66,7 @@ namespace
                 // abort when OverloadedDeclRef is found
                 // otherwise for inheriting ctors an extra TypeRef follows
                 return CXChildVisit_Break;
-            return CXChildVisit_Recurse;
+            return CXChildVisit_Continue;
         });
     }
 }
