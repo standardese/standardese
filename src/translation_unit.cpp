@@ -204,8 +204,13 @@ namespace
 
 CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cur, CXCursor parent) try
 {
-    stack.pop_if_needed(parent, *parser_);
+    auto location = source_location(clang_getCursorLocation(cur), "");
+    parser_->get_logger()->debug("Parsing entity '{}' of type '{}' at {}:{}",
+                                 string(clang_getCursorDisplayName(cur)),
+                                 string(clang_getCursorKindSpelling(clang_getCursorKind(cur))),
+                                 location.file_name, location.line);
 
+    stack.pop_if_needed(parent, *parser_);
     auto scope = stack.get_scope_name();
 
     auto kind = clang_getCursorKind(cur);

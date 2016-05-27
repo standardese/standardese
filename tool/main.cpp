@@ -120,9 +120,10 @@ int main(int argc, char** argv)
 
     po::options_description generic("Generic options"), configuration("Configuration");
     generic.add_options()
-            ("version,v", "prints version information and exits")
+            ("version,V", "prints version information and exits")
             ("help,h", "prints this help message and exits")
-            ("config,c", po::value<fs::path>(), "read options from additional config file as well");
+            ("config,c", po::value<fs::path>(), "read options from additional config file as well")
+            ("verbose,v", "prints more information");
 
     configuration.add_options()
             ("input.blacklist_ext",
@@ -176,6 +177,9 @@ int main(int argc, char** argv)
 
         po::store(cmd_result, map);
         po::notify(map);
+
+        if (map.count("verbose"))
+           log->set_level(spdlog::level::debug);
 
         auto iter = map.find("config");
         if (iter != map.end())
