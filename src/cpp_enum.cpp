@@ -35,6 +35,8 @@ namespace
             is_scoped = true;
         }
 
+        detail::skip_attribute(stream, location);
+        detail::skip_whitespace(stream);
         detail::skip(stream, location, {name.c_str()});
 
         if (stream.peek().get_value() == ":")

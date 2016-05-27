@@ -88,6 +88,8 @@ namespace
         // skip class/struct/union/keyword and name
         stream.bump();
         detail::skip_whitespace(stream);
+        detail::skip_attribute(stream, location);
+        detail::skip_whitespace(stream);
         detail::skip(stream, location, {name.c_str()});
 
         if (stream.peek().get_value() == "<")

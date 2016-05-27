@@ -215,7 +215,7 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
 
     auto kind = clang_getCursorKind(cur);
     if (kind != CXCursor_CXXBaseSpecifier
-        && (clang_isReference(kind) || clang_isExpression(kind)))
+        && (clang_isReference(kind) || clang_isExpression(kind) || clang_isAttribute(kind)))
         // ignore those
         return CXChildVisit_Continue;
 
@@ -322,7 +322,6 @@ CXChildVisitResult translation_unit::parse_visit(scope_stack &stack, CXCursor cu
         case CXCursor_TemplateTypeParameter:
         case CXCursor_TemplateTemplateParameter:
         case CXCursor_NonTypeTemplateParameter:
-        case CXCursor_CXXFinalAttr:
         case CXCursor_ParmDecl:
             return CXChildVisit_Continue;
 

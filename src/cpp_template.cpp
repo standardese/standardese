@@ -106,7 +106,10 @@ cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
     cpp_name type_given;
     while (stream.peek().get_value() != "..."
         && stream.peek().get_value() != name.c_str())
+    {
+        detail::skip_attribute(stream, location);
         type_given += stream.get().get_value().c_str();
+    }
 
     // variadic parameter
     auto is_variadic = false;

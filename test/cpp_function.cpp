@@ -33,7 +33,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
 
         int *c(int a = b(0));
 
-        char &d() noexcept;
+        [[foo]] char & __attribute__((d)) d() noexcept [[bar]];
 
         const int e() noexcept(false);
 
@@ -299,11 +299,11 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
     auto code = R"(
         struct foo
         {
-            operator    int(); // multiple whitespace
+            [[noreturn]] operator    int() [[]]; // multiple whitespace
 
-            explicit operator const char&();
+            explicit __attribute__((foo)) operator const char&();
 
-            constexpr explicit operator char() const volatile && noexcept;
+            constexpr explicit __attribute__((bar)) operator char() const volatile && noexcept;
         };
     )";
 
@@ -369,7 +369,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
         struct foo
         {
             /// a
-            foo() = delete;
+            [[noreturn]] foo() = delete;
 
             /// b
             explicit foo(int a = {});
@@ -378,7 +378,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
             constexpr foo(char c) noexcept;
 
             /// d
-            foo(const foo &other) = default;
+            foo(const foo &other) __attribute__(()) = default;
         };
     )";
 
@@ -447,7 +447,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
     auto code = R"(
         struct a
         {
-            ~a() = default;
+            [[deprecated]] ~a() = default;
         };
 
         struct b
@@ -462,12 +462,12 @@ TEST_CASE("cpp_destructor", "[cpp]")
 
         struct d
         {
-            virtual ~d() noexcept = 0;
+            virtual [[]] ~d() noexcept = 0;
         };
 
         struct e : d
         {
-            ~e() override;
+            ~e() __attribute__(()) override;
         };
     )";
 

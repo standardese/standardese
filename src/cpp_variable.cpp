@@ -28,9 +28,12 @@ namespace
 
         detail::tokenizer tokenizer(tu, cur);
         auto stream = detail::make_stream(tokenizer);
+        auto location = source_location(clang_getCursorLocation(cur), name);
 
         for (auto in_type = true, was_bitfield = false; stream.peek().get_value() != ";";)
         {
+            detail::skip_attribute(stream, location);
+
             if (detail::skip_if_token(stream, name.c_str())
                 || detail::skip_if_token(stream, "extern")
                 || detail::skip_if_token(stream, "static"))

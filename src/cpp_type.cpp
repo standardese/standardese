@@ -29,7 +29,10 @@ namespace
             skip(stream, location, {"using", name.c_str(), "="});
 
             while (stream.peek().get_value() != ";")
+            {
+                detail::skip_attribute(stream, location);
                 target_name += stream.get().get_value().c_str();
+            }
         }
         else
         {
@@ -39,6 +42,7 @@ namespace
 
             while (stream.peek().get_value() != ";")
             {
+                detail::skip_attribute(stream, location);
                 auto& val = stream.peek().get_value();
                 if (val != name.c_str())
                     target_name += val.c_str();

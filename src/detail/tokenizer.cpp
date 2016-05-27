@@ -45,6 +45,23 @@ bool detail::skip_if_token(detail::token_stream &stream, const char *token)
     return true;
 }
 
+void detail::skip_attribute(detail::token_stream &stream, const source_location &location)
+{
+    if (stream.peek().get_value() == "["
+        && stream.peek(1).get_value() == "[")
+    {
+        stream.bump(); // opening
+        skip_bracket_count(stream, location, "[", "]");
+        stream.bump(); // closing
+    }
+    else if (skip_if_token(stream, "__attribute__"))
+    {
+        skip(stream, location, "(");
+        skip_bracket_count(stream, location, "(", ")");
+        skip(stream, location, ")");
+    }
+}
+
 std::string detail::tokenizer::read_source(cpp_cursor cur)
 {
     // query location

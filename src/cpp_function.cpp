@@ -24,9 +24,11 @@ namespace
 
         detail::tokenizer tokenizer(tu, cur);
         auto stream = detail::make_stream(tokenizer);
+        auto location = source_location(clang_getCursorLocation(cur), name);
 
         for (auto in_type = true; stream.peek().get_value() != ";";)
         {
+            detail::skip_attribute(stream, location);
             if (detail::skip_if_token(stream, name.c_str()))
                 continue;
             else if (detail::skip_if_token(stream, "="))
@@ -95,7 +97,8 @@ namespace
         }
     }
 
-    cpp_name parse_member_function_prefix(detail::token_stream &stream, const cpp_name &name,
+    cpp_name parse_member_function_prefix(detail::token_stream &stream, const source_location &location,
+                                          const cpp_name &name,
                                           cpp_function_info &finfo, cpp_member_function_info &minfo)
     {
         cpp_name return_type;
@@ -103,6 +106,8 @@ namespace
 
         while (!detail::skip_if_token(stream, name.c_str()))
         {
+            detail::skip_attribute(stream, location);
+
             if (detail::skip_if_token(stream, "extern"))
                 // ignored
                 continue;
@@ -260,6 +265,7 @@ namespace
         while (!is_declaration_end(stream, special_definition))
         {
             assert(!stream.done());
+            detail::skip_attribute(stream, location);
 
             if (detail::skip_if_token(stream, ")"))
             {
@@ -330,7 +336,7 @@ namespace
 
         skip_template_parameter_declaration(stream, location);
 
-        auto return_type = parse_member_function_prefix(stream, name, finfo, minfo);
+        auto return_type = parse_member_function_prefix(stream, location, name, finfo, minfo);
 
         skip_template_arguments(stream, location);
 
@@ -493,6 +499,8 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit &tu, cpp_na
     // handle prefix
     while (!detail::skip_if_token(stream, "operator"))
     {
+        detail::skip_attribute(stream, location);
+
         if (detail::skip_if_token(stream, "explicit"))
             finfo.set_flag(cpp_explicit_conversion);
         else if (detail::skip_if_token(stream, "constexpr"))
@@ -550,6 +558,8 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name s
     // handle prefix
     while (!detail::skip_if_token(stream, name.c_str()))
     {
+        detail::skip_attribute(stream, location);
+
         if (detail::skip_if_token(stream, "explicit"))
             info.set_flag(cpp_explicit_conversion);
         else if (detail::skip_if_token(stream, "constexpr"))
@@ -577,6 +587,7 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name s
     while (!is_declaration_end(stream, special_definition))
     {
         assert(!stream.done());
+        detail::skip_attribute(stream, location);
 
         if (detail::skip_if_token(stream, "noexcept"))
         {
@@ -630,6 +641,9 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_name sco
     else if (detail::skip_if_token(stream, "constexpr"))
         info.set_flag(cpp_constexpr_fnc);
 
+    detail::skip_attribute(stream, location);
+    detail::skip_whitespace(stream);
+
     // skip name and arguments
     detail::skip(stream, location, {"~", &name[1], "(", ")"});
 
@@ -638,6 +652,7 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_name sco
     while (!is_declaration_end(stream, special_definition))
     {
         assert(!stream.done());
+        detail::skip_attribute(stream, location);
 
         if (detail::skip_if_token(stream, "final"))
             virtual_flag = cpp_virtual_final;

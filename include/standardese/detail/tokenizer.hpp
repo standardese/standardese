@@ -72,6 +72,9 @@ namespace standardese { namespace detail
                             [](const char*){});
     }
 
+    // skips an attribute if any
+    void skip_attribute(detail::token_stream &stream, const source_location &location);
+
     class tokenizer
     {
     public:

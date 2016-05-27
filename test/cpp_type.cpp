@@ -126,7 +126,7 @@ TEST_CASE("cpp_enum", "[cpp]")
             a_3 = 5
         };
 
-        enum class b : int
+        enum class [[deprecated]] b : int
         {
             b_1,
             b_2,
@@ -219,7 +219,7 @@ TEST_CASE("cpp_class", "[cpp]")
         class ignore_me_too;
         union ignore_me_three;
 
-        struct foo final
+        struct [[deprecated]] foo final
         {
         public:
             struct nested_a {};
