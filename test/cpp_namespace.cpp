@@ -196,8 +196,8 @@ TEST_CASE("cpp_namespace_alias", "[cpp]")
             {
                 ++count;
                 REQUIRE(ptr->get_unique_name() == "d");
-                REQUIRE(ptr->get_target() == "foo");
-                REQUIRE(ptr->get_full_target() == "foo");
+                REQUIRE(ptr->get_target() == "::foo");
+                REQUIRE(ptr->get_full_target() == "::foo");
             }
             else if (ptr->get_name() == "e")
             {

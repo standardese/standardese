@@ -44,58 +44,82 @@ cpp_entity_ptr cpp_namespace::parser::finish(const standardese::parser &par)
 
 namespace
 {
-    void parse_target(CXCursor cur, cpp_name &target, cpp_name &scope)
+    cpp_name parse_target_scope(CXCursor cur)
     {
-        auto first = true;
+        cpp_name scope;
         detail::visit_children(cur, [&](CXCursor cur, CXCursor)
         {
-            if (!clang_isReference(clang_getCursorKind(cur)))
-                return CXChildVisit_Continue;
+            assert(clang_isReference(clang_getCursorKind(cur)));
 
             auto ref_cursor = clang_getCursorReferenced(cur);
-            if (first)
-                scope = detail::parse_scope(ref_cursor);
-            first = false;
+            scope = detail::parse_scope(ref_cursor);
 
-            string ref(clang_getCursorSpelling(ref_cursor));
-            if (!target.empty())
-                target += "::";
-            target += ref;
-
-            if (clang_getCursorKind(ref_cursor) == CXCursor_OverloadedDeclRef)
-                // abort when OverloadedDeclRef is found
-                // otherwise for inheriting ctors an extra TypeRef follows
-                return CXChildVisit_Break;
-            return CXChildVisit_Continue;
+            return CXChildVisit_Break;
         });
+
+        return scope;
+    }
+
+    cpp_name parse_target(detail::token_stream &stream)
+    {
+        cpp_name target;
+        while (!stream.done())
+            if (stream.peek().get_value() != "\n")
+                target += stream.get().get_value().c_str();
+            else
+                stream.get();
+        return target;
     }
 }
 
-cpp_ptr<cpp_namespace_alias> cpp_namespace_alias::parse(translation_unit &, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_namespace_alias> cpp_namespace_alias::parse(translation_unit &tu, cpp_name scope, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_NamespaceAlias);
-    cpp_name target, target_scope;
-    parse_target(cur, target, target_scope);
-    auto result = detail::make_ptr<cpp_namespace_alias>(std::move(scope), detail::parse_name(cur),
+
+    auto name = detail::parse_name(cur);
+    auto target_scope = parse_target_scope(cur);
+
+    detail::tokenizer tokenizer(tu, cur);
+    auto stream = detail::make_stream(tokenizer);
+    auto location = source_location(clang_getCursorLocation(cur), name);
+
+    detail::skip(stream, location, {"namespace", name.c_str(), "="});
+    auto target = parse_target(stream);
+
+    auto result = detail::make_ptr<cpp_namespace_alias>(std::move(scope), std::move(name),
                                                  detail::parse_comment(cur), target);
     result->unique_ = target_scope.empty() ? std::move(target) : target_scope + "::" + target;
     return result;
 }
 
-cpp_ptr<cpp_using_directive> cpp_using_directive::parse(translation_unit &, cpp_cursor cur)
+cpp_ptr<cpp_using_directive> cpp_using_directive::parse(translation_unit &tu, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_UsingDirective);
-    cpp_name target, target_scope;
-    parse_target(cur, target, target_scope);
+
+    auto target_scope = parse_target_scope(cur);
+
+    detail::tokenizer tokenizer(tu, cur);
+    auto stream = detail::make_stream(tokenizer);
+    auto location = source_location(clang_getCursorLocation(cur), "using namespace");
+
+    detail::skip(stream, location, {"using", "namespace"});
+    auto target = parse_target(stream);
+
     return detail::make_ptr<cpp_using_directive>(std::move(target_scope), std::move(target), detail::parse_comment(cur));
 }
 
-cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(translation_unit &, cpp_cursor cur)
+cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(translation_unit &tu, cpp_cursor cur)
 {
     assert(clang_getCursorKind(cur) == CXCursor_UsingDeclaration);
 
-    cpp_name target, target_scope;
-    parse_target(cur, target, target_scope);
+    auto target_scope = parse_target_scope(cur);
+
+    detail::tokenizer tokenizer(tu, cur);
+    auto stream = detail::make_stream(tokenizer);
+    auto location = source_location(clang_getCursorLocation(cur), "using");
+
+    detail::skip(stream, location, {"using"});
+    auto target = parse_target(stream);
 
     return detail::make_ptr<cpp_using_declaration>(std::move(target_scope), std::move(target), detail::parse_comment(cur));
 }
