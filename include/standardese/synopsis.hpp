@@ -23,6 +23,10 @@ namespace standardese
                  cpp_entity::using_declaration_t,
                  cpp_entity::using_directive_t}) {}
 
+        struct empty {};
+
+        entity_blacklist(empty) {}
+
         bool is_blacklisted(const cpp_entity &e) const;
     };
 
