@@ -230,6 +230,8 @@ int main(int argc, char** argv)
         auto blacklist_dir = map["input.blacklist_dir"].as<std::vector<std::string>>();
         auto force_blacklist = map.count("input.force_blacklist") != 0u;
 
+        entity_blacklist blacklist_entity;
+
         assert(!input.empty());
 
         for (auto& path : input)
@@ -247,7 +249,7 @@ int main(int argc, char** argv)
 
                     file_output file(p.stem().generic_string() + ".md");
                     markdown_output out(file);
-                    generate_doc_file(parser, out, f);
+                    generate_doc_file(parser, out, f, blacklist_entity);
                 }
                 catch (libclang_error &ex)
                 {

@@ -6,6 +6,7 @@
 #define STANDARDESE_GENERATOR_HPP_INCLUDED
 
 #include <standardese/output.hpp>
+#include <standardese/synopsis.hpp>
 #include <standardese/translation_unit.hpp>
 
 namespace standardese
@@ -16,9 +17,10 @@ namespace standardese
 
     void generate_doc_entity(const parser &p,
                              output_base &output, unsigned level,
-                             const cpp_entity &e);
+                             const cpp_entity &e, const entity_blacklist &blacklist);
 
-    void generate_doc_file(const parser &p, output_base &output, const cpp_file &f);
+    void generate_doc_file(const parser &p, output_base &output,
+                           const cpp_file &f, const entity_blacklist &blacklist);
 } // namespace standardese
 
 #endif // STANDARDESE_GENERATOR_HPP_INCLUDED
