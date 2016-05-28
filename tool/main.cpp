@@ -142,6 +142,9 @@ int main(int argc, char* argv[])
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
              "C++ namespace names (with all children) that are forbidden")
             ("input.force_blacklist", "force the blacklist for explictly given files")
+            ("input.require_comment",
+             po::value<bool>()->default_value(true),
+             "only generates documentation for entities that have a documentation comment")
 
             ("compilation.commands_dir", po::value<std::string>(),
              "the directory where a compile_commands.json is located, its options have lower priority than the other ones")
@@ -241,6 +244,8 @@ int main(int argc, char* argv[])
             blacklist_entity.blacklist(str);
         for (auto& str : map.at("input.blacklist_namespace").as<std::vector<std::string>>())
             blacklist_entity.blacklist(str);
+        if (map.at("input.require_comment").as<bool>())
+            blacklist_entity.set_option(entity_blacklist::require_comment);
 
         assert(!input.empty());
         for (auto& path : input)

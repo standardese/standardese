@@ -51,4 +51,12 @@ TEST_CASE("entity_blacklist")
         REQUIRE(blacklist.is_blacklisted(entity_blacklist::synopsis, type));
         REQUIRE(blacklist.is_blacklisted(entity_blacklist::synopsis, variable));
     }
+    SECTION("option test")
+    {
+        REQUIRE(!blacklist.is_set(entity_blacklist::require_comment));
+        blacklist.set_option(entity_blacklist::require_comment);
+        REQUIRE(blacklist.is_set(entity_blacklist::require_comment));
+        blacklist.unset_option(entity_blacklist::require_comment);
+        REQUIRE(!blacklist.is_set(entity_blacklist::require_comment));
+    }
 }

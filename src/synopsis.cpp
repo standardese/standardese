@@ -24,6 +24,7 @@ entity_blacklist::entity_blacklist()
     type_blacklist_.set(cpp_entity::base_class_t);
     type_blacklist_.set(cpp_entity::using_declaration_t);
     type_blacklist_.set(cpp_entity::using_directive_t);
+    type_blacklist_.set(cpp_entity::access_specifier_t);
 }
 
 namespace

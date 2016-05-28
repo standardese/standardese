@@ -56,6 +56,26 @@ namespace standardese
             type_blacklist_.set(type);
         }
 
+        enum options
+        {
+            require_comment = 1,
+        };
+
+        void set_option(options o) STANDARDESE_NOEXCEPT
+        {
+            options_ |= o;
+        }
+
+        void unset_option(options o) STANDARDESE_NOEXCEPT
+        {
+            options_ &= ~o;
+        }
+
+        bool is_set(options o) const STANDARDESE_NOEXCEPT
+        {
+            return (options_ & o) == 1;
+        }
+
         bool is_blacklisted(documentation_t, const cpp_entity &e) const;
 
         bool is_blacklisted(synopsis_t, const cpp_entity &e) const;
@@ -63,6 +83,7 @@ namespace standardese
     private:
         std::set<std::pair<cpp_name, cpp_entity::type>> doc_blacklist_, synopsis_blacklist_;
         std::bitset<cpp_entity::invalid_t> type_blacklist_;
+        int options_ = 0;
     };
 
     void write_synopsis(output_base &out, const cpp_entity &e, const entity_blacklist &blacklist);

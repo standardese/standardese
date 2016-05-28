@@ -32,7 +32,7 @@ namespace
 
             #define STANDARDESE_DETAIL_HANDLE(name, ...) \
                 case cpp_entity::name##_t: \
-                    if (e.get_comment().empty()) \
+                    if (blacklist.is_set(entity_blacklist::require_comment) && e.get_comment().empty()) \
                         break; \
                     generate_doc_entity(p, output, level, e, blacklist); \
                     for (auto& child : static_cast<const cpp_##name &>(e)__VA_ARGS__) \
@@ -53,8 +53,9 @@ namespace
             #undef STANDARDESE_DETAIL_NOTHING
 
             default:
-                if (!e.get_comment().empty())
-                    generate_doc_entity(p, output, level, e, blacklist);
+                if (blacklist.is_set(entity_blacklist::require_comment) && e.get_comment().empty())
+                    break;
+                generate_doc_entity(p, output, level, e, blacklist);
                 break;
         }
     }
