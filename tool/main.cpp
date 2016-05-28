@@ -113,7 +113,7 @@ standardese::compile_config parse_config(const po::variables_map &map)
     return result;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char* argv[])
 {
     auto log = spdlog::stdout_logger_mt("standardese_log", true);
     log->set_pattern("[%l] %v");
@@ -138,6 +138,9 @@ int main(int argc, char** argv)
             ("input.blacklist_entity_name",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
              "C++ entity names (and all children) that are forbidden")
+            ("input.blacklist_namespace",
+             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+             "C++ namespace names (with all children) that are forbidden")
             ("input.force_blacklist", "force the blacklist for explictly given files")
 
             ("compilation.commands_dir", po::value<std::string>(),
@@ -225,16 +228,18 @@ int main(int argc, char** argv)
     {
         using namespace standardese;
 
-        comment::parser::set_command_character(map["comment.command_character"].as<char>());
+        comment::parser::set_command_character(map.at("comment.command_character").as<char>());
 
-        auto input = map["input-files"].as<std::vector<fs::path>>();
-        auto blacklist_ext = map["input.blacklist_ext"].as<std::vector<std::string>>();
-        auto blacklist_file = map["input.blacklist_file"].as<std::vector<std::string>>();
-        auto blacklist_dir = map["input.blacklist_dir"].as<std::vector<std::string>>();
+        auto input = map.at("input-files").as<std::vector<fs::path>>();
+        auto blacklist_ext = map.at("input.blacklist_ext").as<std::vector<std::string>>();
+        auto blacklist_file = map.at("input.blacklist_file").as<std::vector<std::string>>();
+        auto blacklist_dir = map.at("input.blacklist_dir").as<std::vector<std::string>>();
         auto force_blacklist = map.count("input.force_blacklist") != 0u;
 
         entity_blacklist blacklist_entity;
-        for (auto& str : map["input.blacklist_entity_name"].as<std::vector<std::string>>())
+        for (auto& str : map.at("input.blacklist_entity_name").as<std::vector<std::string>>())
+            blacklist_entity.blacklist(str);
+        for (auto& str : map.at("input.blacklist_namespace").as<std::vector<std::string>>())
             blacklist_entity.blacklist(str);
 
         assert(!input.empty());
