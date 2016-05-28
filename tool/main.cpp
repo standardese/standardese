@@ -235,7 +235,7 @@ int main(int argc, char** argv)
 
         entity_blacklist blacklist_entity;
         for (auto& str : map["input.blacklist_entity_name"].as<std::vector<std::string>>())
-            blacklist_entity.names.insert(str);
+            blacklist_entity.blacklist(str);
 
         assert(!input.empty());
         for (auto& path : input)

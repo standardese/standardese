@@ -18,10 +18,50 @@
 
 using namespace standardese;
 
-bool entity_blacklist::is_blacklisted(const cpp_entity &e) const
+entity_blacklist::entity_blacklist()
 {
-    return types.count(e.get_entity_type())
-           || names.count(e.get_name());
+    type_blacklist_.set(cpp_entity::inclusion_directive_t);
+    type_blacklist_.set(cpp_entity::base_class_t);
+    type_blacklist_.set(cpp_entity::using_declaration_t);
+    type_blacklist_.set(cpp_entity::using_directive_t);
+}
+
+namespace
+{
+    bool is_blacklisted(const std::set<std::pair<cpp_name, cpp_entity::type>> &blacklist, const cpp_entity &e)
+    {
+        // set is firsted sorted by name, then type
+        // so this is the first pair with the name
+        static_assert(int(cpp_entity::file_t) == 0, "file must come first");
+        auto first = std::make_pair(e.get_name(), cpp_entity::file_t);
+
+        auto iter = blacklist.lower_bound(first);
+        if (iter == blacklist.end() || iter->first != e.get_name())
+            // no element with this name found
+            return false;
+
+        // iterate until name doesn't match any more
+        for (; iter != blacklist.end() && iter->first == e.get_name(); ++iter)
+            if (iter->second == cpp_entity::invalid_t)
+                // match all
+                return true;
+            else if (iter->second == e.get_entity_type())
+                return true;
+
+        return false;
+    }
+}
+
+bool entity_blacklist::is_blacklisted(documentation_t, const cpp_entity &e) const
+{
+    if (type_blacklist_[e.get_entity_type()])
+        return true;
+    return ::is_blacklisted(doc_blacklist_, e);
+}
+
+bool entity_blacklist::is_blacklisted(synopsis_t, const cpp_entity &e) const
+{
+    return ::is_blacklisted(synopsis_blacklist_, e);
 }
 
 namespace
@@ -39,7 +79,7 @@ namespace
         detail::write_range(out, f, blankl,
             [&](output_base::code_block_writer &out, const cpp_entity &e)
             {
-                if (!blacklist.is_blacklisted(e))
+                if (!blacklist.is_blacklisted(entity_blacklist::synopsis, e))
                     dispatch(out, e, blacklist, false);
             });
     }
@@ -85,7 +125,7 @@ namespace
             detail::write_range(out, ns, blankl,
                                 [&](output_base::code_block_writer &out, const cpp_entity &e)
                                 {
-                                    if (!blacklist.is_blacklisted(e))
+                                    if (!blacklist.is_blacklisted(entity_blacklist::synopsis, e))
                                         dispatch(out, e, blacklist, false);
                                 });
 
@@ -156,7 +196,7 @@ namespace
 
                 detail::write_range(out, e, newl, [&](output_base::code_block_writer &out, const cpp_entity &e)
                                     {
-                                        if (!blacklist.is_blacklisted(e))
+                                        if (!blacklist.is_blacklisted(entity_blacklist::synopsis, e))
                                             dispatch(out, e, blacklist, false);
                                     });
 
@@ -200,7 +240,7 @@ namespace
                 detail::write_range(out, c, blankl,
                                     [&](output_base::code_block_writer &out, const cpp_entity &e)
                                     {
-                                        if (!blacklist.is_blacklisted(e))
+                                        if (!blacklist.is_blacklisted(entity_blacklist::synopsis, e))
                                             dispatch(out, e, blacklist, false);
                                     });
 

@@ -5,29 +5,64 @@
 #ifndef STANDARDESE_SYNOPSIS_HPP_INCLUDED
 #define STANDARDESE_SYNOPSIS_HPP_INCLUDED
 
-#include <unordered_set>
+#include <bitset>
+#include <set>
 
 #include <standardese/cpp_entity.hpp>
 #include <standardese/output.hpp>
 
 namespace standardese
 {
-    struct entity_blacklist
+    class entity_blacklist
     {
-        std::unordered_set<cpp_name> names;
-        std::unordered_set<cpp_entity::type> types;
+    public:
+        static const struct empty_t
+        {
+            empty_t() {}
+        } empty;
 
-        entity_blacklist()
-        : types({cpp_entity::inclusion_directive_t,
-                 cpp_entity::base_class_t,
-                 cpp_entity::using_declaration_t,
-                 cpp_entity::using_directive_t}) {}
+        entity_blacklist(empty_t) {}
 
-        struct empty {};
+        entity_blacklist();
 
-        entity_blacklist(empty) {}
+        static const struct documentation_t
+        {
+            documentation_t() {}
+        } documentation;
 
-        bool is_blacklisted(const cpp_entity &e) const;
+        static const struct synopsis_t
+        {
+            synopsis_t() {}
+        } synopsis;
+
+        void blacklist(documentation_t, const cpp_name &name, cpp_entity::type type = cpp_entity::invalid_t)
+        {
+            doc_blacklist_.emplace(name, type);
+        }
+
+        void blacklist(synopsis_t, const cpp_name &name, cpp_entity::type type = cpp_entity::invalid_t)
+        {
+            synopsis_blacklist_.emplace(name, type);
+        }
+
+        void blacklist(const cpp_name &name, cpp_entity::type type = cpp_entity::invalid_t)
+        {
+            blacklist(documentation, name, type);
+            blacklist(synopsis, name, type);
+        }
+
+        void blacklist(documentation_t, cpp_entity::type type)
+        {
+            type_blacklist_.set(type);
+        }
+
+        bool is_blacklisted(documentation_t, const cpp_entity &e) const;
+
+        bool is_blacklisted(synopsis_t, const cpp_entity &e) const;
+
+    private:
+        std::set<std::pair<cpp_name, cpp_entity::type>> doc_blacklist_, synopsis_blacklist_;
+        std::bitset<cpp_entity::invalid_t> type_blacklist_;
     };
 
     void write_synopsis(output_base &out, const cpp_entity &e, const entity_blacklist &blacklist);

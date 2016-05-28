@@ -71,6 +71,8 @@ namespace standardese
 
             base_class_t,
             access_specifier_t,
+
+            invalid_t
         };
 
         cpp_entity(cpp_entity&&) = delete;

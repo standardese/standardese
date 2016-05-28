@@ -16,17 +16,11 @@ using namespace standardese;
 
 namespace
 {
-    bool is_blacklisted(const entity_blacklist &blacklist, const cpp_entity &e)
-    {
-        return blacklist.types.count(e.get_entity_type())
-            || blacklist.names.count(e.get_name());
-    }
-
     void dispatch(const parser &p, output_base &output,
                   const entity_blacklist &blacklist,
                   unsigned level, const cpp_entity &e)
     {
-        if (is_blacklisted(blacklist, e))
+        if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
             return;
 
         switch (e.get_entity_type())
@@ -134,6 +128,9 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
             return "base class";
         case cpp_entity::access_specifier_t:
             return "access specifier";
+
+        case cpp_entity::invalid_t:
+            break;
     }
 
     return "should never get here";
