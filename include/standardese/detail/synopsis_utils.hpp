@@ -26,10 +26,8 @@ namespace standardese { namespace detail
         {
             if (need)
                 out << sep;
-            else
-                need = true;
 
-            f(out, e);
+            need = f(out, e);
         }
     }
 

@@ -108,9 +108,10 @@ void detail::write_bases(output_base::code_block_writer &out, const cpp_class &c
 
 namespace
 {
-    void write_parameter(output_base::code_block_writer &out, const cpp_function_parameter &p)
+    bool write_parameter(output_base::code_block_writer &out, const cpp_function_parameter &p)
     {
         detail::write_type_value_default(out, p.get_type(), p.get_name(), p.get_default_value());
+        return true;
     }
 }
 

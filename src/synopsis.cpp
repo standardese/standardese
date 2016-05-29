@@ -80,8 +80,10 @@ namespace
         detail::write_range(out, f, blankl,
             [&](output_base::code_block_writer &out, const cpp_entity &e)
             {
-                if (!blacklist.is_blacklisted(entity_blacklist::synopsis, e))
-                    dispatch(out, e, blacklist, false);
+                if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                    return false;
+                dispatch(out, e, blacklist, false);
+                return true;
             });
     }
 
@@ -126,8 +128,10 @@ namespace
             detail::write_range(out, ns, blankl,
                                 [&](output_base::code_block_writer &out, const cpp_entity &e)
                                 {
-                                    if (!blacklist.is_blacklisted(entity_blacklist::synopsis, e))
-                                        dispatch(out, e, blacklist, false);
+                                    if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                                        return false;
+                                    dispatch(out, e, blacklist, false);
+                                    return true;
                                 });
 
             out.unindent(tab_width);
@@ -197,8 +201,10 @@ namespace
 
                 detail::write_range(out, e, newl, [&](output_base::code_block_writer &out, const cpp_entity &e)
                                     {
-                                        if (!blacklist.is_blacklisted(entity_blacklist::synopsis, e))
-                                            dispatch(out, e, blacklist, false);
+                                        if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                                            return false;
+                                        dispatch(out, e, blacklist, false);
+                                        return true;
                                     });
 
                 out.unindent(tab_width);
@@ -211,7 +217,7 @@ namespace
     void write_access(output_base::code_block_writer &out, const cpp_access_specifier &a)
     {
         out.unindent(tab_width);
-        out << newl << a.get_name() << ':' << newl;
+        out << a.get_name() << ':' << newl;
         out.indent(tab_width);
     }
 
@@ -240,7 +246,8 @@ namespace
 
                 auto cur_access = c.get_class_type() == cpp_class_t ? cpp_private : cpp_public;
                 auto need_access = false;
-                detail::write_range(out, c, blankl,
+                auto first = true;
+                detail::write_range(out, c, newl,
                                     [&](output_base::code_block_writer &out, const cpp_entity &e)
                                     {
                                         if (e.get_entity_type() == cpp_entity::access_specifier_t)
@@ -250,19 +257,27 @@ namespace
                                                 need_access = true;
                                             cur_access = new_access;
                                         }
-                                        else if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
-                                            return;
+                                        else if (e.get_entity_type() == cpp_entity::base_class_t
+                                            || blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                                            return false;
                                         else if (blacklist.is_set(entity_blacklist::extract_private)
                                             || cur_access != cpp_private
                                             || detail::is_virtual(e))
                                         {
                                             if (need_access)
                                             {
+                                                if (!first)
+                                                   out << blankl;
+                                                else
+                                                    first = false;
                                                 write_access(out, cur_access);
                                                 need_access = false;
                                             }
                                             dispatch(out, e, blacklist, false);
+                                            return true;
                                         }
+
+                                        return false;
                                     });
 
                 out.unindent(tab_width);
@@ -387,6 +402,7 @@ namespace
                             [&](output_base::code_block_writer &out, const cpp_entity &e)
                             {
                                 dispatch(out, e, blacklist, false);
+                                return true;
                             });
 
         out << "> typename";
@@ -405,6 +421,7 @@ namespace
                             [&](output_base::code_block_writer &out, const cpp_entity &e)
                             {
                                 dispatch(out, e, blacklist, false);
+                                return true;
                             });
 
         out << '>' << newl;
@@ -428,6 +445,7 @@ namespace
                             [&](output_base::code_block_writer &out, const cpp_entity &e)
                             {
                                 dispatch(out, e, blacklist, false);
+                                return true;
                             });
 
         out << '>' << newl;
@@ -451,6 +469,7 @@ namespace
                             [&](output_base::code_block_writer &out, const cpp_entity &e)
                             {
                                 dispatch(out, e, blacklist, false);
+                                return true;
                             });
 
         out << '>' << newl;
