@@ -54,9 +54,18 @@ TEST_CASE("entity_blacklist")
     SECTION("option test")
     {
         REQUIRE(!blacklist.is_set(entity_blacklist::require_comment));
+        REQUIRE(!blacklist.is_set(entity_blacklist::extract_private));
+
         blacklist.set_option(entity_blacklist::require_comment);
         REQUIRE(blacklist.is_set(entity_blacklist::require_comment));
+        REQUIRE(!blacklist.is_set(entity_blacklist::extract_private));
+
+        blacklist.set_option(entity_blacklist::extract_private);
+        REQUIRE(blacklist.is_set(entity_blacklist::require_comment));
+        REQUIRE(blacklist.is_set(entity_blacklist::extract_private));
+
         blacklist.unset_option(entity_blacklist::require_comment);
         REQUIRE(!blacklist.is_set(entity_blacklist::require_comment));
+        REQUIRE(blacklist.is_set(entity_blacklist::extract_private));
     }
 }

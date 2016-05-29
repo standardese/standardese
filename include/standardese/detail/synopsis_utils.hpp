@@ -40,7 +40,7 @@ namespace standardese { namespace detail
     void write_class_name(output_base::code_block_writer &out,
                           const cpp_name &name, int class_type);
 
-    void write_bases(output_base::code_block_writer &out, const cpp_class &c);
+    void write_bases(output_base::code_block_writer &out, const cpp_class &c, bool extract_private);
 
     void write_parameters(output_base::code_block_writer &out, const cpp_function_base &f,
                           const cpp_name &override_name);

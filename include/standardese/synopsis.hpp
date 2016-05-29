@@ -59,6 +59,7 @@ namespace standardese
         enum options
         {
             require_comment = 1,
+            extract_private = 2, // private members (except virtual) and base classes
         };
 
         void set_option(options o) STANDARDESE_NOEXCEPT
@@ -73,7 +74,7 @@ namespace standardese
 
         bool is_set(options o) const STANDARDESE_NOEXCEPT
         {
-            return (options_ & o) == 1;
+            return (options_ & o) > 0;
         }
 
         bool is_blacklisted(documentation_t, const cpp_entity &e) const;

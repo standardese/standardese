@@ -318,6 +318,21 @@ namespace standardese
     private:
         cpp_virtual virtual_;
     };
+
+    namespace detail
+    {
+        inline bool is_virtual(const cpp_entity &e)
+        {
+            if (e.get_entity_type() == cpp_entity::member_function_t)
+                return standardese::is_virtual(static_cast<const cpp_member_function&>(e).get_virtual());
+            else if (e.get_entity_type() == cpp_entity::conversion_op_t)
+                return standardese::is_virtual(static_cast<const cpp_conversion_op&>(e).get_virtual());
+            else if (e.get_entity_type() == cpp_entity::destructor_t)
+                return standardese::is_virtual(static_cast<const cpp_destructor&>(e).get_virtual());
+
+            return false;
+        }
+    } // namespace detail
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_FUNCTION_HPP_INCLUDED

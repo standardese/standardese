@@ -7,15 +7,72 @@
 #include <standardese/comment.hpp>
 #include <standardese/cpp_class.hpp>
 #include <standardese/cpp_enum.hpp>
+#include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_template.hpp>
 #include <standardese/parser.hpp>
-#include <standardese/synopsis.hpp>
 
 using namespace standardese;
 
 namespace
 {
+    template <class Entity>
+    cpp_access_specifier_t get_default_access(const Entity &)
+    {
+        return cpp_public;
+    }
+
+    cpp_access_specifier_t get_default_access(const cpp_class &e)
+    {
+        return e.get_class_type() == cpp_class_t ? cpp_private : cpp_public;
+    }
+
+    cpp_access_specifier_t get_default_access(const cpp_class_template &e)
+    {
+        return get_default_access(e.get_class());
+    }
+
+    cpp_access_specifier_t get_default_access(const cpp_class_template_full_specialization &e)
+    {
+        return get_default_access(e.get_class());
+    }
+
+    cpp_access_specifier_t get_default_access(const cpp_class_template_partial_specialization &e)
+    {
+        return get_default_access(e.get_class());
+    }
+
+    void dispatch(const parser &p, output_base &output,
+                  const entity_blacklist &blacklist,
+                  unsigned level, const cpp_entity &e);
+
+    template <class Entity, class Container>
+    void handle_container(const parser &p, output_base &output,
+                          const entity_blacklist &blacklist,
+                          unsigned level,
+                          const Entity &e,
+                          const Container &container)
+    {
+        if (blacklist.is_set(entity_blacklist::require_comment) && e.get_comment().empty())
+            return;
+
+        generate_doc_entity(p, output, level, e, blacklist);
+
+        auto cur_access = get_default_access(e);
+        for (auto& child : container)
+        {
+            if (child.get_entity_type() == cpp_entity::access_specifier_t)
+                cur_access = static_cast<const cpp_access_specifier &>(
+                                    static_cast<const cpp_entity&>(child)).get_access();
+            else if (blacklist.is_set(entity_blacklist::extract_private)
+                || cur_access != cpp_private
+                || detail::is_virtual(child))
+                dispatch(p, output, blacklist, level + 1, child);
+        }
+
+        output.write_seperator();
+    }
+
     void dispatch(const parser &p, output_base &output,
                   const entity_blacklist &blacklist,
                   unsigned level, const cpp_entity &e)
@@ -32,12 +89,9 @@ namespace
 
             #define STANDARDESE_DETAIL_HANDLE(name, ...) \
                 case cpp_entity::name##_t: \
-                    if (blacklist.is_set(entity_blacklist::require_comment) && e.get_comment().empty()) \
-                        break; \
-                    generate_doc_entity(p, output, level, e, blacklist); \
-                    for (auto& child : static_cast<const cpp_##name &>(e)__VA_ARGS__) \
-                        dispatch(p, output, blacklist, level + 1, child); \
-                    output.write_seperator(); \
+                    handle_container(p, output, blacklist, level, \
+                                     static_cast<const cpp_##name&>(e), \
+                                     static_cast<const cpp_##name&>(e)__VA_ARGS__); \
                     break;
 
             #define STANDARDESE_DETAIL_NOTHING

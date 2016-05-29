@@ -145,6 +145,9 @@ int main(int argc, char* argv[])
             ("input.require_comment",
              po::value<bool>()->default_value(true),
              "only generates documentation for entities that have a documentation comment")
+            ("input.extract_private",
+             po::value<bool>()->default_value(false),
+             "whether or not to document private entities")
 
             ("compilation.commands_dir", po::value<std::string>(),
              "the directory where a compile_commands.json is located, its options have lower priority than the other ones")
@@ -246,6 +249,8 @@ int main(int argc, char* argv[])
             blacklist_entity.blacklist(str);
         if (map.at("input.require_comment").as<bool>())
             blacklist_entity.set_option(entity_blacklist::require_comment);
+        if (map.at("input.extract_private").as<bool>())
+            blacklist_entity.set_option(entity_blacklist::extract_private);
 
         assert(!input.empty());
         for (auto& path : input)

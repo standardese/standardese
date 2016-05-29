@@ -208,7 +208,7 @@ namespace
         out << ';';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_access_specifier &a)
+    void write_access(output_base::code_block_writer &out, const cpp_access_specifier &a)
     {
         out.unindent(tab_width);
         out << newl << a.get_name() << ':' << newl;
@@ -228,7 +228,7 @@ namespace
             if (c.is_final())
                 out << " final";
 
-            detail::write_bases(out, c);
+            detail::write_bases(out, c, blacklist.is_set(entity_blacklist::extract_private));
 
             // can still be wrongly triggered if a class has only base classes
             if (c.empty())
@@ -238,11 +238,31 @@ namespace
                 out << newl << '{' << newl;
                 out.indent(tab_width);
 
+                auto cur_access = c.get_class_type() == cpp_class_t ? cpp_private : cpp_public;
+                auto need_access = false;
                 detail::write_range(out, c, blankl,
                                     [&](output_base::code_block_writer &out, const cpp_entity &e)
                                     {
-                                        if (!blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                                        if (e.get_entity_type() == cpp_entity::access_specifier_t)
+                                        {
+                                            auto new_access = static_cast<const cpp_access_specifier &>(e).get_access();
+                                            if (new_access != cur_access)
+                                                need_access = true;
+                                            cur_access = new_access;
+                                        }
+                                        else if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                                            return;
+                                        else if (blacklist.is_set(entity_blacklist::extract_private)
+                                            || cur_access != cpp_private
+                                            || detail::is_virtual(e))
+                                        {
+                                            if (need_access)
+                                            {
+                                                write_access(out, cur_access);
+                                                need_access = false;
+                                            }
                                             dispatch(out, e, blacklist, false);
+                                        }
                                     });
 
                 out.unindent(tab_width);
@@ -490,7 +510,6 @@ namespace
             STANDARDESE_DETAIL_HANDLE(enum)
 
             STANDARDESE_DETAIL_HANDLE(class)
-            STANDARDESE_DETAIL_HANDLE(access_specifier)
 
             STANDARDESE_DETAIL_HANDLE(variable)
             STANDARDESE_DETAIL_HANDLE(member_variable)
