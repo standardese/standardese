@@ -17,7 +17,8 @@ set(tests
         cpp_template.cpp
         cpp_type.cpp
         cpp_variable.cpp
-        output.cpp)
+        output.cpp
+        synopsis.cpp)
 
 add_executable(standardese_test test.cpp test_parser.hpp ${tests})
 target_include_directories(standardese_test PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

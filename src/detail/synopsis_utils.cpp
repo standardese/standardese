@@ -65,13 +65,16 @@ void detail::write_class_name(output_base::code_block_writer &out,
     out << name;
 }
 
-void detail::write_bases(output_base::code_block_writer &out, const cpp_class &c)
+void detail::write_bases(output_base::code_block_writer &out, const cpp_class &c, bool extract_private)
 {
     auto comma = false;
     for (auto &base : c)
     {
         if (base.get_entity_type() != cpp_entity::base_class_t)
             break;
+        else if (!extract_private
+            && static_cast<const cpp_base_class&>(base).get_access() == cpp_private)
+            continue;
 
         if (comma)
             out << ", ";
@@ -105,9 +108,10 @@ void detail::write_bases(output_base::code_block_writer &out, const cpp_class &c
 
 namespace
 {
-    void write_parameter(output_base::code_block_writer &out, const cpp_function_parameter &p)
+    bool write_parameter(output_base::code_block_writer &out, const cpp_function_parameter &p)
     {
         detail::write_type_value_default(out, p.get_type(), p.get_name(), p.get_default_value());
+        return true;
     }
 }
 

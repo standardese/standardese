@@ -7,44 +7,91 @@
 #include <standardese/comment.hpp>
 #include <standardese/cpp_class.hpp>
 #include <standardese/cpp_enum.hpp>
+#include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_template.hpp>
 #include <standardese/parser.hpp>
-#include <standardese/synopsis.hpp>
 
 using namespace standardese;
 
 namespace
 {
-    bool is_blacklisted(cpp_entity::type t)
+    template <class Entity>
+    cpp_access_specifier_t get_default_access(const Entity &)
     {
-        return t == cpp_entity::inclusion_directive_t
-            || t == cpp_entity::access_specifier_t
-            || t == cpp_entity::base_class_t
-            || t == cpp_entity::using_declaration_t
-            || t == cpp_entity::using_directive_t;
+        return cpp_public;
     }
 
-    void dispatch(const parser &p, output_base &output, unsigned level, const cpp_entity &e)
+    cpp_access_specifier_t get_default_access(const cpp_class &e)
     {
-        if (is_blacklisted(e.get_entity_type()))
+        return e.get_class_type() == cpp_class_t ? cpp_private : cpp_public;
+    }
+
+    cpp_access_specifier_t get_default_access(const cpp_class_template &e)
+    {
+        return get_default_access(e.get_class());
+    }
+
+    cpp_access_specifier_t get_default_access(const cpp_class_template_full_specialization &e)
+    {
+        return get_default_access(e.get_class());
+    }
+
+    cpp_access_specifier_t get_default_access(const cpp_class_template_partial_specialization &e)
+    {
+        return get_default_access(e.get_class());
+    }
+
+    void dispatch(const parser &p, output_base &output,
+                  const entity_blacklist &blacklist,
+                  unsigned level, const cpp_entity &e);
+
+    template <class Entity, class Container>
+    void handle_container(const parser &p, output_base &output,
+                          const entity_blacklist &blacklist,
+                          unsigned level,
+                          const Entity &e,
+                          const Container &container)
+    {
+        if (blacklist.is_set(entity_blacklist::require_comment) && e.get_comment().empty())
+            return;
+
+        generate_doc_entity(p, output, level, e, blacklist);
+
+        auto cur_access = get_default_access(e);
+        for (auto& child : container)
+        {
+            if (child.get_entity_type() == cpp_entity::access_specifier_t)
+                cur_access = static_cast<const cpp_access_specifier &>(
+                                    static_cast<const cpp_entity&>(child)).get_access();
+            else if (blacklist.is_set(entity_blacklist::extract_private)
+                || cur_access != cpp_private
+                || detail::is_virtual(child))
+                dispatch(p, output, blacklist, level + 1, child);
+        }
+
+        output.write_seperator();
+    }
+
+    void dispatch(const parser &p, output_base &output,
+                  const entity_blacklist &blacklist,
+                  unsigned level, const cpp_entity &e)
+    {
+        if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
             return;
 
         switch (e.get_entity_type())
         {
             case cpp_entity::namespace_t:
                 for (auto& child : static_cast<const cpp_namespace &>(e))
-                    dispatch(p, output, level, child);
+                    dispatch(p, output, blacklist, level, child);
                 break;
 
             #define STANDARDESE_DETAIL_HANDLE(name, ...) \
                 case cpp_entity::name##_t: \
-                    if (e.get_comment().empty()) \
-                        break; \
-                    generate_doc_entity(p, output, level, e); \
-                    for (auto& child : static_cast<const cpp_##name &>(e)__VA_ARGS__) \
-                        dispatch(p, output, level + 1, child); \
-                    output.write_seperator(); \
+                    handle_container(p, output, blacklist, level, \
+                                     static_cast<const cpp_##name&>(e), \
+                                     static_cast<const cpp_##name&>(e)__VA_ARGS__); \
                     break;
 
             #define STANDARDESE_DETAIL_NOTHING
@@ -60,8 +107,9 @@ namespace
             #undef STANDARDESE_DETAIL_NOTHING
 
             default:
-                if (!e.get_comment().empty())
-                    generate_doc_entity(p, output, level, e);
+                if (blacklist.is_set(entity_blacklist::require_comment) && e.get_comment().empty())
+                    break;
+                generate_doc_entity(p, output, level, e, blacklist);
                 break;
         }
     }
@@ -135,6 +183,9 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
             return "base class";
         case cpp_entity::access_specifier_t:
             return "access specifier";
+
+        case cpp_entity::invalid_t:
+            break;
     }
 
     return "should never get here";
@@ -142,14 +193,14 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
 
 void standardese::generate_doc_entity(const parser &p,
                                       output_base &output, unsigned level,
-                                      const cpp_entity &e)
+                                      const cpp_entity &e, const entity_blacklist &blacklist)
 {
     auto type = get_entity_type_spelling(e.get_entity_type());
 
     output_base::heading_writer(output, level) << char(std::toupper(type[0])) << &type[1] << ' '
         << output_base::style::code_span << e.get_name() << output_base::style::code_span;
 
-    write_synopsis(output, e);
+    write_synopsis(output, e, blacklist);
 
     auto comment = comment::parser(p.get_logger(), e).finish();
 
@@ -169,10 +220,11 @@ void standardese::generate_doc_entity(const parser &p,
     }
 }
 
-void standardese::generate_doc_file(const parser &p, output_base &output, const cpp_file &f)
+void standardese::generate_doc_file(const parser &p, output_base &output,
+                                    const cpp_file &f, const entity_blacklist &blacklist)
 {
-    generate_doc_entity(p, output, 1, f);
+    generate_doc_entity(p, output, 1, f, blacklist);
 
     for (auto& e : f)
-        dispatch(p, output, 2, e);
+        dispatch(p, output, blacklist, 2, e);
 }
