@@ -88,7 +88,7 @@ namespace standardese
             return name_;
         }
 
-        virtual cpp_name get_unique_name() const
+        cpp_name get_full_name() const
         {
             return scope_.empty() ? name_ : scope_ + "::" + name_;
         }

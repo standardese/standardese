@@ -79,7 +79,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
         if (dynamic_cast<const cpp_function*>(&e))
         {
             auto &func = dynamic_cast<const cpp_function &>(e);
-            REQUIRE(func.get_name() == func.get_unique_name());
+            REQUIRE(func.get_name() == func.get_full_name());
             if (func.get_name() != "c")
                 REQUIRE(func.get_definition() == cpp_function_definition_normal);
             else

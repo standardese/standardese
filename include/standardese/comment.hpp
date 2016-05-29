@@ -83,7 +83,7 @@ namespace standardese
                const char *entity_name, const cpp_raw_comment &raw_comment);
 
         parser(std::shared_ptr<spdlog::logger> logger, const cpp_entity &e)
-        : parser(std::move(logger), e.get_unique_name().c_str(), e.get_comment()) {}
+        : parser(std::move(logger), e.get_full_name().c_str(), e.get_comment()) {}
 
         comment finish();
 

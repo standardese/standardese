@@ -51,7 +51,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
         if (t.get_name() == "type_1")
         {
             ++count;
-            REQUIRE(t.get_unique_name() == "type_1");
+            REQUIRE(t.get_full_name() == "type_1");
             auto& target = t.get_target();
             REQUIRE(target.get_name() == "int");
             REQUIRE(target.get_full_name() == "int");
@@ -59,7 +59,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
         else if (t.get_name() == "type_2")
         {
             ++count;
-            REQUIRE(t.get_unique_name() == "type_2");
+            REQUIRE(t.get_full_name() == "type_2");
             auto& target = t.get_target();
             REQUIRE(target.get_name() == "char[]");
             // note: whitespace because libclang inserts space there
@@ -68,7 +68,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
         else if (t.get_name() == "type_3")
         {
             ++count;
-            REQUIRE(t.get_unique_name() == "type_3");
+            REQUIRE(t.get_full_name() == "type_3");
             auto& target = t.get_target();
             REQUIRE(target.get_name() == "int");
             REQUIRE(target.get_full_name() == "int");
@@ -76,7 +76,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
         else if (t.get_name() == "type_4")
         {
             ++count;
-            REQUIRE(t.get_unique_name() == "type_4");
+            REQUIRE(t.get_full_name() == "type_4");
             auto& target = t.get_target();
             REQUIRE(target.get_name() == "const foo *");
             REQUIRE(target.get_full_name() == "const foo *");
@@ -84,7 +84,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
         else if (t.get_name() == "type_5")
         {
             ++count;
-            REQUIRE(t.get_unique_name() == "ns::type_5");
+            REQUIRE(t.get_full_name() == "ns::type_5");
             auto& target = t.get_target();
             REQUIRE(target.get_name() == "foo");
             REQUIRE(target.get_full_name() == "ns::foo");
@@ -92,7 +92,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
         else if (t.get_name() == "type_6")
         {
             ++count;
-            REQUIRE(t.get_unique_name() == "type_6");
+            REQUIRE(t.get_full_name() == "type_6");
             auto& target = t.get_target();
             REQUIRE(target.get_name() == "ns::foo");
             REQUIRE(target.get_full_name() == "ns::foo");
@@ -100,7 +100,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
         else if (t.get_name() == "type_7")
         {
             ++count;
-            REQUIRE(t.get_unique_name() == "type_7");
+            REQUIRE(t.get_full_name() == "type_7");
             auto& target = t.get_target();
             REQUIRE(target.get_name() == "void(*)(int, char)");
             REQUIRE(target.get_full_name() == "void (*)(int, char)");
@@ -141,7 +141,7 @@ TEST_CASE("cpp_enum", "[cpp]")
     p.for_each_type([&](const cpp_type &e)
     {
         auto &t = dynamic_cast<const cpp_enum&>(e);
-        REQUIRE(t.get_name() == t.get_unique_name());
+        REQUIRE(t.get_name() == t.get_full_name());
 
         if (t.get_name() == "a")
         {
@@ -155,7 +155,7 @@ TEST_CASE("cpp_enum", "[cpp]")
             {
                 auto& eval = dynamic_cast<const cpp_unsigned_enum_value&>(val);
                 REQUIRE(eval.get_name() == "a_" + std::to_string(i));
-                REQUIRE(eval.get_unique_name() == "a_" + std::to_string(i));
+                REQUIRE(eval.get_full_name() == "a_" + std::to_string(i));
 
                 if (i == 3u)
                 {
@@ -185,7 +185,7 @@ TEST_CASE("cpp_enum", "[cpp]")
             {
                 auto& eval = dynamic_cast<const cpp_signed_enum_value&>(val);
                 REQUIRE(eval.get_name() == "b_" + std::to_string(i));
-                REQUIRE(eval.get_unique_name() == "b::b_" + std::to_string(i));
+                REQUIRE(eval.get_full_name() == "b::b_" + std::to_string(i));
 
                 if (i == 3u)
                 {
@@ -282,21 +282,21 @@ TEST_CASE("cpp_class", "[cpp]")
         {
             ++count;
             REQUIRE(!c.is_final());
-            REQUIRE(c.get_unique_name() == "foo::nested_a");
+            REQUIRE(c.get_full_name() == "foo::nested_a");
             REQUIRE(c.get_class_type() == cpp_struct_t);
         }
         else if (c.get_name() == "nested_b")
         {
             ++count;
             REQUIRE(!c.is_final());
-            REQUIRE(c.get_unique_name() == "foo::nested_b");
+            REQUIRE(c.get_full_name() == "foo::nested_b");
             REQUIRE(c.get_class_type() == cpp_struct_t);
         }
         else if (c.get_name() == "nested_c")
         {
             ++count;
             REQUIRE(!c.is_final());
-            REQUIRE(c.get_unique_name() == "foo::nested_c");
+            REQUIRE(c.get_full_name() == "foo::nested_c");
             REQUIRE(c.get_class_type() == cpp_struct_t);
         }
         else if (c.get_name() == "union_t")

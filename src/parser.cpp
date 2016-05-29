@@ -168,7 +168,7 @@ namespace
     {
         bool operator()(cpp_type *a, cpp_type *b) const
         {
-            return a->get_unique_name() < b->get_unique_name();
+            return a->get_full_name() < b->get_full_name();
         }
     };
 }
@@ -211,7 +211,7 @@ void parser::for_each_file(file_callback cb, void* data)
 void parser::register_namespace(cpp_namespace &n) const
 {
     std::unique_lock<std::mutex> lock(pimpl_->ns_mutex);
-    pimpl_->namespace_names.insert(n.get_unique_name());
+    pimpl_->namespace_names.insert(n.get_full_name());
     pimpl_->namespaces.push_back(&n);
 }
 

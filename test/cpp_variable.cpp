@@ -38,7 +38,7 @@ TEST_CASE("cpp_variable", "[cpp]")
     {
         if (auto var = dynamic_cast<const cpp_variable*>(&e))
         {
-            REQUIRE(var->get_unique_name() == var->get_name());
+            REQUIRE(var->get_full_name() == var->get_name());
             auto& type = var->get_type();
 
             if (var->get_name() == "a")
@@ -155,7 +155,7 @@ TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
         {
             auto& var = dynamic_cast<const cpp_variable&>(e);
             INFO(var.get_name());
-            REQUIRE(var.get_unique_name() == "foo::" + var.get_name());
+            REQUIRE(var.get_full_name() == "foo::" + var.get_name());
             REQUIRE(!var.is_thread_local());
 
             if (var.get_name() != "e")
