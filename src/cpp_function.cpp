@@ -55,7 +55,7 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(translation_unit &
     std::string default_value;
     auto type = parse_parameter_type(tu, cur, name, default_value);
 
-    return detail::make_ptr<cpp_function_parameter>(std::move(name), detail::parse_comment(cur),
+    return detail::make_ptr<cpp_function_parameter>(std::move(name),
                                                     std::move(type), std::move(default_value));
 }
 
@@ -410,7 +410,7 @@ cpp_ptr<cpp_function> cpp_function::parse(translation_unit &tu, cpp_name scope, 
     if (minfo.ref_qualifier != cpp_ref_none)
         throw parse_error(location, "ref qualifier on normal function");
 
-    auto result = detail::make_ptr<cpp_function>(std::move(scope), std::move(name), detail::parse_comment(cur),
+    auto result = detail::make_ptr<cpp_function>(std::move(scope), std::move(name),
                                                  std::move(return_type), std::move(finfo));
 
     parse_parameters(tu, result.get(), cur);
@@ -434,7 +434,7 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit &tu, cp
 
     auto return_type = parse_member_function(stream, location, cur, name, finfo, minfo);
 
-    auto result = detail::make_ptr<cpp_member_function>(std::move(scope), std::move(name), detail::parse_comment(cur),
+    auto result = detail::make_ptr<cpp_member_function>(std::move(scope), std::move(name),
                                                         std::move(return_type),
                                                         std::move(finfo), std::move(minfo));
 
@@ -535,7 +535,7 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit &tu, cpp_na
     if (finfo.noexcept_expression.empty())
         finfo.noexcept_expression = "false";
 
-    return detail::make_ptr<cpp_conversion_op>(std::move(scope), std::move(name), detail::parse_comment(cur),
+    return detail::make_ptr<cpp_conversion_op>(std::move(scope), std::move(name),
                                                type, std::move(finfo), std::move(minfo));
 }
 
@@ -615,7 +615,7 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name s
     if (!info.explicit_noexcept)
         info.noexcept_expression = "false";
 
-    auto result =  detail::make_ptr<cpp_constructor>(std::move(scope), std::move(name), detail::parse_comment(cur),
+    auto result =  detail::make_ptr<cpp_constructor>(std::move(scope), std::move(name),
                                                      std::move(info));
     parse_parameters(tu, result.get(), cur);
     return result;
@@ -687,6 +687,6 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_name sco
     if (!info.explicit_noexcept)
         info.noexcept_expression = "true";
 
-    return detail::make_ptr<cpp_destructor>(std::move(scope), std::move(name), detail::parse_comment(cur),
+    return detail::make_ptr<cpp_destructor>(std::move(scope), std::move(name),
                                             std::move(info), virtual_flag);
 }

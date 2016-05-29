@@ -23,12 +23,12 @@ namespace standardese
     public:
         static cpp_ptr<cpp_variable> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
-        cpp_variable(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_variable(cpp_name scope, cpp_name name,
                      cpp_type_ref type, std::string initializer,
                      cpp_linkage linkage = cpp_no_linkage,
                      bool is_thread_local = false)
         : cpp_entity(variable_t, std::move(scope),
-                     std::move(name), std::move(comment)),
+                     std::move(name)),
           type_(std::move(type)), initializer_(std::move(initializer)),
           linkage_(std::move(linkage)),
           thread_local_(is_thread_local) {}
@@ -66,11 +66,11 @@ namespace standardese
     public:
         static cpp_ptr<cpp_member_variable> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
-        cpp_member_variable(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_member_variable(cpp_name scope, cpp_name name,
                          cpp_type_ref type, std::string initializer,
                          cpp_linkage linkage = cpp_no_linkage,
                          bool is_mutable = false, bool is_thread_local = false)
-        : cpp_variable(std::move(scope), std::move(name), std::move(comment),
+        : cpp_variable(std::move(scope), std::move(name),
                        std::move(type), std::move(initializer), linkage,
                        is_thread_local),
           mutable_(is_mutable)
@@ -91,12 +91,12 @@ namespace standardese
     : public cpp_member_variable
     {
     public:
-        cpp_bitfield(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_bitfield(cpp_name scope, cpp_name name,
                     cpp_type_ref type, std::string initializer, unsigned no,
                     cpp_linkage linkage = cpp_no_linkage,
                     bool is_mutable = false, bool is_thread_local = false)
-        : cpp_member_variable(std::move(scope), std::move(name), std::move(comment),
-                            std::move(type), std::move(initializer), linkage,
+        : cpp_member_variable(std::move(scope), std::move(name),
+                              std::move(type), std::move(initializer), linkage,
                             is_mutable, is_thread_local),
           no_bits_(no)
         {

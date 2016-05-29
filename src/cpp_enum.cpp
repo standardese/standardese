@@ -117,13 +117,13 @@ cpp_ptr<cpp_enum_value> cpp_enum_value::parse(translation_unit &tu, cpp_name sco
     {
         auto val = clang_getEnumConstantDeclValue(cur);
         result = detail::make_ptr<cpp_signed_enum_value>(std::move(scope), std::move(name),
-                                                         std::move(comment), val);
+                                                         val);
     }
     else if (is_unsigned_integer(type))
     {
         auto val = clang_getEnumConstantDeclUnsignedValue(cur);
         result = detail::make_ptr<cpp_unsigned_enum_value>(std::move(scope), std::move(name),
-                                                           std::move(comment), val);
+                                                           val);
     }
     else
         assert(false);
@@ -145,7 +145,7 @@ cpp_enum::parser::parser(translation_unit &tu, cpp_name scope, cpp_cursor cur)
 
     if (is_definition)
     {
-        enum_ = cpp_ptr<cpp_enum>(new cpp_enum(std::move(scope), std::move(name), detail::parse_comment(cur),
+        enum_ = cpp_ptr<cpp_enum>(new cpp_enum(std::move(scope), std::move(name),
                                                type, std::move(underlying)));
 
         if (is_scoped)

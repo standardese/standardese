@@ -28,7 +28,7 @@ namespace
 }
 
 cpp_namespace::parser::parser(translation_unit &tu, const cpp_name &scope, cpp_cursor cur)
-: ns_(new cpp_namespace(scope, detail::parse_name(cur), detail::parse_comment(cur)))
+: ns_(new cpp_namespace(scope, detail::parse_name(cur)))
 {
     assert(clang_getCursorKind(cur) == CXCursor_Namespace);
     if (is_inline_namespace(tu, cur))
@@ -87,7 +87,7 @@ cpp_ptr<cpp_namespace_alias> cpp_namespace_alias::parse(translation_unit &tu, cp
     auto target = parse_target(stream);
 
     auto result = detail::make_ptr<cpp_namespace_alias>(std::move(scope), std::move(name),
-                                                 detail::parse_comment(cur), target);
+                                                 target);
     result->unique_ = target_scope.empty() ? std::move(target) : target_scope + "::" + target;
     return result;
 }
@@ -105,7 +105,7 @@ cpp_ptr<cpp_using_directive> cpp_using_directive::parse(translation_unit &tu, cp
     detail::skip(stream, location, {"using", "namespace"});
     auto target = parse_target(stream);
 
-    return detail::make_ptr<cpp_using_directive>(std::move(target_scope), std::move(target), detail::parse_comment(cur));
+    return detail::make_ptr<cpp_using_directive>(std::move(target_scope), std::move(target));
 }
 
 cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(translation_unit &tu, cpp_cursor cur)
@@ -121,5 +121,5 @@ cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(translation_unit &tu
     detail::skip(stream, location, {"using"});
     auto target = parse_target(stream);
 
-    return detail::make_ptr<cpp_using_declaration>(std::move(target_scope), std::move(target), detail::parse_comment(cur));
+    return detail::make_ptr<cpp_using_declaration>(std::move(target_scope), std::move(target));
 }

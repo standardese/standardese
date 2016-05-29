@@ -18,9 +18,9 @@ namespace standardese
     public:
         static cpp_ptr<cpp_function_parameter> parse(translation_unit &tu,  cpp_cursor cur);
 
-        cpp_function_parameter(cpp_name name, cpp_raw_comment comment,
+        cpp_function_parameter(cpp_name name,
                                cpp_type_ref type, std::string default_value = "")
-        : cpp_parameter_base(function_parameter_t, std::move(name), std::move(comment)),
+        : cpp_parameter_base(function_parameter_t, std::move(name)),
           type_(std::move(type)), default_(std::move(default_value)) {}
 
         const cpp_type_ref& get_type() const STANDARDESE_NOEXCEPT
@@ -123,9 +123,9 @@ namespace standardese
 
     protected:
         cpp_function_base(cpp_entity::type t,
-                          cpp_name scope, cpp_name name, cpp_raw_comment comment,
+                          cpp_name scope, cpp_name name,
                           cpp_function_info info)
-        : cpp_entity(t, std::move(scope), std::move(name), std::move(comment)),
+        : cpp_entity(t, std::move(scope), std::move(name)),
           info_(std::move(info)) {}
 
     private:
@@ -138,10 +138,10 @@ namespace standardese
     public:
         static cpp_ptr<cpp_function> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
-        cpp_function(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_function(cpp_name scope, cpp_name name,
                      cpp_type_ref return_type, cpp_function_info info)
         : cpp_function_base(function_t,
-                            std::move(scope), std::move(name), std::move(comment),
+                            std::move(scope), std::move(name),
                             std::move(info)),
           return_(std::move(return_type)) {}
 
@@ -216,10 +216,10 @@ namespace standardese
     public:
         static cpp_ptr<cpp_member_function> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
-        cpp_member_function(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_member_function(cpp_name scope, cpp_name name,
                             cpp_type_ref return_type,
                             cpp_function_info finfo, cpp_member_function_info minfo)
-        : cpp_function(std::move(scope), std::move(name), std::move(comment),
+        : cpp_function(std::move(scope), std::move(name),
                        std::move(return_type), std::move(finfo)),
           info_(minfo)
         {
@@ -251,11 +251,11 @@ namespace standardese
     public:
         static cpp_ptr<cpp_conversion_op> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
-        cpp_conversion_op(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_conversion_op(cpp_name scope, cpp_name name,
                           cpp_type_ref target_type,
                           cpp_function_info finfo, cpp_member_function_info minfo)
         : cpp_function_base(conversion_op_t,
-                            std::move(scope), std::move(name), std::move(comment),
+                            std::move(scope), std::move(name),
                             std::move(finfo)),
           target_type_(std::move(target_type)), info_(minfo) {}
 
@@ -290,10 +290,10 @@ namespace standardese
     public:
         static cpp_ptr<cpp_constructor> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
-        cpp_constructor(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_constructor(cpp_name scope, cpp_name name,
                         cpp_function_info info)
         : cpp_function_base(constructor_t,
-                            std::move(scope), std::move(name), std::move(comment),
+                            std::move(scope), std::move(name),
                             std::move(info)) {}
     };
 
@@ -303,10 +303,10 @@ namespace standardese
     public:
         static cpp_ptr<cpp_destructor> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
-        cpp_destructor(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_destructor(cpp_name scope, cpp_name name,
                        cpp_function_info info, cpp_virtual virtual_flag)
         : cpp_function_base(destructor_t,
-                            std::move(scope), std::move(name), std::move(comment),
+                            std::move(scope), std::move(name),
                             std::move(info)),
           virtual_(virtual_flag) {}
 

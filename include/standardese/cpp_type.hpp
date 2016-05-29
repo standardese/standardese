@@ -24,8 +24,8 @@ namespace standardese
         }
 
     protected:
-        cpp_type(cpp_entity::type t, cpp_name scope, cpp_name name, cpp_raw_comment comment, CXType type)
-        : cpp_entity(t, std::move(scope), std::move(name), std::move(comment)),
+        cpp_type(cpp_entity::type t, cpp_name scope, cpp_name name, CXType type)
+        : cpp_entity(t, std::move(scope), std::move(name)),
           type_(type)
         {}
 
@@ -68,9 +68,9 @@ namespace standardese
     public:
         static cpp_ptr<cpp_type_alias> parse(translation_unit &tu, const cpp_name &scope, cpp_cursor cur);
 
-        cpp_type_alias(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_type_alias(cpp_name scope, cpp_name name,
                        CXType type, cpp_type_ref target)
-        : cpp_type(type_alias_t, std::move(scope), std::move(name), std::move(comment), type),
+        : cpp_type(type_alias_t, std::move(scope), std::move(name), type),
           target_(std::move(target)) {}
 
         const cpp_type_ref& get_target() const STANDARDESE_NOEXCEPT

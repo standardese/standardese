@@ -15,8 +15,8 @@ namespace standardese
     public:
         static cpp_ptr<cpp_enum_value> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
-        cpp_enum_value(cpp_name scope, cpp_name name, cpp_raw_comment comment)
-        : cpp_enum_value(enum_value_t, std::move(scope), std::move(name), std::move(comment)) {}
+        cpp_enum_value(cpp_name scope, cpp_name name)
+        : cpp_enum_value(enum_value_t, std::move(scope), std::move(name)) {}
 
         bool is_explicitly_given() const STANDARDESE_NOEXCEPT
         {
@@ -25,8 +25,8 @@ namespace standardese
 
     protected:
         cpp_enum_value(cpp_entity::type t, cpp_name scope,
-                       cpp_name name, cpp_raw_comment comment)
-        : cpp_entity(t, std::move(scope), std::move(name), std::move(comment)),
+                       cpp_name name)
+        : cpp_entity(t, std::move(scope), std::move(name)),
           explicit_(false) {}
 
     private:
@@ -37,10 +37,10 @@ namespace standardese
     : public cpp_enum_value
     {
     public:
-        cpp_signed_enum_value(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_signed_enum_value(cpp_name scope, cpp_name name,
                               long long value)
         : cpp_enum_value(signed_enum_value_t, std::move(scope),
-                         std::move(name), std::move(comment)),
+                         std::move(name)),
           value_(value) {}
 
         long long get_value() const STANDARDESE_NOEXCEPT
@@ -56,10 +56,10 @@ namespace standardese
     : public cpp_enum_value
     {
     public:
-        cpp_unsigned_enum_value(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_unsigned_enum_value(cpp_name scope, cpp_name name,
                                 unsigned long long value)
         : cpp_enum_value(unsigned_enum_value_t, std::move(scope),
-                         std::move(name), std::move(comment)),
+                         std::move(name)),
           value_(value) {}
 
         unsigned long long get_value() const STANDARDESE_NOEXCEPT
@@ -91,9 +91,9 @@ namespace standardese
             cpp_ptr<cpp_enum> enum_;
         };
 
-        cpp_enum(cpp_name scope, cpp_name name, cpp_raw_comment comment,
+        cpp_enum(cpp_name scope, cpp_name name,
                  CXType type, cpp_type_ref underlying)
-        : cpp_type(enum_t, std::move(scope), std::move(name), std::move(comment), type),
+        : cpp_type(enum_t, std::move(scope), std::move(name), type),
           underlying_(std::move(underlying)),
           is_scoped_(false) {}
 

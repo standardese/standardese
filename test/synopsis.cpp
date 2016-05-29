@@ -13,7 +13,7 @@ TEST_CASE("entity_blacklist")
     struct dummy_entity : cpp_entity
     {
         dummy_entity(cpp_name name, cpp_entity::type t)
-        : cpp_entity(t, "", name, "") {}
+        : cpp_entity(t, "", name) {}
     };
 
     entity_blacklist blacklist(entity_blacklist::empty);

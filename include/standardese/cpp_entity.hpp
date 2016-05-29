@@ -93,15 +93,15 @@ namespace standardese
             return scope_.empty() ? name_ : scope_ + "::" + name_;
         }
 
+        cpp_raw_comment get_comment() const STANDARDESE_NOEXCEPT
+        {
+            return "";
+        }
+
         // excluding trailing "::"
         const cpp_name& get_scope() const STANDARDESE_NOEXCEPT
         {
             return scope_;
-        }
-
-        const cpp_raw_comment& get_comment() const STANDARDESE_NOEXCEPT
-        {
-            return comment_;
         }
 
         type get_entity_type() const STANDARDESE_NOEXCEPT
@@ -110,8 +110,8 @@ namespace standardese
         }
 
     protected:
-        cpp_entity(type t, cpp_name scope, cpp_name n, cpp_raw_comment c) STANDARDESE_NOEXCEPT
-        : name_(std::move(n)), scope_(std::move(scope)), comment_(std::move(c)),
+        cpp_entity(type t, cpp_name scope, cpp_name n) STANDARDESE_NOEXCEPT
+        : name_(std::move(n)), scope_(std::move(scope)),
           next_(nullptr), t_(t)
         {}
 
@@ -127,7 +127,6 @@ namespace standardese
 
     private:
         cpp_name name_, scope_;
-        cpp_raw_comment comment_;
 
         std::unique_ptr<cpp_entity> next_;
 
@@ -278,8 +277,8 @@ namespace standardese
     : public cpp_entity
     {
     protected:
-        cpp_parameter_base(cpp_entity::type t, cpp_name name, cpp_raw_comment comment)
-        : cpp_entity(t, "", std::move(name), std::move(comment)) {}
+        cpp_parameter_base(cpp_entity::type t, cpp_name name)
+        : cpp_entity(t, "", std::move(name)) {}
     };
 } // namespace standardese
 

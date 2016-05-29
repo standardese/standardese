@@ -24,8 +24,8 @@ namespace standardese
 
         static cpp_ptr<cpp_inclusion_directive> parse(translation_unit &tu,  cpp_cursor cur);
 
-        cpp_inclusion_directive(cpp_name file_name, cpp_raw_comment comment, kind k)
-        : cpp_entity(inclusion_directive_t, "", std::move(file_name), std::move(comment)),
+        cpp_inclusion_directive(cpp_name file_name, kind k)
+        : cpp_entity(inclusion_directive_t, "", std::move(file_name)),
           kind_(k) {}
 
         kind get_kind() const STANDARDESE_NOEXCEPT
@@ -43,9 +43,9 @@ namespace standardese
     public:
         static cpp_ptr<cpp_macro_definition> parse(translation_unit &tu,  cpp_cursor cur);
 
-        cpp_macro_definition(cpp_name name, cpp_raw_comment c,
+        cpp_macro_definition(cpp_name name,
                              std::string args, std::string rep)
-        : cpp_entity(macro_definition_t, "", std::move(name), std::move(c)),
+        : cpp_entity(macro_definition_t, "", std::move(name)),
           args_(std::move(args)), replacement_(std::move(rep)) {}
 
         bool is_function_macro() const STANDARDESE_NOEXCEPT

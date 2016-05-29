@@ -78,7 +78,7 @@ cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit &tu, const cpp_na
 
     auto name = detail::parse_name(cur);
     auto target = parse_alias_target(tu, cur, name);
-    auto result = detail::make_ptr<cpp_type_alias>(scope, std::move(name), detail::parse_comment(cur),
+    auto result = detail::make_ptr<cpp_type_alias>(scope, std::move(name),
                                                    clang_getCursorType(cur), target);
 
     tu.get_parser().register_type(*result);

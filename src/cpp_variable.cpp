@@ -108,7 +108,7 @@ cpp_ptr<cpp_variable> cpp_variable::parse(translation_unit &tu, cpp_name scope, 
 
     auto linkage = convert_linkage(is_variable_static_class(cur), type.get_type(), clang_Cursor_getStorageClass(cur));
 
-    return detail::make_ptr<cpp_variable>(std::move(scope), std::move(name), detail::parse_comment(cur),
+    return detail::make_ptr<cpp_variable>(std::move(scope), std::move(name),
                                           std::move(type), std::move(initializer), linkage, is_thread_local);
 }
 
@@ -127,11 +127,11 @@ cpp_ptr<cpp_member_variable> cpp_member_variable::parse(translation_unit &tu, cp
     if (clang_Cursor_isBitField(cur))
     {
         auto no_bits = clang_getFieldDeclBitWidth(cur);
-        return detail::make_ptr<cpp_bitfield>(std::move(scope), std::move(name), detail::parse_comment(cur),
+        return detail::make_ptr<cpp_bitfield>(std::move(scope), std::move(name),
                                              std::move(type), std::move(initializer), no_bits, linkage,
                                              is_mutable, is_thread_local);
     }
-    return detail::make_ptr<cpp_member_variable>(std::move(scope), std::move(name), detail::parse_comment(cur),
+    return detail::make_ptr<cpp_member_variable>(std::move(scope), std::move(name),
                                                  std::move(type), std::move(initializer), linkage,
                                                  is_mutable, is_thread_local);
 }

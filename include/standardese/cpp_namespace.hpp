@@ -37,8 +37,8 @@ namespace standardese
             cpp_ptr<cpp_namespace> ns_;
         };
 
-        cpp_namespace(const cpp_name &scope, cpp_name name, cpp_raw_comment comment)
-        : cpp_entity(namespace_t, scope, std::move(name), std::move(comment)),
+        cpp_namespace(const cpp_name &scope, cpp_name name)
+        : cpp_entity(namespace_t, scope, std::move(name)),
           inline_(false) {}
 
         void add_entity(cpp_entity_ptr ptr)
@@ -61,8 +61,8 @@ namespace standardese
     public:
         static cpp_ptr<cpp_namespace_alias> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
 
-        cpp_namespace_alias(cpp_name scope, cpp_name name, cpp_raw_comment comment, cpp_name target)
-        : cpp_entity(namespace_alias_t, std::move(scope), std::move(name), std::move(comment)),
+        cpp_namespace_alias(cpp_name scope, cpp_name name, cpp_name target)
+        : cpp_entity(namespace_alias_t, std::move(scope), std::move(name)),
           target_(std::move(target)), unique_(target) {}
 
         const cpp_name& get_target() const STANDARDESE_NOEXCEPT
@@ -85,9 +85,9 @@ namespace standardese
     public:
         static cpp_ptr<cpp_using_directive> parse(translation_unit &tu,  cpp_cursor cur);
 
-        cpp_using_directive(cpp_name target_scope, cpp_name target_name, cpp_raw_comment comment)
+        cpp_using_directive(cpp_name target_scope, cpp_name target_name)
         : cpp_entity(using_directive_t, std::move(target_scope),
-                     std::move(target_name), std::move(comment)) {}
+                     std::move(target_name)) {}
     };
 
     class cpp_using_declaration
@@ -96,9 +96,9 @@ namespace standardese
     public:
         static cpp_ptr<cpp_using_declaration> parse(translation_unit &tu,  cpp_cursor cur);
 
-        cpp_using_declaration(cpp_name target_scope, cpp_name target_name, cpp_raw_comment comment)
+        cpp_using_declaration(cpp_name target_scope, cpp_name target_name)
         : cpp_entity(using_declaration_t, std::move(target_scope),
-                     std::move(target_name), std::move(comment)) {}
+                     std::move(target_name)) {}
     };
 } // namespace standardese
 

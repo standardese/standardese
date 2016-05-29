@@ -27,7 +27,7 @@ cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit
 
     auto k = source[i] == '<' ? kind::system : kind::local;
 
-    return detail::make_ptr<cpp_inclusion_directive>(detail::parse_name(cur), detail::parse_comment(cur), k);
+    return detail::make_ptr<cpp_inclusion_directive>(detail::parse_name(cur), k);
 }
 
 cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit &, cpp_cursor cur)
@@ -74,6 +74,6 @@ cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit &, cp
     while (std::isspace(rep.back()))
         rep.pop_back();
 
-    return detail::make_ptr<cpp_macro_definition>(std::move(name), detail::parse_comment(cur),
+    return detail::make_ptr<cpp_macro_definition>(std::move(name),
                                                   std::move(args), std::move(rep));
 }

@@ -54,9 +54,9 @@ namespace standardese
         }
 
     protected:
-        cpp_template_parameter(cpp_entity::type t, cpp_name name, cpp_raw_comment comment,
+        cpp_template_parameter(cpp_entity::type t, cpp_name name,
                                bool is_variadic)
-        : cpp_parameter_base(t, std::move(name), std::move(comment)),
+        : cpp_parameter_base(t, std::move(name)),
           variadic_(is_variadic) {}
 
     private:
@@ -69,10 +69,10 @@ namespace standardese
     public:
         static cpp_ptr<cpp_template_type_parameter> parse(translation_unit &tu,  cpp_cursor cur);
 
-        cpp_template_type_parameter(cpp_name name, cpp_raw_comment comment,
+        cpp_template_type_parameter(cpp_name name,
                                     cpp_type_ref def, bool is_variadic)
         : cpp_template_parameter(template_type_parameter_t,
-                                 std::move(name), std::move(comment), is_variadic),
+                                 std::move(name), is_variadic),
           default_(std::move(def)) {}
 
         bool has_default_type() const STANDARDESE_NOEXCEPT
@@ -95,11 +95,11 @@ namespace standardese
     public:
         static cpp_ptr<cpp_non_type_template_parameter> parse(translation_unit &tu,  cpp_cursor cur);
 
-        cpp_non_type_template_parameter(cpp_name name, cpp_raw_comment comment,
+        cpp_non_type_template_parameter(cpp_name name,
                                         cpp_type_ref type, std::string default_value,
                                         bool is_variadic)
         : cpp_template_parameter(non_type_template_parameter_t,
-                                 std::move(name), std::move(comment), is_variadic),
+                                 std::move(name), is_variadic),
           type_(std::move(type)), default_(std::move(default_value)) {}
 
         const cpp_type_ref& get_type() const STANDARDESE_NOEXCEPT
@@ -128,10 +128,10 @@ namespace standardese
     public:
         static cpp_ptr<cpp_template_template_parameter> parse(translation_unit &tu,  cpp_cursor cur);
 
-        cpp_template_template_parameter(cpp_name name, cpp_raw_comment comment,
+        cpp_template_template_parameter(cpp_name name,
                                         cpp_template_ref def, bool is_variadic)
         : cpp_template_parameter(template_template_parameter_t,
-                                 std::move(name), std::move(comment), is_variadic),
+                                 std::move(name), is_variadic),
           default_(std::move(def)) {}
 
         void add_paramter(cpp_ptr<cpp_template_parameter> param)
@@ -253,7 +253,7 @@ namespace standardese
         }
 
     private:
-        cpp_class_template(cpp_name scope, cpp_raw_comment comment);
+        cpp_class_template(cpp_name scope);
 
         cpp_ptr<cpp_class> class_;
     };
@@ -298,7 +298,7 @@ namespace standardese
         }
 
     private:
-        cpp_class_template_full_specialization(cpp_name scope, cpp_raw_comment comment);
+        cpp_class_template_full_specialization(cpp_name scope);
 
         cpp_ptr<cpp_class> class_;
         cpp_template_ref template_;
@@ -355,7 +355,7 @@ namespace standardese
         }
 
     private:
-        cpp_class_template_partial_specialization(cpp_name scope, cpp_raw_comment comment);
+        cpp_class_template_partial_specialization(cpp_name scope);
 
         cpp_ptr<cpp_class> class_;
         cpp_template_ref template_;

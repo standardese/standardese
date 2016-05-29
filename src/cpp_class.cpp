@@ -133,7 +133,7 @@ cpp_class::parser::parser(translation_unit &tu, cpp_name scope, cpp_cursor cur)
     bool is_final;
     auto definition = parse_class(tu, cur, name, is_final);
     if (definition)
-        class_ = cpp_ptr<cpp_class>(new cpp_class(std::move(scope), std::move(name), detail::parse_comment(cur),
+        class_ = cpp_ptr<cpp_class>(new cpp_class(std::move(scope), std::move(name),
                                     clang_getCursorType(cur), ctype, is_final));
 }
 

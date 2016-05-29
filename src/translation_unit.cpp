@@ -23,7 +23,7 @@
 using namespace standardese;
 
 cpp_file::cpp_file(const char *name)
-: cpp_entity(file_t, "", name, "")
+: cpp_entity(file_t, "", name)
 {}
 
 struct detail::context_impl::impl
