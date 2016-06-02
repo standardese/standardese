@@ -5,52 +5,15 @@
 #include <standardese/comment.hpp>
 
 #include <cassert>
-#include <unordered_map>
 
 #include <standardese/detail/sequence_stream.hpp>
+#include <standardese/config.hpp>
+#include <standardese/parser.hpp>
 
 using namespace standardese;
 
 namespace
 {
-    char command_character = '\\';
-
-    std::unordered_map<std::string, section_type> section_commands;
-    std::string section_names[std::size_t(section_type::count)];
-
-    void init_sections()
-    {
-        #define STANDARDESE_DETAIL_SET(type, name) \
-            comment::parser::set_section_name(section_type::type, name); \
-            section_commands[#type] = section_type::type;
-
-        STANDARDESE_DETAIL_SET(brief, "")
-        STANDARDESE_DETAIL_SET(details, "")
-
-        STANDARDESE_DETAIL_SET(requires, "Requires")
-        STANDARDESE_DETAIL_SET(effects, "Effects")
-        STANDARDESE_DETAIL_SET(synchronization, "Synchronization")
-        STANDARDESE_DETAIL_SET(postconditions, "Postconditions")
-        STANDARDESE_DETAIL_SET(returns, "Returns")
-        STANDARDESE_DETAIL_SET(throws, "Throws")
-        STANDARDESE_DETAIL_SET(complexity, "Complexity")
-        STANDARDESE_DETAIL_SET(remarks, "Remarks")
-        STANDARDESE_DETAIL_SET(error_conditions, "Error conditions")
-        STANDARDESE_DETAIL_SET(notes, "Notes")
-
-        #undef STANDARDESE_DETAIL_SET
-    }
-
-    auto initializer = (init_sections(), 0);
-
-    section_type parse_section_name(const std::string &name)
-    {
-        auto iter = section_commands.find(name);
-        if (iter == section_commands.end())
-            return section_type::invalid;
-        return iter->second;
-    }
-
     void trim_whitespace(std::string &str)
     {
         auto start = 0u;
@@ -67,66 +30,29 @@ namespace
     }
 }
 
-void comment::parser::set_command_character(char c)
+comment comment::parse(const parser &p, const cpp_name &name, const cpp_raw_comment &raw_comment)
 {
-    command_character = c;
-}
+    comment result;
 
-void comment::parser::set_section_command(section_type t, std::string name)
-{
-    section_commands[name] = t;
-}
-
-void comment::parser::set_section_command(const std::string &type, std::string name)
-{
-    auto iter = section_commands.find(type);
-    if (iter == section_commands.end())
-        throw std::invalid_argument("invalid section command name '" + type + "'");
-
-    auto t = iter->second;
-    section_commands.erase(iter);
-
-    auto res = section_commands.emplace(name, t);
-    if (!res.second)
-        throw std::invalid_argument("section command name '" + name + "' already in use");
-}
-
-void comment::parser::set_section_name(section_type t, std::string name)
-{
-    assert(t != section_type::invalid);
-    section_names[std::size_t(t)] = name;
-}
-
-void comment::parser::set_section_name(const std::string &type, std::string name)
-{
-    auto iter = section_commands.find(type);
-    if (iter == section_commands.end())
-        throw std::invalid_argument("invalid section command name '" + type + "'");
-    section_names[int(iter->second)] = std::move(name);
-}
-
-comment::parser::parser(std::shared_ptr<spdlog::logger> logger,
-                        const char *entity_name, const cpp_raw_comment &raw_comment)
-{
     detail::sequence_stream<const char*> stream(raw_comment, '\n');
     auto cur_section_t = section_type::brief;
     std::string cur_body;
 
     auto finish_section = [&]
-                {
-                    trim_whitespace(cur_body);
-                    if (cur_body.empty())
-                        return;
+    {
+        trim_whitespace(cur_body);
+        if (cur_body.empty())
+            return;
 
-                    comment_.sections_.emplace_back(cur_section_t, section_names[int(cur_section_t)], cur_body);
+        result.sections_.emplace_back(cur_section_t, cur_body);
 
-                    // when current section is brief, change to details
-                    // otherwise stay
-                    if (cur_section_t == section_type::brief)
-                        cur_section_t = section_type::details;
+        // when current section is brief, change to details
+        // otherwise stay
+        if (cur_section_t == section_type::brief)
+            cur_section_t = section_type::details;
 
-                    cur_body.clear();
-                };
+        cur_body.clear();
+    };
 
     auto line = 0u;
     while (!stream.done())
@@ -143,7 +69,7 @@ comment::parser::parser(std::shared_ptr<spdlog::logger> logger,
             while (stream.peek() == ' ' || stream.peek() == '/')
                 stream.bump();
         }
-        else if (stream.peek() == command_character)
+        else if (stream.peek() == p.get_comment_config().get_command_character())
         {
             stream.bump();
 
@@ -152,9 +78,9 @@ comment::parser::parser(std::shared_ptr<spdlog::logger> logger,
             while (stream.peek() != ' ')
                 section_name += stream.get();
 
-            auto type = parse_section_name(section_name);
+            auto type = p.get_comment_config().try_get_section(section_name);
             if (type == section_type::invalid)
-                logger->error("in comment of {}:{}: invalid section name '{}'", entity_name, line, section_name);
+                p.get_logger()->error("in comment of {}:{}: Invalid section name '{}'", name.c_str(), line, section_name);
             else
             {
                 finish_section();
@@ -168,9 +94,6 @@ comment::parser::parser(std::shared_ptr<spdlog::logger> logger,
         }
     }
     finish_section();
-}
 
-comment comment::parser::finish()
-{
-    return comment_;
+    return result;
 }

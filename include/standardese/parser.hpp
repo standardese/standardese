@@ -13,41 +13,13 @@
 #include <spdlog/logger.h>
 
 #include <standardese/detail/wrapper.hpp>
+#include <standardese/config.hpp>
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_entity_registry.hpp>
 
 namespace standardese
 {
     class translation_unit;
-
-    /// C++ standard to be used
-    enum class cpp_standard
-    {
-        cpp_98,
-        cpp_03,
-        cpp_11,
-        cpp_14,
-        count
-    };
-
-    struct compile_config
-    {
-        cpp_standard standard;
-        std::vector<std::string> options;
-        std::string commands_dir; // if non-empty looks for a compile_commands.json specification
-
-        static std::string include_directory(std::string s);
-
-        static std::string macro_definition(std::string s);
-
-        static std::string macro_undefinition(std::string s);
-
-        compile_config(std::string commands_dir)
-        : standard(cpp_standard::count), commands_dir(std::move(commands_dir)) {}
-
-        compile_config(cpp_standard s, std::vector<std::string> options = {})
-        : standard(s), options(std::move(options)) {}
-    };
 
     namespace detail
     {
@@ -104,6 +76,26 @@ namespace standardese
             return logger_;
         }
 
+        comment_config& get_comment_config() STANDARDESE_NOEXCEPT
+        {
+            return comment_;
+        }
+
+        const comment_config& get_comment_config() const STANDARDESE_NOEXCEPT
+        {
+            return comment_;
+        }
+
+        output_config& get_output_config() STANDARDESE_NOEXCEPT
+        {
+            return output_;
+        }
+
+        const output_config& get_output_config() const STANDARDESE_NOEXCEPT
+        {
+            return output_;
+        }
+
     private:
         struct deleter
         {
@@ -111,6 +103,8 @@ namespace standardese
         };
 
         cpp_entity_registry registry_;
+        comment_config comment_;
+        output_config output_;
         detail::wrapper<CXIndex, deleter> index_;
         std::shared_ptr<spdlog::logger> logger_;
         detail::file_container files_;

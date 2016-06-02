@@ -17,10 +17,10 @@ namespace standardese
 
     void generate_doc_entity(const parser &p,
                              output_base &output, unsigned level,
-                             const cpp_entity &e, const entity_blacklist &blacklist);
+                             const cpp_entity &e);
 
     void generate_doc_file(const parser &p, output_base &output,
-                           const cpp_file &f, const entity_blacklist &blacklist);
+                           const cpp_file &f);
 } // namespace standardese
 
 #endif // STANDARDESE_GENERATOR_HPP_INCLUDED

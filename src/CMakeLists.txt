@@ -35,6 +35,7 @@ set(src
         detail/synopsis_utils.cpp
         detail/tokenizer.cpp
         comment.cpp
+        config.cpp
         cpp_class.cpp
         cpp_entity.cpp
         cpp_enum.cpp

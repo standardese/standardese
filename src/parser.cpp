@@ -17,36 +17,6 @@ using namespace standardese;
 
 namespace
 {
-    const char* standards[int(cpp_standard::count)];
-
-    void init_standards()
-    {
-        standards[int(cpp_standard::cpp_98)] = "-std=c++98";
-        standards[int(cpp_standard::cpp_03)] = "-std=c++03";
-        standards[int(cpp_standard::cpp_11)] = "-std=c++11";
-        standards[int(cpp_standard::cpp_14)] = "-std=c++14";
-    }
-
-    auto standards_initializer = (init_standards(), 0);
-}
-
-std::string compile_config::include_directory(std::string s)
-{
-    return "-I" + std::move(s);
-}
-
-std::string compile_config::macro_definition(std::string s)
-{
-    return "-D" + std::move(s);
-}
-
-std::string compile_config::macro_undefinition(std::string s)
-{
-    return "-U" + std::move(s);
-}
-
-namespace
-{
     struct database_deleter
     {
         void operator()(CXCompilationDatabase db) const STANDARDESE_NOEXCEPT
@@ -143,7 +113,7 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
     }
 
     if (c.standard != cpp_standard::count)
-        args.push_back(standards[int(c.standard)]);
+        args.push_back(detail::to_option(c.standard));
 
     args.reserve(args.size() + 2 * c.options.size());
     for (auto& o : c.options)
