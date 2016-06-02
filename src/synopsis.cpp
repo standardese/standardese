@@ -12,6 +12,7 @@
 #include <standardese/cpp_template.hpp>
 #include <standardese/cpp_type.hpp>
 #include <standardese/cpp_variable.hpp>
+#include <standardese/parser.hpp>
 #include <standardese/translation_unit.hpp>
 
 #include <standardese/detail/synopsis_utils.hpp>
@@ -67,28 +68,25 @@ bool entity_blacklist::is_blacklisted(synopsis_t, const cpp_entity &e) const
 
 namespace
 {
-    constexpr auto tab_width = 4;
-
-    void dispatch(output_base::code_block_writer &out, const cpp_entity &e,
-                  const entity_blacklist &blacklist,
+    void dispatch(const parser &par, output_base::code_block_writer &out, const cpp_entity &e,
                   bool top_level,
                   const cpp_name &override_name = "");
 
-    void do_write_synopsis(output_base::code_block_writer &out,
-                           const cpp_file &f, const entity_blacklist &blacklist)
+    void do_write_synopsis(const parser &par, output_base::code_block_writer &out,
+                           const cpp_file &f)
     {
         detail::write_range(out, f, blankl,
             [&](output_base::code_block_writer &out, const cpp_entity &e)
             {
-                if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                if (par.get_output_config().get_blacklist().is_blacklisted(entity_blacklist::synopsis, e))
                     return false;
-                dispatch(out, e, blacklist, false);
+                dispatch(par, out, e, false);
                 return true;
             });
     }
 
     //=== preprocessor ===//
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_inclusion_directive &i)
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_inclusion_directive &i)
     {
         out << "#include ";
 
@@ -97,7 +95,7 @@ namespace
         else
             out << '<';
 
-        out << i.get_name();
+        out << i.get_file_name();
 
         if (i.get_kind() == cpp_inclusion_directive::local)
             out << '"';
@@ -105,15 +103,17 @@ namespace
             out << '>';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_macro_definition &m)
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_macro_definition &m)
     {
         out << "#define " << m.get_name() << m.get_argument_string() << ' ' << m.get_replacement();
     }
 
     //=== namespace related ===//
-    void do_write_synopsis(output_base::code_block_writer &out,
-                           const cpp_namespace &ns, const entity_blacklist &blacklist)
+    void do_write_synopsis(const parser &par, output_base::code_block_writer &out,
+                           const cpp_namespace &ns)
     {
+        auto& blacklist = par.get_output_config().get_blacklist();
+
         if (ns.is_inline())
             out << "inline ";
         out << "namespace " << ns.get_name();
@@ -123,66 +123,63 @@ namespace
         else
         {
             out << newl << '{' << newl;
-            out.indent(tab_width);
+            out.indent(par.get_output_config().get_tab_width());
 
             detail::write_range(out, ns, blankl,
                                 [&](output_base::code_block_writer &out, const cpp_entity &e)
                                 {
                                     if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
                                         return false;
-                                    dispatch(out, e, blacklist, false);
+                                    dispatch(par, out, e, false);
                                     return true;
                                 });
 
-            out.unindent(tab_width);
+            out.unindent(par.get_output_config().get_tab_width());
             out << newl << '}';
         }
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_namespace_alias &ns)
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_namespace_alias &ns)
     {
-        out << "namespace " << ns.get_name() << " = " << ns.get_target() << ';';
+        out << "namespace " << ns.get_name() << " = " << ns.get_target().get_name() << ';';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_using_directive &u)
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_using_directive &u)
     {
-        out << "using namespace " << u.get_name() << ';';
+        out << "using namespace " << u.get_target().get_name() << ';';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_using_declaration &u)
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_using_declaration &u)
     {
-        out << "using " << u.get_name() << ';';
+        out << "using " << u.get_target().get_name() << ';';
     }
 
     //=== types ===//
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_type_alias &a)
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_type_alias &a)
     {
         out << "using " << a.get_name() << " = " << a.get_target().get_name() << ';';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_enum_value &e)
-    {
-        out << e.get_name();
-    }
-
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_signed_enum_value &e)
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_signed_enum_value &e)
     {
         out << e.get_name();
         if (e.is_explicitly_given())
             out << " = " << e.get_value();
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_unsigned_enum_value &e)
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_unsigned_enum_value &e)
     {
         out << e.get_name();
         if (e.is_explicitly_given())
             out << " = " << e.get_value();
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out,
-                           const cpp_enum &e, const entity_blacklist &blacklist,
-                           bool top_level)
+    void do_write_synopsis(const parser &par,
+                           output_base::code_block_writer &out,
+                           const cpp_enum &e, bool top_level)
     {
+        auto& blacklist = par.get_output_config().get_blacklist();
+
         out << "enum ";
         if (e.is_scoped())
             out << "class ";
@@ -197,38 +194,39 @@ namespace
             else
             {
                 out << newl << '{' << newl;
-                out.indent(tab_width);
+                out.indent(par.get_output_config().get_tab_width());
 
                 detail::write_range(out, e, newl, [&](output_base::code_block_writer &out, const cpp_entity &e)
                                     {
                                         if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
                                             return false;
-                                        dispatch(out, e, blacklist, false);
+                                        dispatch(par, out, e, false);
                                         return true;
                                     });
 
-                out.unindent(tab_width);
+                out.unindent(par.get_output_config().get_tab_width());
                 out << newl << '}';
             }
         }
         out << ';';
     }
 
-    void write_access(output_base::code_block_writer &out, const cpp_access_specifier &a)
+    void write_access(const parser &par, output_base::code_block_writer &out, cpp_access_specifier_t access)
     {
-        out.unindent(tab_width);
-        out << a.get_name() << ':' << newl;
-        out.indent(tab_width);
+        out.unindent(par.get_output_config().get_tab_width());
+        out << to_string(access) << ':' << newl;
+        out.indent(par.get_output_config().get_tab_width());
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class &c,
-                           const entity_blacklist &blacklist,
+    void do_write_synopsis(const parser &par,
+                           output_base::code_block_writer &out, const cpp_class &c,
                            bool top_level, const cpp_name &override_name)
     {
         detail::write_class_name(out,
                                  override_name.empty() ? c.get_name() : override_name,
                                  c.get_class_type());
 
+        auto& blacklist = par.get_output_config().get_blacklist();
         if (top_level)
         {
             if (c.is_final())
@@ -242,45 +240,45 @@ namespace
             else
             {
                 out << newl << '{' << newl;
-                out.indent(tab_width);
+                out.indent(par.get_output_config().get_tab_width());
 
                 auto cur_access = c.get_class_type() == cpp_class_t ? cpp_private : cpp_public;
                 auto need_access = false;
                 auto first = true;
                 detail::write_range(out, c, newl,
-                                    [&](output_base::code_block_writer &out, const cpp_entity &e)
-                                    {
-                                        if (e.get_entity_type() == cpp_entity::access_specifier_t)
-                                        {
-                                            auto new_access = static_cast<const cpp_access_specifier &>(e).get_access();
-                                            if (new_access != cur_access)
-                                                need_access = true;
-                                            cur_access = new_access;
-                                        }
-                                        else if (e.get_entity_type() == cpp_entity::base_class_t
-                                            || blacklist.is_blacklisted(entity_blacklist::synopsis, e))
-                                            return false;
-                                        else if (blacklist.is_set(entity_blacklist::extract_private)
-                                            || cur_access != cpp_private
-                                            || detail::is_virtual(e))
-                                        {
-                                            if (need_access)
-                                            {
-                                                if (!first)
-                                                   out << blankl;
-                                                else
-                                                    first = false;
-                                                write_access(out, cur_access);
-                                                need_access = false;
-                                            }
-                                            dispatch(out, e, blacklist, false);
-                                            return true;
-                                        }
+                    [&](output_base::code_block_writer &out, const cpp_entity &e)
+                    {
+                        if (e.get_entity_type() == cpp_entity::access_specifier_t)
+                        {
+                            auto new_access = static_cast<const cpp_access_specifier &>(e).get_access();
+                            if (new_access != cur_access)
+                                need_access = true;
+                            cur_access = new_access;
+                        }
+                        else if (e.get_entity_type() == cpp_entity::base_class_t
+                            || blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                            return false;
+                        else if (blacklist.is_set(entity_blacklist::extract_private)
+                            || cur_access != cpp_private
+                            || detail::is_virtual(e))
+                        {
+                            if (need_access)
+                            {
+                                if (!first)
+                                   out << blankl;
+                                else
+                                    first = false;
+                                write_access(par, out, cur_access);
+                                need_access = false;
+                            }
+                            dispatch(par, out, e, false);
+                            return true;
+                        }
 
-                                        return false;
-                                    });
+                        return false;
+                    });
 
-                out.unindent(tab_width);
+                out.unindent(par.get_output_config().get_tab_width());
                 out << newl << '}';
             }
         }
@@ -289,19 +287,13 @@ namespace
     }
 
     //=== variables ===//
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_variable &v)
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_variable &v)
     {
-        switch (v.get_linkage())
-        {
-            case cpp_external_linkage:
-                out << "extern ";
-                break;
-            case cpp_internal_linkage:
-                out << "static ";
-                break;
-            default:
-                break;
-        }
+        if (v.get_parent().get_entity_type() == cpp_entity::class_t
+            || v.get_parent().get_entity_type() == cpp_entity::class_template_t
+            || v.get_parent().get_entity_type() == cpp_entity::class_template_full_specialization_t
+            || v.get_parent().get_entity_type() == cpp_entity::class_template_partial_specialization_t)
+            out << "static ";
 
         if (v.is_thread_local())
             out << "thread_local ";
@@ -310,18 +302,33 @@ namespace
         out << ';';
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_bitfield &v)
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_member_variable &v)
     {
+        if (v.is_mutable())
+            out << "mutable ";
+
+        detail::write_type_value_default(out, v.get_type(), v.get_name(), v.get_initializer());
+        out << ';';
+    }
+
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_bitfield &v)
+    {
+        if (v.is_mutable())
+            out << "mutable ";
+
         detail::write_type_value_default(out, v.get_type(), v.get_name());
+
         out << " : " << (unsigned long long) v.no_bits();
+
         if (!v.get_initializer().empty())
             out << " = " << v.get_initializer();
+
         out << ';';
     }
 
     //=== functions ===//
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function &f,
-                           const entity_blacklist &,
+    void do_write_synopsis(const parser &,
+                           output_base::code_block_writer &out, const cpp_function &f,
                            bool, const cpp_name &override_name)
     {
         if (f.is_constexpr())
@@ -333,8 +340,8 @@ namespace
         detail::write_definition(out, f);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_member_function &f,
-                           const entity_blacklist &,
+    void do_write_synopsis(const parser &,
+                           output_base::code_block_writer &out, const cpp_member_function &f,
                            bool, const cpp_name &override_name)
     {
         detail::write_prefix(out, f.get_virtual(), f.is_constexpr());
@@ -346,8 +353,8 @@ namespace
         detail::write_definition(out, f, f.get_virtual() == cpp_virtual_pure);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_conversion_op &f,
-                           const entity_blacklist &,
+    void do_write_synopsis(const parser &,
+                           output_base::code_block_writer &out, const cpp_conversion_op &f,
                            bool, const cpp_name &override_name)
     {
         detail::write_prefix(out, f.get_virtual(), f.is_constexpr(), f.is_explicit());
@@ -358,8 +365,8 @@ namespace
         detail::write_definition(out, f, f.get_virtual() == cpp_virtual_pure);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_constructor &f,
-                           const entity_blacklist &,
+    void do_write_synopsis(const parser &,
+                           output_base::code_block_writer &out, const cpp_constructor &f,
                            bool, const cpp_name &override_name)
     {
         detail::write_prefix(out, cpp_virtual_none, f.is_constexpr(), f.is_explicit());
@@ -368,8 +375,7 @@ namespace
         detail::write_definition(out, f);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_destructor &f,
-                           const entity_blacklist &,
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_destructor &f,
                            bool, const cpp_name &override_name)
     {
         detail::write_prefix(out, f.get_virtual(), f.is_constexpr());
@@ -379,7 +385,7 @@ namespace
     }
 
     //=== templates ===//
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_template_type_parameter &p)
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_template_type_parameter &p)
     {
         out << "typename";
         if (!p.get_name().empty())
@@ -388,20 +394,20 @@ namespace
             out << " = " << p.get_default_type().get_name();
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_non_type_template_parameter &p)
+    void do_write_synopsis(const parser &, output_base::code_block_writer &out, const cpp_non_type_template_parameter &p)
     {
         detail::write_type_value_default(out, p.get_type(), p.get_name(), p.get_default_value());
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_template_template_parameter &p,
-                            const entity_blacklist &blacklist)
+    void do_write_synopsis(const parser &par,
+                           output_base::code_block_writer &out, const cpp_template_template_parameter &p)
     {
         out << "template <";
 
         detail::write_range(out, p, ", ",
                             [&](output_base::code_block_writer &out, const cpp_entity &e)
                             {
-                                dispatch(out, e, blacklist, false);
+                                dispatch(par, out, e, false);
                                 return true;
                             });
 
@@ -412,103 +418,101 @@ namespace
             out << " = " << p.get_default_template().get_name();
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_template &f,
-                           const entity_blacklist &blacklist, bool top_level)
+    void do_write_synopsis(const parser &p,
+                           output_base::code_block_writer &out, const cpp_function_template &f,
+                           bool top_level)
     {
         out << "template <";
 
         detail::write_range(out, f.get_template_parameters(), ", ",
                             [&](output_base::code_block_writer &out, const cpp_entity &e)
                             {
-                                dispatch(out, e, blacklist, false);
+                                dispatch(p, out, e, false);
                                 return true;
                             });
 
         out << '>' << newl;
 
-        dispatch(out, f.get_function(), blacklist, top_level);
+        dispatch(p, out, f.get_function(), top_level);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_function_template_specialization &f,
-                           const entity_blacklist &blacklist, bool top_level)
+    void do_write_synopsis(const parser &p,
+                           output_base::code_block_writer &out, const cpp_function_template_specialization &f,
+                           bool top_level)
     {
         out << "template <>" << newl;
-        dispatch(out, f.get_function(), blacklist, top_level, f.get_name());
+        dispatch(p, out, f.get_function(), top_level, f.get_name());
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template &c,
-                           const entity_blacklist &blacklist, bool top_level)
+    void do_write_synopsis(const parser &p,
+                           output_base::code_block_writer &out, const cpp_class_template &c,
+                           bool top_level)
     {
         out << "template <";
 
         detail::write_range(out, c.get_template_parameters(), ", ",
                             [&](output_base::code_block_writer &out, const cpp_entity &e)
                             {
-                                dispatch(out, e, blacklist, false);
+                                dispatch(p, out, e, false);
                                 return true;
                             });
 
         out << '>' << newl;
 
-        dispatch(out, c.get_class(), blacklist, top_level);
+        dispatch(p, out, c.get_class(), top_level);
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template_full_specialization &c,
-                           const entity_blacklist &blacklist, bool top_level)
+    void do_write_synopsis(const parser &p,
+                           output_base::code_block_writer &out, const cpp_class_template_full_specialization &c,
+                           bool top_level)
     {
         out << "template <>" << newl;
-        dispatch(out, c.get_class(), blacklist, top_level, c.get_name());
+        dispatch(p, out, c.get_class(), top_level, c.get_name());
     }
 
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_class_template_partial_specialization &c,
-                           const entity_blacklist &blacklist, bool top_level)
+    void do_write_synopsis(const parser &p,
+                           output_base::code_block_writer &out, const cpp_class_template_partial_specialization &c,
+                           bool top_level)
     {
         out << "template <";
 
         detail::write_range(out, c.get_template_parameters(), ", ",
                             [&](output_base::code_block_writer &out, const cpp_entity &e)
                             {
-                                dispatch(out, e, blacklist, false);
+                                dispatch(p, out, e, false);
                                 return true;
                             });
 
         out << '>' << newl;
 
-        dispatch(out, c.get_class(), blacklist, top_level, c.get_name());
+        dispatch(p, out, c.get_class(), top_level, c.get_name());
     }
 
     //=== dispatching ===//
     template <typename T>
-    void do_write_synopsis(output_base::code_block_writer &out,
-                           const T &e, const entity_blacklist &)
+    void do_write_synopsis(const parser &p, output_base::code_block_writer &out,
+                           const T &e, bool)
     {
-        do_write_synopsis(out, e);
+        do_write_synopsis(p, out, e);
     }
 
     template <typename T>
-    void do_write_synopsis(output_base::code_block_writer &out,
-                           const T &e, const entity_blacklist &blacklist, bool)
-    {
-        do_write_synopsis(out, e, blacklist);
-    }
-
-    template <typename T>
-    void do_write_synopsis(output_base::code_block_writer &out,
-                           const T &e, const entity_blacklist &blacklist,
+    void do_write_synopsis(const parser &p, output_base::code_block_writer &out,
+                           const T &e,
                            bool top_level, const cpp_name &)
     {
-        do_write_synopsis(out, e, blacklist, top_level);
+        do_write_synopsis(p, out, e, top_level);
     }
 
-    void dispatch(output_base::code_block_writer &out, const cpp_entity &e,
-                  const entity_blacklist &blacklist, bool top_level,
+    void dispatch(const parser &p, output_base::code_block_writer &out, const cpp_entity &e,
+                  bool top_level,
                   const cpp_name &override_name)
     {
         switch (e.get_entity_type())
         {
             #define STANDARDESE_DETAIL_HANDLE(name) \
         case cpp_entity::name##_t: \
-            do_write_synopsis(out, static_cast<const cpp_##name&>(e), blacklist, top_level, override_name); \
+            do_write_synopsis(p, out, static_cast<const cpp_##name&>(e), top_level, override_name); \
             break;
 
             STANDARDESE_DETAIL_HANDLE(file)
@@ -523,7 +527,6 @@ namespace
 
             STANDARDESE_DETAIL_HANDLE(type_alias)
 
-            STANDARDESE_DETAIL_HANDLE(enum_value)
             STANDARDESE_DETAIL_HANDLE(signed_enum_value)
             STANDARDESE_DETAIL_HANDLE(unsigned_enum_value)
             STANDARDESE_DETAIL_HANDLE(enum)
@@ -559,8 +562,9 @@ namespace
     }
 }
 
-void standardese::write_synopsis(output_base &out, const cpp_entity &e, const entity_blacklist &blacklist)
+void standardese::write_synopsis(const parser &p, output_base &out, const doc_entity &e)
 {
     output_base::code_block_writer w(out);
-    dispatch(w, e, blacklist, true);
+    if (e.has_cpp_entity())
+        dispatch(p, w, e.get_cpp_entity(), true);
 }

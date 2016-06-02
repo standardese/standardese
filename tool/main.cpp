@@ -12,7 +12,6 @@
 
 #include <spdlog/spdlog.h>
 
-#include <standardese/comment.hpp>
 #include <standardese/error.hpp>
 #include <standardese/generator.hpp>
 #include <standardese/parser.hpp>
@@ -48,7 +47,7 @@ bool erase_prefix(std::string &str, const std::string &prefix)
     return true;
 }
 
-void handle_unparsed_options(const po::parsed_options &options)
+void handle_unparsed_options(standardese::parser &p, const po::parsed_options &options)
 {
     using namespace standardese;
 
@@ -59,11 +58,13 @@ void handle_unparsed_options(const po::parsed_options &options)
 
             if (erase_prefix(name, "comment.cmd_name_"))
             {
-                comment::parser::set_section_command(name, opt.value[0]);
+                auto section = p.get_comment_config().get_section(name);
+                p.get_comment_config().set_section_command(section, opt.value[0]);
             }
             else if (erase_prefix(name, "output.section_name_"))
             {
-                comment::parser::set_section_name(name, opt.value[0]);
+                auto section = p.get_comment_config().get_section(name);
+                p.get_output_config().set_section_name(section, opt.value[0]);
             }
             else
                throw std::invalid_argument("unrecognized option '" + opt.string_key + "'");
@@ -117,6 +118,8 @@ int main(int argc, char* argv[])
 {
     auto log = spdlog::stdout_logger_mt("standardese_log", true);
     log->set_pattern("[%l] %v");
+
+    standardese::parser parser(log);
 
     po::options_description generic("Generic options"), configuration("Configuration");
     generic.add_options()
@@ -208,8 +211,8 @@ int main(int argc, char* argv[])
             po::notify(map);
         }
 
-        handle_unparsed_options(cmd_result);
-        handle_unparsed_options(file_result);
+        handle_unparsed_options(parser, cmd_result);
+        handle_unparsed_options(parser, file_result);
 
         config = parse_config(map);
     }
@@ -234,7 +237,7 @@ int main(int argc, char* argv[])
     {
         using namespace standardese;
 
-        comment::parser::set_command_character(map.at("comment.command_character").as<char>());
+        parser.get_comment_config().set_command_character(map.at("comment.command_character").as<char>());
 
         auto input = map.at("input-files").as<std::vector<fs::path>>();
         auto blacklist_ext = map.at("input.blacklist_ext").as<std::vector<std::string>>();
@@ -242,7 +245,7 @@ int main(int argc, char* argv[])
         auto blacklist_dir = map.at("input.blacklist_dir").as<std::vector<std::string>>();
         auto force_blacklist = map.count("input.force_blacklist") != 0u;
 
-        entity_blacklist blacklist_entity;
+        auto& blacklist_entity = parser.get_output_config().get_blacklist();
         for (auto& str : map.at("input.blacklist_entity_name").as<std::vector<std::string>>())
             blacklist_entity.blacklist(str);
         for (auto& str : map.at("input.blacklist_namespace").as<std::vector<std::string>>())
@@ -255,8 +258,6 @@ int main(int argc, char* argv[])
         assert(!input.empty());
         for (auto& path : input)
         {
-            parser parser(log);
-
             auto handle = [&](const fs::path &p)
             {
                 log->info() << "Generating documentation for " << p << "...";
@@ -264,11 +265,10 @@ int main(int argc, char* argv[])
                 try
                 {
                     auto tu = parser.parse(p.generic_string().c_str(), config);
-                    auto& f = tu.build_ast();
 
                     file_output file(p.stem().generic_string() + ".md");
                     markdown_output out(file);
-                    generate_doc_file(parser, out, f, blacklist_entity);
+                    generate_doc_file(parser, out, tu.get_file());
                 }
                 catch (libclang_error &ex)
                 {

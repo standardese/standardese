@@ -8,59 +8,39 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
-#include <standardese/error.hpp>
 
 using namespace standardese;
 
-namespace
-{
-    cpp_type_ref parse_parameter_type(translation_unit &tu, cpp_cursor cur,
-                                      const cpp_name &name, std::string &default_value)
-    {
-        assert(clang_getCursorKind(cur) == CXCursor_ParmDecl);
-
-        auto type = clang_getCursorType(cur);
-        cpp_name type_name;
-
-        detail::tokenizer tokenizer(tu, cur);
-        auto stream = detail::make_stream(tokenizer);
-        auto location = source_location(clang_getCursorLocation(cur), name);
-
-        for (auto in_type = true; stream.peek().get_value() != ";";)
-        {
-            detail::skip_attribute(stream, location);
-            if (detail::skip_if_token(stream, name.c_str()))
-                continue;
-            else if (detail::skip_if_token(stream, "="))
-                in_type = false;
-            else
-                (in_type ? type_name : default_value) += stream.get().get_value().c_str();
-        }
-
-        while (std::isspace(type_name.back()))
-            type_name.pop_back();
-
-        while (std::isspace(default_value.back()))
-            default_value.pop_back();
-
-        return {type, std::move(type_name)};
-    }
-}
-
-cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(translation_unit &tu, cpp_cursor cur)
+cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(translation_unit &tu, cpp_cursor cur,
+                                                              const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_ParmDecl);
 
+    detail::tokenizer tokenizer(tu, cur);
+    auto stream = detail::make_stream(tokenizer);
     auto name = detail::parse_name(cur);
-    std::string default_value;
-    auto type = parse_parameter_type(tu, cur, name, default_value);
 
-    return detail::make_ptr<cpp_function_parameter>(std::move(name), detail::parse_comment(cur),
-                                                    std::move(type), std::move(default_value));
+    std::string type_name, default_value;
+    for (auto in_type = true; stream.peek().get_value() != ";";)
+    {
+        detail::skip_attribute(stream, cur);
+        if (detail::skip_if_token(stream, name.c_str()))
+            continue;
+        else if (detail::skip_if_token(stream, "="))
+            in_type = false;
+        else
+            (in_type ? type_name : default_value) += stream.get().get_value().c_str();
+    }
+
+    detail::erase_trailing_ws(type_name);
+    detail::erase_trailing_ws(default_value);
+
+    return detail::make_ptr<cpp_function_parameter>(cur, parent,
+                                                    cpp_type_ref(std::move(type_name), clang_getCursorType(cur)),
+                                                    std::move(default_value));
 }
 
-cpp_ptr<standardese::cpp_function_base> cpp_function_base::try_parse(translation_unit &p, cpp_name scope,
-                                                                    cpp_cursor cur)
+cpp_ptr<cpp_function_base> cpp_function_base::try_parse(translation_unit &p, cpp_cursor cur, const cpp_entity &parent)
 {
     auto kind = clang_getCursorKind(cur);
     if (kind == CXCursor_FunctionTemplate)
@@ -69,15 +49,15 @@ cpp_ptr<standardese::cpp_function_base> cpp_function_base::try_parse(translation
     switch (kind)
     {
         case CXCursor_FunctionDecl:
-            return cpp_function::parse(p, std::move(scope), cur);
+            return cpp_function::parse(p, cur, parent);
         case CXCursor_CXXMethod:
-            return cpp_member_function::parse(p, std::move(scope), cur);
+            return cpp_member_function::parse(p, cur, parent);
         case CXCursor_ConversionFunction:
-            return cpp_conversion_op::parse(p, std::move(scope), cur);
+            return cpp_conversion_op::parse(p, cur, parent);
         case CXCursor_Constructor:
-            return cpp_constructor::parse(p, std::move(scope), cur);
+            return cpp_constructor::parse(p, cur, parent);
         case CXCursor_Destructor:
-            return cpp_destructor::parse(p, std::move(scope), cur);
+            return cpp_destructor::parse(p, cur, parent);
         default:
             break;
     }
@@ -87,26 +67,26 @@ cpp_ptr<standardese::cpp_function_base> cpp_function_base::try_parse(translation
 
 namespace
 {
-    void skip_template_parameter_declaration(detail::token_stream &stream, const source_location &location)
+    void skip_template_parameter_declaration(detail::token_stream &stream, cpp_cursor cur)
     {
         if (stream.peek().get_value() == "template")
         {
             stream.bump();
-            skip_bracket_count(stream, location, "<", ">");
+            skip_bracket_count(stream, cur, "<", ">");
             detail::skip_whitespace(stream);
         }
     }
 
-    cpp_name parse_member_function_prefix(detail::token_stream &stream, const source_location &location,
-                                          const cpp_name &name,
-                                          cpp_function_info &finfo, cpp_member_function_info &minfo)
+    std::string parse_member_function_prefix(detail::token_stream &stream, cpp_cursor cur,
+                                             const cpp_name &name,
+                                             cpp_function_info &finfo, cpp_member_function_info &minfo)
     {
-        cpp_name return_type;
+        std::string return_type;
         auto allow_auto = false; // whether or not auto is allowed in return type
 
         while (!detail::skip_if_token(stream, name.c_str()))
         {
-            detail::skip_attribute(stream, location);
+            detail::skip_attribute(stream, cur);
 
             if (detail::skip_if_token(stream, "extern"))
                 // ignored
@@ -125,7 +105,7 @@ namespace
                 // we have an operator
                 // they can have multiple tokens as part of the name
                 // so need to skip until either template parameters or normal parameters
-                const char *ptr = &name[std::strlen("operator")];
+                const char *ptr = name.c_str() + std::strlen("operator");
                 while (true)
                 {
                     while (std::isspace(*ptr))
@@ -156,20 +136,20 @@ namespace
         return return_type;
     }
 
-    void skip_template_arguments(detail::token_stream &stream, const source_location &location)
+    void skip_template_arguments(detail::token_stream &stream, cpp_cursor cur)
     {
         if (stream.peek().get_value() == "<")
-            skip_bracket_count(stream, location, "<", ">");
+            skip_bracket_count(stream, cur, "<", ">");
     }
 
-    void skip_parameters(detail::token_stream &stream, const source_location &location, bool &variadic)
+    void skip_parameters(detail::token_stream &stream, cpp_cursor cur, bool &variadic)
     {
         variadic = false;
 
         // whether or not a variadic parameter can come
         // i.e. after first bracket or comma
         auto variadic_param = true;
-        skip_bracket_count(stream, location, "(", ")",
+        skip_bracket_count(stream, cur, "(", ")",
                            [&](const char *spelling)
                            {
                                if (variadic_param && std::strcmp(spelling, "...") == 0)
@@ -239,7 +219,7 @@ namespace
 
     // return cpp_function_definition_normal for pure virtual
     // yes, this is hacky
-    cpp_function_definition parse_special_definition(detail::token_stream &stream, const source_location &location)
+    cpp_function_definition parse_special_definition(detail::token_stream &stream, cpp_cursor cur)
     {
         auto spelling = stream.get().get_value();
 
@@ -253,19 +233,20 @@ namespace
             // pure virtual function
             return cpp_function_definition_normal;
 
-        throw parse_error(location, std::string("unknown function definition \'= ") + spelling.c_str() + "\'");
+        throw parse_error(source_location(cur),
+                          std::string("unknown function definition \'= ") + spelling.c_str() + "\'");
     }
 
-    cpp_name parse_member_function_suffix(detail::token_stream &stream, const source_location &location,
-                                    cpp_function_info &finfo, cpp_member_function_info &minfo)
+    std::string parse_member_function_suffix(detail::token_stream &stream, cpp_cursor cur,
+                                             cpp_function_info &finfo, cpp_member_function_info &minfo)
     {
-        cpp_name trailing_return_type;
+        std::string trailing_return_type;
 
         auto special_definition = false;
         while (!is_declaration_end(stream, special_definition))
         {
             assert(!stream.done());
-            detail::skip_attribute(stream, location);
+            detail::skip_attribute(stream, cur);
 
             if (detail::skip_if_token(stream, ")"))
             {
@@ -273,7 +254,7 @@ namespace
                 // now come the arguments
                 trailing_return_type += ")(";
 
-                skip_bracket_count(stream, location, "(", ")",
+                skip_bracket_count(stream, cur, "(", ")",
                                    [&](const char *str)
                                    {
                                        trailing_return_type += str;
@@ -309,7 +290,7 @@ namespace
             else if (!std::isspace(stream.peek().get_value()[0]))
             {
                 auto str = stream.get().get_value();
-                throw parse_error(location, "unexpected token \'" + std::string(str.c_str()) + "\'");
+                throw parse_error(source_location(cur), "unexpected token \'" + std::string(str.c_str()) + "\'");
             }
             else
                 // is whitespace, so consume
@@ -318,7 +299,7 @@ namespace
 
         if (special_definition)
         {
-            auto res = parse_special_definition(stream, location);
+            auto res = parse_special_definition(stream, cur);
             if (res == cpp_function_definition_normal)
                 minfo.virtual_flag = cpp_virtual_pure;
             else
@@ -328,40 +309,35 @@ namespace
         return trailing_return_type;
     }
 
-    cpp_type_ref parse_member_function(detail::token_stream &stream, const source_location &location,
+    cpp_type_ref parse_member_function(detail::token_stream &stream,
                                        cpp_cursor cur, const cpp_name &name,
                                        cpp_function_info &finfo, cpp_member_function_info &minfo)
     {
-        auto type = clang_getCursorResultType(cur);
+        skip_template_parameter_declaration(stream, cur);
 
-        skip_template_parameter_declaration(stream, location);
+        auto return_type = parse_member_function_prefix(stream, cur, name, finfo, minfo);
 
-        auto return_type = parse_member_function_prefix(stream, location, name, finfo, minfo);
-
-        skip_template_arguments(stream, location);
+        skip_template_arguments(stream, cur);
 
         // handle parameters
         auto variadic = false;
-        skip_parameters(stream, location, variadic);
+        skip_parameters(stream, cur, variadic);
         if (variadic)
             finfo.set_flag(cpp_variadic_fnc);
 
-        return_type += parse_member_function_suffix(stream, location, finfo, minfo);
+        return_type += parse_member_function_suffix(stream, cur, finfo, minfo);
         if (return_type.empty())
         {
             // we have a deduced return type
             return_type = "auto";
         }
         else
-        {
-            while (std::isspace(return_type.back()))
-                return_type.pop_back();
-        }
+            detail::erase_trailing_ws(return_type);
 
         if (finfo.noexcept_expression.empty())
             finfo.noexcept_expression = "false";
 
-        return {type, std::move(return_type)};
+        return {std::move(return_type), clang_getCursorResultType(cur)};
     }
 
     void parse_parameters(translation_unit &tu, cpp_function_base *base, cpp_cursor cur)
@@ -382,83 +358,71 @@ namespace
         detail::visit_children(cur, [&](CXCursor cur, CXCursor)
         {
             if (clang_getCursorKind(cur) == CXCursor_ParmDecl && i++ >= no_params_return)
-                base->add_parameter(cpp_function_parameter::parse(tu, cur));
+                base->add_parameter(cpp_function_parameter::parse(tu, cur, *base));
             return CXChildVisit_Continue;
         });
     }
 }
 
-cpp_ptr<cpp_function> cpp_function::parse(translation_unit &tu, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_function> cpp_function::parse(translation_unit &tu,
+                                          cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_FunctionDecl
-          || clang_getTemplateCursorKind(cur) == CXCursor_FunctionDecl);
+           || clang_getTemplateCursorKind(cur) == CXCursor_FunctionDecl);
 
     detail::tokenizer tokenizer(tu, cur);
     auto stream = detail::make_stream(tokenizer);
-
     auto name = detail::parse_name(cur);
+
     cpp_function_info finfo;
     cpp_member_function_info minfo;
-
-    source_location location(clang_getCursorLocation(cur), name);
-
-    auto return_type = parse_member_function(stream, location, cur, name, finfo, minfo);
+    auto return_type = parse_member_function(stream, cur, name, finfo, minfo);
     if (is_virtual(minfo.virtual_flag))
-        throw parse_error(location, "virtual specifier on normal function");
+        throw parse_error(source_location(cur), "virtual specifier on normal function");
     if (minfo.cv_qualifier != cpp_cv_none)
-        throw parse_error(location, "cv qualifier on normal function");
+        throw parse_error(source_location(cur), "cv qualifier on normal function");
     if (minfo.ref_qualifier != cpp_ref_none)
-        throw parse_error(location, "ref qualifier on normal function");
+        throw parse_error(source_location(cur), "ref qualifier on normal function");
 
-    auto result = detail::make_ptr<cpp_function>(std::move(scope), std::move(name), detail::parse_comment(cur),
-                                                 std::move(return_type), std::move(finfo));
-
+    auto result = detail::make_ptr<cpp_function>(cur, parent, std::move(return_type), std::move(finfo));
     parse_parameters(tu, result.get(), cur);
-
     return result;
 }
 
-cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit &tu, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit &tu,
+                                                        cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_CXXMethod
            || clang_getTemplateCursorKind(cur) == CXCursor_CXXMethod);
 
     detail::tokenizer tokenizer(tu, cur);
     auto stream = detail::make_stream(tokenizer);
-
     auto name = detail::parse_name(cur);
+
     cpp_function_info finfo;
     cpp_member_function_info minfo;
+    auto return_type = parse_member_function(stream, cur, name, finfo, minfo);
 
-    source_location location(clang_getCursorLocation(cur), name);
-
-    auto return_type = parse_member_function(stream, location, cur, name, finfo, minfo);
-
-    auto result = detail::make_ptr<cpp_member_function>(std::move(scope), std::move(name), detail::parse_comment(cur),
-                                                        std::move(return_type),
+    auto result = detail::make_ptr<cpp_member_function>(cur, parent, std::move(return_type),
                                                         std::move(finfo), std::move(minfo));
-
     parse_parameters(tu, result.get(), cur);
-
     return result;
 }
 
 namespace
 {
-    cpp_name parse_conversion_op_name(cpp_cursor cur, cpp_type_ref &type)
+    cpp_type_ref parse_conversion_op_type(cpp_cursor cur)
     {
-        cpp_name name;
-
         if (clang_getCursorKind(cur) == CXCursor_ConversionFunction)
         {
             // parse name
-            name = detail::parse_name(cur);
+            std::string name = detail::parse_name(cur).c_str();
 
             auto target_type = clang_getCursorResultType(cur);
             auto target_type_spelling = name.substr(9); // take everything from type after "operator "
             assert(target_type_spelling.front() != ' '); // no multiple whitespace
 
-            type = cpp_type_ref(target_type, std::move(target_type_spelling));
+            return cpp_type_ref(std::move(target_type_spelling), target_type);
         }
         else if (clang_getCursorKind(cur) == CXCursor_FunctionTemplate)
         {
@@ -469,16 +433,15 @@ namespace
             // so workaround by calculating name from the type spelling
             auto target_type = clang_getCursorResultType(cur);
             auto spelling = detail::parse_name(target_type);
-            name = "operator " + spelling;
 
-            type = cpp_type_ref(target_type, spelling);
+            return cpp_type_ref(spelling, target_type);
         }
 
-        return name;
+        assert(false);
     }
 }
 
-cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit &tu, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit &tu, cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_ConversionFunction
            || clang_getTemplateCursorKind(cur) == CXCursor_ConversionFunction);
@@ -486,20 +449,17 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit &tu, cpp_na
     detail::tokenizer tokenizer(tu, cur);
     auto stream = detail::make_stream(tokenizer);
 
-    cpp_type_ref type;
-    auto name = parse_conversion_op_name(cur, type);
-
-    source_location location(clang_getCursorLocation(cur), name);
+    auto type = parse_conversion_op_type(cur);
 
     cpp_function_info finfo;
     cpp_member_function_info minfo;
 
-    skip_template_parameter_declaration(stream, location);
+    skip_template_parameter_declaration(stream, cur);
 
     // handle prefix
     while (!detail::skip_if_token(stream, "operator"))
     {
-        detail::skip_attribute(stream, location);
+        detail::skip_attribute(stream, cur);
 
         if (detail::skip_if_token(stream, "explicit"))
             finfo.set_flag(cpp_explicit_conversion);
@@ -510,7 +470,7 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit &tu, cpp_na
         else if (!std::isspace(stream.peek().get_value()[0]))
         {
             auto str = stream.get().get_value();
-            throw parse_error(location, "unexpected token \'" + std::string(str.c_str()) + "\'");
+            throw parse_error(source_location(cur), "unexpected token \'" + std::string(str.c_str()) + "\'");
         }
         else
             // is whitespace, so consume
@@ -521,25 +481,30 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit &tu, cpp_na
     while (stream.peek().get_value() != "(" && stream.peek().get_value() != "<")
         stream.bump();
 
-    skip_template_arguments(stream, location);
+    skip_template_arguments(stream, cur);
 
     auto variadic = false;
-    skip_parameters(stream, location, variadic);
+    skip_parameters(stream, cur, variadic);
     if (variadic)
-        throw parse_error(location, "conversion op is variadic");
+        throw parse_error(source_location(cur), "conversion op is variadic");
 
-    auto trailing_return_type = parse_member_function_suffix(stream, location, finfo, minfo);
+    auto trailing_return_type = parse_member_function_suffix(stream, cur, finfo, minfo);
     if (!trailing_return_type.empty())
-        throw parse_error(location, "conversion op has trailing return type");
+        throw parse_error(source_location(cur), "conversion op has trailing return type");
 
     if (finfo.noexcept_expression.empty())
         finfo.noexcept_expression = "false";
 
-    return detail::make_ptr<cpp_conversion_op>(std::move(scope), std::move(name), detail::parse_comment(cur),
-                                               type, std::move(finfo), std::move(minfo));
+    return detail::make_ptr<cpp_conversion_op>(cur, parent,
+                                               std::move(type), std::move(finfo), std::move(minfo));
 }
 
-cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name scope, cpp_cursor cur)
+cpp_name cpp_conversion_op::get_name() const
+{
+    return std::string("operator ") + target_type_.get_name().c_str();
+}
+
+cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_Constructor
            || clang_getTemplateCursorKind(cur) == CXCursor_Constructor);
@@ -547,18 +512,16 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name s
     detail::tokenizer tokenizer(tu, cur);
     auto stream = detail::make_stream(tokenizer);
 
-    auto name = detail::parse_name(cur);
-    detail::clean_name(name);
-    cpp_function_info info;
+    std::string name = detail::parse_name(cur).c_str();
+    detail::erase_template_args(name);
 
-    source_location location(clang_getCursorLocation(cur), name);
-
-    skip_template_parameter_declaration(stream, location);
+    skip_template_parameter_declaration(stream, cur);
 
     // handle prefix
+    cpp_function_info info;
     while (!detail::skip_if_token(stream, name.c_str()))
     {
-        detail::skip_attribute(stream, location);
+        detail::skip_attribute(stream, cur);
 
         if (detail::skip_if_token(stream, "explicit"))
             info.set_flag(cpp_explicit_conversion);
@@ -567,18 +530,18 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name s
         else if (!std::isspace(stream.peek().get_value()[0]))
         {
             auto str = stream.get().get_value();
-            throw parse_error(location, "unexpected token \'" + std::string(str.c_str()) + "\'");
+            throw parse_error(source_location(cur), "unexpected token \'" + std::string(str.c_str()) + "\'");
         }
         else
             // is whitespace, so consume
             stream.get();
     }
 
-    skip_template_arguments(stream, location);
+    skip_template_arguments(stream, cur);
 
     // handle parameters
     auto variadic = false;
-    skip_parameters(stream, location, variadic);
+    skip_parameters(stream, cur, variadic);
     if (variadic)
         info.set_flag(cpp_variadic_fnc);
 
@@ -587,7 +550,7 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name s
     while (!is_declaration_end(stream, special_definition))
     {
         assert(!stream.done());
-        detail::skip_attribute(stream, location);
+        detail::skip_attribute(stream, cur);
 
         if (detail::skip_if_token(stream, "noexcept"))
         {
@@ -597,7 +560,7 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name s
         else if (!std::isspace(stream.peek().get_value()[0]))
         {
             auto str = stream.get().get_value();
-            throw parse_error(location, "unexpected token \'" + std::string(str.c_str()) + "\'");
+            throw parse_error(source_location(cur), "unexpected token \'" + std::string(str.c_str()) + "\'");
         }
         else
             // is whitespace, so consume
@@ -607,21 +570,27 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_name s
     // parse special definition
     if (special_definition)
     {
-        info.definition = parse_special_definition(stream, location);
+        info.definition = parse_special_definition(stream, cur);
         if (info.definition == cpp_function_definition_normal)
-            throw parse_error(location, "constructor is pure virtual");
+            throw parse_error(source_location(cur), "constructor is pure virtual");
     }
 
     if (!info.explicit_noexcept)
         info.noexcept_expression = "false";
 
-    auto result =  detail::make_ptr<cpp_constructor>(std::move(scope), std::move(name), detail::parse_comment(cur),
-                                                     std::move(info));
+    auto result =  detail::make_ptr<cpp_constructor>(cur, parent, std::move(info));
     parse_parameters(tu, result.get(), cur);
     return result;
 }
 
-cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_name scope, cpp_cursor cur)
+cpp_name cpp_constructor::get_name() const
+{
+    std::string str = cpp_entity::get_name().c_str();
+    detail::erase_template_args(str);
+    return str;
+}
+
+cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_Destructor
            || clang_getTemplateCursorKind(cur) == CXCursor_Destructor);
@@ -629,30 +598,28 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_name sco
     detail::tokenizer tokenizer(tu, cur);
     auto stream = detail::make_stream(tokenizer);
 
-    auto name = detail::parse_name(cur);
-    detail::clean_name(name);
+    std::string name = detail::parse_name(cur).c_str();
+    detail::erase_template_args(name);
+
     cpp_function_info info;
     auto virtual_flag = cpp_virtual_none;
-
-    source_location location(clang_getCursorLocation(cur), name);
-
     if (detail::skip_if_token(stream, "virtual"))
         virtual_flag = cpp_virtual_new;
     else if (detail::skip_if_token(stream, "constexpr"))
         info.set_flag(cpp_constexpr_fnc);
 
-    detail::skip_attribute(stream, location);
+    detail::skip_attribute(stream, cur);
     detail::skip_whitespace(stream);
 
     // skip name and arguments
-    detail::skip(stream, location, {"~", &name[1], "(", ")"});
+    detail::skip(stream, cur, {"~", &name[1], "(", ")"});
 
     // parse suffix
     auto special_definition = false;
     while (!is_declaration_end(stream, special_definition))
     {
         assert(!stream.done());
-        detail::skip_attribute(stream, location);
+        detail::skip_attribute(stream, cur);
 
         if (detail::skip_if_token(stream, "final"))
             virtual_flag = cpp_virtual_final;
@@ -666,7 +633,7 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_name sco
         else if (!std::isspace(stream.peek().get_value()[0]))
         {
             auto str = stream.get().get_value();
-            throw parse_error(location, "unexpected token \'" + std::string(str.c_str()) + "\'");
+            throw parse_error(source_location(cur), "unexpected token \'" + std::string(str.c_str()) + "\'");
         }
         else
             // is whitespace, so consume
@@ -676,7 +643,7 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_name sco
     // parse special definition
     if (special_definition)
     {
-        auto res = parse_special_definition(stream, location);
+        auto res = parse_special_definition(stream, cur);
         if (res == cpp_function_definition_normal)
             virtual_flag = cpp_virtual_pure;
         else
@@ -687,6 +654,12 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_name sco
     if (!info.explicit_noexcept)
         info.noexcept_expression = "true";
 
-    return detail::make_ptr<cpp_destructor>(std::move(scope), std::move(name), detail::parse_comment(cur),
-                                            std::move(info), virtual_flag);
+    return detail::make_ptr<cpp_destructor>(cur, parent, std::move(info), virtual_flag);
+}
+
+cpp_name cpp_destructor::get_name() const
+{
+    std::string str = cpp_entity::get_name().c_str();
+    detail::erase_template_args(str);
+    return str;
 }

@@ -5,24 +5,31 @@
 #ifndef STANDARDESE_CPP_ENTITY_HPP_INCLUDED
 #define STANDARDESE_CPP_ENTITY_HPP_INCLUDED
 
+#include <cassert>
 #include <cstddef>
 #include <iterator>
 #include <memory>
-#include <string>
 #include <type_traits>
 
+#include <standardese/cpp_cursor.hpp>
 #include <standardese/noexcept.hpp>
+#include <standardese/string.hpp>
 
 namespace standardese
 {
     template <typename T>
     class cpp_entity_container;
-
-    class parser;
     class translation_unit;
 
-    using cpp_name = std::string;
-    using cpp_raw_comment = std::string;
+    using cpp_name = string;
+    using cpp_raw_comment = string;
+
+    template <typename T>
+    using cpp_ptr = std::unique_ptr<T>;
+
+    class cpp_entity;
+
+    using cpp_entity_ptr = cpp_ptr<cpp_entity>;
 
     class cpp_entity
     {
@@ -42,7 +49,6 @@ namespace standardese
             type_alias_t,
 
             enum_t,
-            enum_value_t,
             signed_enum_value_t,
             unsigned_enum_value_t,
 
@@ -75,81 +81,81 @@ namespace standardese
             invalid_t
         };
 
-        cpp_entity(cpp_entity&&) = delete;
-        cpp_entity(const cpp_entity&) = delete;
+        static cpp_entity_ptr try_parse(translation_unit &tu, cpp_cursor cur, const cpp_entity &parent);
+
+        cpp_entity(cpp_entity &&) = delete;
+
+        cpp_entity(const cpp_entity &) = delete;
 
         virtual ~cpp_entity() STANDARDESE_NOEXCEPT = default;
 
-        cpp_entity& operator=(const cpp_entity&) = delete;
-        cpp_entity& operator=(cpp_entity&&) = delete;
+        cpp_entity &operator=(const cpp_entity &) = delete;
 
-        const cpp_name& get_name() const STANDARDESE_NOEXCEPT
+        cpp_entity &operator=(cpp_entity &&) = delete;
+
+        /// \returns The name of the entity as specified in the source.
+        virtual cpp_name get_name() const;
+
+        /// \returns The scope of the entity, without trailing `::`, empty for global scope.
+        virtual cpp_name get_scope() const
         {
-            return name_;
+            if (!parent_ || parent_->get_entity_type() == file_t)
+                return "";
+            return parent_->get_full_name();
         }
 
-        virtual cpp_name get_unique_name() const
+        /// \returns The full name of the entity, scope followed by name.
+        cpp_name get_full_name() const
         {
-            return scope_.empty() ? name_ : scope_ + "::" + name_;
+            auto scope = get_scope();
+            return scope.empty() ? get_name() : std::string(scope.c_str()) + "::" + get_name().c_str();
         }
 
-        // excluding trailing "::"
-        const cpp_name& get_scope() const STANDARDESE_NOEXCEPT
-        {
-            return scope_;
-        }
+        /// \returns The raw comment string.
+        cpp_raw_comment get_comment() const;
 
-        const cpp_raw_comment& get_comment() const STANDARDESE_NOEXCEPT
-        {
-            return comment_;
-        }
-
+        /// \returns The type of the entity.
         type get_entity_type() const STANDARDESE_NOEXCEPT
         {
             return t_;
         }
 
+        /// \returns The libclang cursor of the declaration of the entity.
+        cpp_cursor get_cursor() const STANDARDESE_NOEXCEPT
+        {
+            return cursor_;
+        }
+
+        bool has_parent() const STANDARDESE_NOEXCEPT
+        {
+            return parent_ != nullptr;
+        }
+
+        /// \returns The parent entity,
+        /// that is the entity which owns the current one.
+        /// \requires The entity has a parent.
+        const cpp_entity& get_parent() const STANDARDESE_NOEXCEPT
+        {
+            return *parent_;
+        }
+
     protected:
-        cpp_entity(type t, cpp_name scope, cpp_name n, cpp_raw_comment c) STANDARDESE_NOEXCEPT
-        : name_(std::move(n)), scope_(std::move(scope)), comment_(std::move(c)),
-          next_(nullptr), t_(t)
-        {}
+        cpp_entity(type t, cpp_cursor cur, const cpp_entity &parent) STANDARDESE_NOEXCEPT
+        : cursor_(cur), next_(nullptr), parent_(&parent), t_(t) {}
 
-        void set_name(cpp_name n)
-        {
-            name_ = std::move(n);
-        }
-
-        void set_type(type t) STANDARDESE_NOEXCEPT
-        {
-            t_ = t;
-        }
+        /// \effects Creates it without a parent.
+        cpp_entity(type t, cpp_cursor cur) STANDARDESE_NOEXCEPT
+        : cursor_(cur), next_(nullptr), parent_(nullptr), t_(t) {}
 
     private:
-        cpp_name name_, scope_;
-        cpp_raw_comment comment_;
-
+        cpp_cursor cursor_;
         std::unique_ptr<cpp_entity> next_;
-
+        const cpp_entity *parent_;
         type t_;
 
         template <typename T>
         friend class cpp_entity_container;
     };
-
-    template <typename T>
-    using cpp_ptr = std::unique_ptr<T>;
-
-    namespace detail
-    {
-        template <typename T, typename ... Args>
-        cpp_ptr<T> make_ptr(Args&&... args)
-        {
-            return cpp_ptr<T>(new T(std::forward<Args>(args)...));
-        }
-    } // namespace detail
-
-    using cpp_entity_ptr = std::unique_ptr<cpp_entity>;
 
     template <typename T>
     class cpp_entity_container
@@ -253,34 +259,30 @@ namespace standardese
         cpp_entity *last_;
     };
 
-    class parser;
-
-    /// Required interface for parser classes.
-    class cpp_entity_parser
+    namespace detail
     {
-    public:
-        /// Returns the fully parsed entity.
-        /// Parser is given for final registration.
-        virtual cpp_entity_ptr finish(const parser &par) = 0;
-
-        /// Adds a new entity, should forward to cpp_entity_container.
-        virtual void add_entity(cpp_entity_ptr)
-        {}
-
-        /// Returns the name of the current scope if container
-        virtual cpp_name scope_name()
+        struct cpp_ptr_access
         {
-            return "";
-        }
-    };
+            template <typename T, typename ... Args>
+            static cpp_ptr<T> make(Args&&... args)
+            {
+                return cpp_ptr<T>(new T(std::forward<Args>(args)...));
+            }
+        };
 
-    class cpp_parameter_base
-    : public cpp_entity
-    {
-    protected:
-        cpp_parameter_base(cpp_entity::type t, cpp_name name, cpp_raw_comment comment)
-        : cpp_entity(t, "", std::move(name), std::move(comment)) {}
-    };
+        template <typename T, typename ... Args>
+        cpp_ptr<T> make_ptr(Args&&... args)
+        {
+            return cpp_ptr_access::make<T>(std::forward<Args>(args)...);
+        }
+
+        template <typename Derived>
+        cpp_ptr<Derived> downcast(cpp_entity_ptr entity)
+        {
+            auto ptr = entity.release();
+            return cpp_ptr<Derived>(static_cast<Derived*>(ptr));
+        }
+    } // namespace detail
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_ENTITY_HPP_INCLUDED

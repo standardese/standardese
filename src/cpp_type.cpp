@@ -8,29 +8,53 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
-#include <standardese/parser.hpp>
-#include <standardese/translation_unit.hpp>
+#include <clang-c/Index.h>
 
 using namespace standardese;
 
+CXType cpp_type::get_type() const STANDARDESE_NOEXCEPT
+{
+    return clang_getCursorType(get_cursor());
+}
+
+cpp_type_ref::cpp_type_ref(cpp_name name, CXType type)
+: name_(std::move(name)), type_(type)
+{}
+
+cpp_cursor cpp_type_ref::get_declaration() const STANDARDESE_NOEXCEPT
+{
+    return clang_getTypeDeclaration(type_);
+}
+
+cpp_name cpp_type_ref::get_full_name() const STANDARDESE_NOEXCEPT
+{
+    std::string name = detail::parse_name(type_).c_str();
+    // if in a partial template specialization
+    // libclang uses a weird internal name when referring to template parameters
+    // erase that name from the list
+    if (name.find("-parameter-") != std::string::npos)
+        detail::erase_template_args(name);
+
+    return name;
+}
+
 namespace
 {
-    cpp_type_ref parse_alias_target(translation_unit &tu, cpp_cursor cur, const cpp_name &name)
+    cpp_name parse_alias_target(translation_unit &tu, cpp_cursor cur)
     {
-        auto type = clang_getTypedefDeclUnderlyingType(cur);
-        cpp_name target_name;
+        std::string target_name;
 
         detail::tokenizer tokenizer(tu, cur);
         auto stream = detail::make_stream(tokenizer);
-        source_location location(clang_getCursorLocation(cur), name);
+        auto name = detail::parse_name(cur);
 
         if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl)
         {
-            skip(stream, location, {"using", name.c_str(), "="});
+            detail::skip(stream, cur, {"using", name.c_str(), "="});
 
             while (stream.peek().get_value() != ";")
             {
-                detail::skip_attribute(stream, location);
+                detail::skip_attribute(stream, cur);
                 target_name += stream.get().get_value().c_str();
             }
         }
@@ -38,11 +62,11 @@ namespace
         {
             assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl);
 
-            skip(stream, location, {"typedef"});
+            skip(stream, cur, {"typedef"});
 
             while (stream.peek().get_value() != ";")
             {
-                detail::skip_attribute(stream, location);
+                detail::skip_attribute(stream, cur);
                 auto& val = stream.peek().get_value();
                 if (val != name.c_str())
                     target_name += val.c_str();
@@ -51,37 +75,19 @@ namespace
             }
         }
 
-        while (std::isspace(target_name.back()))
-            target_name.pop_back();
-
-        return {type, target_name};
+        detail::erase_trailing_ws(target_name);
+        return target_name;
     }
 }
 
-cpp_name cpp_type_ref::get_full_name() const
-{
-    auto name = detail::parse_name(type_);
-
-    // when the name of the class is mentioned in a partial specialization
-    // clang appends the template parameters with an internal name at the end
-    // erase that part
-    if (name.find("-parameter") != cpp_name::npos)
-        detail::clean_name(name);
-
-    return name;
-}
-
-cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit &tu, const cpp_name &scope, cpp_cursor cur)
+cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit &tu,
+                                              cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl
            || clang_getCursorKind(cur) == CXCursor_TypeAliasDecl);
 
-    auto name = detail::parse_name(cur);
-    auto target = parse_alias_target(tu, cur, name);
-    auto result = detail::make_ptr<cpp_type_alias>(scope, std::move(name), detail::parse_comment(cur),
-                                                   clang_getCursorType(cur), target);
+    auto name = parse_alias_target(tu, cur);
+    auto type = clang_getTypedefDeclUnderlyingType(cur);
 
-    tu.get_parser().register_type(*result);
-
-    return result;
+    return detail::make_ptr<cpp_type_alias>(cur, parent, cpp_type_ref(name, type));
 }

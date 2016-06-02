@@ -19,19 +19,20 @@ void detail::skip_whitespace(token_stream &stream)
         stream.bump();
 }
 
-void detail::skip(token_stream &stream, const source_location &location, const char *value)
+void detail::skip(token_stream &stream, const cpp_cursor &cur, const char *value)
 {
     auto& val = stream.peek();
     if (val.get_value() != value)
-        throw parse_error(location, std::string("expected \'") + value + "\' got \'" + val.get_value().c_str() + "\'");
+        throw parse_error(source_location(cur),
+                          std::string("expected \'") + value + "\' got \'" + val.get_value().c_str() + "\'");
     stream.bump();
 }
 
-void detail::skip(token_stream &stream, const source_location &location, std::initializer_list<const char *> values)
+void detail::skip(token_stream &stream, const cpp_cursor &cur, std::initializer_list<const char *> values)
 {
     for (auto val : values)
     {
-        skip(stream, location, val);
+        skip(stream, cur, val);
         skip_whitespace(stream);
     }
 }
@@ -45,20 +46,20 @@ bool detail::skip_if_token(detail::token_stream &stream, const char *token)
     return true;
 }
 
-void detail::skip_attribute(detail::token_stream &stream, const source_location &location)
+void detail::skip_attribute(detail::token_stream &stream, const cpp_cursor &cur)
 {
     if (stream.peek().get_value() == "["
         && stream.peek(1).get_value() == "[")
     {
         stream.bump(); // opening
-        skip_bracket_count(stream, location, "[", "]");
+        skip_bracket_count(stream, cur, "[", "]");
         stream.bump(); // closing
     }
     else if (skip_if_token(stream, "__attribute__"))
     {
-        skip(stream, location, "(");
-        skip_bracket_count(stream, location, "(", ")");
-        skip(stream, location, ")");
+        skip(stream, cur, "(");
+        skip_bracket_count(stream, cur, "(", ")");
+        skip(stream, cur, ")");
     }
 }
 
@@ -80,7 +81,7 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
     std::filebuf buf;
 
     string filename(clang_getFileName(file));
-    buf.open(filename, std::ios_base::in | std::ios_base::binary);
+    buf.open(filename.c_str(), std::ios_base::in | std::ios_base::binary);
     assert(buf.is_open());
 
     // seek to beginning
@@ -126,15 +127,11 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
 
 namespace standardese { namespace detail
 {
-    struct context_impl;
-
-    context_impl& get_context_impl(translation_unit &tu);
-
-    context& get_preprocessing_context(context_impl &impl);
+    context& get_preprocessing_context(translation_unit &tu);
 }} // namespace standardese::detail
 
 detail::tokenizer::tokenizer(translation_unit &tu, cpp_cursor cur)
-: source_(read_source(cur)), impl_(&get_preprocessing_context(get_context_impl(tu)))
+: source_(read_source(cur)), impl_(&get_preprocessing_context(tu))
 {
     // append trailing newline
     // required for parsing code

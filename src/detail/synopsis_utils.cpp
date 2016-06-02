@@ -15,7 +15,7 @@ void detail::write_type_value_default(output_base::code_block_writer &out,
 {
     if (!name.empty())
     {
-        auto &type_name = type.get_name();
+        std::string type_name = type.get_name().c_str();
         auto pos = type_name.find("(*");
         if (pos != std::string::npos)
         {

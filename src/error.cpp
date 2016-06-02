@@ -4,6 +4,7 @@
 
 #include <standardese/error.hpp>
 
+#include <standardese/cpp_cursor.hpp>
 #include <standardese/string.hpp>
 
 using namespace standardese;
@@ -38,5 +39,9 @@ source_location::source_location(CXSourceLocation location, std::string entity)
 {
     CXFile file;
     clang_getSpellingLocation(location, &file, &line, nullptr, nullptr);
-    file_name = string(clang_getFileName(file)).get();
+    file_name = string(clang_getFileName(file)).c_str();
 }
+
+source_location::source_location(cpp_cursor cur)
+: source_location(clang_getCursorLocation(cur), string(clang_getCursorDisplayName(cur)).c_str())
+{}

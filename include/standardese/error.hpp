@@ -13,6 +13,8 @@
 
 namespace standardese
 {
+    class cpp_cursor;
+
     class libclang_error
     : public std::runtime_error
     {
@@ -38,24 +40,39 @@ namespace standardese
         {}
 
         source_location(CXSourceLocation location, std::string entity);
+
+        explicit source_location(cpp_cursor cur);
     };
 
-   class parse_error
-   : public std::runtime_error
-   {
-   public:
-       parse_error(source_location location, std::string message)
-       : std::runtime_error(std::move(message)), location_(std::move(location))
-       {}
+    enum class severity
+    {
+        warning,
+        error
+    };
 
-       const source_location& get_location() const STANDARDESE_NOEXCEPT
-       {
+    class parse_error
+    : public std::runtime_error
+    {
+    public:
+        parse_error(source_location location, std::string message, severity sev = severity::error)
+        : std::runtime_error(std::move(message)),
+          location_(std::move(location)), severity_(sev)
+        {}
+
+        const source_location& get_location() const STANDARDESE_NOEXCEPT
+        {
            return location_;
-       }
+        }
 
-   private:
-       source_location location_;
-   };
+        severity get_severity() const STANDARDESE_NOEXCEPT
+        {
+            return severity_;
+        }
+
+    private:
+        source_location location_;
+        severity severity_;
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_ERROR_HPP_INCLUDED

@@ -8,11 +8,13 @@
 #include <bitset>
 #include <set>
 
-#include <standardese/cpp_entity.hpp>
-#include <standardese/output.hpp>
+#include <standardese/doc_entity.hpp>
 
 namespace standardese
 {
+    class output_base;
+    class parser;
+
     class entity_blacklist
     {
     public:
@@ -87,7 +89,7 @@ namespace standardese
         int options_ = 0;
     };
 
-    void write_synopsis(output_base &out, const cpp_entity &e, const entity_blacklist &blacklist);
+    void write_synopsis(const parser &p, output_base &out, const doc_entity &e);
 } // namespace standardese
 
 #endif // STANDARDESE_SYNOPSIS_HPP_INCLUDED

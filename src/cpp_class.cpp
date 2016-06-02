@@ -7,7 +7,6 @@
 #include <cassert>
 
 #include <standardese/detail/parse_utils.hpp>
-#include <standardese/parser.hpp>
 #include <standardese/detail/tokenizer.hpp>
 
 using namespace standardese;
@@ -29,9 +28,9 @@ const char* standardese::to_string(cpp_access_specifier_t access) STANDARDESE_NO
 
 namespace
 {
-   cpp_access_specifier_t parse_access_specifier(CX_CXXAccessSpecifier a)
+   cpp_access_specifier_t parse_access_specifier(cpp_cursor cur)
    {
-       switch (a)
+       switch (clang_getCXXAccessSpecifier(cur))
        {
            case CX_CXXPrivate:
                return cpp_private;
@@ -46,34 +45,58 @@ namespace
    }
 }
 
-cpp_ptr<cpp_access_specifier> cpp_access_specifier::parse(translation_unit &, cpp_cursor cur)
+cpp_ptr<cpp_access_specifier> cpp_access_specifier::parse(translation_unit &,
+                                                          cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_CXXAccessSpecifier);
 
-    return detail::make_ptr<cpp_access_specifier>(parse_access_specifier(clang_getCXXAccessSpecifier(cur)));
+    return detail::make_ptr<cpp_access_specifier>(cur, parent,
+                                                  parse_access_specifier(cur));
 }
 
-cpp_ptr<cpp_base_class> cpp_base_class::parse(translation_unit &, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_base_class> cpp_base_class::parse(translation_unit &,
+                                              cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_CXXBaseSpecifier);
 
     auto name = detail::parse_class_name(cur);
     auto type = clang_getCursorType(cur);
-    auto a = parse_access_specifier(clang_getCXXAccessSpecifier(cur));
+    auto a = parse_access_specifier(cur);
     auto virt = clang_isVirtualBase(cur);
 
-    return detail::make_ptr<cpp_base_class>(std::move(scope), std::move(name), type, a, virt != 0);
+    return detail::make_ptr<cpp_base_class>(cur, parent, cpp_type_ref(std::move(name), type), a, virt);
+}
+
+cpp_name cpp_base_class::get_name() const
+{
+    return type_.get_name();
 }
 
 namespace
 {
-    bool parse_class(translation_unit &tu, cpp_cursor cur,
-                     const cpp_name &name, bool &is_final)
+    cpp_class_type parse_class_type(cpp_cursor cur)
+    {
+        auto kind = clang_getCursorKind(cur);
+        if (kind == CXCursor_ClassTemplate
+            || kind == CXCursor_ClassTemplatePartialSpecialization)
+            kind = clang_getTemplateCursorKind(cur);
+
+        if (kind == CXCursor_ClassDecl)
+            return cpp_class_t;
+        else if (kind == CXCursor_StructDecl)
+            return cpp_struct_t;
+        else if (kind == CXCursor_UnionDecl)
+            return cpp_union_t;
+
+        assert(!"invalid cursor type for cpp_class");
+        return cpp_class_t;
+    }
+
+    bool parse_class(translation_unit &tu, cpp_cursor cur, bool &is_final)
     {
         detail::tokenizer tokenizer(tu, cur);
-
         auto stream = detail::make_stream(tokenizer);
-        source_location location(clang_getCursorLocation(cur), name);
+        auto name = detail::parse_name(cur);
 
         // handle extern templates
         if (detail::skip_if_token(stream, "extern"))
@@ -81,20 +104,20 @@ namespace
 
         if (detail::skip_if_token(stream, "template"))
         {
-            detail::skip_bracket_count(stream, location, "<", ">");
+            detail::skip_bracket_count(stream, cur, "<", ">");
             detail::skip_whitespace(stream);
         }
 
         // skip class/struct/union/keyword and name
         stream.bump();
         detail::skip_whitespace(stream);
-        detail::skip_attribute(stream, location);
+        detail::skip_attribute(stream, cur);
         detail::skip_whitespace(stream);
-        detail::skip(stream, location, {name.c_str()});
+        detail::skip(stream, cur, {name.c_str()});
 
         if (stream.peek().get_value() == "<")
         {
-            detail::skip_bracket_count(stream, location, "<", ">");
+            detail::skip_bracket_count(stream, cur, "<", ">");
             detail::skip_whitespace(stream);
         }
 
@@ -111,46 +134,14 @@ namespace
     }
 }
 
-cpp_class::parser::parser(translation_unit &tu, cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_class> cpp_class::parse(translation_unit &tu, cpp_cursor cur, const cpp_entity &parent)
 {
-    cpp_class_type ctype;
+    auto ctype = parse_class_type(cur);
 
-    auto kind = clang_getCursorKind(cur);
-    if (kind == CXCursor_ClassTemplate
-        || kind == CXCursor_ClassTemplatePartialSpecialization)
-        kind = clang_getTemplateCursorKind(cur);
+    auto is_final = false;
+    auto definition = parse_class(tu, cur, is_final);
+    if (!definition)
+        return nullptr;
 
-    if (kind == CXCursor_ClassDecl)
-        ctype = cpp_class_t;
-    else if (kind == CXCursor_StructDecl)
-        ctype = cpp_struct_t;
-    else if (kind == CXCursor_UnionDecl)
-        ctype = cpp_union_t;
-    else
-        assert(false);
-
-    auto name = detail::parse_name(cur);
-    bool is_final;
-    auto definition = parse_class(tu, cur, name, is_final);
-    if (definition)
-        class_ = cpp_ptr<cpp_class>(new cpp_class(std::move(scope), std::move(name), detail::parse_comment(cur),
-                                    clang_getCursorType(cur), ctype, is_final));
-}
-
-void cpp_class::parser::add_entity(cpp_entity_ptr ptr)
-{
-    assert(class_);
-    class_->add_entity(std::move(ptr));
-}
-
-cpp_name cpp_class::parser::scope_name()
-{
-    return class_ ? class_->get_name() : "";
-}
-
-cpp_entity_ptr cpp_class::parser::finish(const standardese::parser &par)
-{
-    if (class_)
-        par.register_type(*class_);
-    return std::move(class_);
+    return detail::make_ptr<cpp_class>(cur, parent, ctype, is_final);
 }
