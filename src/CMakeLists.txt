@@ -22,6 +22,7 @@ set(header
         ../include/standardese/cpp_template.hpp
         ../include/standardese/cpp_type.hpp
         ../include/standardese/cpp_variable.hpp
+        ../include/standardese/doc_entity.hpp
         ../include/standardese/error.hpp
         ../include/standardese/generator.hpp
         ../include/standardese/output.hpp

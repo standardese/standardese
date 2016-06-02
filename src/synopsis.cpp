@@ -562,8 +562,9 @@ namespace
     }
 }
 
-void standardese::write_synopsis(const parser &p, output_base &out, const cpp_entity &e)
+void standardese::write_synopsis(const parser &p, output_base &out, const doc_entity &e)
 {
     output_base::code_block_writer w(out);
-    dispatch(p, w, e, true);
+    if (e.has_cpp_entity())
+        dispatch(p, w, e.get_cpp_entity(), true);
 }

@@ -55,7 +55,7 @@ namespace
         if (blacklist.is_set(entity_blacklist::require_comment) && e.get_comment().empty())
             return;
 
-        generate_doc_entity(p, output, level, e);
+        generate_doc_entity(p, output, level, doc_entity(p, e));
 
         auto cur_access = get_default_access(e);
         for (auto& child : container)
@@ -108,7 +108,7 @@ namespace
             default:
                 if (blacklist.is_set(entity_blacklist::require_comment) && e.get_comment().empty())
                     break;
-                generate_doc_entity(p, output, level, e);
+                generate_doc_entity(p, output, level, doc_entity(p, e));
                 break;
         }
     }
@@ -191,16 +191,17 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
 
 void standardese::generate_doc_entity(const parser &p,
                                       output_base &output, unsigned level,
-                                      const cpp_entity &e)
+                                      const doc_entity &doc)
 {
+    auto& e = doc.get_cpp_entity();
+    auto& comment = doc.get_comment();
+
     auto type = get_entity_type_spelling(e.get_entity_type());
 
     output_base::heading_writer(output, level) << char(std::toupper(type[0])) << &type[1] << ' '
         << output_base::style::code_span << e.get_name() << output_base::style::code_span;
 
-    write_synopsis(p, output, e);
-
-    auto comment = comment::parse(p, e.get_full_name(), e.get_comment());
+    write_synopsis(p, output, doc);
 
     auto last_type = section_type::brief;
     output_base::paragraph_writer writer(output);
@@ -222,7 +223,7 @@ void standardese::generate_doc_entity(const parser &p,
 void standardese::generate_doc_file(const parser &p, output_base &output,
                                     const cpp_file &f)
 {
-    generate_doc_entity(p, output, 1, f);
+    generate_doc_entity(p, output, 1, doc_entity(p, f));
 
     for (auto& e : f)
         dispatch(p, output, 2, e);
