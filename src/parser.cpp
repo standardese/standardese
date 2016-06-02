@@ -156,7 +156,11 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
     if (error != CXError_Success)
         throw libclang_error(error, "CXTranslationUnit (" + std::string(path) + ")");
 
-    return translation_unit(*this, tu, path);
+    cpp_ptr<cpp_file> file(new cpp_file(clang_getTranslationUnitCursor(tu), path));
+    auto file_ptr = file.get();
+    files_.add_file(std::move(file));
+
+    return translation_unit(*this, tu, path, file_ptr);
 }
 
 parser::parser()

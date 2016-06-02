@@ -5,6 +5,7 @@
 #ifndef STANDARDESE_CPP_ENTITY_REGISTRY_HPP_INCLUDED
 #define STANDARDESE_CPP_ENTITY_REGISTRY_HPP_INCLUDED
 
+#include <mutex>
 #include <unordered_map>
 
 #include <standardese/detail/parse_utils.hpp>
@@ -15,24 +16,28 @@ namespace standardese
     class cpp_entity_registry
     {
     public:
-        void register_entity(const cpp_entity &e)
+        void register_entity(const cpp_entity &e) const
         {
+            std::unique_lock<std::mutex> lock(mutex_);
             map_.emplace(e.get_cursor(), &e);
         }
 
         const cpp_entity& lookup_entity(const cpp_cursor &cur) const
         {
+            std::unique_lock<std::mutex> lock(mutex_);
             return *map_.at(cur);
         }
 
         const cpp_entity* try_lookup(const cpp_cursor &cur) const STANDARDESE_NOEXCEPT
         {
+            std::unique_lock<std::mutex> lock(mutex_);
             auto iter = map_.find(cur);
             return iter == map_.end() ? nullptr : iter->second;
         }
 
     private:
-        std::unordered_map<cpp_cursor, const cpp_entity*> map_;
+        mutable std::mutex mutex_;
+        mutable std::unordered_map<cpp_cursor, const cpp_entity*> map_;
     };
 
     template <CXCursorKind Kind>

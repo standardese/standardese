@@ -14,6 +14,7 @@
 
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/cpp_entity.hpp>
+#include <standardese/cpp_entity_registry.hpp>
 
 namespace standardese
 {
@@ -48,6 +49,31 @@ namespace standardese
         : standard(s), options(std::move(options)) {}
     };
 
+    namespace detail
+    {
+        struct file_container_impl : cpp_entity_container<cpp_entity>
+        {
+            void add_file(cpp_entity_ptr e) STANDARDESE_NOEXCEPT
+            {
+                add_entity(std::move(e));
+            }
+        };
+
+        class file_container
+        {
+        public:
+            void add_file(cpp_entity_ptr e) const STANDARDESE_NOEXCEPT
+            {
+                std::unique_lock<std::mutex> lock(mutex_);
+                impl_.add_file(std::move(e));
+            }
+
+        private:
+            mutable std::mutex mutex_;
+            mutable file_container_impl impl_;
+        };
+    } // namespace detail
+
     /// Parser class used for parsing the C++ classes.
     /// The parser object must live as long as all the translation units.
     class parser
@@ -68,6 +94,11 @@ namespace standardese
         /// Parses a translation unit.
         translation_unit parse(const char *path, const compile_config &c) const;
 
+        const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT
+        {
+            return registry_;
+        }
+
         const std::shared_ptr<spdlog::logger>& get_logger() const STANDARDESE_NOEXCEPT
         {
             return logger_;
@@ -79,8 +110,10 @@ namespace standardese
             void operator()(CXIndex idx) const STANDARDESE_NOEXCEPT;
         };
 
+        cpp_entity_registry registry_;
         detail::wrapper<CXIndex, deleter> index_;
         std::shared_ptr<spdlog::logger> logger_;
+        detail::file_container files_;
     };
 } // namespace standardese
 

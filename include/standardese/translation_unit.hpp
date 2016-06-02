@@ -44,7 +44,7 @@ namespace standardese
 
         cpp_name path_;
 
-        friend class translation_unit;
+        friend parser;
     };
 
     class translation_unit
@@ -67,7 +67,7 @@ namespace standardese
         CXTranslationUnit get_cxunit() const STANDARDESE_NOEXCEPT;
 
     private:
-        translation_unit(const parser &par, CXTranslationUnit tu, const char *path);
+        translation_unit(const parser &par, CXTranslationUnit tu, const char *path, cpp_file *file);
 
         struct impl;
         std::unique_ptr<impl> pimpl_;

@@ -30,14 +30,14 @@ struct translation_unit::impl
     detail::context context;
 
     tu_wrapper tu;
-    cpp_ptr<cpp_file> file;
+    cpp_file *file;
 
     const standardese::parser *parser;
 
-    impl(const standardese::parser &p, CXTranslationUnit tunit, const char *path)
+    impl(const standardese::parser &p, CXTranslationUnit tunit, const char *path, cpp_file *file)
     : context(path),
       tu(tunit),
-      file(new cpp_file(clang_getTranslationUnitCursor(tu.get()), path)),
+      file(file),
       parser(&p)
     {
         using namespace boost::wave;
@@ -93,10 +93,10 @@ CXTranslationUnit translation_unit::get_cxunit() const STANDARDESE_NOEXCEPT
     return pimpl_->tu.get();
 }
 
-translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, const char *path)
-: pimpl_(new impl(par, tu, path))
+translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, const char *path, cpp_file *file)
+: pimpl_(new impl(par, tu, path, file))
 {
-    detail::scope_stack stack(pimpl_->file.get());
+    detail::scope_stack stack(pimpl_->file);
 
     detail::visit_tu(pimpl_->tu.get(), get_cxfile(), [&](cpp_cursor cur, cpp_cursor parent)
     {
@@ -111,6 +111,8 @@ translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, cons
                 auto entity = cpp_entity::try_parse(*this, cur, stack.cur_parent());
                 if (!entity)
                     return CXChildVisit_Continue;
+
+                get_parser().get_registry().register_entity(*entity);
 
                 auto container = stack.add_entity(std::move(entity), parent);
                 if (container)
