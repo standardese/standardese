@@ -264,11 +264,10 @@ int main(int argc, char* argv[])
                 try
                 {
                     auto tu = parser.parse(p.generic_string().c_str(), config);
-                    auto& f = tu.build_ast();
 
                     file_output file(p.stem().generic_string() + ".md");
                     markdown_output out(file);
-                    generate_doc_file(parser, out, f, blacklist_entity);
+                    generate_doc_file(parser, out, tu.get_file(), blacklist_entity);
                 }
                 catch (libclang_error &ex)
                 {

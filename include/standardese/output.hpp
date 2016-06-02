@@ -11,6 +11,7 @@
 
 #include <standardese/noexcept.hpp>
 #include <standardese/output_stream.hpp>
+#include <standardese/string.hpp>
 
 namespace standardese
 {
@@ -71,6 +72,12 @@ namespace standardese
             writer& operator<<(const std::string &str)
             {
                 output_.get_output().write_str(str.c_str(), str.size());
+                return *this;
+            }
+
+            writer& operator<<(const string &str)
+            {
+                output_.get_output().write_str(str.c_str(), str.length());
                 return *this;
             }
 

@@ -141,7 +141,6 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
 
         case cpp_entity::enum_t:
             return "enumeration";
-        case cpp_entity::enum_value_t:
         case cpp_entity::signed_enum_value_t:
         case cpp_entity::unsigned_enum_value_t:
             return "enumeration constant";

@@ -108,7 +108,7 @@ void comment::parser::set_section_name(const std::string &type, std::string name
 comment::parser::parser(std::shared_ptr<spdlog::logger> logger,
                         const char *entity_name, const cpp_raw_comment &raw_comment)
 {
-    detail::sequence_stream<cpp_raw_comment::const_iterator> stream(raw_comment, '\n');
+    detail::sequence_stream<const char*> stream(raw_comment, '\n');
     auto cur_section_t = section_type::brief;
     std::string cur_body;
 

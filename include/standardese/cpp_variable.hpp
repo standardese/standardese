@@ -10,29 +10,10 @@
 
 namespace standardese
 {
-    enum cpp_linkage
-    {
-        cpp_no_linkage,
-        cpp_internal_linkage,
-        cpp_external_linkage,
-    };
-
-    class cpp_variable
+    class cpp_variable_base
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_variable> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
-
-        cpp_variable(cpp_name scope, cpp_name name,
-                     cpp_type_ref type, std::string initializer,
-                     cpp_linkage linkage = cpp_no_linkage,
-                     bool is_thread_local = false)
-        : cpp_entity(variable_t, std::move(scope),
-                     std::move(name)),
-          type_(std::move(type)), initializer_(std::move(initializer)),
-          linkage_(std::move(linkage)),
-          thread_local_(is_thread_local) {}
-
         const cpp_type_ref& get_type() const STANDARDESE_NOEXCEPT
         {
             return type_;
@@ -43,10 +24,28 @@ namespace standardese
             return initializer_;
         }
 
-        cpp_linkage get_linkage() const STANDARDESE_NOEXCEPT
+    protected:
+        cpp_variable_base(cpp_entity::type t, cpp_cursor cur, const cpp_entity &parent,
+                          cpp_type_ref type, std::string initializer)
+        : cpp_entity(t, cur, parent),
+          type_(std::move(type)), initializer_(std::move(initializer)) {}
+
+    private:
+        cpp_type_ref type_;
+        std::string initializer_;
+    };
+
+    class cpp_variable final
+    : public cpp_variable_base
+    {
+    public:
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
         {
-            return linkage_;
+            return cpp_entity::variable_t;
         }
+
+        static cpp_ptr<cpp_variable> parse(translation_unit &tu,
+                                           cpp_cursor cur, const cpp_entity &parent);
 
         bool is_thread_local() const STANDARDESE_NOEXCEPT
         {
@@ -54,53 +53,72 @@ namespace standardese
         }
 
     private:
-        cpp_type_ref type_;
-        std::string initializer_;
-        cpp_linkage linkage_;
+        cpp_variable(cpp_cursor cur, const cpp_entity &parent,
+                     cpp_type_ref type, std::string initializer,
+                     bool thr_local)
+        : cpp_variable_base(get_entity_type(), cur, parent,
+                            std::move(type), std::move(initializer)),
+          thread_local_(thr_local) {}
+
         bool thread_local_;
+
+        friend detail::cpp_ptr_access;
     };
 
-    class cpp_member_variable
-    : public cpp_variable
+    class cpp_member_variable_base
+    : public cpp_variable_base
     {
     public:
-        static cpp_ptr<cpp_member_variable> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
-
-        cpp_member_variable(cpp_name scope, cpp_name name,
-                         cpp_type_ref type, std::string initializer,
-                         cpp_linkage linkage = cpp_no_linkage,
-                         bool is_mutable = false, bool is_thread_local = false)
-        : cpp_variable(std::move(scope), std::move(name),
-                       std::move(type), std::move(initializer), linkage,
-                       is_thread_local),
-          mutable_(is_mutable)
-        {
-            set_type(member_variable_t);
-        }
+        static cpp_ptr<cpp_member_variable_base> parse(translation_unit &tu,
+                                                       cpp_cursor cur, const cpp_entity &parent);
 
         bool is_mutable() const STANDARDESE_NOEXCEPT
         {
             return mutable_;
         }
 
+    protected:
+        cpp_member_variable_base(cpp_entity::type t,
+                                 cpp_cursor cur, const cpp_entity &parent,
+                                 cpp_type_ref type, std::string initializer,
+                                 bool is_mut)
+        : cpp_variable_base(t, cur, parent,
+                            std::move(type), std::move(initializer)),
+          mutable_(is_mut) {}
+
     private:
         bool mutable_;
     };
 
-    class cpp_bitfield
-    : public cpp_member_variable
+    class cpp_member_variable final
+    : public cpp_member_variable_base
     {
     public:
-        cpp_bitfield(cpp_name scope, cpp_name name,
-                    cpp_type_ref type, std::string initializer, unsigned no,
-                    cpp_linkage linkage = cpp_no_linkage,
-                    bool is_mutable = false, bool is_thread_local = false)
-        : cpp_member_variable(std::move(scope), std::move(name),
-                              std::move(type), std::move(initializer), linkage,
-                            is_mutable, is_thread_local),
-          no_bits_(no)
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
         {
-            set_type(bitfield_t);
+            return cpp_entity::member_variable_t;
+        }
+
+    private:
+        cpp_member_variable(cpp_cursor cur, const cpp_entity &parent,
+                            cpp_type_ref type, std::string initializer,
+                            bool is_mut)
+        : cpp_member_variable_base(get_entity_type(), cur, parent,
+                                   std::move(type), std::move(initializer),
+                                   is_mut)
+        {}
+
+        friend cpp_member_variable_base;
+        friend detail::cpp_ptr_access;
+    };
+
+    class cpp_bitfield final
+    : public cpp_member_variable_base
+    {
+    public:
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity::bitfield_t;
         }
 
         unsigned no_bits() const STANDARDESE_NOEXCEPT
@@ -109,7 +127,19 @@ namespace standardese
         }
 
     private:
+        cpp_bitfield(cpp_cursor cur, const cpp_entity &parent,
+                     cpp_type_ref type, std::string initializer,
+                     unsigned no_bits, bool is_mut)
+        : cpp_member_variable_base(get_entity_type(), cur, parent,
+                                   std::move(type), std::move(initializer),
+                                   is_mut),
+          no_bits_(no_bits)
+        {}
+
         unsigned no_bits_;
+
+        friend cpp_member_variable_base;
+        friend detail::cpp_ptr_access;
     };
 } // namespace standardese
 

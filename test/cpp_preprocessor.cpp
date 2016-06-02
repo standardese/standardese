@@ -33,21 +33,18 @@ TEST_CASE("cpp_preprocessor", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_preprocessor", code);
-    tu.build_ast();
+
     auto count = 0u;
-    p.for_each_in_namespace([&](const cpp_entity &e)
+    for (auto& e : tu.get_file())
     {
-        if (e.get_name() == "iostream")
+        if (e.get_name() == "inclusion directive")
         {
             ++count;
             auto& inc = dynamic_cast<const cpp_inclusion_directive&>(e);
-            REQUIRE(inc.get_kind() == cpp_inclusion_directive::system);
-        }
-        else if (e.get_name() == "cpp_variable")
-        {
-            ++count;
-            auto& inc = dynamic_cast<const cpp_inclusion_directive&>(e);
-            REQUIRE(inc.get_kind() == cpp_inclusion_directive::local);
+            if (inc.get_file_name() == "iostream")
+                REQUIRE(inc.get_kind() == cpp_inclusion_directive::system);
+            else if (inc.get_file_name() == "cpp_variable")
+                REQUIRE(inc.get_kind() == cpp_inclusion_directive::local);
         }
         else if (e.get_name() == "A")
         {
@@ -86,6 +83,6 @@ TEST_CASE("cpp_preprocessor", "[cpp]")
         }
         else
             REQUIRE(false);
-    });
+    }
     REQUIRE(count == 7u);
 }

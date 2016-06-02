@@ -13,35 +13,36 @@ namespace standardese
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_enum_value> parse(translation_unit &tu,  cpp_name scope, cpp_cursor cur);
-
-        cpp_enum_value(cpp_name scope, cpp_name name)
-        : cpp_enum_value(enum_value_t, std::move(scope), std::move(name)) {}
+        static cpp_ptr<cpp_enum_value> parse(translation_unit &tu,
+                                             cpp_cursor cur, const cpp_entity &parent);
 
         bool is_explicitly_given() const STANDARDESE_NOEXCEPT
         {
             return explicit_;
         }
 
+        virtual cpp_name get_scope() const override;
+
     protected:
-        cpp_enum_value(cpp_entity::type t, cpp_name scope,
-                       cpp_name name)
-        : cpp_entity(t, std::move(scope), std::move(name)),
-          explicit_(false) {}
+        cpp_enum_value(cpp_entity::type t, cpp_cursor cur, const cpp_entity &parent,
+                       bool is_explicit)
+        : cpp_entity(t, cur, parent),
+          explicit_(is_explicit) {}
 
     private:
         bool explicit_;
+
+        friend detail::cpp_ptr_access;
     };
 
-    class cpp_signed_enum_value
+    class cpp_signed_enum_value final
     : public cpp_enum_value
     {
     public:
-        cpp_signed_enum_value(cpp_name scope, cpp_name name,
-                              long long value)
-        : cpp_enum_value(signed_enum_value_t, std::move(scope),
-                         std::move(name)),
-          value_(value) {}
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity::signed_enum_value_t;
+        }
 
         long long get_value() const STANDARDESE_NOEXCEPT
         {
@@ -49,18 +50,24 @@ namespace standardese
         }
 
     private:
+        cpp_signed_enum_value(cpp_cursor cur, const cpp_entity &parent,
+                              long long value, bool is_explicit)
+        : cpp_enum_value(get_entity_type(), cur, parent, is_explicit),
+          value_(value) {}
+
         long long value_;
+
+        friend detail::cpp_ptr_access;
     };
 
-    class cpp_unsigned_enum_value
+    class cpp_unsigned_enum_value final
     : public cpp_enum_value
     {
     public:
-        cpp_unsigned_enum_value(cpp_name scope, cpp_name name,
-                                unsigned long long value)
-        : cpp_enum_value(unsigned_enum_value_t, std::move(scope),
-                         std::move(name)),
-          value_(value) {}
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity::unsigned_enum_value_t;
+        }
 
         unsigned long long get_value() const STANDARDESE_NOEXCEPT
         {
@@ -68,34 +75,27 @@ namespace standardese
         }
 
     private:
+        cpp_unsigned_enum_value(cpp_cursor cur, const cpp_entity &parent,
+                                unsigned long long value, bool is_explicit)
+        : cpp_enum_value(get_entity_type(), cur, parent, is_explicit),
+        value_(value) {}
+
         unsigned long long value_;
+
+        friend detail::cpp_ptr_access;
     };
 
-    class cpp_enum
+    class cpp_enum final
     : public cpp_type, public cpp_entity_container<cpp_enum_value>
     {
     public:
-        class parser
-        : public cpp_entity_parser
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
         {
-        public:
-            parser(translation_unit &tu, cpp_name scope, cpp_cursor cur);
+            return cpp_entity::enum_t;
+        }
 
-            void add_entity(cpp_entity_ptr ptr) override;
-
-            cpp_name scope_name() override;
-
-            cpp_entity_ptr finish(const standardese::parser &par) override;
-
-        private:
-            cpp_ptr<cpp_enum> enum_;
-        };
-
-        cpp_enum(cpp_name scope, cpp_name name,
-                 CXType type, cpp_type_ref underlying)
-        : cpp_type(enum_t, std::move(scope), std::move(name), type),
-          underlying_(std::move(underlying)),
-          is_scoped_(false) {}
+        static cpp_ptr<cpp_enum> parse(translation_unit &tu,
+                                             cpp_cursor cur, const cpp_entity &parent);
 
         void add_enum_value(cpp_ptr<cpp_enum_value> value)
         {
@@ -113,8 +113,15 @@ namespace standardese
         }
 
     private:
+        cpp_enum(cpp_cursor cur, const cpp_entity &parent,
+                 cpp_type_ref underlying, bool is_scoped)
+        : cpp_type(get_entity_type(), cur, parent),
+          underlying_(std::move(underlying)), is_scoped_(is_scoped) {}
+
         cpp_type_ref underlying_;
         bool is_scoped_;
+
+        friend detail::cpp_ptr_access;
     };
 } // namespace standardese
 

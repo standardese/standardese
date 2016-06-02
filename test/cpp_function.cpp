@@ -70,11 +70,10 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_function", code);
-    tu.build_ast();
 
     // no need to check the parameters, same code as for variables
     auto count = 0u;
-    p.for_each_in_namespace([&](const cpp_entity &e)
+    for_each(tu.get_file(), [&](const cpp_entity &e)
     {
         if (dynamic_cast<const cpp_function*>(&e))
         {
@@ -85,7 +84,6 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
             else
                 REQUIRE(func.get_definition() == cpp_function_definition_deleted);
 
-            INFO(func.get_return_type().get_full_name());
             if (func.get_name() == "a")
             {
                 ++count;
@@ -311,10 +309,9 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_conversion_op", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_type([&](const cpp_type &t)
+    for_each(tu.get_file(), [&](const cpp_entity &t)
     {
         for (auto& e : dynamic_cast<const cpp_class&>(t))
         {
@@ -386,10 +383,9 @@ TEST_CASE("cpp_constructor", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_conversion_op", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_type([&](const cpp_type &t)
+    for_each(tu.get_file(), [&](const cpp_entity &t)
     {
         for (auto& e : dynamic_cast<const cpp_class&>(t))
         {
@@ -475,10 +471,9 @@ TEST_CASE("cpp_destructor", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_conversion_op", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_type([&](const cpp_type &t)
+    for_each(tu.get_file(), [&](const cpp_entity &t)
     {
         auto& c = dynamic_cast<const cpp_class &>(t);
         if (c.get_name() == "a")

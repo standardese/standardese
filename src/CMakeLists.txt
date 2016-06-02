@@ -4,6 +4,7 @@
 
 set(detail_header
         ../include/standardese/detail/parse_utils.hpp
+        ../include/standardese/detail/scope_stack.hpp
         ../include/standardese/detail/sequence_stream.hpp
         ../include/standardese/detail/synopsis_utils.hpp
         ../include/standardese/detail/tokenizer.hpp
@@ -13,6 +14,7 @@ set(header
         ../include/standardese/cpp_class.hpp
         ../include/standardese/cpp_cursor.hpp
         ../include/standardese/cpp_entity.hpp
+        ../include/standardese/cpp_entity_registry.hpp
         ../include/standardese/cpp_enum.hpp
         ../include/standardese/cpp_function.hpp
         ../include/standardese/cpp_namespace.hpp
@@ -29,10 +31,12 @@ set(header
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
+        detail/scope_stack.cpp
         detail/synopsis_utils.cpp
         detail/tokenizer.cpp
         comment.cpp
         cpp_class.cpp
+        cpp_entity.cpp
         cpp_enum.cpp
         cpp_function.cpp
         cpp_namespace.cpp

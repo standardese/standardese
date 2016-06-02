@@ -13,6 +13,8 @@
 
 namespace standardese
 {
+    class cpp_cursor;
+
     class libclang_error
     : public std::runtime_error
     {
@@ -38,6 +40,8 @@ namespace standardese
         {}
 
         source_location(CXSourceLocation location, std::string entity);
+
+        explicit source_location(cpp_cursor cur);
     };
 
    class parse_error

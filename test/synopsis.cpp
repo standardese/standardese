@@ -12,8 +12,15 @@ TEST_CASE("entity_blacklist")
 {
     struct dummy_entity : cpp_entity
     {
+        cpp_name name;
+
         dummy_entity(cpp_name name, cpp_entity::type t)
-        : cpp_entity(t, "", name) {}
+        : cpp_entity(t, cpp_cursor()), name(std::move(name)) {}
+
+        cpp_name get_name() const override
+        {
+            return name;
+        }
     };
 
     entity_blacklist blacklist(entity_blacklist::empty);

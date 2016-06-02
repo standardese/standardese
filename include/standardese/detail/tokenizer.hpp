@@ -25,26 +25,35 @@ namespace standardese
 namespace standardese { namespace detail
 {
     using token_iterator = boost::wave::cpplexer::lex_iterator<boost::wave::cpplexer::lex_token<>>;
-    using context = boost::wave::context<std::string::const_iterator, detail::token_iterator>;
+
+    // inherit from it to allow forward declaration
+    struct context
+    : public boost::wave::context<std::string::const_iterator, token_iterator>
+    {
+        context(const std::string &path)
+        // create with empty range
+        : boost::wave::context<std::string::const_iterator, token_iterator>(path.end(), path.end(), path.c_str()) {}
+    };
+
     using token_stream = sequence_stream<context::iterator_type>;
 
     // skips all whitespace
     void skip_whitespace(token_stream &stream);
 
     // skips "value" and asserts that it is actually there
-    void skip(token_stream &stream, const source_location &location, const char *value);
+    void skip(token_stream &stream, const cpp_cursor &cur, const char *value);
 
     // skips values and whitespace after each
-    void skip(token_stream &stream, const source_location &location, std::initializer_list<const char *> values);
+    void skip(token_stream &stream, const cpp_cursor &cur, std::initializer_list<const char *> values);
 
     bool skip_if_token(detail::token_stream &stream, const char *token);
 
     template <typename Func>
-    void skip_bracket_count(detail::token_stream &stream, const source_location &location,
+    void skip_bracket_count(detail::token_stream &stream, const cpp_cursor &cur,
                             const char *open, const char *close, Func f)
     {
         detail::skip_whitespace(stream);
-        detail::skip(stream, location, open);
+        detail::skip(stream, cur, open);
 
         auto bracket_count = 1;
         while (bracket_count != 0)
@@ -65,15 +74,15 @@ namespace standardese { namespace detail
     }
 
     inline void skip_bracket_count(detail::token_stream &stream,
-                                   const source_location &location,
+                                   const cpp_cursor &cur,
                                    const char *open, const char *close)
     {
-        skip_bracket_count(stream, location, open, close,
+        skip_bracket_count(stream, cur, open, close,
                             [](const char*){});
     }
 
     // skips an attribute if any
-    void skip_attribute(detail::token_stream &stream, const source_location &location);
+    void skip_attribute(detail::token_stream &stream, const cpp_cursor &cur);
 
     class tokenizer
     {

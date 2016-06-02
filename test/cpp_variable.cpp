@@ -31,10 +31,9 @@ TEST_CASE("cpp_variable", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_variable", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_in_namespace([&](const cpp_entity &e)
+    for (auto& e : tu.get_file())
     {
         if (auto var = dynamic_cast<const cpp_variable*>(&e))
         {
@@ -47,7 +46,6 @@ TEST_CASE("cpp_variable", "[cpp]")
                 REQUIRE(type.get_name() == "char");
                 REQUIRE(type.get_full_name() == "char");
                 REQUIRE(var->get_initializer() == "");
-                REQUIRE(var->get_linkage() == cpp_external_linkage);
                 REQUIRE(!var->is_thread_local());
             }
             else if (var->get_name() == "b")
@@ -56,7 +54,6 @@ TEST_CASE("cpp_variable", "[cpp]")
                 REQUIRE(type.get_name() == "char *");
                 REQUIRE(type.get_full_name() == "char *");
                 REQUIRE(var->get_initializer() == "&a");
-                REQUIRE(var->get_linkage() == cpp_internal_linkage);
                 REQUIRE(!var->is_thread_local());
             }
             else if (var->get_name() == "c")
@@ -65,7 +62,6 @@ TEST_CASE("cpp_variable", "[cpp]")
                 REQUIRE(type.get_name() == "constexpr int");
                 REQUIRE(type.get_full_name() == "const int");
                 REQUIRE(var->get_initializer() == "4");
-                REQUIRE(var->get_linkage() == cpp_internal_linkage);
                 REQUIRE(!var->is_thread_local());
             }
             else if (var->get_name() == "d")
@@ -74,7 +70,6 @@ TEST_CASE("cpp_variable", "[cpp]")
                 REQUIRE(type.get_name() == "const float * const");
                 REQUIRE(type.get_full_name() == "const float *const");
                 REQUIRE(var->get_initializer() == "nullptr");
-                REQUIRE(var->get_linkage() == cpp_internal_linkage);
                 REQUIRE(!var->is_thread_local());
             }
             else if (var->get_name() == "e")
@@ -83,7 +78,6 @@ TEST_CASE("cpp_variable", "[cpp]")
                 REQUIRE(type.get_name() == "foo");
                 REQUIRE(type.get_full_name() == "foo");
                 REQUIRE(var->get_initializer() == "");
-                REQUIRE(var->get_linkage() == cpp_no_linkage);
                 REQUIRE(!var->is_thread_local());
             }
             else if (var->get_name() == "f")
@@ -92,7 +86,6 @@ TEST_CASE("cpp_variable", "[cpp]")
                 REQUIRE(type.get_name() == "unsigned int (*)(int x)");
                 REQUIRE(type.get_full_name() == "unsigned int (*)(int)");
                 REQUIRE(var->get_initializer() == "nullptr");
-                REQUIRE(var->get_linkage() == cpp_no_linkage);
                 REQUIRE(!var->is_thread_local());
             }
             else if (var->get_name() == "g")
@@ -101,7 +94,6 @@ TEST_CASE("cpp_variable", "[cpp]")
                 REQUIRE(type.get_name() == "auto");
                 REQUIRE(type.get_full_name() == "auto");
                 REQUIRE(var->get_initializer() == "f(4)");
-                REQUIRE(var->get_linkage() == cpp_no_linkage);
                 REQUIRE(var->is_thread_local());
             }
             else if (var->get_name() == "h")
@@ -110,13 +102,12 @@ TEST_CASE("cpp_variable", "[cpp]")
                 REQUIRE(type.get_name() == "int [5]");
                 REQUIRE(type.get_full_name() == "int [5]");
                 REQUIRE(var->get_initializer() == "");
-                REQUIRE(var->get_linkage() == cpp_no_linkage);
                 REQUIRE(!var->is_thread_local());
             }
             else
                 REQUIRE(false);
         }
-    });
+    }
     REQUIRE(count == 8);
 }
 
@@ -145,64 +136,60 @@ TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_member_variable", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_type([&](const cpp_type &t)
+    for_each(tu.get_file(), [&](const cpp_entity &t)
     {
         auto& c = dynamic_cast<const cpp_class&>(t);
         for (auto& e : c)
         {
-            auto& var = dynamic_cast<const cpp_variable&>(e);
-            INFO(var.get_name());
-            REQUIRE(var.get_full_name() == "foo::" + var.get_name());
-            REQUIRE(!var.is_thread_local());
+            if (e.get_name() == "e")
+            {
+                ++count;
+                auto& var = dynamic_cast<const cpp_variable&>(e);
+                REQUIRE(var.get_full_name() == "foo::e");
+                REQUIRE(var.get_type().get_name() == "int&");
+                REQUIRE(var.get_initializer() == "");
+                continue;
+            }
 
-            if (var.get_name() != "e")
-                REQUIRE(var.get_linkage() == cpp_no_linkage);
+            auto& var = dynamic_cast<const cpp_member_variable_base&>(e);
+            REQUIRE(var.get_full_name() == std::string("foo::") + var.get_name().c_str());
 
             if (var.get_name() == "a")
             {
                 ++count;
                 REQUIRE(var.get_type().get_name() == "int");
                 REQUIRE(var.get_initializer() == "");
-                REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+                REQUIRE(!var.is_mutable());
             }
             else if (var.get_name() == "b")
             {
                 ++count;
                 REQUIRE(var.get_type().get_name() == "char");
                 REQUIRE(var.get_initializer() == "'4'");
-                REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+                REQUIRE(!var.is_mutable());
             }
             else if (var.get_name() == "c")
             {
                 ++count;
                 REQUIRE(var.get_type().get_name() == "const int [42]");
                 REQUIRE(var.get_initializer() == "");
-                REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+                REQUIRE(!var.is_mutable());
             }
             else if (var.get_name() == "d")
             {
                 ++count;
                 REQUIRE(var.get_type().get_name() == "float");
                 REQUIRE(var.get_initializer() == "");
-                REQUIRE(dynamic_cast<const cpp_member_variable&>(var).is_mutable());
-            }
-            else if (var.get_name() == "e")
-            {
-                ++count;
-                REQUIRE(var.get_type().get_name() == "int&");
-                REQUIRE(var.get_initializer() == "");
-                REQUIRE(var.get_linkage() == cpp_external_linkage);
+                REQUIRE(var.is_mutable());
             }
             else if (var.get_name() == "f")
             {
                 ++count;
                 REQUIRE(var.get_type().get_name() == "int");
                 REQUIRE(var.get_initializer() == "");
-                REQUIRE(var.get_linkage() == cpp_no_linkage);
-                REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+                REQUIRE(!var.is_mutable());
                 REQUIRE(dynamic_cast<const cpp_bitfield&>(var).no_bits() == 5);
             }
             else if (var.get_name() == "g")
@@ -210,8 +197,7 @@ TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
                 ++count;
                 REQUIRE(var.get_type().get_name() == "int");
                 REQUIRE(var.get_initializer() == "");
-                REQUIRE(var.get_linkage() == cpp_no_linkage);
-                REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+                REQUIRE(!var.is_mutable());
                 REQUIRE(dynamic_cast<const cpp_bitfield&>(var).no_bits() == 3);
             }
             else if (var.get_name() == "")
@@ -219,8 +205,7 @@ TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
                 ++count;
                 REQUIRE(var.get_type().get_name() == "int");
                 REQUIRE(var.get_initializer() == "");
-                REQUIRE(var.get_linkage() == cpp_no_linkage);
-                REQUIRE(!dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+                REQUIRE(!var.is_mutable());
                 REQUIRE(dynamic_cast<const cpp_bitfield&>(var).no_bits() == 0);
             }
             else if (var.get_name() == "h")
@@ -228,8 +213,7 @@ TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
                 ++count;
                 REQUIRE(var.get_type().get_name() == "int");
                 REQUIRE(var.get_initializer() == "");
-                REQUIRE(var.get_linkage() == cpp_no_linkage);
-                REQUIRE(dynamic_cast<const cpp_member_variable&>(var).is_mutable());
+                REQUIRE(var.is_mutable());
                 REQUIRE(dynamic_cast<const cpp_bitfield&>(var).no_bits() == 1);
             }
             else

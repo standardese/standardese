@@ -4,6 +4,7 @@
 
 #include <standardese/cpp_class.hpp>
 #include <standardese/cpp_enum.hpp>
+#include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_type.hpp>
 
 #include <catch.hpp>
@@ -39,10 +40,9 @@ TEST_CASE("cpp_type_alias", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_type_alias", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_type([&](const cpp_type &e)
+    auto lambda = [&](const cpp_entity &e)
     {
         if (!dynamic_cast<const cpp_type_alias*>(&e))
             return;
@@ -107,7 +107,16 @@ TEST_CASE("cpp_type_alias", "[cpp]")
         }
         else
             REQUIRE(false);
-    });
+    };
+
+    for (auto& e : tu.get_file())
+    {
+        if (e.get_entity_type() == cpp_entity::namespace_t)
+            for (auto& child : static_cast<const cpp_namespace&>(e))
+                lambda(child);
+        else
+            lambda(e);
+    }
     REQUIRE(count == 7u);
 }
 
@@ -135,10 +144,9 @@ TEST_CASE("cpp_enum", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_enum", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_type([&](const cpp_type &e)
+    for_each(tu.get_file(), [&](const cpp_entity &e)
     {
         auto &t = dynamic_cast<const cpp_enum&>(e);
         REQUIRE(t.get_name() == t.get_full_name());
@@ -243,10 +251,9 @@ TEST_CASE("cpp_class", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_class", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_type([&](const cpp_type &e)
+    for_each(tu.get_file(), [&](const cpp_entity &e)
     {
         auto& c = dynamic_cast<const cpp_class&>(e);
         if (c.get_name() == "foo")
@@ -274,30 +281,30 @@ TEST_CASE("cpp_class", "[cpp]")
                     auto& access = dynamic_cast<const cpp_access_specifier&>(member);
                     REQUIRE(access.get_access()  == cpp_protected);
                 }
+                else if (member.get_name() == "nested_a")
+                {
+                    ++count;
+                    REQUIRE(!dynamic_cast<const cpp_class&>(member).is_final());
+                    REQUIRE(member.get_full_name() == "foo::nested_a");
+                    REQUIRE(dynamic_cast<const cpp_class&>(member).get_class_type() == cpp_struct_t);
+                }
+                else if (member.get_name() == "nested_b")
+                {
+                    ++count;
+                    REQUIRE(!dynamic_cast<const cpp_class&>(member).is_final());
+                    REQUIRE(member.get_full_name() == "foo::nested_b");
+                    REQUIRE(dynamic_cast<const cpp_class&>(member).get_class_type() == cpp_struct_t);
+                }
+                else if (member.get_name() == "nested_c")
+                {
+                    ++count;
+                    REQUIRE(!dynamic_cast<const cpp_class&>(member).is_final());
+                    REQUIRE(member.get_full_name() == "foo::nested_c");
+                    REQUIRE(dynamic_cast<const cpp_class&>(member).get_class_type() == cpp_struct_t);
+                }
                 else
                     dynamic_cast<const cpp_class&>(member);
             }
-        }
-        else if (c.get_name() == "nested_a")
-        {
-            ++count;
-            REQUIRE(!c.is_final());
-            REQUIRE(c.get_full_name() == "foo::nested_a");
-            REQUIRE(c.get_class_type() == cpp_struct_t);
-        }
-        else if (c.get_name() == "nested_b")
-        {
-            ++count;
-            REQUIRE(!c.is_final());
-            REQUIRE(c.get_full_name() == "foo::nested_b");
-            REQUIRE(c.get_class_type() == cpp_struct_t);
-        }
-        else if (c.get_name() == "nested_c")
-        {
-            ++count;
-            REQUIRE(!c.is_final());
-            REQUIRE(c.get_full_name() == "foo::nested_c");
-            REQUIRE(c.get_class_type() == cpp_struct_t);
         }
         else if (c.get_name() == "union_t")
         {

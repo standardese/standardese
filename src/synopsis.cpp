@@ -141,7 +141,7 @@ namespace
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_namespace_alias &ns)
     {
-        out << "namespace " << ns.get_name() << " = " << ns.get_target() << ';';
+        out << "namespace " << ns.get_name() << " = " << ns.get_target().get_name() << ';';
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_using_directive &u)
@@ -158,11 +158,6 @@ namespace
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_type_alias &a)
     {
         out << "using " << a.get_name() << " = " << a.get_target().get_name() << ';';
-    }
-
-    void do_write_synopsis(output_base::code_block_writer &out, const cpp_enum_value &e)
-    {
-        out << e.get_name();
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_signed_enum_value &e)
@@ -214,10 +209,10 @@ namespace
         out << ';';
     }
 
-    void write_access(output_base::code_block_writer &out, const cpp_access_specifier &a)
+    void write_access(output_base::code_block_writer &out, cpp_access_specifier_t access)
     {
         out.unindent(tab_width);
-        out << a.get_name() << ':' << newl;
+        out << to_string(access) << ':' << newl;
         out.indent(tab_width);
     }
 
@@ -248,37 +243,37 @@ namespace
                 auto need_access = false;
                 auto first = true;
                 detail::write_range(out, c, newl,
-                                    [&](output_base::code_block_writer &out, const cpp_entity &e)
-                                    {
-                                        if (e.get_entity_type() == cpp_entity::access_specifier_t)
-                                        {
-                                            auto new_access = static_cast<const cpp_access_specifier &>(e).get_access();
-                                            if (new_access != cur_access)
-                                                need_access = true;
-                                            cur_access = new_access;
-                                        }
-                                        else if (e.get_entity_type() == cpp_entity::base_class_t
-                                            || blacklist.is_blacklisted(entity_blacklist::synopsis, e))
-                                            return false;
-                                        else if (blacklist.is_set(entity_blacklist::extract_private)
-                                            || cur_access != cpp_private
-                                            || detail::is_virtual(e))
-                                        {
-                                            if (need_access)
-                                            {
-                                                if (!first)
-                                                   out << blankl;
-                                                else
-                                                    first = false;
-                                                write_access(out, cur_access);
-                                                need_access = false;
-                                            }
-                                            dispatch(out, e, blacklist, false);
-                                            return true;
-                                        }
+                    [&](output_base::code_block_writer &out, const cpp_entity &e)
+                    {
+                        if (e.get_entity_type() == cpp_entity::access_specifier_t)
+                        {
+                            auto new_access = static_cast<const cpp_access_specifier &>(e).get_access();
+                            if (new_access != cur_access)
+                                need_access = true;
+                            cur_access = new_access;
+                        }
+                        else if (e.get_entity_type() == cpp_entity::base_class_t
+                            || blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                            return false;
+                        else if (blacklist.is_set(entity_blacklist::extract_private)
+                            || cur_access != cpp_private
+                            || detail::is_virtual(e))
+                        {
+                            if (need_access)
+                            {
+                                if (!first)
+                                   out << blankl;
+                                else
+                                    first = false;
+                                write_access(out, cur_access);
+                                need_access = false;
+                            }
+                            dispatch(out, e, blacklist, false);
+                            return true;
+                        }
 
-                                        return false;
-                                    });
+                        return false;
+                    });
 
                 out.unindent(tab_width);
                 out << newl << '}';
@@ -291,17 +286,11 @@ namespace
     //=== variables ===//
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_variable &v)
     {
-        switch (v.get_linkage())
-        {
-            case cpp_external_linkage:
-                out << "extern ";
-                break;
-            case cpp_internal_linkage:
-                out << "static ";
-                break;
-            default:
-                break;
-        }
+        if (v.get_parent().get_entity_type() == cpp_entity::class_t
+            || v.get_parent().get_entity_type() == cpp_entity::class_template_t
+            || v.get_parent().get_entity_type() == cpp_entity::class_template_full_specialization_t
+            || v.get_parent().get_entity_type() == cpp_entity::class_template_partial_specialization_t)
+            out << "static ";
 
         if (v.is_thread_local())
             out << "thread_local ";
@@ -310,12 +299,27 @@ namespace
         out << ';';
     }
 
+    void do_write_synopsis(output_base::code_block_writer &out, const cpp_member_variable &v)
+    {
+        if (v.is_mutable())
+            out << "mutable ";
+
+        detail::write_type_value_default(out, v.get_type(), v.get_name(), v.get_initializer());
+        out << ';';
+    }
+
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_bitfield &v)
     {
+        if (v.is_mutable())
+            out << "mutable ";
+
         detail::write_type_value_default(out, v.get_type(), v.get_name());
+
         out << " : " << (unsigned long long) v.no_bits();
+
         if (!v.get_initializer().empty())
             out << " = " << v.get_initializer();
+
         out << ';';
     }
 
@@ -523,7 +527,6 @@ namespace
 
             STANDARDESE_DETAIL_HANDLE(type_alias)
 
-            STANDARDESE_DETAIL_HANDLE(enum_value)
             STANDARDESE_DETAIL_HANDLE(signed_enum_value)
             STANDARDESE_DETAIL_HANDLE(unsigned_enum_value)
             STANDARDESE_DETAIL_HANDLE(enum)
