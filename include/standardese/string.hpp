@@ -17,7 +17,7 @@
 namespace standardese
 {
     /// Wrapper around CXString used for safe access.
-    /*class string
+    class string
     {
     public:
         string(const char *str)
@@ -52,7 +52,7 @@ namespace standardese
             ::new(get_storage()) std::string(other.c_str());
         }
 
-        ~string()
+        ~string() STANDARDESE_NOEXCEPT
         {
             free();
         }
@@ -121,7 +121,7 @@ namespace standardese
         }
 
         std::aligned_storage<(sizeof(std::string) > sizeof(CXString))
-                            ? sizeof(std::string) : sizeof(CXString)> storage_;
+                            ? sizeof(std::string) : sizeof(CXString)>::type storage_;
         std::size_t length_;
         enum
         {
@@ -129,47 +129,6 @@ namespace standardese
             std_string,
             literal,
         } type_;
-    };*/
-
-    class string
-    {
-    public:
-        string(const char *str)
-        : str_(str) {}
-
-        string(std::string str)
-        : str_(std::move(str)) {}
-
-        string(CXString str)
-        : str_(clang_getCString(str)) {}
-
-        const char* c_str() const
-        {
-            return str_.c_str();
-        }
-
-        std::size_t length() const STANDARDESE_NOEXCEPT
-        {
-            return str_.length();
-        }
-
-        bool empty() const STANDARDESE_NOEXCEPT
-        {
-            return str_.empty();
-        }
-
-        const char* begin() const STANDARDESE_NOEXCEPT
-        {
-            return str_.c_str();
-        }
-
-        const char* end() const STANDARDESE_NOEXCEPT
-        {
-            return str_.c_str() + str_.size();
-        }
-
-    private:
-        std::string str_;
     };
 
     inline bool operator==(const string &a, const string &b) STANDARDESE_NOEXCEPT
