@@ -21,7 +21,12 @@ using namespace standardese;
 
 cpp_entity_ptr cpp_entity::try_parse(translation_unit &tu, cpp_cursor cur, const cpp_entity &parent)
 {
-    switch (clang_getCursorKind(cur))
+    auto kind = clang_getCursorKind(cur);
+    auto is_reference = kind != CXCursor_CXXBaseSpecifier && clang_isReference(kind);
+    if (is_reference || clang_isAttribute(kind))
+        return nullptr;
+
+    switch (kind)
     {
         #define STANDARDESE_DETAIL_HANDLE(Kind, Type) \
         case CXCursor_##Kind: \
@@ -85,7 +90,8 @@ cpp_entity_ptr cpp_entity::try_parse(translation_unit &tu, cpp_cursor cur, const
 
     auto spelling = string(clang_getCursorKindSpelling(clang_getCursorKind(cur)));
     throw parse_error(source_location(cur),
-                      fmt::format("Unknown cursor kind '{}'", spelling.c_str()));
+                      fmt::format("Unknown cursor kind '{}'", spelling.c_str()),
+                      severity::warning);
 }
 
 cpp_name cpp_entity::get_name() const

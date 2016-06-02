@@ -123,9 +123,14 @@ translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, cons
         }
         catch (parse_error &ex)
         {
-            get_parser().get_logger()->error("when parsing {} ({}:{}): {}",
-                                         ex.get_location().entity_name, ex.get_location().file_name, ex.get_location().line,
-                                         ex.what());
+            if (ex.get_severity() == severity::warning)
+                get_parser().get_logger()->warn("when parsing {} ({}:{}): {}",
+                                             ex.get_location().entity_name, ex.get_location().file_name, ex.get_location().line,
+                                             ex.what());
+            else
+                get_parser().get_logger()->error("when parsing {} ({}:{}): {}",
+                                                 ex.get_location().entity_name, ex.get_location().file_name, ex.get_location().line,
+                                                 ex.what());
             return CXChildVisit_Continue;
         }
     });
