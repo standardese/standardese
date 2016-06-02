@@ -97,7 +97,7 @@ namespace
         else
             out << '<';
 
-        out << i.get_name();
+        out << i.get_file_name();
 
         if (i.get_kind() == cpp_inclusion_directive::local)
             out << '"';
@@ -146,12 +146,12 @@ namespace
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_using_directive &u)
     {
-        out << "using namespace " << u.get_name() << ';';
+        out << "using namespace " << u.get_target().get_name() << ';';
     }
 
     void do_write_synopsis(output_base::code_block_writer &out, const cpp_using_declaration &u)
     {
-        out << "using " << u.get_name() << ';';
+        out << "using " << u.get_target().get_name() << ';';
     }
 
     //=== types ===//

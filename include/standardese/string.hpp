@@ -40,10 +40,20 @@ namespace standardese
         }
 
         string(CXString str) STANDARDESE_NOEXCEPT
-        : length_(std::strlen(clang_getCString(str))),
-          type_(cx_string)
+        : type_(cx_string)
         {
-            ::new(get_storage()) CXString(str);
+            auto ptr = clang_getCString(str);
+            if (ptr)
+            {
+                length_ = std::strlen(ptr);
+                ::new(get_storage()) CXString(str);
+            }
+            else
+            {
+                type_ = literal;
+                length_ = 0;
+                ::new(get_storage()) const char*("");
+            }
         }
 
         string(const string &other)
