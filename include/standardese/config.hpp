@@ -111,9 +111,20 @@ namespace standardese
             return tab_width_;
         }
 
+        void set_hidden_name(std::string name)
+        {
+            hidden_name_ = std::move(name);
+        }
+
+        const std::string& get_hidden_name() const STANDARDESE_NOEXCEPT
+        {
+            return hidden_name_;
+        }
+
     private:
         entity_blacklist blacklist_;
         std::vector<std::string> section_names_;
+        std::string hidden_name_;
         unsigned tab_width_;
     };
 } // namespace standardese

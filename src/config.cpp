@@ -101,7 +101,7 @@ void comment_config::set_section_command(section_type t, std::string command)
 
 output_config::output_config()
 : section_names_(std::size_t(section_type::count)),
-  tab_width_(4u)
+  hidden_name_("implementation-defined"), tab_width_(4u)
 {
     #define STANDARDESE_DETAIL_SET(type, name) \
         set_section_name(section_type::type, name);

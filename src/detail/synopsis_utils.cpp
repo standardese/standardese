@@ -9,13 +9,15 @@
 
 using namespace standardese;
 
-void detail::write_type_value_default(output_base::code_block_writer &out,
+void detail::write_type_value_default(const parser &par,
+                              output_base::code_block_writer &out,
                               const cpp_type_ref &type, const cpp_name &name,
                               const std::string &def)
 {
+    std::string type_name = get_ref_name(par, type).c_str();
+
     if (!name.empty())
     {
-        std::string type_name = type.get_name().c_str();
         auto pos = type_name.find("(*");
         if (pos != std::string::npos)
         {
@@ -41,7 +43,7 @@ void detail::write_type_value_default(output_base::code_block_writer &out,
         }
     }
     else
-        out << type.get_name();
+        out << type_name;
 
     if (!def.empty())
         out << " = " << def;
@@ -65,7 +67,8 @@ void detail::write_class_name(output_base::code_block_writer &out,
     out << name;
 }
 
-void detail::write_bases(output_base::code_block_writer &out, const cpp_class &c, bool extract_private)
+void detail::write_bases(const parser &par,
+                         output_base::code_block_writer &out, const cpp_class &c, bool extract_private)
 {
     auto comma = false;
     for (auto &base : c)
@@ -99,24 +102,16 @@ void detail::write_bases(output_base::code_block_writer &out, const cpp_class &c
                 break;
         }
 
-        out << base.get_name();
+        out << get_ref_name(par, static_cast<const cpp_base_class&>(base).get_type());
     }
 
     if (comma)
         out << newl;
 }
 
-namespace
-{
-    bool write_parameter(output_base::code_block_writer &out, const cpp_function_parameter &p)
-    {
-        detail::write_type_value_default(out, p.get_type(), p.get_name(), p.get_default_value());
-        return true;
-    }
-}
-
-void detail::write_parameters(output_base::code_block_writer &out, const cpp_function_base &f,
-                      const cpp_name &override_name)
+void detail::write_parameters(const parser &par,
+                              output_base::code_block_writer &out, const cpp_function_base &f,
+                              const cpp_name &override_name)
 {
     if (override_name.empty())
         out << f.get_name();
@@ -124,7 +119,12 @@ void detail::write_parameters(output_base::code_block_writer &out, const cpp_fun
         out << override_name;
     out << '(';
 
-    write_range(out, f.get_parameters(), ", ", write_parameter);
+    write_range(out, f.get_parameters(), ", ",
+                [&](output_base::code_block_writer &out, const cpp_function_parameter &p)
+                {
+                    detail::write_type_value_default(par, out, p.get_type(), p.get_name(), p.get_default_value());
+                    return true;
+                });
 
     if (f.is_variadic())
     {
