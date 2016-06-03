@@ -45,6 +45,16 @@ namespace standardese
         CXType type_;
     };
 
+    inline bool operator==(const cpp_type_ref &a, const cpp_type_ref &b) STANDARDESE_NOEXCEPT
+    {
+        return clang_equalTypes(a.get_type(), b.get_type()) == 1u;
+    }
+
+    inline bool operator!=(const cpp_type_ref &a, const cpp_type_ref &b) STANDARDESE_NOEXCEPT
+    {
+        return !(a == b);
+    }
+
     class cpp_type_alias final
     : public cpp_type
     {
