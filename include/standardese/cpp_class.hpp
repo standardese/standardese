@@ -139,6 +139,10 @@ namespace standardese
 
         friend detail::cpp_ptr_access;
     };
+
+    /// \returns `true` if `base` is a base class of `derived`
+    /// or `base` and `derived` are the same (non-union) class.
+    bool is_base_of(const cpp_class &base, const cpp_class &derived) STANDARDESE_NOEXCEPT;
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_CLASS_HPP_INCLUDED

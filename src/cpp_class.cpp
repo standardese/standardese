@@ -26,6 +26,24 @@ const char* standardese::to_string(cpp_access_specifier_t access) STANDARDESE_NO
     return "should never get here, Simba";
 }
 
+bool standardese::is_base_of(const cpp_class &base, const cpp_class &derived) STANDARDESE_NOEXCEPT
+{
+    if (base.get_name() == derived.get_name())
+        // same non-union class
+        return base.get_class_type() != cpp_union_t;
+    else if (base.is_final())
+        return false;
+
+    for (auto& e : derived)
+        if (e.get_entity_type() == cpp_entity::base_class_t
+            && e.get_name() == base.get_name())
+            return true;
+        else if (e.get_entity_type() != cpp_entity::base_class_t)
+            break;
+
+    return false;
+}
+
 namespace
 {
    cpp_access_specifier_t parse_access_specifier(cpp_cursor cur)
