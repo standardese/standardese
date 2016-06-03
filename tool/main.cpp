@@ -21,6 +21,8 @@
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
+constexpr auto terminal_width = 100u; // assume 100 columns for terminal help text
+
 void print_version(const char *exe_name)
 {
     std::clog << exe_name << " version " << STANDARDESE_VERSION_MAJOR << '.' << STANDARDESE_VERSION_MINOR << '\n';
@@ -116,17 +118,15 @@ standardese::compile_config parse_config(const po::variables_map &map)
 
 int main(int argc, char* argv[])
 {
-    auto log = spdlog::stdout_logger_mt("standardese_log", true);
-    log->set_pattern("[%l] %v");
-
-    standardese::parser parser(log);
-
-    po::options_description generic("Generic options"), configuration("Configuration");
+    po::options_description generic("Generic options", terminal_width), configuration("Configuration", terminal_width);
     generic.add_options()
             ("version,V", "prints version information and exits")
             ("help,h", "prints this help message and exits")
             ("config,c", po::value<fs::path>(), "read options from additional config file as well")
-            ("verbose,v", "prints more information");
+            ("verbose,v", po::value<bool>()->implicit_value(true)->default_value(false),
+             "prints more information")
+            ("color", po::value<bool>()->implicit_value(true)->default_value(true),
+             "enable/disable color support of logger");
 
     configuration.add_options()
             ("input.blacklist_ext",
@@ -185,18 +185,13 @@ int main(int argc, char* argv[])
     cmd.add(generic).add(configuration).add(input);
 
     po::variables_map map;
-    standardese::compile_config config("");
+    po::parsed_options cmd_result(nullptr), file_result(nullptr);
     try
     {
-        auto cmd_result = po::command_line_parser(argc, argv).options(cmd)
+        cmd_result = po::command_line_parser(argc, argv).options(cmd)
                              .positional(input_pos).allow_unregistered().run();
-        po::parsed_options file_result(nullptr);
-
         po::store(cmd_result, map);
         po::notify(map);
-
-        if (map.count("verbose"))
-           log->set_level(spdlog::level::debug);
 
         auto iter = map.find("config");
         if (iter != map.end())
@@ -212,18 +207,24 @@ int main(int argc, char* argv[])
             po::store(file_result, map);
             po::notify(map);
         }
-
-        handle_unparsed_options(parser, cmd_result);
-        handle_unparsed_options(parser, file_result);
-
-        config = parse_config(map);
     }
     catch (std::exception &ex)
     {
-        log->critical(ex.what());
+        std::cerr << ex.what() << '\n';
         print_usage(argv[0], generic, configuration);
         return 1;
     }
+
+    auto log = spdlog::stdout_logger_mt("standardese_log", map.at("color").as<bool>());
+    log->set_pattern("[%l] %v");
+    if (map.count("verbose"))
+        log->set_level(spdlog::level::debug);
+
+    standardese::parser parser(log);
+
+    auto config = parse_config(map);
+    handle_unparsed_options(parser, cmd_result);
+    handle_unparsed_options(parser, file_result);
 
     if (map.count("help"))
         print_usage(argv[0], generic, configuration);
