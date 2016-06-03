@@ -227,6 +227,11 @@ namespace standardese
         friend detail::cpp_ptr_access;
     };
 
+    /// \returns If `e` is a function type returns a pointer to `e`,
+    /// otherwise if `e` is a function template, returns `&e.get_function()`,
+    /// otherwise returns `nullptr`.
+    const cpp_function_base* get_function(const cpp_entity &e) STANDARDESE_NOEXCEPT;
+
     class cpp_class_template final
     : public cpp_entity, private cpp_entity_container<cpp_template_parameter>
     {
@@ -365,6 +370,11 @@ namespace standardese
 
         friend detail::cpp_ptr_access;
     };
+
+    /// \returns If `e` is a class returns a pointer to `e`,
+    /// otherwise if `e` is a class template returns `&e.get_class()`,
+    /// otherwise returns `nullptr`.
+    const cpp_class* get_class(const cpp_entity &e) STANDARDESE_NOEXCEPT;
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_TEMPLATE_HPP_INCLUDED
