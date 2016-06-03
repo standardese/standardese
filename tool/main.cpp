@@ -144,12 +144,14 @@ int main(int argc, char* argv[])
             ("input.blacklist_namespace",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
              "C++ namespace names (with all children) that are forbidden")
-            ("input.force_blacklist", "force the blacklist for explictly given files")
+            ("input.force_blacklist",
+             po::value<bool>()->implicit_value(true)->default_value(false),
+             "force the blacklist for explictly given files")
             ("input.require_comment",
-             po::value<bool>()->default_value(true),
+             po::value<bool>()->implicit_value(true)->default_value(true),
              "only generates documentation for entities that have a documentation comment")
             ("input.extract_private",
-             po::value<bool>()->default_value(false),
+             po::value<bool>()->implicit_value(true)->default_value(false),
              "whether or not to document private entities")
 
             ("compilation.commands_dir", po::value<std::string>(),
@@ -243,7 +245,7 @@ int main(int argc, char* argv[])
         auto blacklist_ext = map.at("input.blacklist_ext").as<std::vector<std::string>>();
         auto blacklist_file = map.at("input.blacklist_file").as<std::vector<std::string>>();
         auto blacklist_dir = map.at("input.blacklist_dir").as<std::vector<std::string>>();
-        auto force_blacklist = map.count("input.force_blacklist") != 0u;
+        auto force_blacklist = map.at("input.force_blacklist").as<bool>();
 
         auto& blacklist_entity = parser.get_output_config().get_blacklist();
         for (auto& str : map.at("input.blacklist_entity_name").as<std::vector<std::string>>())
