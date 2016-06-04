@@ -334,9 +334,8 @@ TEST_CASE("cpp_class", "[cpp]")
         {
             ++count;
             REQUIRE(!c.is_final());
-            for (auto& member : c)
+            for (auto& base : c.get_bases())
             {
-                auto& base = dynamic_cast<const cpp_base_class&>(member);
                 if (base.get_name() == "base_a")
                 {
                     ++count;

@@ -169,12 +169,8 @@ bool standardese::is_base_of(const cpp_entity_registry &registry,
     else if (base.is_final())
         return false;
 
-    for (auto& e : derived)
+    for (auto& cur_base : derived.get_bases())
     {
-        if (e.get_entity_type() != cpp_entity::base_class_t)
-            break;
-
-        auto& cur_base = static_cast<const cpp_base_class&>(e);
         if (base.get_name() == cur_base.get_name())
             // cur_base is equal to base
             return true;

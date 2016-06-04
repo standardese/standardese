@@ -71,12 +71,10 @@ void detail::write_bases(const parser &par,
                          output_base::code_block_writer &out, const cpp_class &c, bool extract_private)
 {
     auto comma = false;
-    for (auto &base : c)
+    for (auto &base : c.get_bases())
     {
-        if (base.get_entity_type() != cpp_entity::base_class_t)
-            break;
-        else if (!extract_private
-            && static_cast<const cpp_base_class&>(base).get_access() == cpp_private)
+        if (!extract_private
+            && base.get_access() == cpp_private)
             continue;
 
         if (comma)
@@ -87,7 +85,7 @@ void detail::write_bases(const parser &par,
             out << newl << ": ";
         }
 
-        switch (static_cast<const cpp_base_class &>(base).get_access())
+        switch (base.get_access())
         {
             case cpp_public:
                 if (c.get_class_type() == cpp_class_t)
@@ -102,7 +100,7 @@ void detail::write_bases(const parser &par,
                 break;
         }
 
-        out << get_ref_name(par, static_cast<const cpp_base_class&>(base).get_type());
+        out << get_ref_name(par, base.get_type());
     }
 
     if (comma)

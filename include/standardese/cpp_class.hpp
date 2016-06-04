@@ -108,7 +108,9 @@ namespace standardese
     };
 
     class cpp_class
-    : public cpp_type, public cpp_entity_container<cpp_entity>
+    : public cpp_type,
+      private cpp_entity_container<cpp_entity>,
+      private cpp_entity_container<cpp_base_class>
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -121,7 +123,30 @@ namespace standardese
 
         void add_entity(cpp_entity_ptr e)
         {
-            cpp_entity_container::add_entity(std::move(e));
+            if (e->get_entity_type() == cpp_entity::base_class_t)
+                cpp_entity_container<cpp_base_class>::add_entity(detail::downcast<cpp_base_class>(std::move(e)));
+            else
+                cpp_entity_container<cpp_entity>::add_entity(std::move(e));
+        }
+
+        cpp_entity_container<cpp_entity>::iterator begin() const STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity_container<cpp_entity>::begin();
+        }
+
+        cpp_entity_container<cpp_entity>::iterator end() const STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity_container<cpp_entity>::end();
+        }
+
+        bool empty() const STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity_container<cpp_entity>::empty();
+        }
+
+        const cpp_entity_container<cpp_base_class>& get_bases() const STANDARDESE_NOEXCEPT
+        {
+            return *this;
         }
 
         cpp_class_type get_class_type() const STANDARDESE_NOEXCEPT
