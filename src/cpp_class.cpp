@@ -8,6 +8,7 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
+#include <standardese/cpp_template.hpp>
 
 using namespace standardese;
 
@@ -24,24 +25,6 @@ const char* standardese::to_string(cpp_access_specifier_t access) STANDARDESE_NO
     }
 
     return "should never get here, Simba";
-}
-
-bool standardese::is_base_of(const cpp_class &base, const cpp_class &derived) STANDARDESE_NOEXCEPT
-{
-    if (base.get_name() == derived.get_name())
-        // same non-union class
-        return base.get_class_type() != cpp_union_t;
-    else if (base.is_final())
-        return false;
-
-    for (auto& e : derived)
-        if (e.get_entity_type() == cpp_entity::base_class_t
-            && e.get_name() == base.get_name())
-            return true;
-        else if (e.get_entity_type() != cpp_entity::base_class_t)
-            break;
-
-    return false;
 }
 
 namespace
@@ -88,6 +71,19 @@ cpp_ptr<cpp_base_class> cpp_base_class::parse(translation_unit &,
 cpp_name cpp_base_class::get_name() const
 {
     return type_.get_name();
+}
+
+const cpp_class *cpp_base_class::get_class(const cpp_entity_registry &registry) const STANDARDESE_NOEXCEPT
+{
+    auto declaration = type_.get_declaration();
+
+    auto entity = registry.try_lookup(declaration);
+    if (!entity)
+        return nullptr;
+
+    auto c = standardese::get_class(*entity);
+    assert(c);
+    return c;
 }
 
 namespace
@@ -162,4 +158,34 @@ cpp_ptr<cpp_class> cpp_class::parse(translation_unit &tu, cpp_cursor cur, const 
         return nullptr;
 
     return detail::make_ptr<cpp_class>(cur, parent, ctype, is_final);
+}
+
+bool standardese::is_base_of(const cpp_entity_registry &registry,
+                             const cpp_class &base, const cpp_class &derived) STANDARDESE_NOEXCEPT
+{
+    if (base.get_name() == derived.get_name())
+        // same non-union class
+        return base.get_class_type() != cpp_union_t;
+    else if (base.is_final())
+        return false;
+
+    for (auto& e : derived)
+    {
+        if (e.get_entity_type() != cpp_entity::base_class_t)
+            break;
+
+        auto& cur_base = static_cast<const cpp_base_class&>(e);
+        if (base.get_name() == cur_base.get_name())
+            // cur_base is equal to base
+            return true;
+
+        auto cur_base_class = cur_base.get_class(registry);
+        if (cur_base_class && is_base_of(registry, base, *cur_base_class))
+            // we know more about the current base class
+            // and base is a base of cur_base_class
+            // so an indirect base of derived
+            return true;
+    }
+
+    return false;
 }

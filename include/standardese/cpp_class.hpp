@@ -51,6 +51,8 @@ namespace standardese
         friend detail::cpp_ptr_access;
     };
 
+    class cpp_class;
+
     class cpp_base_class final
     : public cpp_entity
     {
@@ -79,6 +81,10 @@ namespace standardese
         {
             return virtual_;
         }
+
+        /// \returns A pointer to the `cpp_class` coresponding to the base class
+        /// or `nullptr` if that base class isn't managed by standardese.
+        const cpp_class* get_class(const cpp_entity_registry &registry) const STANDARDESE_NOEXCEPT;
 
     private:
         cpp_base_class(cpp_cursor cur, const cpp_entity &parent,
@@ -142,7 +148,8 @@ namespace standardese
 
     /// \returns `true` if `base` is a base class of `derived`
     /// or `base` and `derived` are the same (non-union) class.
-    bool is_base_of(const cpp_class &base, const cpp_class &derived) STANDARDESE_NOEXCEPT;
+    /// \note Indirect bases are only registered if the entire hierachy is parsed by standardese.
+    bool is_base_of(const cpp_entity_registry &registry, const cpp_class &base, const cpp_class &derived) STANDARDESE_NOEXCEPT;
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_CLASS_HPP_INCLUDED
