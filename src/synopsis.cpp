@@ -259,8 +259,7 @@ namespace
                                 need_access = true;
                             cur_access = new_access;
                         }
-                        else if (e.get_entity_type() == cpp_entity::base_class_t
-                            || blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                        else if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
                             return false;
                         else if (blacklist.is_set(entity_blacklist::extract_private)
                             || cur_access != cpp_private

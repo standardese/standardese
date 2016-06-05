@@ -194,6 +194,17 @@ bool standardese::is_full_specialization(translation_unit &tu, cpp_cursor cur)
     return stream.get().get_value() == "template";
 }
 
+const cpp_function_base* standardese::get_function(const cpp_entity &e) STANDARDESE_NOEXCEPT
+{
+    if (is_function_like(e.get_entity_type()))
+        return static_cast<const cpp_function_base*>(&e);
+    else if (e.get_entity_type() == cpp_entity::function_template_t)
+        return &static_cast<const cpp_function_template&>(e).get_function();
+    else if (e.get_entity_type() == cpp_entity::function_template_specialization_t)
+        return &static_cast<const cpp_function_template_specialization&>(e).get_function();
+    return nullptr;
+}
+
 namespace
 {
     template <typename T>
@@ -374,4 +385,17 @@ cpp_ptr<cpp_class_template_partial_specialization> cpp_class_template_partial_sp
     result->primary_ = cpp_template_ref(primary_cur, result->class_->get_name());
 
     return result;
+}
+
+const cpp_class* standardese::get_class(const cpp_entity &e) STANDARDESE_NOEXCEPT
+{
+    if (e.get_entity_type() == cpp_entity::class_t)
+        return static_cast<const cpp_class*>(&e);
+    else if (e.get_entity_type() == cpp_entity::class_template_t)
+        return &static_cast<const cpp_class_template&>(e).get_class();
+    else if (e.get_entity_type() == cpp_entity::class_template_full_specialization_t)
+        return &static_cast<const cpp_class_template_full_specialization&>(e).get_class();
+    else if (e.get_entity_type() == cpp_entity::class_template_partial_specialization_t)
+        return &static_cast<const cpp_class_template_partial_specialization&>(e).get_class();
+    return nullptr;
 }

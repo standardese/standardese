@@ -51,6 +51,8 @@ namespace standardese
         friend detail::cpp_ptr_access;
     };
 
+    class cpp_class;
+
     class cpp_base_class final
     : public cpp_entity
     {
@@ -80,6 +82,10 @@ namespace standardese
             return virtual_;
         }
 
+        /// \returns A pointer to the `cpp_class` coresponding to the base class
+        /// or `nullptr` if that base class isn't managed by standardese.
+        const cpp_class* get_class(const cpp_entity_registry &registry) const STANDARDESE_NOEXCEPT;
+
     private:
         cpp_base_class(cpp_cursor cur, const cpp_entity &parent,
                        cpp_type_ref type, cpp_access_specifier_t a,
@@ -102,7 +108,9 @@ namespace standardese
     };
 
     class cpp_class
-    : public cpp_type, public cpp_entity_container<cpp_entity>
+    : public cpp_type,
+      private cpp_entity_container<cpp_entity>,
+      private cpp_entity_container<cpp_base_class>
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -115,7 +123,30 @@ namespace standardese
 
         void add_entity(cpp_entity_ptr e)
         {
-            cpp_entity_container::add_entity(std::move(e));
+            if (e->get_entity_type() == cpp_entity::base_class_t)
+                cpp_entity_container<cpp_base_class>::add_entity(detail::downcast<cpp_base_class>(std::move(e)));
+            else
+                cpp_entity_container<cpp_entity>::add_entity(std::move(e));
+        }
+
+        cpp_entity_container<cpp_entity>::iterator begin() const STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity_container<cpp_entity>::begin();
+        }
+
+        cpp_entity_container<cpp_entity>::iterator end() const STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity_container<cpp_entity>::end();
+        }
+
+        bool empty() const STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity_container<cpp_entity>::empty();
+        }
+
+        const cpp_entity_container<cpp_base_class>& get_bases() const STANDARDESE_NOEXCEPT
+        {
+            return *this;
         }
 
         cpp_class_type get_class_type() const STANDARDESE_NOEXCEPT
@@ -139,6 +170,11 @@ namespace standardese
 
         friend detail::cpp_ptr_access;
     };
+
+    /// \returns `true` if `base` is a base class of `derived`
+    /// or `base` and `derived` are the same (non-union) class.
+    /// \note Indirect bases are only registered if the entire hierachy is parsed by standardese.
+    bool is_base_of(const cpp_entity_registry &registry, const cpp_class &base, const cpp_class &derived) STANDARDESE_NOEXCEPT;
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_CLASS_HPP_INCLUDED

@@ -157,6 +157,53 @@ namespace standardese
         friend class cpp_entity_container;
     };
 
+    inline bool is_preprocessor(cpp_entity::type t) STANDARDESE_NOEXCEPT
+    {
+       return t == cpp_entity::inclusion_directive_t
+              || t == cpp_entity::macro_definition_t;
+    }
+
+    inline bool is_variable(cpp_entity::type t) STANDARDESE_NOEXCEPT
+    {
+        return t == cpp_entity::variable_t
+               || t == cpp_entity::member_variable_t
+               || t == cpp_entity::bitfield_t;
+    }
+
+    inline bool is_type(cpp_entity::type t) STANDARDESE_NOEXCEPT
+    {
+        return t == cpp_entity::enum_t
+               || t == cpp_entity::class_t
+               || t == cpp_entity::type_alias_t;
+    }
+
+    inline bool is_type_template(cpp_entity::type t) STANDARDESE_NOEXCEPT
+    {
+        return t == cpp_entity::class_template_t
+                || t == cpp_entity::class_template_partial_specialization_t
+                || t == cpp_entity::class_template_full_specialization_t;
+    }
+
+    inline bool is_function_like(cpp_entity::type t) STANDARDESE_NOEXCEPT
+    {
+        return t == cpp_entity::function_t
+                || t == cpp_entity::member_function_t
+                || t == cpp_entity::conversion_op_t
+                || t == cpp_entity::constructor_t
+                || t == cpp_entity::destructor_t;
+    }
+
+    inline bool is_function_template(cpp_entity::type t) STANDARDESE_NOEXCEPT
+    {
+        return t == cpp_entity::function_template_t
+               || t == cpp_entity::function_template_specialization_t;
+    }
+
+    inline bool is_template(cpp_entity::type t) STANDARDESE_NOEXCEPT
+    {
+        return is_function_template(t) || is_type_template(t);
+    }
+
     template <typename T>
     class cpp_entity_container
     {

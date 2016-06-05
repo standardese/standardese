@@ -93,6 +93,11 @@ CXTranslationUnit translation_unit::get_cxunit() const STANDARDESE_NOEXCEPT
     return pimpl_->tu.get();
 }
 
+const cpp_entity_registry &translation_unit::get_registry() const STANDARDESE_NOEXCEPT
+{
+    return pimpl_->parser->get_registry();
+}
+
 translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, const char *path, cpp_file *file)
 : pimpl_(new impl(par, tu, path, file))
 {
