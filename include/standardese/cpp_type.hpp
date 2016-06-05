@@ -35,9 +35,14 @@ namespace standardese
 
         cpp_name get_full_name() const STANDARDESE_NOEXCEPT;
 
-        CXType get_type() const STANDARDESE_NOEXCEPT
+        CXType get_cxtype() const STANDARDESE_NOEXCEPT
         {
             return type_;
+        }
+
+        bool is_invalid() const STANDARDESE_NOEXCEPT
+        {
+            return clang_isInvalid(clang_getCursorKind(get_declaration())) == 1u;
         }
 
     private:
@@ -47,7 +52,7 @@ namespace standardese
 
     inline bool operator==(const cpp_type_ref &a, const cpp_type_ref &b) STANDARDESE_NOEXCEPT
     {
-        return clang_equalTypes(a.get_type(), b.get_type()) == 1u;
+        return clang_equalTypes(a.get_cxtype(), b.get_cxtype()) == 1u;
     }
 
     inline bool operator!=(const cpp_type_ref &a, const cpp_type_ref &b) STANDARDESE_NOEXCEPT

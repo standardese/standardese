@@ -9,6 +9,7 @@
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/cpp_class.hpp>
+#include <standardese/cpp_template.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -395,20 +396,37 @@ namespace
 {
 
 
-    bool is_implicit_virtual(const cpp_entity_registry &registry, const cpp_function_base &func,
-                                     const cpp_class &cur_base);
+    bool is_implicit_virtual(translation_unit &tu,
+                             const cpp_function_base &func,
+                             const cpp_class &cur_base);
 
-    bool check_bases(const cpp_entity_registry &registry, const cpp_function_base &func,
-                            const cpp_class &c)
+    bool check_bases(translation_unit &tu, const cpp_function_base &func,
+                    const cpp_class &c)
     {
         auto result = false;
         for (auto& base : c.get_bases())
         {
-            auto cur_base = base.get_class(registry);
+            cpp_ptr<cpp_class> cptr;
+            auto cur_base = base.get_class(tu.get_registry());
             if (!cur_base)
-                continue;
+            {
+                if (base.get_type().is_invalid())
+                    continue;
 
-            result = is_implicit_virtual(registry, func, *cur_base);
+                cptr = cpp_class::parse(tu, base.get_type().get_declaration(), tu.get_file());
+                detail::visit_children(cptr->get_cursor(), [&](cpp_cursor cur, cpp_cursor)
+                {
+                    auto e = cpp_entity::try_parse(tu, cur, *cptr);
+                    if (!e)
+                        return CXChildVisit_Continue;
+                    cptr->add_entity(std::move(e));
+                    return CXChildVisit_Continue;
+                });
+                cur_base = cptr.get();
+            }
+
+            assert(cur_base);
+            result = is_implicit_virtual(tu, func, *cur_base);
             if (result)
                 return result;
         }
@@ -508,8 +526,9 @@ namespace
         return false;
     }
 
-    bool is_implicit_virtual(const cpp_entity_registry &registry, const cpp_function_base &func,
-                                     const cpp_class &cur_base)
+    bool is_implicit_virtual(translation_unit &tu,
+                             const cpp_function_base &func,
+                             const cpp_class &cur_base)
     {
         for (auto& member : cur_base)
         {
@@ -518,19 +537,19 @@ namespace
                 return true;
         }
 
-        return check_bases(registry, func, cur_base);
+        return check_bases(tu, func, cur_base);
     }
 
-    bool is_implicit_virtual(const cpp_entity_registry &registry, const cpp_function_base &func)
+    bool is_implicit_virtual(translation_unit &tu, const cpp_function_base &func)
     {
         assert(func.get_entity_type() != cpp_entity::function_t
                 && func.get_entity_type() != cpp_entity::constructor_t);
         if (func.is_constexpr())
             return cpp_virtual_none;
 
-        auto& parent = static_cast<const cpp_class&>(func.get_parent());
-
-        return check_bases(registry, func, parent);
+        auto parent = get_class(func.get_parent());
+        assert(parent);
+        return check_bases(tu, func, *parent);
     }
 }
 
@@ -554,7 +573,7 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit &tu,
 
     if ((result->get_virtual() == cpp_virtual_none
          || result->get_virtual() == cpp_virtual_new)
-        && is_implicit_virtual(tu.get_registry(), *result))
+        && is_implicit_virtual(tu, *result))
         // check for implicit virtual
         result->info_.virtual_flag = cpp_virtual_overriden;
 
@@ -651,7 +670,7 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit &tu, cpp_cu
                                                std::move(type), std::move(finfo), std::move(minfo));
     if ((result->get_virtual() == cpp_virtual_none
          || result->get_virtual() == cpp_virtual_new)
-        && is_implicit_virtual(tu.get_registry(), *result))
+        && is_implicit_virtual(tu, *result))
         // check for implicit virtual
         result->info_.virtual_flag = cpp_virtual_overriden;
     return result;
@@ -815,7 +834,7 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_cursor c
     auto result = detail::make_ptr<cpp_destructor>(cur, parent, std::move(info), virtual_flag);
     if ((result->get_virtual() == cpp_virtual_none
          || result->get_virtual() == cpp_virtual_new)
-        && is_implicit_virtual(tu.get_registry(), *result))
+        && is_implicit_virtual(tu, *result))
         // check for implicit virtual
         result->virtual_ = cpp_virtual_overriden;
     return result;
