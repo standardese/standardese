@@ -7,7 +7,7 @@ set(src main.cpp)
 
 add_executable(standardese_tool ${header} ${src})
 comp_target_features(standardese_tool PRIVATE CPP11)
-target_link_libraries(standardese_tool PUBLIC standardese_tool_library)
+target_link_libraries(standardese_tool PUBLIC standardese)
 set_target_properties(standardese_tool PROPERTIES OUTPUT_NAME standardese)
 
 # link Boost
@@ -16,4 +16,4 @@ target_include_directories(standardese_tool PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(standardese_tool PUBLIC ${Boost_LIBRARIES})
 
 # install tool
-install(TARGETS standardese_tool DESTINATION "bin")
+install(TARGETS standardese_tool EXPORT standardese DESTINATION "${tool_dest}")

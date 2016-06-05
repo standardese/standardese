@@ -3,6 +3,12 @@
 # found in the top-level directory of this distribution.
 
 # EXTERNAL
+# makes imported targets available
+get_filename_component(SELF_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+include(${SELF_DIR}/${CMAKE_BUILD_TYPE}/standardese.cmake)
+find_package(Threads REQUIRED)
+
+# EXTERNAL
 # saves the location of the standardese executable in STANDARDESE_TOOL
 find_program(STANDARDESE_TOOL standardese)
 
