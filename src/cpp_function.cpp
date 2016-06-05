@@ -11,6 +11,7 @@
 #include <standardese/cpp_class.hpp>
 #include <standardese/cpp_template.hpp>
 #include <standardese/translation_unit.hpp>
+#include <clang-c/Index.h>
 
 using namespace standardese;
 
@@ -416,6 +417,16 @@ namespace
                 cptr = cpp_class::parse(tu, base.get_type().get_declaration(), tu.get_file());
                 detail::visit_children(cptr->get_cursor(), [&](cpp_cursor cur, cpp_cursor)
                 {
+                    // skip unnecessary cursors
+                    // only need the three functions that can be virtual
+                    // as well as further base classes
+                    auto kind = clang_getCursorKind(cur);
+                    if (kind != CXCursor_CXXMethod
+                        && kind != CXCursor_ConversionFunction
+                        && kind != CXCursor_Destructor
+                        && kind != CXCursor_CXXBaseSpecifier)
+                        return CXChildVisit_Continue;
+
                     auto e = cpp_entity::try_parse(tu, cur, *cptr);
                     if (!e)
                         return CXChildVisit_Continue;
