@@ -6,6 +6,7 @@
 #define STANDARDESE_TRANSLATION_UNIT_HPP_INCLUDED
 
 #include <standardese/cpp_entity.hpp>
+#include <standardese/cpp_entity_registry.hpp>
 
 namespace standardese
 {
@@ -65,6 +66,8 @@ namespace standardese
         const cpp_file& get_file() const STANDARDESE_NOEXCEPT;
 
         CXTranslationUnit get_cxunit() const STANDARDESE_NOEXCEPT;
+
+        const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT;
 
     private:
         translation_unit(const parser &par, CXTranslationUnit tu, const char *path, cpp_file *file);

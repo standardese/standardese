@@ -554,3 +554,105 @@ TEST_CASE("cpp_destructor", "[cpp]")
     });
     REQUIRE(count == 5u);
 }
+
+TEST_CASE("implicit virtual", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(
+            struct base_a
+            {
+                virtual void a(int c) const noexcept = 0;
+                virtual int& b(char c, ...) volatile;
+
+                virtual operator int() &&;
+            };
+
+            struct base_b
+            {
+                void a() const;
+
+                virtual void c() const;
+
+                virtual ~base_b();
+            };
+
+            struct mid : base_b {};
+
+            struct derived
+            : base_a, mid
+            {
+                /// a
+                void a(int c) const noexcept;
+
+                /// b
+                void a() const;
+
+                /// c
+                int& b(char c, ...) volatile;
+
+                /// d
+                int* b(char c);
+
+                /// e
+                virtual void c() const;
+
+                /// f
+                operator int() &&;
+
+                /// g
+                ~derived();
+            };
+        )";
+
+    auto tu = parse(p, "implicit_virtual", code);
+
+    auto count = 0u;
+    for_each(tu.get_file(), [&](const cpp_entity &e)
+    {
+        if (e.get_name() == "derived")
+        {
+            for (auto& member : dynamic_cast<const cpp_class&>(e))
+            {
+                if (member.get_comment() == "/// a")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_overriden);
+                }
+                else if (member.get_comment() == "/// b")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_none);
+                }
+                else if (member.get_comment() == "/// c")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_overriden);
+                }
+                else if (member.get_comment() == "/// d")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_none);
+                }
+                else if (member.get_comment() == "/// e")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_overriden);
+                }
+                else if (member.get_comment() == "/// f")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_conversion_op&>(member).get_virtual() == cpp_virtual_overriden);
+                }
+                else if (member.get_comment() == "/// g")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_destructor&>(member).get_virtual() == cpp_virtual_overriden);
+                }
+                else
+                    REQUIRE(false);
+            }
+        }
+    });
+    REQUIRE(count == 7u);
+}
