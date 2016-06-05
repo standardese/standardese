@@ -285,7 +285,7 @@ cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit &tu
     auto result = detail::make_ptr<cpp_function_template>(cur, parent);
     parse_parameters(tu, *result, cur);
 
-    auto func = cpp_function_base::try_parse(tu, cur, *result);
+    auto func = cpp_function_base::try_parse(tu, cur, parent);
     assert(func);
     result->func_ = std::move(func);
 
@@ -306,7 +306,7 @@ cpp_ptr<cpp_function_template_specialization> cpp_function_template_specializati
 {
     auto result = detail::make_ptr<cpp_function_template_specialization>(cur, parent);
 
-    auto func = cpp_function_base::try_parse(tu, cur, *result);
+    auto func = cpp_function_base::try_parse(tu, cur, parent);
     assert(func);
     result->func_ = std::move(func);
     result->name_ = get_template_specialization_name(tu, cur, result->func_->get_name().c_str());
@@ -330,7 +330,7 @@ cpp_ptr<cpp_class_template> cpp_class_template::parse(translation_unit &tu, cpp_
     auto result = detail::make_ptr<cpp_class_template>(cur, parent);
     parse_parameters(tu, *result, cur);
 
-    auto ptr = cpp_class::parse(tu, cur, *result);
+    auto ptr = cpp_class::parse(tu, cur, parent);
     if (!ptr)
         return nullptr;
     result->class_ = std::move(ptr);
@@ -353,7 +353,7 @@ cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_speciali
 
     auto result = detail::make_ptr<cpp_class_template_full_specialization>(cur, parent);
 
-    auto ptr = cpp_class::parse(tu, cur, *result);
+    auto ptr = cpp_class::parse(tu, cur, parent);
     if (!ptr)
         return nullptr;
     result->class_ = std::move(ptr);
@@ -374,7 +374,7 @@ cpp_ptr<cpp_class_template_partial_specialization> cpp_class_template_partial_sp
     auto result = detail::make_ptr<cpp_class_template_partial_specialization>(cur, parent);
     parse_parameters(tu, *result, cur);
 
-    auto ptr = cpp_class::parse(tu, cur, *result);
+    auto ptr = cpp_class::parse(tu, cur, parent);
     if (!ptr)
         return nullptr;
     result->class_ = std::move(ptr);

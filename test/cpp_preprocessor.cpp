@@ -17,7 +17,7 @@ TEST_CASE("cpp_preprocessor", "[cpp]")
     auto code = R"(
         #include <iostream>
 
-        #include "cpp_variable"
+        #include "cpp_function"
 
         #define A
 

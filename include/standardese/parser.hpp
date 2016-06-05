@@ -17,6 +17,14 @@
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_entity_registry.hpp>
 
+#if CINDEX_VERSION_MAJOR != 0
+    #error "require libclang version 0.x"
+#endif
+
+#if CINDEX_VERSION_MINOR < 30
+    #error "require at least libclang version 0.30 (bundled with 3.7.1)"
+#endif
+
 namespace standardese
 {
     class translation_unit;
