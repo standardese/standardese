@@ -11,6 +11,7 @@ set(detail_header
         ../include/standardese/detail/wrapper.hpp)
 set(header
         ../include/standardese/comment.hpp
+        ../include/standardese/config.hpp
         ../include/standardese/cpp_class.hpp
         ../include/standardese/cpp_cursor.hpp
         ../include/standardese/cpp_entity.hpp
@@ -26,7 +27,9 @@ set(header
         ../include/standardese/error.hpp
         ../include/standardese/generator.hpp
         ../include/standardese/output.hpp
+        ../include/standardese/output_stream.hpp
         ../include/standardese/parser.hpp
+        ../include/standardese/section.hpp
         ../include/standardese/string.hpp
         ../include/standardese/synopsis.hpp
         ../include/standardese/translation_unit.hpp)
@@ -54,14 +57,15 @@ set(src
         synopsis.cpp
         translation_unit.cpp)
 
-add_library(standardese_library ${detail_header} ${header} ${src})
-comp_target_features(standardese_library PUBLIC
-                     cpp11_lang/noexcept
-                     PREFIX "STANDARDESE_" NAMESPACE "standardese_comp")
-target_include_directories(standardese_library PUBLIC
+add_library(standardese ${detail_header} ${header} ${src})
+comp_target_features(standardese PRIVATE CPP11)
+target_include_directories(standardese PUBLIC
                                 $<BUILD_INTERFACE:${STANDARDESE_SOURCE_DIR}/include>
-                                $<BUILD_INTERFACE:${SPDLOG_INCLUDE_DIR}>)
-target_compile_definitions(standardese_library PUBLIC
+                                $<BUILD_INTERFACE:${SPDLOG_INCLUDE_DIR}>
+                                $<BUILD_INTERFACE:${_standardese_comp_include}>
+                                $<INSTALL_INTERFACE:${include_dest}>
+                                $<INSTALL_INTERFACE:${include_dest}/comp>)
+target_compile_definitions(standardese PUBLIC
                                 STANDARDESE=1
                                 STANDARDESE_VERSION_MAJOR=${STANDARDESE_VERSION_MAJOR}
                                 STANDARDESE_VERSION_MINOR=${STANDARDESE_VERSION_MINOR}
@@ -69,14 +73,18 @@ target_compile_definitions(standardese_library PUBLIC
 
 # add threading support
 find_package(Threads REQUIRED)
-target_link_libraries(standardese_library PUBLIC Threads::Threads)
+target_link_libraries(standardese PUBLIC Threads::Threads)
 
 # link libclang
-target_include_directories(standardese_library PUBLIC ${LIBCLANG_INCLUDE_DIR})
-target_link_libraries(standardese_library PUBLIC ${LIBCLANG_LIBRARY})
+target_include_directories(standardese PUBLIC ${LIBCLANG_INCLUDE_DIR})
+target_link_libraries(standardese PUBLIC ${LIBCLANG_LIBRARY})
 
 # link Boost
 find_package(Boost COMPONENTS wave REQUIRED)
-target_include_directories(standardese_library PUBLIC ${Boost_INCLUDE_DIR})
-target_link_libraries(standardese_library PUBLIC ${Boost_LIBRARIES})
+target_include_directories(standardese PUBLIC ${Boost_INCLUDE_DIR})
+target_link_libraries(standardese PUBLIC ${Boost_LIBRARIES})
 
+# install library
+install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")
+install(FILES ${header} DESTINATION "${include_dest}/standardese")
+install(FILES ${detail_header} DESTINATION "${include_dest}/standardese/detail")
