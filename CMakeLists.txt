@@ -40,11 +40,20 @@ if(NOT LIBCLANG_LIBRARY)
 endif()
 
 if(NOT LIBCLANG_SYSTEM_INCLUDE_DIR)
-    find_path(LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL "clang/3.7.1/include" "/usr/lib/" "/usr/local/lib")
+    find_path(LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL "clang/3.8.0/include" "/usr/lib/" "/usr/local/lib")
+    set(libclang_version 3.8.0)
+
     if(NOT LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL)
-        message(FATAL_ERROR "unable to find clang's system header files, please set LIBCLANG_SYSTEM_INCLUDE_DIR by yourself")
+        find_path(LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL "clang/3.7.1/include" "/usr/lib/" "/usr/local/lib")
+        set(libclang_version 3.7.1)
     endif()
-    set(LIBCLANG_SYSTEM_INCLUDE_DIR "${LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL}/clang/3.7.1/include")
+
+    if(NOT LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL)
+        message(FATAL_ERROR "${libclang_version} unable to find clang's system header files, please set LIBCLANG_SYSTEM_INCLUDE_DIR by yourself")
+    endif()
+
+    message(STATUS "Libclang version: ${libclang_version}")
+    set(LIBCLANG_SYSTEM_INCLUDE_DIR "${LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL}/clang/${libclang_version}/include")
 endif()
 
 # add spdlog
