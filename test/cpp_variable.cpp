@@ -92,7 +92,11 @@ TEST_CASE("cpp_variable", "[cpp]")
             {
                 ++count;
                 REQUIRE(type.get_name() == "auto");
-                REQUIRE(type.get_full_name() == "auto");
+                #if CINDEX_VERSION_MINOR < 32
+                    REQUIRE(type.get_full_name() == "auto");
+                #else
+                    REQUIRE(type.get_full_name() == "unsigned int");
+                #endif
                 REQUIRE(var->get_initializer() == "f(4)");
                 REQUIRE(var->is_thread_local());
             }
