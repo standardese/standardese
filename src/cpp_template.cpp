@@ -399,3 +399,34 @@ const cpp_class* standardese::get_class(const cpp_entity &e) STANDARDESE_NOEXCEP
         return &static_cast<const cpp_class_template_partial_specialization&>(e).get_class();
     return nullptr;
 }
+
+#if CINDEX_VERSION_MINOR >= 32
+cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit &tu, cpp_cursor cur, const cpp_entity &parent)
+{
+    assert(clang_getCursorKind(cur) == CXCursor_TypeAliasTemplateDecl);
+
+    auto result = detail::make_ptr<cpp_alias_template>(cur, parent);
+    parse_parameters(tu, *result, cur);
+
+    cpp_cursor type;
+    detail::visit_children(cur, [&](cpp_cursor cur, cpp_cursor)
+    {
+        if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl)
+        {
+            type = cur;
+            return CXChildVisit_Break;
+        }
+        return CXChildVisit_Continue;
+    });
+
+    result->type_ = cpp_type_alias::parse(tu, type, parent);
+    assert(result->type_);
+
+    return result;
+}
+#endif
+
+cpp_name cpp_alias_template::get_name() const
+{
+    return get_template_name(type_->get_name().c_str(), *this);
+}

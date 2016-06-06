@@ -47,6 +47,7 @@ namespace standardese
             using_declaration_t,
 
             type_alias_t,
+            alias_template_t,
 
             enum_t,
             signed_enum_value_t,
@@ -181,7 +182,8 @@ namespace standardese
     {
         return t == cpp_entity::class_template_t
                 || t == cpp_entity::class_template_partial_specialization_t
-                || t == cpp_entity::class_template_full_specialization_t;
+                || t == cpp_entity::class_template_full_specialization_t
+                || t == cpp_entity::alias_template_t;
     }
 
     inline bool is_function_like(cpp_entity::type t) STANDARDESE_NOEXCEPT

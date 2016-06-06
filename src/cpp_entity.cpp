@@ -74,6 +74,10 @@ cpp_entity_ptr cpp_entity::try_parse(translation_unit &tu, cpp_cursor cur, const
         STANDARDESE_DETAIL_HANDLE(CXXBaseSpecifier, base_class)
         STANDARDESE_DETAIL_HANDLE(CXXAccessSpecifier, access_specifier)
 
+    #if CINDEX_VERSION_MINOR >= 32
+        STANDARDESE_DETAIL_HANDLE(TypeAliasTemplateDecl, alias_template)
+    #endif
+
         #undef STANDARDESE_DETAIL_HANDLE
         #undef STANDARDESE_DETAIL_HANDLE_TMP
 
