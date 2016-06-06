@@ -109,6 +109,16 @@ translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, cons
 
         try
         {
+            if (get_parser().get_logger()->level() <= spdlog::level::debug)
+            {
+                auto location = source_location(cur);
+                get_parser().get_logger()->debug("Parsing entity '{}' of type '{}' at {}:{}",
+                                              string(clang_getCursorDisplayName(cur)).c_str(),
+                                              string(clang_getCursorKindSpelling(clang_getCursorKind(cur))).c_str(),
+                                              location.file_name, location.line);
+            }
+
+
             if (clang_getCursorKind(cur) == CXCursor_MacroExpansion)
                pimpl_->context.add_macro_definition(detail::get_cmd_definition(cur));
             else
