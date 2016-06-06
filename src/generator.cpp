@@ -137,6 +137,8 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
 
         case cpp_entity::type_alias_t:
             return "type alias";
+        case cpp_entity::alias_template_t:
+            return "template alias";
 
         case cpp_entity::enum_t:
             return "enumeration";

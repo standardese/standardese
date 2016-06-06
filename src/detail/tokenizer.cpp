@@ -122,6 +122,17 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
         }
     }
 
+    // awesome libclang bug 3.0
+    // the extent for a type alias is too short
+    // needs to be extended until the semicolon
+    if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl
+        && result.back() != ';')
+        while (buf.sgetc() != ';')
+        {
+            result += buf.sgetc();
+            buf.sbumpc();
+        }
+
     return result;
 }
 

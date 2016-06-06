@@ -375,6 +375,46 @@ namespace standardese
     /// otherwise if `e` is a class template returns `&e.get_class()`,
     /// otherwise returns `nullptr`.
     const cpp_class* get_class(const cpp_entity &e) STANDARDESE_NOEXCEPT;
+
+    class cpp_alias_template final
+    : public cpp_entity, private cpp_entity_container<cpp_template_parameter>
+    {
+    public:
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity::alias_template_t;
+        }
+
+    #if CINDEX_VERSION_MINOR >= 32
+        static cpp_ptr<cpp_alias_template> parse(translation_unit &tu,
+                                                 cpp_cursor cur, const cpp_entity &parent);
+    #endif
+
+        void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
+        {
+            cpp_entity_container::add_entity(std::move(param));
+        }
+
+        cpp_name get_name() const override;
+
+        const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const STANDARDESE_NOEXCEPT
+        {
+            return *this;
+        }
+
+        const cpp_type_alias& get_type() const STANDARDESE_NOEXCEPT
+        {
+            return *type_;
+        }
+
+    private:
+        cpp_alias_template(cpp_cursor cur, const cpp_entity &parent)
+        : cpp_entity(get_entity_type(), cur, parent) {}
+
+        cpp_ptr<cpp_type_alias> type_;
+
+        friend detail::cpp_ptr_access;
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_TEMPLATE_HPP_INCLUDED

@@ -27,6 +27,8 @@ void print_version(const char *exe_name)
 {
     std::clog << exe_name << " version " << STANDARDESE_VERSION_MAJOR << '.' << STANDARDESE_VERSION_MINOR << '\n';
     std::clog << "Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>\n";
+    std::clog << '\n';
+    std::clog << "Using libclang version: " << standardese::string(clang_getClangVersion()).c_str() << '\n';
 }
 
 void print_usage(const char *exe_name,
@@ -257,6 +259,8 @@ int main(int argc, char* argv[])
             blacklist_entity.set_option(entity_blacklist::require_comment);
         if (map.at("input.extract_private").as<bool>())
             blacklist_entity.set_option(entity_blacklist::extract_private);
+
+        log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
 
         assert(!input.empty());
         for (auto& path : input)

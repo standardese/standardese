@@ -18,7 +18,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
     parser p;
 
     auto code = R"(
-        using /* comment */ type_1 = int;
+        using /* comment */ type_1 = unsigned int;
         using type_2 = char[];
 
         typedef int type_3;
@@ -53,8 +53,8 @@ TEST_CASE("cpp_type_alias", "[cpp]")
             ++count;
             REQUIRE(t.get_full_name() == "type_1");
             auto& target = t.get_target();
-            REQUIRE(target.get_name() == "int");
-            REQUIRE(target.get_full_name() == "int");
+            REQUIRE(target.get_name() == "unsigned int");
+            REQUIRE(target.get_full_name() == "unsigned int");
         }
         else if (t.get_name() == "type_2")
         {

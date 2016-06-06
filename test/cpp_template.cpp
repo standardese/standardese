@@ -734,3 +734,58 @@ TEST_CASE("cpp_class_template", "[cpp]")
     });
     REQUIRE(count == 6u);
 }
+
+TEST_CASE("cpp_alias_template", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(
+            template <typename T>
+            using a = T;
+
+            template <typename T>
+            struct foo;
+
+            template <typename T>
+            using b = foo<T>;
+
+            template <typename T>
+            using c = unsigned int;
+        )";
+
+    auto tu = parse(p, "cpp_alias_template", code);
+
+#if CINDEX_VERSION_MINOR >= 32
+    auto count = 0u;
+    for_each(tu.get_file(), [&](const cpp_entity &e)
+    {
+        auto& alias = dynamic_cast<const cpp_alias_template&>(e);
+        auto& type = alias.get_type();
+
+        if (alias.get_name() == "a<T>")
+        {
+            ++count;
+            REQUIRE(type.get_name() == "a");
+            REQUIRE(type.get_target().get_name() == "T");
+            REQUIRE(type.get_target().get_full_name() == "T");
+        }
+        else if (alias.get_name() == "b<T>")
+        {
+            ++count;
+            REQUIRE(type.get_name() == "b");
+            REQUIRE(type.get_target().get_name() == "foo<T>");
+            REQUIRE(type.get_target().get_full_name() == "foo<T>");
+        }
+        else if (alias.get_name() == "c<T>")
+        {
+            ++count;
+            REQUIRE(type.get_name() == "c");
+            REQUIRE(type.get_target().get_name() == "unsigned int");
+            REQUIRE(type.get_target().get_full_name() == "unsigned int");
+        }
+        else
+            REQUIRE(false);
+    });
+    REQUIRE(count == 3u);
+#endif
+}

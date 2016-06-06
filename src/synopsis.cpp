@@ -491,6 +491,23 @@ namespace
         dispatch(p, out, c.get_class(), top_level, c.get_name());
     }
 
+    void do_write_synopsis(const parser &p,
+                            output_base::code_block_writer &out, const cpp_alias_template &a)
+    {
+        out << "template <";
+
+        detail::write_range(out, a.get_template_parameters(), ", ",
+                            [&](output_base::code_block_writer &out, const cpp_entity &e)
+                            {
+                                dispatch(p, out, e, false);
+                                return true;
+                            });
+
+        out << '>' << newl;
+
+        do_write_synopsis(p, out, a.get_type());
+    }
+
     //=== dispatching ===//
     template <typename T>
     void do_write_synopsis(const parser &p, output_base::code_block_writer &out,
@@ -529,6 +546,7 @@ namespace
             STANDARDESE_DETAIL_HANDLE(using_declaration)
 
             STANDARDESE_DETAIL_HANDLE(type_alias)
+            STANDARDESE_DETAIL_HANDLE(alias_template)
 
             STANDARDESE_DETAIL_HANDLE(signed_enum_value)
             STANDARDESE_DETAIL_HANDLE(unsigned_enum_value)
@@ -559,7 +577,11 @@ namespace
 
             #undef STANDARDESE_DETAIL_HANDLE
 
-            default:
+            // ignored
+            case cpp_entity::function_parameter_t:
+            case cpp_entity::base_class_t:
+            case cpp_entity::access_specifier_t:
+            case cpp_entity::invalid_t:
                 break;
         }
     }
