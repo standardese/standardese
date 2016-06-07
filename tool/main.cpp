@@ -219,7 +219,7 @@ int main(int argc, char* argv[])
 
     auto log = spdlog::stdout_logger_mt("standardese_log", map.at("color").as<bool>());
     log->set_pattern("[%l] %v");
-    if (map.count("verbose"))
+    if (map.at("verbose").as<bool>())
         log->set_level(spdlog::level::debug);
 
     standardese::parser parser(log);
