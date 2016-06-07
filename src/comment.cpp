@@ -75,7 +75,7 @@ comment comment::parse(const parser &p, const cpp_name &name, const cpp_raw_comm
 
             // add new section
             std::string section_name;
-            while (stream.peek() != ' ')
+            while (!std::isspace(stream.peek()))
                 section_name += stream.get();
 
             auto type = p.get_comment_config().try_get_section(section_name);
