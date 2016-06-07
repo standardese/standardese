@@ -91,6 +91,14 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
     std::string result(end_offset - begin_offset, '\0');
     buf.sgetn(&result[0], result.size());
 
+    // prevent more awesome libclang bugs:
+    // read until next line, just to be somewhat sure
+    while (buf.sgetc() != '\n')
+    {
+        result += buf.sgetc();
+        buf.sbumpc();
+    }
+
     // awesome libclang bug:
     // if there is a macro expansion at the end, the closing bracket is missing
     // ie.: using foo = IMPL_DEFINED(bar
