@@ -415,6 +415,10 @@ namespace
                     continue;
 
                 cptr = cpp_class::parse(tu, base.get_type().get_declaration(), tu.get_file());
+                if (!cptr)
+                    // happens in a template class when the base is a primary template without definition
+                    continue;
+
                 detail::visit_children(cptr->get_cursor(), [&](cpp_cursor cur, cpp_cursor)
                 {
                     // skip unnecessary cursors
