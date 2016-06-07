@@ -170,11 +170,10 @@ int main(int argc, char* argv[])
             ("comment.command_character", po::value<char>()->default_value('\\'),
              "character used to introduce special commands")
             ("comment.cmd_name_", po::value<std::string>(),
-             "override name for the command following the name_ (e.g. comment.cmd_name_requires=Require)")
+             "override name for the command following the name_ (e.g. comment.cmd_name_requires=require)")
 
             ("output.section_name_", po::value<std::string>(),
-             "override output name for the section following the name_ (e.g. output.section_name_requires=Require,"
-             "note: override for command name is also required here)");
+             "override output name for the section following the name_ (e.g. output.section_name_requires=Require)");
 
 
     po::options_description input("");

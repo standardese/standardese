@@ -36,9 +36,7 @@ namespace std
 
 This will generate the following documentation:
 
----
-
-# Header file ``swap.cpp``
+# Header file ``swap.cpp`
 
 
 ```cpp
@@ -47,7 +45,8 @@ This will generate the following documentation:
 namespace std
 {
     template <typename T>
-    void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&is_nothrow_move_assignable<T>::value);
+    void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
+    is_nothrow_move_assignable<T>::value);
 }
 ```
 
@@ -57,7 +56,8 @@ namespace std
 
 ```cpp
 template <typename T>
-void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&is_nothrow_move_assignable<T>::value);
+void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
+is_nothrow_move_assignable<T>::value);
 ```
 
 
@@ -78,13 +78,118 @@ For a more complete example check out [this gist](https://gist.github.com/foonat
 ## Installation
 
 Standardese uses [CMake](https://cmake.org/) as build system.
-Simply clone the project and run `cmake --build .` to build the library and the tool.
+Simply clone the project and run `cmake -DSTANDARDESE_BUILD_TEST=OFF --build . --target install` to build the library and the tool and install it on your system.
 
-Both require libclang - only tested with version `3.7.1`.
+Both require libclang - only tested with version `3.7.1` and `3.8`.
 If it isn't found, set the CMake variable `LIBCLANG_INCLUDE_DIR` to the folder where `clang-c/Index.h` is located,
 `LIBCLANG_LIBRARY` to the library binary and `LIBCLANG_SYSTEM_INCLUDE_DIR` where the system include files are located,
-under a normal installation it is `/lib/clang/<version>/include`.
+under a normal (Linux) installation it is `/usr/lib/clang/<version>/include`.
 
 The library requires Boost.Wave and the tool requires Boost.ProgramOptions and Boost.Filesystem, only tested with 1.60.
 
-Once build simply run `./standardese --help` for usage.
+Once build simply run `standardese --help` for commandline usage.
+
+## Documentation 
+
+> Disclaimer: Due to the lack of proper tooling there is currently no good documentation.
+> If you need help or encounter a problem please contact me [on gitter](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge), I'll usually answer within a day or faster.
+
+### Basic commandline usage
+
+The tool uses Boost.ProgramOptions for the options parsing, `--help` gives a good overview.
+
+Basic usage is: `standardese [options] inputs`
+
+The inputs can be both files or directories, in case of directory each file is documented, unless an input option is specified (see below).
+The tool will currently generate a corresponding Markdown file with the documentation for each file it gets as input.
+
+> Note: You only need and should give header files to standardese.
+> The source files are unnecessary.
+
+The options listed under "Generic options:" must be given to the commandline.
+They include things like getting the version, enabling verbose output (please provide it for issues) or passing an additional configuration file.
+
+The options listed under "Configuration" can be passed both to the commandline and to the config file.
+They are subdivided into various sections:
+
+* The `input.*` options are related to the inputs given to the tool.
+They can be used to filter, both the files inside a directory and the entities in the source code.
+
+* The `compilation.*` options are related to the compilation of the source.
+You can pass macro definitions and include directories as well as a `commands_dir`.
+This is a directory where a `compile_commands.json` file is located.
+standardese will pass *all* the flags of all files to libclang.
+
+> This has technical reasons because you give header files whereas the compile commands use only source files.
+
+* The `comment.*` options are related to the syntax of the documentation markup.
+You can set both the leading character and the name for each command.
+
+* The `output.*` options are related to the output generation.
+Currently you can only set the name printed for a section.
+
+The configuration file you can pass with `--config` uses an INI style syntax, e.g:
+
+```
+[compilation]
+include_dir=foo/
+macro_definition=FOO
+
+[input]
+blacklist_namespace=detail
+extract_private=true
+```
+
+### Basic CMake usage
+
+To ease the compilation options, you can call standardese from CMake like so:
+
+```
+find_package(standardese REQUIRED) # find standardese after installation
+
+# generates a custom target that will run standardese to generate the documentation
+standardese_generate(my_target CONFIG path/to/config_file
+                     INCLUDE_DIRECTORY ${my_target_includedirs}
+                     INPUT ${headers})
+```
+
+It will use a custom target that runs standardese.
+You can specify the compilation options and inputs directly in CMake to allow shared variables.
+All other options must be given in a config file.
+
+See `standardese-config.cmake` for a documentation of `standardese_generate()`.
+
+### Documentation syntax overview
+
+standardese currently requires comments with triple slashes `///` for documentation.
+
+Inside the comments you can use the basic inline Markdown syntax (`````, `*`, etc.) for formatting.
+
+> You can currently use *arbitrary* Markdown because the comments are just copied to the output file
+> which is Markdown itself.
+> But this *will* change in a future version.
+
+Special commands are introduced by the *command character* (a backslash by default).
+It currently only supports *sections*.
+
+A section is the basic way of standardese documentation.
+It supports all the sections the C++ standard uses, as explained in the example.
+Those sections will create a paragraph in the output prefixed with a human readable name.
+A section will end on the next line or when a new section comes.
+If you use the same sections two or more times in a row it will be detected and merged.
+
+There are two special sections, `brief` and `details`.
+They are not labeled in the output and will be used in future versions.
+If you do not specify any sections the first line of the comment will be `brief` and all other lines `details`.
+
+## Acknowledgements
+
+Thanks a lot to:
+
+* Manu @Manu343726 Sánchez, as always
+
+* Jason @jpleau Pleau, for much feedback and requests on Gitter
+
+* Mark @DarkerStar Gibbs, for feature suggestions
+
+And everyone else how shares and uses this project!
