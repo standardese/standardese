@@ -20,7 +20,7 @@ endif()
 
 include(${CMAKE_CURRENT_BINARY_DIR}/comp_base.cmake)
 add_library(_standardese_comp_runner INTERFACE)
-set(_standardese_comp_include ${CMAKE_CURRENT_BINARY_DIR})
+set(_standardese_comp_include ${CMAKE_CURRENT_BINARY_DIR}/comp.generated/)
 comp_target_features(_standardese_comp_runner INTERFACE
                      cpp11_lang/noexcept
                      PREFIX "STANDARDESE_" NAMESPACE "standardese_comp"
