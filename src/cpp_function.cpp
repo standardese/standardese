@@ -197,8 +197,10 @@ namespace
         return expression;
     }
 
-    bool is_declaration_end(detail::token_stream &stream, bool &is_special_definition)
+    bool is_declaration_end(detail::token_stream &stream, cpp_cursor cur, bool &is_special_definition)
     {
+        detail::skip_attribute(stream, cur);
+
         if (stream.peek().get_value().size() > 1u)
             return false;
 
@@ -247,7 +249,7 @@ namespace
         std::string trailing_return_type;
 
         auto special_definition = false;
-        while (!is_declaration_end(stream, special_definition))
+        while (!is_declaration_end(stream, cur, special_definition))
         {
             assert(!stream.done());
             detail::skip_attribute(stream, cur);
@@ -267,7 +269,7 @@ namespace
             else if (detail::skip_if_token(stream, "->"))
             {
                 // trailing return type
-                while (!is_declaration_end(stream, special_definition))
+                while (!is_declaration_end(stream, cur, special_definition))
                 {
                     auto spelling = stream.get().get_value();
                     trailing_return_type += spelling.c_str();
@@ -743,7 +745,7 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit &tu, cpp_cursor
 
     // parse suffix
     auto special_definition = false;
-    while (!is_declaration_end(stream, special_definition))
+    while (!is_declaration_end(stream, cur, special_definition))
     {
         assert(!stream.done());
         detail::skip_attribute(stream, cur);
@@ -812,7 +814,7 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit &tu, cpp_cursor c
 
     // parse suffix
     auto special_definition = false;
-    while (!is_declaration_end(stream, special_definition))
+    while (!is_declaration_end(stream, cur, special_definition))
     {
         assert(!stream.done());
         detail::skip_attribute(stream, cur);

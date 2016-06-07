@@ -54,10 +54,11 @@ namespace
     {
         std::string target;
         while (!stream.done())
-            if (stream.peek().get_value() != "\n")
+            if (stream.peek().get_value() != ";")
                 target += stream.get().get_value().c_str();
             else
                 stream.get();
+        detail::erase_trailing_ws(target);
         return target;
     }
 }
