@@ -67,7 +67,6 @@ namespace standardese
             auto num = clang_getNumOverloadedDecls(cursor_);
             if (num == 0u)
                 return cursor_;
-            assert(num == 1u);
             return clang_getOverloadedDecl(cursor_, 0u);
         }
 
