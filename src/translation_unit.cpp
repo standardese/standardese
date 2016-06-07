@@ -107,6 +107,11 @@ translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, cons
     {
         stack.pop_if_needed(parent);
 
+        if (clang_getCursorSemanticParent(cur) != parent
+            && clang_getCursorSemanticParent(cur) != cpp_cursor())
+            // out of class definition, some weird other stuff with extern templates, implicit dtors
+            return CXChildVisit_Continue;
+
         try
         {
             if (get_parser().get_logger()->level() <= spdlog::level::debug)
