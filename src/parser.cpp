@@ -63,11 +63,12 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
     if (!c.commands_dir.empty())
     {
         auto error = CXCompilationDatabase_NoError;
-        database db(clang_CompilationDatabase_fromDirectory(c.commands_dir.c_str(), &error));
+        auto db_impl = clang_CompilationDatabase_fromDirectory(c.commands_dir.c_str(), &error);
         if (error != CXCompilationDatabase_NoError)
             throw libclang_error(error == CXCompilationDatabase_CanNotLoadDatabase ? CXError_InvalidArguments
                                                                                    : CXError_Failure,
                                  "CXCompilationDatabase (" + c.commands_dir + ")");
+        database  db(db_impl);
 
         commands cmds(clang_CompilationDatabase_getAllCompileCommands(db.get()));
         auto num = clang_CompileCommands_getSize(cmds.get());
