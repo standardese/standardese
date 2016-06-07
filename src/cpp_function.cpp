@@ -414,7 +414,11 @@ namespace
                 if (base.get_type().is_invalid())
                     continue;
 
-                cptr = cpp_class::parse(tu, base.get_type().get_declaration(), tu.get_file());
+                auto decl = clang_getTypeDeclaration(clang_getCanonicalType(base.get_type().get_cxtype()));
+                if (!clang_isDeclaration(clang_getCursorKind(decl)))
+                    continue;
+
+                cptr = cpp_class::parse(tu, decl, tu.get_file());
                 if (!cptr)
                     // happens in a template class when the base is a primary template without definition
                     continue;
