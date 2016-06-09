@@ -6,6 +6,7 @@
 #define STANDARDESE_ERROR_HPP_INCLUDED
 
 #include <stdexcept>
+#include <string>
 
 #include <clang-c/Index.h>
 
