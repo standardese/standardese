@@ -127,7 +127,7 @@ namespace standardese
             if (type_ == cx_string)
                 clang_disposeString(*static_cast<CXString*>(get_storage()));
             else if (type_ == std_string)
-                static_cast<std::string*>(get_storage())->std::string::~string();
+                static_cast<std::string*>(get_storage())->~basic_string();
         }
 
         std::aligned_storage<(sizeof(std::string) > sizeof(CXString))
