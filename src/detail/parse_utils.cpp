@@ -6,6 +6,7 @@
 #include <standardese/cpp_entity_registry.hpp>
 
 #include <cassert>
+#include <cctype>
 
 using namespace standardese;
 

@@ -630,6 +630,7 @@ namespace
         }
 
         assert(false);
+        throw parse_error(source_location(cur), "internal error");
     }
 }
 

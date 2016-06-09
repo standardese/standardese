@@ -4,6 +4,7 @@
 
 #include <standardese/output.hpp>
 
+#include <algorithm>
 #include <cassert>
 
 using namespace standardese;

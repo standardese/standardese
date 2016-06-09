@@ -13,7 +13,7 @@
 
 namespace standardese
 {
-    class cpp_cursor;
+    struct cpp_cursor;
 
     class libclang_error
     : public std::runtime_error

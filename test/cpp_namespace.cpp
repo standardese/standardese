@@ -33,7 +33,7 @@ TEST_CASE("cpp_namespace", "[cpp]")
             REQUIRE(ns.get_name() == name);
             REQUIRE(ns.get_full_name() == name);
 
-            REQUIRE(ns.is_inline() == bool(i));
+            REQUIRE(ns.is_inline() == !!i);
 
             REQUIRE(ns.empty());
             ++i;

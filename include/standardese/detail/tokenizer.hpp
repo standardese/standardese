@@ -18,7 +18,7 @@
 
 namespace standardese
 {
-    class cpp_cursor;
+    struct cpp_cursor;
     class translation_unit;
 } // namespace standardese
 
