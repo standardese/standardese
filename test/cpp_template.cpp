@@ -161,14 +161,14 @@ TEST_CASE("cpp_non_type_template_parameter", "[cpp]")
         {
             ++count;
             REQUIRE(!param->is_variadic());
-            REQUIRE(param->get_type().get_name() == "int(*)(float, ...)");
+            REQUIRE(param->get_type().get_name() == "int (*)(float, ...)");
             REQUIRE(!param->has_default_value());
         }
         else if (param->get_name() == "F")
         {
             ++count;
             REQUIRE(param->is_variadic());
-            REQUIRE(param->get_type().get_name() == "int(*)(float, ...)");
+            REQUIRE(param->get_type().get_name() == "int (*)(float, ...)");
             REQUIRE(!param->has_default_value());
         }
         else if (param->get_name() == "G")
@@ -400,10 +400,9 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_function_template", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_in_namespace([&](const cpp_entity &e)
+    for_each(tu.get_file(), [&](const cpp_entity &e)
     {
         if (auto ptr = dynamic_cast<const cpp_function_template*>(&e))
         {
@@ -433,7 +432,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                 ++count;
                 REQUIRE(ptr->get_name() == "b<A, B>");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
-                REQUIRE(func.get_return_type().get_name() == "B(*)()");
+                REQUIRE(func.get_return_type().get_name() == "B (*)()");
 
                 auto size = 0u;
                 for (auto& param : ptr->get_template_parameters())
@@ -470,9 +469,9 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             else if (ptr->get_function().get_name() == "b")
             {
                 ++count;
-                REQUIRE(ptr->get_name() == "b<0, int *>");
+                REQUIRE(ptr->get_name() == "b<0, int*>");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
-                REQUIRE(func.get_return_type().get_name() == "int *(*)()");
+                REQUIRE(func.get_return_type().get_name() == "int* (*)()");
             }
             else
                 REQUIRE(false);
@@ -486,6 +485,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                     {
                         ++count;
                         REQUIRE_NOTHROW(dynamic_cast<const cpp_member_function&>(ptr->get_function()));
+                        REQUIRE(!ptr->get_function().is_variadic());
                         REQUIRE(ptr->get_name() == "c<A...>");
 
                         auto size = 0u;
@@ -604,10 +604,9 @@ TEST_CASE("cpp_class_template", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_class_template", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_in_namespace([&](const cpp_entity &e)
+    for_each(tu.get_file(), [&](const cpp_entity &e)
     {
         if (auto c = dynamic_cast<const cpp_class_template*>(&e))
         {
@@ -734,4 +733,59 @@ TEST_CASE("cpp_class_template", "[cpp]")
             REQUIRE(false);
     });
     REQUIRE(count == 6u);
+}
+
+TEST_CASE("cpp_alias_template", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(
+            template <typename T>
+            using a = T;
+
+            template <typename T>
+            struct foo;
+
+            template <typename T>
+            using b = foo<T>;
+
+            template <typename T>
+            using c = unsigned int;
+        )";
+
+    auto tu = parse(p, "cpp_alias_template", code);
+
+#if CINDEX_VERSION_MINOR >= 32
+    auto count = 0u;
+    for_each(tu.get_file(), [&](const cpp_entity &e)
+    {
+        auto& alias = dynamic_cast<const cpp_alias_template&>(e);
+        auto& type = alias.get_type();
+
+        if (alias.get_name() == "a<T>")
+        {
+            ++count;
+            REQUIRE(type.get_name() == "a");
+            REQUIRE(type.get_target().get_name() == "T");
+            REQUIRE(type.get_target().get_full_name() == "T");
+        }
+        else if (alias.get_name() == "b<T>")
+        {
+            ++count;
+            REQUIRE(type.get_name() == "b");
+            REQUIRE(type.get_target().get_name() == "foo<T>");
+            REQUIRE(type.get_target().get_full_name() == "foo<T>");
+        }
+        else if (alias.get_name() == "c<T>")
+        {
+            ++count;
+            REQUIRE(type.get_name() == "c");
+            REQUIRE(type.get_target().get_name() == "unsigned int");
+            REQUIRE(type.get_target().get_full_name() == "unsigned int");
+        }
+        else
+            REQUIRE(false);
+    });
+    REQUIRE(count == 3u);
+#endif
 }

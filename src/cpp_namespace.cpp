@@ -7,88 +7,107 @@
 #include <cassert>
 
 #include <standardese/detail/parse_utils.hpp>
-#include <standardese/detail/search_token.hpp>
-#include <standardese/cpp_cursor.hpp>
-#include <standardese/parser.hpp>
+#include <standardese/detail/tokenizer.hpp>
 
 using namespace standardese;
 
 namespace
 {
-    bool is_inline_namespace(CXCursor cur, const cpp_name &name)
+    bool is_inline_namespace(translation_unit &tu, cpp_cursor cur)
     {
-        return detail::has_prefix_token(cur, "inline", name.c_str());
+        detail::tokenizer tokenizer(tu, cur);
+        for (auto val : tokenizer)
+            if (val.get_value() == "inline")
+                return true;
+            else if (val.get_value() == "namespace")
+                break;
+        return false;
     }
 }
 
-cpp_namespace::parser::parser(const cpp_name &scope, cpp_cursor cur)
-: ns_(new cpp_namespace(scope, detail::parse_name(cur), detail::parse_comment(cur)))
+cpp_ptr<cpp_namespace> cpp_namespace::parse(translation_unit &tu,
+                                            cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_Namespace);
-    if (is_inline_namespace(cur, ns_->get_name()))
-        ns_->inline_ = true;
 
-}
-
-cpp_entity_ptr cpp_namespace::parser::finish(const standardese::parser &par)
-{
-    par.register_namespace(*ns_);
-    return std::move(ns_);
+    auto is_inline = is_inline_namespace(tu, cur);
+    return detail::make_ptr<cpp_namespace>(cur, parent, is_inline);
 }
 
 namespace
 {
-    void parse_target(CXCursor cur, cpp_name &target, cpp_name &scope)
+    cpp_cursor parse_target_cursor(CXCursor cur)
     {
-        auto first = true;
-        detail::visit_children(cur, [&](CXCursor cur, CXCursor parent)
+        cpp_cursor result;
+        detail::visit_children(cur, [&](CXCursor cur, CXCursor)
         {
-            assert(clang_isReference(clang_getCursorKind(cur)));
+            if (clang_isReference(clang_getCursorKind(cur)))
+                result = cur;
 
-            auto ref_cursor = clang_getCursorReferenced(cur);
-            if (first)
-                scope = detail::parse_scope(ref_cursor);
-            first = false;
-
-            string ref(clang_getCursorSpelling(ref_cursor));
-            if (!target.empty())
-                target += "::";
-            target += ref;
-
-            if (clang_getCursorKind(ref_cursor) == CXCursor_OverloadedDeclRef)
-                // abort when OverloadedDeclRef is found
-                // otherwise for inheriting ctors an extra TypeRef follows
-                return CXChildVisit_Break;
             return CXChildVisit_Recurse;
         });
+
+        return result;
+    }
+
+    cpp_name parse_target(detail::token_stream &stream)
+    {
+        std::string target;
+        while (!stream.done())
+            if (stream.peek().get_value() != ";")
+                target += stream.get().get_value().c_str();
+            else
+                stream.get();
+        detail::erase_trailing_ws(target);
+        return target;
     }
 }
 
-cpp_ptr<cpp_namespace_alias> cpp_namespace_alias::parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_namespace_alias> cpp_namespace_alias::parse(translation_unit &tu,
+                                                        cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_NamespaceAlias);
-    cpp_name target, target_scope;
-    parse_target(cur, target, target_scope);
-    auto result = detail::make_ptr<cpp_namespace_alias>(std::move(scope), detail::parse_name(cur),
-                                                 detail::parse_comment(cur), target);
-    result->unique_ = target_scope.empty() ? std::move(target) : target_scope + "::" + target;
-    return result;
+
+    detail::tokenizer tokenizer(tu, cur);
+    auto stream = detail::make_stream(tokenizer);
+
+    auto name = detail::parse_name(cur);
+    detail::skip(stream, cur, {"namespace", name.c_str(), "="});
+
+    auto target = parse_target(stream);
+    auto target_cursor = parse_target_cursor(cur);
+
+    return detail::make_ptr<cpp_namespace_alias>(cur, parent, cpp_namespace_ref(target_cursor, target));
 }
 
-cpp_ptr<cpp_using_directive> cpp_using_directive::parse(cpp_cursor cur)
+cpp_ptr<cpp_using_directive> cpp_using_directive::parse(translation_unit &tu,
+                                   cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_UsingDirective);
-    cpp_name target, target_scope;
-    parse_target(cur, target, target_scope);
-    return detail::make_ptr<cpp_using_directive>(std::move(target_scope), std::move(target), detail::parse_comment(cur));
+
+    detail::tokenizer tokenizer(tu, cur);
+    auto stream = detail::make_stream(tokenizer);
+
+    detail::skip(stream, cur, {"using", "namespace"});
+
+    auto target = parse_target(stream);
+    auto target_cursor = parse_target_cursor(cur);
+
+    return detail::make_ptr<cpp_using_directive>(cur, parent, cpp_namespace_ref(target_cursor, target));
 }
 
-cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(cpp_cursor cur)
+cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(translation_unit &tu,
+                                     cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_UsingDeclaration);
 
-    cpp_name target, target_scope;
-    parse_target(cur, target, target_scope);
+    detail::tokenizer tokenizer(tu, cur);
+    auto stream = detail::make_stream(tokenizer);
 
-    return detail::make_ptr<cpp_using_declaration>(std::move(target_scope), std::move(target), detail::parse_comment(cur));
+    detail::skip(stream, cur, {"using"});
+
+    auto target = parse_target(stream);
+    auto target_cursor = parse_target_cursor(cur);
+
+    return detail::make_ptr<cpp_using_declaration>(cur, parent, cpp_entity_ref(target_cursor, target));
 }

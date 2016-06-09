@@ -7,27 +7,52 @@
 
 #include <clang-c/Index.h>
 #include <memory>
-#include <utility>
+#include <string>
+#include <vector>
+
+#include <spdlog/logger.h>
 
 #include <standardese/detail/wrapper.hpp>
+#include <standardese/config.hpp>
 #include <standardese/cpp_entity.hpp>
+#include <standardese/cpp_entity_registry.hpp>
+
+#if CINDEX_VERSION_MAJOR != 0
+    #error "require libclang version 0.x"
+#endif
+
+#if CINDEX_VERSION_MINOR < 30
+    #error "require at least libclang version 0.30 (bundled with 3.7.1)"
+#endif
 
 namespace standardese
 {
     class translation_unit;
-    class cpp_file;
-    class cpp_namespace;
-    class cpp_type;
-    class cpp_type_ref;
 
-    /// C++ standard to be used
-    struct cpp_standard
+    namespace detail
     {
-        static const char* const cpp_98;
-        static const char* const cpp_03;
-        static const char* const cpp_11;
-        static const char* const cpp_14;
-    };
+        struct file_container_impl : cpp_entity_container<cpp_entity>
+        {
+            void add_file(cpp_entity_ptr e) STANDARDESE_NOEXCEPT
+            {
+                add_entity(std::move(e));
+            }
+        };
+
+        class file_container
+        {
+        public:
+            void add_file(cpp_entity_ptr e) const STANDARDESE_NOEXCEPT
+            {
+                std::unique_lock<std::mutex> lock(mutex_);
+                impl_.add_file(std::move(e));
+            }
+
+        private:
+            mutable std::mutex mutex_;
+            mutable file_container_impl impl_;
+        };
+    } // namespace detail
 
     /// Parser class used for parsing the C++ classes.
     /// The parser object must live as long as all the translation units.
@@ -35,6 +60,8 @@ namespace standardese
     {
     public:
         parser();
+
+        explicit parser(std::shared_ptr<spdlog::logger> logger);
 
         parser(parser&&) = delete;
         parser(const parser&) = delete;
@@ -45,101 +72,50 @@ namespace standardese
         parser& operator=(const parser&) = delete;
 
         /// Parses a translation unit.
-        /// standard must be one of the cpp_standard values.
-        translation_unit parse(const char *path, const char *standard) const;
+        translation_unit parse(const char *path, const compile_config &c) const;
 
-        void register_file(cpp_ptr<cpp_file> file) const;
-
-        // void(const cpp_file &file)
-        template <typename Fnc>
-        void for_each_file(Fnc f)
+        const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT
         {
-            auto cb = [](const cpp_file &f, void *data)
-            {
-                (*static_cast<Fnc*>(data))(f);
-            };
-
-            for_each_file(cb, &f);
+            return registry_;
         }
 
-        void register_namespace(cpp_namespace &n) const;
-
-        // void(cpp_name namespace_name)
-        template <typename Fnc>
-        void for_each_namespace(Fnc f)
+        const std::shared_ptr<spdlog::logger>& get_logger() const STANDARDESE_NOEXCEPT
         {
-            auto cb = [](const cpp_name &n, void *data)
-            {
-                (*static_cast<Fnc*>(data))(n);
-            };
-
-            for_each_namespace(cb, &f);
+            return logger_;
         }
 
-        // void(const cpp_entity &e)
-        // returns one namespace object of that name
-        template <typename Fnc>
-        const cpp_namespace* for_each_in_namespace(const cpp_name &n, Fnc f)
+        comment_config& get_comment_config() STANDARDESE_NOEXCEPT
         {
-            auto cb = [](const cpp_entity &e, void *data)
-            {
-                (*static_cast<Fnc*>(data))(e);
-            };
-
-            return for_each_in_namespace(n, cb, &f);
+            return comment_;
         }
 
-        // same as above but for every namespace, including global
-        template <typename Fnc>
-        void for_each_in_namespace(Fnc f)
+        const comment_config& get_comment_config() const STANDARDESE_NOEXCEPT
         {
-            auto cb = [](const cpp_entity &e, void *data)
-            {
-                (*static_cast<Fnc*>(data))(e);
-            };
-
-            for_each_in_namespace(cb, &f);
+            return comment_;
         }
 
-        void register_type(cpp_type &t) const;
-
-        const cpp_type* lookup_type(const cpp_type_ref &ref) const;
-
-        // void(const cpp_type &)
-        template <typename Fnc>
-        void for_each_type(Fnc f)
+        output_config& get_output_config() STANDARDESE_NOEXCEPT
         {
-            auto cb = [](const cpp_type &t, void *data)
-            {
-                (*static_cast<Fnc*>(data))(t);
-            };
+            return output_;
+        }
 
-            for_each_type(cb, &f);
+        const output_config& get_output_config() const STANDARDESE_NOEXCEPT
+        {
+            return output_;
         }
 
     private:
-        using file_callback = void(*)(const cpp_file&, void*);
-        void for_each_file(file_callback cb, void* data);
-
-        using namespace_callback = void(*)(const cpp_name&, void*);
-        void for_each_namespace(namespace_callback cb, void *data);
-
-        using in_namespace_callback = void(*)(const cpp_entity&, void*);
-        const cpp_namespace* for_each_in_namespace(const cpp_name &n, in_namespace_callback cb, void *data);
-        void for_each_in_namespace(in_namespace_callback cb, void *data);
-
-        using type_callback = void(*)(const cpp_type &t, void *);
-        void for_each_type(type_callback cb, void *data);
-
         struct deleter
         {
             void operator()(CXIndex idx) const STANDARDESE_NOEXCEPT;
         };
 
-        struct impl;
-
+        cpp_entity_registry registry_;
+        comment_config comment_;
+        output_config output_;
         detail::wrapper<CXIndex, deleter> index_;
-        std::unique_ptr<impl> pimpl_;
+        std::shared_ptr<spdlog::logger> logger_;
+        detail::file_container files_;
     };
 } // namespace standardese
 

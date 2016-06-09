@@ -7,43 +7,87 @@
 #include <cassert>
 
 #include <standardese/detail/parse_utils.hpp>
-#include <standardese/parser.hpp>
-#include <standardese/string.hpp>
+#include <standardese/detail/tokenizer.hpp>
+#include <clang-c/Index.h>
 
 using namespace standardese;
 
+CXType cpp_type::get_type() const STANDARDESE_NOEXCEPT
+{
+    return clang_getCursorType(get_cursor());
+}
+
+cpp_type_ref::cpp_type_ref(cpp_name name, CXType type)
+: name_(std::move(name)), type_(type)
+{}
+
+cpp_cursor cpp_type_ref::get_declaration() const STANDARDESE_NOEXCEPT
+{
+    return clang_getTypeDeclaration(type_);
+}
+
+cpp_name cpp_type_ref::get_full_name() const STANDARDESE_NOEXCEPT
+{
+    std::string name = detail::parse_name(type_).c_str();
+    // if in a partial template specialization
+    // libclang uses a weird internal name when referring to template parameters
+    // erase that name from the list
+    if (name.find("-parameter-") != std::string::npos)
+        detail::erase_template_args(name);
+
+    return name;
+}
+
 namespace
 {
-    cpp_type_ref parse_alias_target(cpp_cursor cur, const cpp_name &name)
+    cpp_name parse_alias_target(translation_unit &tu, cpp_cursor cur)
     {
-        auto type = clang_getTypedefDeclUnderlyingType(cur);
+        std::string target_name;
+
+        detail::tokenizer tokenizer(tu, cur);
+        auto stream = detail::make_stream(tokenizer);
+        auto name = detail::parse_name(cur);
 
         if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl)
-            return {type, detail::parse_alias_type_name(cur)};
+        {
+            detail::skip(stream, cur, {"using", name.c_str(), "="});
 
-        assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl);
+            while (stream.peek().get_value() != ";")
+            {
+                detail::skip_attribute(stream, cur);
+                target_name += stream.get().get_value().c_str();
+            }
+        }
+        else
+        {
+            assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl);
 
-        auto str = detail::parse_typedef_type_name(cur, name);
-        return {type, str};
+            skip(stream, cur, {"typedef"});
+
+            while (stream.peek().get_value() != ";")
+            {
+                detail::skip_attribute(stream, cur);
+                auto& val = stream.peek().get_value();
+                if (val != name.c_str())
+                    target_name += val.c_str();
+
+                stream.bump();
+            }
+        }
+
+        detail::erase_trailing_ws(target_name);
+        return target_name;
     }
 }
 
-cpp_name cpp_type_ref::get_full_name() const
-{
-    return detail::parse_name(type_);
-}
-
-cpp_ptr<cpp_type_alias> cpp_type_alias::parse(const parser &p, const cpp_name &scope, cpp_cursor cur)
+cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit &tu,
+                                              cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl
            || clang_getCursorKind(cur) == CXCursor_TypeAliasDecl);
 
-    auto name = detail::parse_name(cur);
-    auto target = parse_alias_target(cur, name);
-    auto result = detail::make_ptr<cpp_type_alias>(scope, std::move(name), detail::parse_comment(cur),
-                                                   clang_getCursorType(cur), target);
+    auto name = parse_alias_target(tu, cur);
+    auto type = clang_getTypedefDeclUnderlyingType(cur);
 
-    p.register_type(*result);
-
-    return result;
+    return detail::make_ptr<cpp_type_alias>(cur, parent, cpp_type_ref(name, type));
 }

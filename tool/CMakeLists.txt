@@ -5,11 +5,15 @@
 set(header filesystem.hpp)
 set(src main.cpp)
 
-add_executable(standardese ${header} ${src})
-comp_target_features(standardese PRIVATE CPP11)
-target_link_libraries(standardese PUBLIC standardese_library)
+add_executable(standardese_tool ${header} ${src})
+comp_target_features(standardese_tool PRIVATE CPP11)
+target_link_libraries(standardese_tool PUBLIC standardese)
+set_target_properties(standardese_tool PROPERTIES OUTPUT_NAME standardese)
 
 # link Boost
 find_package(Boost COMPONENTS program_options filesystem REQUIRED)
-target_include_directories(standardese PUBLIC ${Boost_INCLUDE_DIR})
-target_link_libraries(standardese PUBLIC ${Boost_LIBRARIES})
+target_include_directories(standardese_tool PUBLIC ${Boost_INCLUDE_DIR})
+target_link_libraries(standardese_tool PUBLIC ${Boost_LIBRARIES})
+
+# install tool
+install(TARGETS standardese_tool EXPORT standardese DESTINATION "${tool_dest}")

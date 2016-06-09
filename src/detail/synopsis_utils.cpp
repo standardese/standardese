@@ -9,13 +9,15 @@
 
 using namespace standardese;
 
-void detail::write_type_value_default(output_base::code_block_writer &out,
+void detail::write_type_value_default(const parser &par,
+                              output_base::code_block_writer &out,
                               const cpp_type_ref &type, const cpp_name &name,
                               const std::string &def)
 {
+    std::string type_name = get_ref_name(par, type).c_str();
+
     if (!name.empty())
     {
-        auto &type_name = type.get_name();
         auto pos = type_name.find("(*");
         if (pos != std::string::npos)
         {
@@ -41,7 +43,7 @@ void detail::write_type_value_default(output_base::code_block_writer &out,
         }
     }
     else
-        out << type.get_name();
+        out << type_name;
 
     if (!def.empty())
         out << " = " << def;
@@ -65,13 +67,15 @@ void detail::write_class_name(output_base::code_block_writer &out,
     out << name;
 }
 
-void detail::write_bases(output_base::code_block_writer &out, const cpp_class &c)
+void detail::write_bases(const parser &par,
+                         output_base::code_block_writer &out, const cpp_class &c, bool extract_private)
 {
     auto comma = false;
-    for (auto &base : c)
+    for (auto &base : c.get_bases())
     {
-        if (base.get_entity_type() != cpp_entity::base_class_t)
-            break;
+        if (!extract_private
+            && base.get_access() == cpp_private)
+            continue;
 
         if (comma)
             out << ", ";
@@ -81,7 +85,7 @@ void detail::write_bases(output_base::code_block_writer &out, const cpp_class &c
             out << newl << ": ";
         }
 
-        switch (static_cast<const cpp_base_class &>(base).get_access())
+        switch (base.get_access())
         {
             case cpp_public:
                 if (c.get_class_type() == cpp_class_t)
@@ -96,23 +100,16 @@ void detail::write_bases(output_base::code_block_writer &out, const cpp_class &c
                 break;
         }
 
-        out << base.get_name();
+        out << get_ref_name(par, base.get_type());
     }
 
     if (comma)
         out << newl;
 }
 
-namespace
-{
-    void write_parameter(output_base::code_block_writer &out, const cpp_function_parameter &p)
-    {
-        detail::write_type_value_default(out, p.get_type(), p.get_name(), p.get_default_value());
-    }
-}
-
-void detail::write_parameters(output_base::code_block_writer &out, const cpp_function_base &f,
-                      const cpp_name &override_name)
+void detail::write_parameters(const parser &par,
+                              output_base::code_block_writer &out, const cpp_function_base &f,
+                              const cpp_name &override_name)
 {
     if (override_name.empty())
         out << f.get_name();
@@ -120,7 +117,12 @@ void detail::write_parameters(output_base::code_block_writer &out, const cpp_fun
         out << override_name;
     out << '(';
 
-    write_range(out, f.get_parameters(), ", ", write_parameter);
+    write_range(out, f.get_parameters(), ", ",
+                [&](output_base::code_block_writer &out, const cpp_function_parameter &p)
+                {
+                    detail::write_type_value_default(par, out, p.get_type(), p.get_name(), p.get_default_value());
+                    return true;
+                });
 
     if (f.is_variadic())
     {
@@ -160,7 +162,7 @@ void detail::write_definition(output_base::code_block_writer &out, const cpp_fun
             out << " = default;";
             break;
         case cpp_function_definition_deleted:
-            out << " = delete";
+            out << " = delete;";
             break;
     }
 }

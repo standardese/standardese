@@ -31,9 +31,9 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
             return 0;
         }
 
-        int *c(int a = b(0));
+        int *c(int a = b(0)) = delete;
 
-        char &d() noexcept;
+        [[foo]] char & __attribute__((d)) d() noexcept [[bar]];
 
         const int e() noexcept(false);
 
@@ -70,19 +70,20 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
     )";
 
     auto tu = parse(p, "cpp_function", code);
-    tu.build_ast();
 
     // no need to check the parameters, same code as for variables
     auto count = 0u;
-    p.for_each_in_namespace([&](const cpp_entity &e)
+    for_each(tu.get_file(), [&](const cpp_entity &e)
     {
         if (dynamic_cast<const cpp_function*>(&e))
         {
             auto &func = dynamic_cast<const cpp_function &>(e);
-            REQUIRE(func.get_name() == func.get_unique_name());
-            REQUIRE(func.get_definition() == cpp_function_definition_normal);
+            REQUIRE(func.get_name() == func.get_full_name());
+            if (func.get_name() != "c")
+                REQUIRE(func.get_definition() == cpp_function_definition_normal);
+            else
+                REQUIRE(func.get_definition() == cpp_function_definition_deleted);
 
-            INFO(func.get_return_type().get_full_name());
             if (func.get_name() == "a")
             {
                 ++count;
@@ -136,7 +137,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
             else if (func.get_name() == "f")
             {
                 ++count;
-                REQUIRE(func.get_return_type().get_name() == "int(*)(volatile char &&)");
+                REQUIRE(func.get_return_type().get_name() == "int (*)(volatile char&&)");
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
@@ -146,7 +147,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
             else if (func.get_name() == "g")
             {
                 ++count;
-                REQUIRE(func.get_return_type().get_name() == "const char &&");
+                REQUIRE(func.get_return_type().get_name() == "const char&&");
                 REQUIRE(func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
@@ -201,7 +202,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 else if (func.get_name() == "k")
                 {
                     ++count;
-                    REQUIRE(func.get_return_type().get_name() == "int &");
+                    REQUIRE(func.get_return_type().get_name() == "int&");
                     REQUIRE(func.get_virtual() == cpp_virtual_pure);
                     REQUIRE(is_const(func.get_cv()));
                     REQUIRE(!is_volatile(func.get_cv()));
@@ -252,7 +253,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 if (func.get_name() == "k")
                 {
                     ++count;
-                    REQUIRE(func.get_return_type().get_name() == "int &");
+                    REQUIRE(func.get_return_type().get_name() == "int&");
                     REQUIRE(func.get_virtual() == cpp_virtual_overriden);
                     REQUIRE(is_const(func.get_cv()));
                     REQUIRE(!is_volatile(func.get_cv()));
@@ -274,7 +275,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 else if (func.get_name() == "operator=")
                 {
                     ++count;
-                    REQUIRE(func.get_return_type().get_name() == "derived &");
+                    REQUIRE(func.get_return_type().get_name() == "derived&");
                     REQUIRE(func.get_virtual() == cpp_virtual_none);
                     REQUIRE(!is_const(func.get_cv()));
                     REQUIRE(!is_volatile(func.get_cv()));
@@ -299,19 +300,18 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
     auto code = R"(
         struct foo
         {
-            operator    int(); // multiple whitespace
+            [[noreturn]] operator    int() [[]]; // multiple whitespace
 
-            explicit operator const char&();
+            explicit __attribute__((foo)) operator const char&();
 
-            constexpr explicit operator char() const volatile && noexcept;
+            constexpr explicit __attribute__((bar)) operator char() const volatile && noexcept;
         };
     )";
 
     auto tu = parse(p, "cpp_conversion_op", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_type([&](const cpp_type &t)
+    for_each(tu.get_file(), [&](const cpp_entity &t)
     {
         for (auto& e : dynamic_cast<const cpp_class&>(t))
         {
@@ -369,7 +369,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
         struct foo
         {
             /// a
-            foo() = delete;
+            [[noreturn]] foo() = delete;
 
             /// b
             explicit foo(int a = {});
@@ -378,15 +378,14 @@ TEST_CASE("cpp_constructor", "[cpp]")
             constexpr foo(char c) noexcept;
 
             /// d
-            foo(const foo &other) = default;
+            foo(const foo &other) __attribute__(()) = default;
         };
     )";
 
     auto tu = parse(p, "cpp_conversion_op", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_type([&](const cpp_type &t)
+    for_each(tu.get_file(), [&](const cpp_entity &t)
     {
         for (auto& e : dynamic_cast<const cpp_class&>(t))
         {
@@ -447,7 +446,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
     auto code = R"(
         struct a
         {
-            ~a() = default;
+            [[deprecated]] ~a() = default;
         };
 
         struct b
@@ -462,20 +461,19 @@ TEST_CASE("cpp_destructor", "[cpp]")
 
         struct d
         {
-            virtual ~d() noexcept = 0;
+            virtual [[]] ~d() noexcept = 0;
         };
 
         struct e : d
         {
-            ~e() override;
+            ~e() __attribute__(()) override;
         };
     )";
 
     auto tu = parse(p, "cpp_conversion_op", code);
-    tu.build_ast();
 
     auto count = 0u;
-    p.for_each_type([&](const cpp_type &t)
+    for_each(tu.get_file(), [&](const cpp_entity &t)
     {
         auto& c = dynamic_cast<const cpp_class &>(t);
         if (c.get_name() == "a")
@@ -555,4 +553,106 @@ TEST_CASE("cpp_destructor", "[cpp]")
             REQUIRE(false);
     });
     REQUIRE(count == 5u);
+}
+
+TEST_CASE("implicit virtual", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(
+            struct base_a
+            {
+                virtual void a(int c) const noexcept = 0;
+                virtual int& b(char c, ...) volatile;
+
+                virtual operator int() &&;
+            };
+
+            struct base_b
+            {
+                void a() const;
+
+                virtual void c() const;
+
+                virtual ~base_b();
+            };
+
+            struct mid : base_b {};
+
+            struct derived
+            : base_a, mid
+            {
+                /// a
+                void a(int c) const noexcept;
+
+                /// b
+                void a() const;
+
+                /// c
+                int& b(char c, ...) volatile;
+
+                /// d
+                int* b(char c);
+
+                /// e
+                virtual void c() const;
+
+                /// f
+                operator int() &&;
+
+                /// g
+                ~derived();
+            };
+        )";
+
+    auto tu = parse(p, "implicit_virtual", code);
+
+    auto count = 0u;
+    for_each(tu.get_file(), [&](const cpp_entity &e)
+    {
+        if (e.get_name() == "derived")
+        {
+            for (auto& member : dynamic_cast<const cpp_class&>(e))
+            {
+                if (member.get_comment() == "/// a")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_overriden);
+                }
+                else if (member.get_comment() == "/// b")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_none);
+                }
+                else if (member.get_comment() == "/// c")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_overriden);
+                }
+                else if (member.get_comment() == "/// d")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_none);
+                }
+                else if (member.get_comment() == "/// e")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_overriden);
+                }
+                else if (member.get_comment() == "/// f")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_conversion_op&>(member).get_virtual() == cpp_virtual_overriden);
+                }
+                else if (member.get_comment() == "/// g")
+                {
+                    ++count;
+                    REQUIRE(dynamic_cast<const cpp_destructor&>(member).get_virtual() == cpp_virtual_overriden);
+                }
+                else
+                    REQUIRE(false);
+            }
+        }
+    });
+    REQUIRE(count == 7u);
 }

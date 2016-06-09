@@ -7,46 +7,19 @@
 
 #include <standardese/cpp_class.hpp>
 #include <standardese/cpp_entity.hpp>
+#include <standardese/cpp_entity_registry.hpp>
 #include <standardese/cpp_type.hpp>
 
 namespace standardese
 {
-    class cpp_template_ref
-    {
-    public:
-        cpp_template_ref()
-        : cpp_template_ref(cpp_cursor({}), "") {}
-
-        /// Constructs it by giving the cursor to the template
-        /// and the name as specified in the source.
-        cpp_template_ref(cpp_cursor tmplate, cpp_name given)
-        : given_(std::move(given)), declaration_(tmplate) {}
-
-        /// Returns the name as specified in the source.
-        const cpp_name& get_name() const STANDARDESE_NOEXCEPT
-        {
-            return given_;
-        }
-
-        /// Returns the full name with all scopes.
-        cpp_name get_full_name() const;
-
-        /// Returns a cursor to the declaration of the template.
-        cpp_cursor get_declaration() const STANDARDESE_NOEXCEPT
-        {
-            return declaration_;
-        }
-
-    private:
-        cpp_name given_;
-        cpp_cursor declaration_;
-    };
+    using cpp_template_ref = basic_cpp_entity_ref<CXCursor_TemplateRef>;
 
     class cpp_template_parameter
-    : public cpp_parameter_base
+    : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_template_parameter> try_parse(cpp_cursor cur);
+        static cpp_ptr<cpp_template_parameter> try_parse(translation_unit &tu,
+                                                          cpp_cursor cur, const cpp_entity &parent);
 
         bool is_variadic() const STANDARDESE_NOEXCEPT
         {
@@ -54,26 +27,26 @@ namespace standardese
         }
 
     protected:
-        cpp_template_parameter(cpp_entity::type t, cpp_name name, cpp_raw_comment comment,
+        cpp_template_parameter(cpp_entity::type t, cpp_cursor cur, const cpp_entity &e,
                                bool is_variadic)
-        : cpp_parameter_base(t, std::move(name), std::move(comment)),
+        : cpp_entity(t, cur, e),
           variadic_(is_variadic) {}
 
     private:
         bool variadic_;
     };
 
-    class cpp_template_type_parameter
+    class cpp_template_type_parameter final
     : public cpp_template_parameter
     {
     public:
-        static cpp_ptr<cpp_template_type_parameter> parse(cpp_cursor cur);
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity::template_type_parameter_t;
+        }
 
-        cpp_template_type_parameter(cpp_name name, cpp_raw_comment comment,
-                                    cpp_type_ref def, bool is_variadic)
-        : cpp_template_parameter(template_type_parameter_t,
-                                 std::move(name), std::move(comment), is_variadic),
-          default_(std::move(def)) {}
+        static cpp_ptr<cpp_template_type_parameter> parse(translation_unit &tu,
+                                                          cpp_cursor cur, const cpp_entity &parent);
 
         bool has_default_type() const STANDARDESE_NOEXCEPT
         {
@@ -86,21 +59,27 @@ namespace standardese
         }
 
     private:
+        cpp_template_type_parameter(cpp_cursor cur, const cpp_entity &parent,
+                               cpp_type_ref def, bool is_variadic)
+        : cpp_template_parameter(get_entity_type(), cur, parent, is_variadic),
+          default_(std::move(def)) {}
+
         cpp_type_ref default_;
+
+        friend detail::cpp_ptr_access;
     };
 
-    class cpp_non_type_template_parameter
+    class cpp_non_type_template_parameter final
     : public cpp_template_parameter
     {
     public:
-        static cpp_ptr<cpp_non_type_template_parameter> parse(cpp_cursor cur);
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity::non_type_template_parameter_t;
+        }
 
-        cpp_non_type_template_parameter(cpp_name name, cpp_raw_comment comment,
-                                        cpp_type_ref type, std::string default_value,
-                                        bool is_variadic)
-        : cpp_template_parameter(non_type_template_parameter_t,
-                                 std::move(name), std::move(comment), is_variadic),
-          type_(std::move(type)), default_(std::move(default_value)) {}
+        static cpp_ptr<cpp_non_type_template_parameter> parse(translation_unit &tu,
+                                                              cpp_cursor cur, const cpp_entity &parent);
 
         const cpp_type_ref& get_type() const STANDARDESE_NOEXCEPT
         {
@@ -118,21 +97,29 @@ namespace standardese
         }
 
     private:
+        cpp_non_type_template_parameter(cpp_cursor cur, const cpp_entity &parent,
+                                        cpp_type_ref type, std::string def,
+                                        bool is_variadic)
+        : cpp_template_parameter(get_entity_type(), cur, parent, is_variadic),
+          type_(std::move(type)), default_(std::move(def)) {}
+
         cpp_type_ref type_;
         std::string default_;
+
+        friend detail::cpp_ptr_access;
     };
 
-    class cpp_template_template_parameter
+    class cpp_template_template_parameter final
     : public cpp_template_parameter, public cpp_entity_container<cpp_template_parameter>
     {
     public:
-        static cpp_ptr<cpp_template_template_parameter> parse(cpp_cursor cur);
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity::template_template_parameter_t;
+        }
 
-        cpp_template_template_parameter(cpp_name name, cpp_raw_comment comment,
-                                        cpp_template_ref def, bool is_variadic)
-        : cpp_template_parameter(template_template_parameter_t,
-                                 std::move(name), std::move(comment), is_variadic),
-          default_(std::move(def)) {}
+        static cpp_ptr<cpp_template_template_parameter> parse(translation_unit &tu,
+                                                              cpp_cursor cur, const cpp_entity &parent);
 
         void add_paramter(cpp_ptr<cpp_template_parameter> param)
         {
@@ -150,22 +137,33 @@ namespace standardese
         }
 
     private:
+        cpp_template_template_parameter(cpp_cursor cur, const cpp_entity &parent,
+                               cpp_template_ref def, bool is_variadic)
+        : cpp_template_parameter(get_entity_type(), cur, parent, is_variadic),
+          default_(std::move(def)) {}
+
         cpp_template_ref default_;
+
+        friend detail::cpp_ptr_access;
     };
 
     /// Returns whether cur refers to a full specialization of a template.
     /// cur must refer to a class or function.
-    bool is_full_specialization(cpp_cursor cur);
+    bool is_full_specialization(translation_unit &tu, cpp_cursor cur);
 
     class cpp_function_base;
 
-    class cpp_function_template
+    class cpp_function_template final
     : public cpp_entity, private cpp_entity_container<cpp_template_parameter>
     {
     public:
-        static cpp_ptr<cpp_function_template> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity::function_template_t;
+        }
 
-        cpp_function_template(cpp_name template_name, cpp_ptr<cpp_function_base> ptr);
+        static cpp_ptr<cpp_function_template> parse(translation_unit &tu,
+                                                    cpp_cursor cur, const cpp_entity &parent);
 
         void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
         {
@@ -177,22 +175,37 @@ namespace standardese
             return *this;
         }
 
+        cpp_name get_name() const override;
+
         const cpp_function_base& get_function() const STANDARDESE_NOEXCEPT
         {
             return *func_;
         }
 
     private:
+        cpp_function_template(cpp_cursor cur, const cpp_entity &parent);
+
         cpp_ptr<cpp_function_base> func_;
+
+        friend detail::cpp_ptr_access;
     };
 
-    class cpp_function_template_specialization
+    class cpp_function_template_specialization final
     : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_function_template_specialization> parse(cpp_name scope, cpp_cursor cur);
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity::function_template_specialization_t;
+        }
 
-        cpp_function_template_specialization(cpp_name template_name, cpp_ptr<cpp_function_base> ptr);
+        static cpp_ptr<cpp_function_template_specialization> parse(translation_unit &tu,
+                                                                   cpp_cursor cur, const cpp_entity &parent);
+
+        cpp_name get_name() const override
+        {
+            return name_;
+        }
 
         const cpp_function_base& get_function() const STANDARDESE_NOEXCEPT
         {
@@ -201,46 +214,47 @@ namespace standardese
 
         const cpp_template_ref &get_primary_template() const STANDARDESE_NOEXCEPT
         {
-            return template_;
+            return primary_;
         }
 
     private:
+        cpp_function_template_specialization(cpp_cursor cur, const cpp_entity &parent);
+
+        cpp_template_ref primary_;
+        cpp_name name_;
         cpp_ptr<cpp_function_base> func_;
-        cpp_template_ref template_;
+
+        friend detail::cpp_ptr_access;
     };
 
-    class cpp_class_template
+    /// \returns If `e` is a function type returns a pointer to `e`,
+    /// otherwise if `e` is a function template, returns `&e.get_function()`,
+    /// otherwise returns `nullptr`.
+    const cpp_function_base* get_function(const cpp_entity &e) STANDARDESE_NOEXCEPT;
+
+    class cpp_class_template final
     : public cpp_entity, private cpp_entity_container<cpp_template_parameter>
     {
     public:
-        class parser : public cpp_entity_parser
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
         {
-        public:
-            parser(cpp_name scope, cpp_cursor cur);
+            return cpp_entity::class_template_t;
+        }
 
-            void add_entity(cpp_entity_ptr ptr) override
-            {
-                parser_.add_entity(std::move(ptr));
-            }
-
-            cpp_name scope_name() override
-            {
-                return parser_.scope_name();
-            }
-
-            cpp_entity_ptr finish(const standardese::parser &par) override;
-
-        private:
-            cpp_class::parser parser_;
-            cpp_ptr<cpp_class_template> class_;
-        };
-
-        cpp_class_template(cpp_name template_name, cpp_ptr<cpp_class> ptr);
+        static cpp_ptr<cpp_class_template> parse(translation_unit &tu,
+                                                 cpp_cursor cur, const cpp_entity &parent);
 
         void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
         {
             cpp_entity_container::add_entity(std::move(param));
         }
+
+        void add_entity(cpp_entity_ptr ptr)
+        {
+            class_->add_entity(std::move(ptr));
+        }
+
+        cpp_name get_name() const override;
 
         const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const STANDARDESE_NOEXCEPT
         {
@@ -253,39 +267,35 @@ namespace standardese
         }
 
     private:
-        cpp_class_template(cpp_name scope, cpp_raw_comment comment);
+        cpp_class_template(cpp_cursor cur, const cpp_entity &parent)
+        : cpp_entity(get_entity_type(), cur, parent) {}
 
         cpp_ptr<cpp_class> class_;
+
+        friend detail::cpp_ptr_access;
     };
 
-    class cpp_class_template_full_specialization
+    class cpp_class_template_full_specialization final
     : public cpp_entity
     {
     public:
-        class parser : public cpp_entity_parser
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
         {
-        public:
-            parser(cpp_name scope, cpp_cursor cur);
+            return cpp_entity::class_template_full_specialization_t;
+        }
 
-            void add_entity(cpp_entity_ptr ptr) override
-            {
-                parser_.add_entity(std::move(ptr));
-            }
+        static cpp_ptr<cpp_class_template_full_specialization> parse(translation_unit &tu,
+                                                 cpp_cursor cur, const cpp_entity &parent);
 
-            cpp_name scope_name() override
-            {
-                return parser_.scope_name();
-            }
+        void add_entity(cpp_entity_ptr ptr)
+        {
+            class_->add_entity(std::move(ptr));
+        }
 
-            cpp_entity_ptr finish(const standardese::parser &par) override;
-
-        private:
-            cpp_class::parser parser_;
-            cpp_ptr<cpp_class_template_full_specialization> class_;
-        };
-
-        cpp_class_template_full_specialization(cpp_name template_name, cpp_ptr<cpp_class> ptr,
-                                               cpp_template_ref primary_template);
+        cpp_name get_name() const override
+        {
+            return name_;
+        }
 
         const cpp_class &get_class() const STANDARDESE_NOEXCEPT
         {
@@ -294,49 +304,45 @@ namespace standardese
 
         const cpp_template_ref &get_primary_template() const STANDARDESE_NOEXCEPT
         {
-            return template_;
+            return primary_;
         }
 
     private:
-        cpp_class_template_full_specialization(cpp_name scope, cpp_raw_comment comment);
+        cpp_class_template_full_specialization(cpp_cursor cur, const cpp_entity &parent)
+        : cpp_entity(get_entity_type(), cur, parent), name_("") {}
 
+        cpp_template_ref primary_;
+        cpp_name name_;
         cpp_ptr<cpp_class> class_;
-        cpp_template_ref template_;
+
+        friend detail::cpp_ptr_access;
     };
 
-    class cpp_class_template_partial_specialization
+    class cpp_class_template_partial_specialization final
     : public cpp_entity, public cpp_entity_container<cpp_template_parameter>
     {
     public:
-    public:
-        class parser : public cpp_entity_parser
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
         {
-        public:
-            parser(cpp_name scope, cpp_cursor cur);
+            return cpp_entity::class_template_partial_specialization_t;
+        }
 
-            void add_entity(cpp_entity_ptr ptr) override
-            {
-                parser_.add_entity(std::move(ptr));
-            }
-
-            cpp_name scope_name() override
-            {
-                return parser_.scope_name();
-            }
-
-            cpp_entity_ptr finish(const standardese::parser &par) override;
-
-        private:
-            cpp_class::parser parser_;
-            cpp_ptr<cpp_class_template_partial_specialization> class_;
-        };
-
-        cpp_class_template_partial_specialization(cpp_name template_name, cpp_ptr<cpp_class> ptr,
-                                                  cpp_template_ref primary_template);
+        static cpp_ptr<cpp_class_template_partial_specialization> parse(translation_unit &tu,
+                                                                     cpp_cursor cur, const cpp_entity &parent);
 
         void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
         {
             cpp_entity_container::add_entity(std::move(param));
+        }
+
+        void add_entity(cpp_entity_ptr ptr)
+        {
+            class_->add_entity(std::move(ptr));
+        }
+
+        cpp_name get_name() const override
+        {
+            return name_;
         }
 
         const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const STANDARDESE_NOEXCEPT
@@ -351,15 +357,63 @@ namespace standardese
 
         const cpp_template_ref &get_primary_template() const STANDARDESE_NOEXCEPT
         {
-            return template_;
+            return primary_;
         }
 
     private:
-        cpp_class_template_partial_specialization(cpp_name scope, cpp_raw_comment comment);
+        cpp_class_template_partial_specialization(cpp_cursor cur, const cpp_entity &parent)
+        : cpp_entity(get_entity_type(), cur, parent), name_("") {}
 
+        cpp_template_ref primary_;
+        cpp_name name_;
         cpp_ptr<cpp_class> class_;
-        cpp_template_ref template_;
 
+        friend detail::cpp_ptr_access;
+    };
+
+    /// \returns If `e` is a class returns a pointer to `e`,
+    /// otherwise if `e` is a class template returns `&e.get_class()`,
+    /// otherwise returns `nullptr`.
+    const cpp_class* get_class(const cpp_entity &e) STANDARDESE_NOEXCEPT;
+
+    class cpp_alias_template final
+    : public cpp_entity, private cpp_entity_container<cpp_template_parameter>
+    {
+    public:
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity::alias_template_t;
+        }
+
+    #if CINDEX_VERSION_MINOR >= 32
+        static cpp_ptr<cpp_alias_template> parse(translation_unit &tu,
+                                                 cpp_cursor cur, const cpp_entity &parent);
+    #endif
+
+        void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
+        {
+            cpp_entity_container::add_entity(std::move(param));
+        }
+
+        cpp_name get_name() const override;
+
+        const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const STANDARDESE_NOEXCEPT
+        {
+            return *this;
+        }
+
+        const cpp_type_alias& get_type() const STANDARDESE_NOEXCEPT
+        {
+            return *type_;
+        }
+
+    private:
+        cpp_alias_template(cpp_cursor cur, const cpp_entity &parent)
+        : cpp_entity(get_entity_type(), cur, parent) {}
+
+        cpp_ptr<cpp_type_alias> type_;
+
+        friend detail::cpp_ptr_access;
     };
 } // namespace standardese
 

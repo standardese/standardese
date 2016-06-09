@@ -7,23 +7,13 @@
 #include <cassert>
 
 #include <standardese/detail/parse_utils.hpp>
-#include <standardese/detail/search_token.hpp>
+#include <standardese/detail/tokenizer.hpp>
 #include <standardese/parser.hpp>
 
 using namespace standardese;
 
 namespace
 {
-    cpp_type_ref parse_enum_underlying(cpp_cursor cur, const cpp_name &name, bool &definition)
-    {
-        assert(clang_getCursorKind(cur) == CXCursor_EnumDecl);
-
-        auto type = clang_getEnumDeclIntegerType(cur);
-        auto str = detail::parse_enum_type_name(cur, definition);
-
-        return {type, str};
-    }
-
     bool is_unsigned_integer(CXType t)
     {
         auto kind = t.kind;
@@ -50,83 +40,109 @@ namespace
                || kind == CXType_Int128;
     }
 
-    bool is_explicit_value(cpp_cursor cur)
+    bool is_explicit_value(translation_unit &tu, cpp_cursor cur)
     {
-        return detail::has_token(cur, "=");
+        detail::tokenizer tokenizer(tu, cur);
+        for (auto val : tokenizer)
+            if (val.get_value() == "=")
+                return true;
+        return false;
     }
 }
 
-cpp_ptr<cpp_enum_value> cpp_enum_value::parse(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_enum_value> cpp_enum_value::parse(translation_unit &tu,
+                                              cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_EnumConstantDecl);
 
-    cpp_ptr<cpp_enum_value> result;
-    auto name = detail::parse_name(cur);
-    auto comment = detail::parse_comment(cur);
+    auto is_explicit = is_explicit_value(tu, cur);
 
     auto type = clang_getEnumDeclIntegerType(clang_getCursorSemanticParent(cur));
     if (is_signed_integer(type))
     {
-        auto val = clang_getEnumConstantDeclValue(cur);
-        result = detail::make_ptr<cpp_signed_enum_value>(std::move(scope), std::move(name),
-                                                         std::move(comment), val);
+        auto value = clang_getEnumConstantDeclValue(cur);
+        return detail::make_ptr<cpp_signed_enum_value>(cur, parent, value, is_explicit);
     }
     else if (is_unsigned_integer(type))
     {
-        auto val = clang_getEnumConstantDeclUnsignedValue(cur);
-        result = detail::make_ptr<cpp_unsigned_enum_value>(std::move(scope), std::move(name),
-                                                           std::move(comment), val);
+        auto value = clang_getEnumConstantDeclUnsignedValue(cur);
+        return detail::make_ptr<cpp_unsigned_enum_value>(cur, parent, value, is_explicit);
     }
-    else
-        assert(false);
 
-    result->explicit_ = is_explicit_value(cur);
+    assert(!"enum type is neither signed nor unsigned");
+    return nullptr;
+}
 
-    return result;
+cpp_name cpp_enum_value::get_scope() const
+{
+    if (static_cast<const cpp_enum&>(get_parent()).is_scoped())
+        return cpp_entity::get_scope();
+    // don't append parent name if enum isn't scoped
+    return get_parent().get_scope();
 }
 
 namespace
 {
-    bool is_enum_scoped(cpp_cursor cur, const cpp_name &n)
+    cpp_name parse_underlying_type(detail::token_stream &stream, bool &is_definition)
     {
-        return detail::has_prefix_token(cur, "class", n.c_str());
+        std::string underlying_type;
+        if (stream.peek().get_value() == ":")
+        {
+            stream.bump();
+            detail::skip_whitespace(stream);
+
+            while (stream.peek().get_value() != ";")
+            {
+                auto spelling = stream.get().get_value();
+
+                if (spelling == "{")
+                {
+                    is_definition = true;
+                    break;
+                }
+                else
+                    underlying_type += spelling.c_str();
+            }
+
+
+        }
+        else if (stream.peek().get_value() == "{")
+        {
+            is_definition = true;
+        }
+
+        detail::erase_trailing_ws(underlying_type);
+        return underlying_type;
     }
 }
 
-cpp_enum::parser::parser(cpp_name scope, cpp_cursor cur)
+cpp_ptr<cpp_enum> cpp_enum::parse(translation_unit &tu,
+                        cpp_cursor cur, const cpp_entity &parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_EnumDecl);
 
-    auto name = detail::parse_name(cur);
-    auto type = clang_getCursorType(cur);
+    detail::tokenizer tokenizer(tu, cur);
+    auto stream = detail::make_stream(tokenizer);
+    detail::skip(stream, cur, {"enum"});
 
-    bool definition;
-    auto underlying = parse_enum_underlying(cur, name, definition);
-    if (definition)
+    auto is_scoped = false;
+    if (stream.peek().get_value() == "class")
     {
-        enum_ = cpp_ptr<cpp_enum>(new cpp_enum(std::move(scope), std::move(name), detail::parse_comment(cur),
-                                               type, std::move(underlying)));
-
-        if (is_enum_scoped(cur, enum_->get_name()))
-            enum_->is_scoped_ = true;
+        stream.bump();
+        detail::skip_whitespace(stream);
+        is_scoped = true;
     }
-}
 
-cpp_entity_ptr cpp_enum::parser::finish(const standardese::parser &par)
-{
-    if (enum_)
-        par.register_type(*enum_);
-    return std::move(enum_);
-}
+    detail::skip_attribute(stream, cur);
+    detail::skip_whitespace(stream);
+    detail::skip(stream, cur, {detail::parse_name(cur).c_str()});
 
-void cpp_enum::parser::add_entity(cpp_entity_ptr ptr)
-{
-    assert(enum_);
-    auto val = static_cast<cpp_enum_value*>(ptr.release());
-    enum_->add_enum_value(cpp_ptr<cpp_enum_value>(val));
-}
+    auto is_definition = false;
+    auto underlying_name = parse_underlying_type(stream, is_definition);
+    if (!is_definition)
+        return  nullptr;
 
-cpp_name cpp_enum::parser::scope_name()
-{
-    return enum_ && enum_->is_scoped_ ? enum_->get_name() : "";
+    auto underlying_type = clang_getEnumDeclIntegerType(cur);
+
+    return detail::make_ptr<cpp_enum>(cur, parent, cpp_type_ref(underlying_name, underlying_type), is_scoped);
 }
