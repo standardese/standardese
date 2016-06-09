@@ -479,6 +479,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
         else if (auto ptr = dynamic_cast<const cpp_class*>(&e))
         {
             for (auto& e : *ptr)
+            {
                 if (auto ptr = dynamic_cast<const cpp_function_template*>(&e))
                 {
                     if (ptr->get_function().get_name() == "c")
@@ -547,6 +548,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                 }
                 else
                     REQUIRE(false);
+            }
         }
         else
             REQUIRE(false);
