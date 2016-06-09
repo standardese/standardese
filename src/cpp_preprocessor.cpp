@@ -18,7 +18,7 @@ cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit
 
     auto source = detail::tokenizer::read_source(cur);
 
-    auto i = 1u; // skip #
+    size_t i = 1u; // skip #
     while (std::isspace(source[i]))
         ++i;
 

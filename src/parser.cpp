@@ -121,7 +121,7 @@ translation_unit parser::parse(const char *path, const compile_config &c) const
         args.push_back(o.c_str());
 
     CXTranslationUnit tu;
-    auto error = clang_parseTranslationUnit2(index_.get(), path, args.data(), args.size(), nullptr, 0,
+    auto error = clang_parseTranslationUnit2(index_.get(), path, args.data(), static_cast<int>(args.size()), nullptr, 0,
                                          CXTranslationUnit_Incomplete | CXTranslationUnit_DetailedPreprocessingRecord,
                                          &tu);
     if (error != CXError_Success)

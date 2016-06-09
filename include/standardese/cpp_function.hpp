@@ -98,17 +98,17 @@ namespace standardese
 
         bool is_variadic() const STANDARDESE_NOEXCEPT
         {
-            return info_.flags & cpp_variadic_fnc;
+            return !!(info_.flags & cpp_variadic_fnc);
         }
 
         bool is_constexpr() const STANDARDESE_NOEXCEPT
         {
-            return info_.flags & cpp_constexpr_fnc;
+            return !!(info_.flags & cpp_constexpr_fnc);
         }
 
         bool is_explicit() const STANDARDESE_NOEXCEPT
         {
-            return info_.flags & cpp_explicit_conversion;
+            return !!(info_.flags & cpp_explicit_conversion);
         }
 
         cpp_function_definition get_definition() const STANDARDESE_NOEXCEPT
@@ -182,7 +182,7 @@ namespace standardese
 
     inline bool is_volatile(cpp_cv cv) STANDARDESE_NOEXCEPT
     {
-        return cv & cpp_cv_volatile;
+        return !!(cv & cpp_cv_volatile);
     }
 
     enum cpp_ref_qualifier

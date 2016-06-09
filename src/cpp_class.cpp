@@ -66,7 +66,7 @@ cpp_ptr<cpp_base_class> cpp_base_class::parse(translation_unit &,
     auto a = parse_access_specifier(cur);
     auto virt = clang_isVirtualBase(cur);
 
-    return detail::make_ptr<cpp_base_class>(cur, parent, cpp_type_ref(std::move(name), type), a, virt);
+    return detail::make_ptr<cpp_base_class>(cur, parent, cpp_type_ref(std::move(name), type), a, !!virt);
 }
 
 cpp_name cpp_base_class::get_name() const
