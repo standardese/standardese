@@ -68,6 +68,13 @@ if((NOT SPDLOG_INCLUDE_DIR) OR (NOT EXISTS ${SPDLOG_INCLUDE_DIR}))
 endif()
 install(DIRECTORY ${SPDLOG_INCLUDE_DIR}/spdlog DESTINATION ${include_dest})
 
+if (MSVC)
+    add_compile_options(
+        -D_CRT_SECURE_NO_WARNINGS
+        -D_SCL_SECURE_NO_WARNINGS
+        )
+endif()
+
 # subdirectories
 add_subdirectory(src)
 if(STANDARDESE_BUILD_TOOL)
