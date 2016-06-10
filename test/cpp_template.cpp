@@ -233,7 +233,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             {
                 ++size;
                 REQUIRE(e.get_name() == "");
-                REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter&>(e));
+                REQUIRE(dynamic_cast<const cpp_template_type_parameter*>(&e) != nullptr);
             }
             REQUIRE(size == 1u);
         }
@@ -251,13 +251,13 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
                 if (e.get_name() == "a")
                 {
                     ++size;
-                    REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter &>(e));
+                    REQUIRE(dynamic_cast<const cpp_template_type_parameter *>(&e) != nullptr);
                     REQUIRE(!e.is_variadic());
                 }
                 else if (e.get_name() == "b")
                 {
                     ++size;
-                    REQUIRE_NOTHROW(dynamic_cast<const cpp_non_type_template_parameter &>(e));
+                    REQUIRE(dynamic_cast<const cpp_non_type_template_parameter *>(&e) != nullptr);
                     REQUIRE(!e.is_variadic());
                 }
                 else
@@ -279,13 +279,13 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
                 if (e.get_name() == "a")
                 {
                     ++size;
-                    REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter &>(e));
+                    REQUIRE(dynamic_cast<const cpp_template_type_parameter *>(&e) != nullptr);
                     REQUIRE(!e.is_variadic());
                 }
                 else if (e.get_name() == "b")
                 {
                     ++size;
-                    REQUIRE_NOTHROW(dynamic_cast<const cpp_non_type_template_parameter &>(e));
+                    REQUIRE(dynamic_cast<const cpp_non_type_template_parameter *>(&e) != nullptr);
                     REQUIRE(!e.is_variadic());
                 }
                 else
@@ -304,7 +304,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             {
                 ++size;
                 REQUIRE(e.get_name() == "");
-                REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter&>(e));
+                REQUIRE(dynamic_cast<const cpp_template_type_parameter*>(&e) != nullptr);
             }
             REQUIRE(size == 1u);
         }
@@ -320,13 +320,13 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
                 if (e.get_name() == "b")
                 {
                     ++size;
-                    REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter &>(e));
+                    REQUIRE(dynamic_cast<const cpp_template_type_parameter *>(&e) != nullptr);
                     REQUIRE(e.is_variadic());
                 }
                 else if (e.get_name() == "a")
                 {
                     ++size;
-                    REQUIRE_NOTHROW(dynamic_cast<const cpp_non_type_template_parameter &>(e));
+                    REQUIRE(dynamic_cast<const cpp_non_type_template_parameter *>(&e) != nullptr);
                     REQUIRE(!e.is_variadic());
                 }
                 else
@@ -346,7 +346,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
                 if (e.get_name() == "a")
                 {
                     ++size;
-                    REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter &>(e));
+                    REQUIRE(dynamic_cast<const cpp_template_type_parameter *>(&e) != nullptr);
                     REQUIRE(!e.is_variadic());
                 }
                 else if (e.get_name() == "b")
@@ -355,7 +355,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
                     auto& te = dynamic_cast<const cpp_template_template_parameter &>(e);
                     REQUIRE(!te.is_variadic());
 
-                    REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter&>(*te.begin()));
+                    REQUIRE(dynamic_cast<const cpp_template_type_parameter*>(&*te.begin()) != nullptr);
                     REQUIRE(std::next(te.begin()) == te.end());
                 }
                 else
@@ -419,7 +419,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                     if (param.get_name() == "A")
                     {
                         ++size;
-                        REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter&>(param));
+                        REQUIRE(dynamic_cast<const cpp_template_type_parameter*>(&param) != nullptr);
                         REQUIRE(!param.is_variadic());
                     }
                     else
@@ -440,13 +440,13 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                     if (param.get_name() == "A")
                     {
                         ++size;
-                        REQUIRE_NOTHROW(dynamic_cast<const cpp_non_type_template_parameter&>(param));
+                        REQUIRE(dynamic_cast<const cpp_non_type_template_parameter*>(&param) != nullptr);
                         REQUIRE(!param.is_variadic());
                     }
                     else if (param.get_name() == "B")
                     {
                         ++size;
-                        REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter&>(param));
+                        REQUIRE(dynamic_cast<const cpp_template_type_parameter*>(&param) != nullptr);
                         REQUIRE(!param.is_variadic());
                     }
                     else
@@ -485,7 +485,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                     if (ptr->get_function().get_name() == "c")
                     {
                         ++count;
-                        REQUIRE_NOTHROW(dynamic_cast<const cpp_member_function&>(ptr->get_function()));
+                        REQUIRE(dynamic_cast<const cpp_member_function*>(&ptr->get_function()) != nullptr);
                         REQUIRE(!ptr->get_function().is_variadic());
                         REQUIRE(ptr->get_name() == "c<A...>");
 
@@ -495,7 +495,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                             if (param.get_name() == "A")
                             {
                                 ++size;
-                                REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter&>(param));
+                                REQUIRE(dynamic_cast<const cpp_template_type_parameter*>(&param) != nullptr);
                                 REQUIRE(param.is_variadic());
                             }
                             else
@@ -506,7 +506,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                     else if (ptr->get_function().get_name() == "foo")
                     {
                         ++count;
-                        REQUIRE_NOTHROW(dynamic_cast<const cpp_constructor&>(ptr->get_function()));
+                        REQUIRE(dynamic_cast<const cpp_constructor*>(&ptr->get_function()) != nullptr);
                         REQUIRE(ptr->get_name() == "foo<A>");
 
                         auto size = 0u;
@@ -515,7 +515,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                             if (param.get_name() == "A")
                             {
                                 ++size;
-                                REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter&>(param));
+                                REQUIRE(dynamic_cast<const cpp_template_type_parameter*>(&param) != nullptr);
                                 REQUIRE(!param.is_variadic());
                             }
                             else
@@ -526,7 +526,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                     else if (ptr->get_function().get_name() == "operator T *")
                     {
                         ++count;
-                        REQUIRE_NOTHROW(dynamic_cast<const cpp_conversion_op&>(ptr->get_function()));
+                        REQUIRE(dynamic_cast<const cpp_conversion_op*>(&ptr->get_function()) != nullptr);
                         REQUIRE(ptr->get_name() == "operator T *<T>");
 
                         auto size = 0u;
@@ -535,7 +535,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                             if (param.get_name() == "T")
                             {
                                 ++size;
-                                REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter&>(param));
+                                REQUIRE(dynamic_cast<const cpp_template_type_parameter*>(&param) != nullptr);
                                 REQUIRE(!param.is_variadic());
                             }
                             else
@@ -624,7 +624,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
                     if (param.get_name() == "A")
                     {
                         ++size;
-                        REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter &>(param));
+                        REQUIRE(dynamic_cast<const cpp_template_type_parameter *>(&param) != nullptr);
                         REQUIRE(!param.is_variadic());
                     }
                     else
@@ -644,13 +644,13 @@ TEST_CASE("cpp_class_template", "[cpp]")
                     if (param.get_name() == "A")
                     {
                         ++size;
-                        REQUIRE_NOTHROW(dynamic_cast<const cpp_non_type_template_parameter &>(param));
+                        REQUIRE(dynamic_cast<const cpp_non_type_template_parameter *>(&param) != nullptr);
                         REQUIRE(!param.is_variadic());
                     }
                     else if (param.get_name() == "B")
                     {
                         ++size;
-                        REQUIRE_NOTHROW(dynamic_cast<const cpp_template_type_parameter &>(param));
+                        REQUIRE(dynamic_cast<const cpp_template_type_parameter *>(&param) != nullptr);
                         REQUIRE(param.is_variadic());
                     }
                     else
