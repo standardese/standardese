@@ -43,8 +43,7 @@ void markdown_output::write_begin(style s)
             get_output().write_str("**", 2);
             break;
         case style::code_span:
-            // use two to allow backticks inside
-            get_output().write_str("``", 2);
+            get_output().write_char('`');
             break;
         default:
             break;
