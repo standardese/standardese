@@ -28,13 +28,23 @@ comp_target_features(_standardese_comp_runner INTERFACE
                      NOFLAGS)
 install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/comp.generated/standardese DESTINATION "${include_dest}/comp")
 
+set(CLANG_INCLUDE_PATHS "/usr/include/" "/usr/local/include")
+set(CLANG_LIBRARY_PATHS "/usr/lib" "/usr/local/lib")
+
+# libclang headers and libs are installed in /usr/lib/llvm-<version> in Ubuntu.
+file(GLOB LLVM_DIRS /usr/lib/llvm-*)
+foreach(dir ${LLVM_DIRS})
+    set(CLANG_INCLUDE_PATHS ${CLANG_INCLUDE_PATHS} ${dir}/include)
+    set(CLANG_LIBRARY_PATHS ${CLANG_LIBRARY_PATHS} ${dir}/lib)
+endforeach()
+
 # add libclang
-find_path(LIBCLANG_INCLUDE_DIR "clang-c/Index.h" "/usr/include/" "/usr/local/include")
+find_path(LIBCLANG_INCLUDE_DIR "clang-c/Index.h" ${CLANG_INCLUDE_PATHS})
 if(NOT LIBCLANG_INCLUDE_DIR)
     message(FATAL_ERROR "unable to find libclang include directory, please set LIBCLANG_INCLUDE_DIR by yourself")
 endif()
 
-find_library(LIBCLANG_LIBRARY "clang" "/usr/lib" "/usr/local/lib")
+find_library(LIBCLANG_LIBRARY "clang" ${CLANG_LIBRARY_PATHS})
 if(NOT LIBCLANG_LIBRARY)
     message(FATAL_ERROR "unable to find libclang library, please set LIBCLANG_LIBRARY by yourself")
 endif()
