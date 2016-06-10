@@ -303,7 +303,7 @@ TEST_CASE("cpp_class", "[cpp]")
                     REQUIRE(dynamic_cast<const cpp_class&>(member).get_class_type() == cpp_struct_t);
                 }
                 else
-                    dynamic_cast<const cpp_class&>(member);
+                    REQUIRE(dynamic_cast<const cpp_class*>(&member) != nullptr);
             }
         }
         else if (c.get_name() == "union_t")
