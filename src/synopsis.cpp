@@ -19,6 +19,11 @@
 
 using namespace standardese;
 
+const entity_blacklist::empty_t entity_blacklist::empty;
+const entity_blacklist::synopsis_t entity_blacklist::synopsis;
+const entity_blacklist::documentation_t entity_blacklist::documentation;
+
+
 entity_blacklist::entity_blacklist()
 {
     type_blacklist_.set(cpp_entity::inclusion_directive_t);
