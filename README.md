@@ -193,4 +193,10 @@ Thanks a lot to:
 
 * Mark @DarkerStar Gibbs, for feature suggestions
 
+* Tristan @tcbrindle Brindle, for (better) clang support
+
+* Marek @mkurdej Kurdej, for (better) MSVC support
+
+* Victor @vitaut Zverovich, for bugfixes
+
 And everyone else how shares and uses this project!
