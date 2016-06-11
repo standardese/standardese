@@ -76,6 +76,6 @@ void detail::erase_template_args(std::string &name)
 
 void detail::erase_trailing_ws(std::string &name)
 {
-    while (std::isspace(name.back()))
+    while (!name.empty() && std::isspace(name.back()))
         name.pop_back();
 }

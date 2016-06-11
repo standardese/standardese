@@ -93,16 +93,16 @@ namespace standardese
 
         cpp_name get_full_name() const
         {
-            auto scope = get_scope();
+            std::string scope = get_scope().c_str();
             // need name of the cursor alone, without any scopes
-            auto name = detail::parse_name(**this);
+            std::string name = detail::parse_name(**this).c_str();
 
             if (is_inheriting_ctor())
                 // we have a CXCursor_TypeRef of the name of the class
                 // need to make it the constructor
-                name = std::string(name.c_str()) + "::" + name.c_str();
+                name += + "::" + name;
 
-            return scope.empty() ? name : std::string(scope.c_str()) + "::" + name.c_str();
+            return scope.empty() ? name : scope + "::" + name;
         }
 
     private:

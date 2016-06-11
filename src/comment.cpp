@@ -40,9 +40,9 @@ comment comment::parse(const parser &p, const cpp_name &name, const cpp_raw_comm
 
     auto finish_section = [&]
     {
-        trim_whitespace(cur_body);
         if (cur_body.empty())
             return;
+        trim_whitespace(cur_body);
 
         result.sections_.emplace_back(cur_section_t, cur_body);
 

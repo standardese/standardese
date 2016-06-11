@@ -156,23 +156,27 @@ TEST_CASE("cpp_enum", "[cpp]")
             REQUIRE(!t.is_scoped());
             auto& underlying = t.get_underlying_type();
             REQUIRE(underlying.get_name() == "");
-            REQUIRE(underlying.get_full_name() == "unsigned int");
 
             auto i = 1u;
             for (auto& val : t)
             {
-                auto& eval = dynamic_cast<const cpp_unsigned_enum_value&>(val);
+                auto& eval = dynamic_cast<const cpp_enum_value&>(val);
                 REQUIRE(eval.get_name() == "a_" + std::to_string(i));
                 REQUIRE(eval.get_full_name() == "a_" + std::to_string(i));
 
+                // it is implementation defined which integer is used
+                auto value = val.get_entity_type() == cpp_entity::unsigned_enum_value_t
+                             ? dynamic_cast<const cpp_unsigned_enum_value&>(val).get_value()
+                             : dynamic_cast<const cpp_signed_enum_value&>(val).get_value();
+
                 if (i == 3u)
                 {
-                    REQUIRE(eval.get_value() == 5);
+                    REQUIRE(value == 5);
                     REQUIRE(eval.is_explicitly_given());
                 }
                 else
                 {
-                    REQUIRE(eval.get_value() == i - 1);
+                    REQUIRE(value == i - 1);
                     REQUIRE(!eval.is_explicitly_given());
                 }
                 ++i;
