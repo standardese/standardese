@@ -36,7 +36,7 @@ namespace std
 
 This will generate the following documentation:
 
-# Header file ``swap.cpp`
+# Header file `swap.cpp`
 
 
 ```cpp
@@ -163,7 +163,7 @@ See `standardese-config.cmake` for a documentation of `standardese_generate()`.
 
 standardese currently requires comments with triple slashes `///` for documentation.
 
-Inside the comments you can use the basic inline Markdown syntax (`````, `*`, etc.) for formatting.
+Inside the comments you can use the basic inline Markdown syntax (`` ` ``, `*`, etc.) for formatting.
 
 > You can currently use *arbitrary* Markdown because the comments are just copied to the output file
 > which is Markdown itself.
