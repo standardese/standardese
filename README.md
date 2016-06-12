@@ -1,5 +1,6 @@
 # standardese
 
+[![Build Status](https://travis-ci.org/foonathan/standardese.svg?branch=master)](https://travis-ci.org/foonathan/standardese)
 [![Build status](https://ci.appveyor.com/api/projects/status/1aw8ml5lawu4mtyv/branch/master?svg=true)](https://ci.appveyor.com/project/foonathan/standardese/branch/master)
 [![Join the chat at https://gitter.im/foonathan/standardese](https://badges.gitter.im/foonathan/standardese.svg)](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
