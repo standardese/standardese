@@ -87,7 +87,7 @@ If it isn't found, set the CMake variable `LIBCLANG_INCLUDE_DIR` to the folder w
 `LIBCLANG_LIBRARY` to the library binary and `LIBCLANG_SYSTEM_INCLUDE_DIR` where the system include files are located,
 under a normal (Linux) installation it is `/usr/lib/clang/<version>/include`.
 
-The library requires Boost.Wave and the tool requires Boost.ProgramOptions and Boost.Filesystem, only tested with 1.60.
+The library requires Boost.Wave (at least 1.55) and the tool requires Boost.ProgramOptions and Boost.Filesystem, only tested with 1.60.
 By default, Boost libraries are linked dynamically (except for Boost.ProgramOptions which is always linked statically),
 but if you wish to link them statically, just add `-DBoost_USE_STATIC_LIBS=ON` to the cmake command.
 

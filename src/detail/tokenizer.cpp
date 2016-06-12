@@ -8,10 +8,20 @@
 #include <fstream>
 #include <string>
 
+#include <boost/version.hpp>
+
 #include <standardese/cpp_cursor.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
+
+#if (BOOST_VERSION / 100000) != 1
+    #error "require Boost 1.x"
+#endif
+
+#if ((BOOST_VERSION / 100) % 1000) < 55
+    #warning "Boost less than 1.55 isn't tested"
+#endif
 
 void detail::skip_whitespace(token_stream &stream)
 {
