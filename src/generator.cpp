@@ -201,7 +201,7 @@ void standardese::generate_doc_entity(const parser &p,
     auto type = get_entity_type_spelling(e.get_entity_type());
 
     output_base::heading_writer(output, level) << char(std::toupper(type[0])) << &type[1] << ' '
-        << output_base::style::code_span << e.get_name() << output_base::style::code_span;
+        << output_base::style::code_span << e.get_full_name() << output_base::style::code_span;
 
     write_synopsis(p, output, doc);
 
