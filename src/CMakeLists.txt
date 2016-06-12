@@ -80,7 +80,7 @@ target_include_directories(standardese PUBLIC ${LIBCLANG_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${LIBCLANG_LIBRARY})
 
 # link Boost
-find_package(Boost COMPONENTS wave REQUIRED)
+find_package(Boost COMPONENTS wave filesystem REQUIRED)
 target_include_directories(standardese PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${Boost_LIBRARIES})
 
