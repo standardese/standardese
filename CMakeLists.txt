@@ -80,8 +80,10 @@ install(DIRECTORY ${SPDLOG_INCLUDE_DIR}/spdlog DESTINATION ${include_dest})
 
 if (MSVC)
     add_compile_options(
+        # Disable warnings
         -D_CRT_SECURE_NO_WARNINGS
         -D_SCL_SECURE_NO_WARNINGS
+        /wd4503 # decorated name length exceeded, name was truncated
         )
 endif()
 

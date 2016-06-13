@@ -8,9 +8,16 @@
 #include <initializer_list>
 #include <string>
 
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4477) // 'sprintf' : format string '%ld' requires an argument of type 'long', but variadic argument 1 has type 'size_t'
+#endif
 #include <boost/wave/cpplexer/cpp_lex_iterator.hpp>
 #include <boost/wave/cpplexer/cpp_lex_token.hpp>
 #include <boost/wave.hpp>
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include <standardese/detail/sequence_stream.hpp>
 #include <standardese/error.hpp>
