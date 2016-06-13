@@ -85,6 +85,8 @@ if (MSVC)
         )
 endif()
 
+add_definitions(-DBOOST_ALL_NO_LIB) # Disable auto-link
+
 # subdirectories
 add_subdirectory(src)
 if(STANDARDESE_BUILD_TOOL)

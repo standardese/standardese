@@ -11,7 +11,12 @@ target_link_libraries(standardese_tool PUBLIC standardese)
 set_target_properties(standardese_tool PROPERTIES OUTPUT_NAME standardese)
 
 # link Boost
-find_package(Boost COMPONENTS program_options filesystem REQUIRED)
+
+# Force linking to static libraries. Linking Boost.ProgramOptions dynamic library causes link errors
+# See for example http://stackoverflow.com/questions/11235927/link-to-static-boost-lib-with-cmake-and-vs2010-without-automatic-linking.
+set(Boost_USE_STATIC_LIBS ON)
+
+find_package(Boost COMPONENTS program_options REQUIRED)
 target_include_directories(standardese_tool PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(standardese_tool PUBLIC ${Boost_LIBRARIES})
 
