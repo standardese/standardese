@@ -88,8 +88,10 @@ If it isn't found, set the CMake variable `LIBCLANG_INCLUDE_DIR` to the folder w
 under a normal (Linux) installation it is `/usr/lib/clang/<version>/include`.
 
 The library requires Boost.Wave and the tool requires Boost.ProgramOptions and Boost.Filesystem, only tested with 1.60.
+By default, Boost libraries are linked dynamically (except for Boost.ProgramOptions which is always linked statically),
+but if you wish to link them statically, just add `-DBoost_USE_STATIC_LIBS=ON` to the cmake command.
 
-Once build simply run `standardese --help` for commandline usage.
+Once built, simply run `standardese --help` for commandline usage.
 
 ## Documentation 
 
