@@ -15,16 +15,16 @@ namespace
     {
         switch (error)
         {
-            case CXError_Success:
-                return "success";
-            case CXError_ASTReadError:
-                return "AST read error/parsing error";
-            case CXError_Crashed:
-                return "libclang crashed";
-            case CXError_InvalidArguments:
-                return "invalid arguments passed to function";
-            case CXError_Failure:
-                return "generic failure";
+        case CXError_Success:
+            return "success";
+        case CXError_ASTReadError:
+            return "AST read error/parsing error";
+        case CXError_Crashed:
+            return "libclang crashed";
+        case CXError_InvalidArguments:
+            return "invalid arguments passed to function";
+        case CXError_Failure:
+            return "generic failure";
         }
 
         return "generic generic failure";
@@ -32,7 +32,9 @@ namespace
 }
 
 libclang_error::libclang_error(CXErrorCode error, std::string type)
-: std::runtime_error(std::string(type) + ": " + to_string(error)) {}
+: std::runtime_error(std::string(type) + ": " + to_string(error))
+{
+}
 
 source_location::source_location(CXSourceLocation location, std::string entity)
 : entity_name(std::move(entity))
@@ -44,4 +46,5 @@ source_location::source_location(CXSourceLocation location, std::string entity)
 
 source_location::source_location(cpp_cursor cur)
 : source_location(clang_getCursorLocation(cur), string(clang_getCursorDisplayName(cur)).c_str())
-{}
+{
+}

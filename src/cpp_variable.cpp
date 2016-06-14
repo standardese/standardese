@@ -13,13 +13,12 @@ using namespace standardese;
 
 namespace
 {
-    cpp_type_ref parse_variable_type(translation_unit &tu, cpp_cursor cur,
-                                     std::string &initializer,
-                                     bool &is_thread_local, bool &is_mutable)
+    cpp_type_ref parse_variable_type(translation_unit& tu, cpp_cursor cur, std::string& initializer,
+                                     bool& is_thread_local, bool& is_mutable)
     {
         detail::tokenizer tokenizer(tu, cur);
-        auto stream = detail::make_stream(tokenizer);
-        auto name = detail::parse_name(cur);
+        auto              stream = detail::make_stream(tokenizer);
+        auto              name   = detail::parse_name(cur);
 
         std::string type_name;
         for (auto in_type = true, was_bitfield = false; stream.peek().get_value() != ";";)
@@ -56,15 +55,15 @@ namespace
     }
 }
 
-cpp_ptr<cpp_variable> cpp_variable::parse(translation_unit &tu,
-                                          cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_variable> cpp_variable::parse(translation_unit& tu, cpp_cursor cur,
+                                          const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_VarDecl);
 
     std::string initializer;
-    auto is_thread_local = false;
-    auto is_mutable = false;
-    auto type = parse_variable_type(tu, cur, initializer, is_thread_local, is_mutable);
+    auto        is_thread_local = false;
+    auto        is_mutable      = false;
+    auto        type = parse_variable_type(tu, cur, initializer, is_thread_local, is_mutable);
     if (is_mutable)
         throw parse_error(source_location(cur), "non-member variable is mutable");
 
@@ -72,15 +71,16 @@ cpp_ptr<cpp_variable> cpp_variable::parse(translation_unit &tu,
                                           is_thread_local);
 }
 
-cpp_ptr<cpp_member_variable_base> cpp_member_variable_base::parse(translation_unit &tu,
-                                                                  cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_member_variable_base> cpp_member_variable_base::parse(translation_unit& tu,
+                                                                  cpp_cursor        cur,
+                                                                  const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_FieldDecl);
 
     std::string initializer;
-    auto is_thread_local = false;
-    auto is_mutable = false;
-    auto type = parse_variable_type(tu, cur, initializer, is_thread_local, is_mutable);
+    auto        is_thread_local = false;
+    auto        is_mutable      = false;
+    auto        type = parse_variable_type(tu, cur, initializer, is_thread_local, is_mutable);
     if (is_thread_local)
         throw parse_error(source_location(cur), "member variable is thread local");
 
@@ -88,13 +88,12 @@ cpp_ptr<cpp_member_variable_base> cpp_member_variable_base::parse(translation_un
     if (clang_Cursor_isBitField(cur))
     {
         auto no_bits = clang_getFieldDeclBitWidth(cur);
-        result = detail::make_ptr<cpp_bitfield>(cur, parent,
-                                                std::move(type), std::move(initializer),
-                                                no_bits, is_mutable);
+        result       = detail::make_ptr<cpp_bitfield>(cur, parent, std::move(type),
+                                                std::move(initializer), no_bits, is_mutable);
     }
     else
-        result = detail::make_ptr<cpp_member_variable>(cur, parent,
-                                                       std::move(type), std::move(initializer), is_mutable);
+        result = detail::make_ptr<cpp_member_variable>(cur, parent, std::move(type),
+                                                       std::move(initializer), is_mutable);
 
     return result;
 }

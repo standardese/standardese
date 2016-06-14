@@ -16,11 +16,10 @@ namespace standardese
     {
         struct context;
 
-        context& get_preprocessing_context(translation_unit &tu);
+        context& get_preprocessing_context(translation_unit& tu);
     } // namespace detail
 
-    class cpp_file
-    : public cpp_entity, public cpp_entity_container<cpp_entity>
+    class cpp_file : public cpp_entity, public cpp_entity_container<cpp_entity>
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -40,8 +39,9 @@ namespace standardese
 
     private:
         cpp_file(cpp_cursor cur, cpp_name path)
-        : cpp_entity(get_entity_type(), cur),
-          path_(std::move(path)) {}
+        : cpp_entity(get_entity_type(), cur), path_(std::move(path))
+        {
+        }
 
         cpp_name path_;
 
@@ -51,11 +51,11 @@ namespace standardese
     class translation_unit
     {
     public:
-        translation_unit(translation_unit &&other) STANDARDESE_NOEXCEPT;
+        translation_unit(translation_unit&& other) STANDARDESE_NOEXCEPT;
 
         ~translation_unit() STANDARDESE_NOEXCEPT;
 
-        translation_unit& operator=(translation_unit &&other) STANDARDESE_NOEXCEPT;
+        translation_unit& operator=(translation_unit&& other) STANDARDESE_NOEXCEPT;
 
         const parser& get_parser() const STANDARDESE_NOEXCEPT;
 
@@ -70,7 +70,7 @@ namespace standardese
         const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT;
 
     private:
-        translation_unit(const parser &par, CXTranslationUnit tu, const char *path, cpp_file *file);
+        translation_unit(const parser& par, CXTranslationUnit tu, const char* path, cpp_file* file);
 
         struct impl;
         std::unique_ptr<impl> pimpl_;
@@ -86,15 +86,15 @@ namespace standardese
         {
             struct data_t
             {
-                Func *func;
+                Func*  func;
                 CXFile file;
             } data{&f, file};
 
-            auto visitor_impl = [](CXCursor cursor, CXCursor parent, CXClientData client_data) -> CXChildVisitResult
-            {
+            auto visitor_impl = [](CXCursor cursor, CXCursor parent,
+                                   CXClientData client_data) -> CXChildVisitResult {
                 auto data = static_cast<data_t*>(client_data);
 
-                auto location = clang_getCursorLocation(cursor);
+                auto   location = clang_getCursorLocation(cursor);
                 CXFile file;
                 clang_getSpellingLocation(location, &file, nullptr, nullptr, nullptr);
                 if (!file || !clang_File_isEqual(file, data->file))

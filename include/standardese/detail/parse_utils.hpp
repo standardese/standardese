@@ -30,21 +30,19 @@ namespace standardese
         // template <typename T = foo<int>> yields foo<int>>
         // because >> is one token
         // count brackets, if unbalanced, remove final >
-        void unmunch(std::string &str);
+        void unmunch(std::string& str);
 
         // erases template arguments
-        void erase_template_args(std::string &name);
+        void erase_template_args(std::string& name);
 
         // erase trailing whitespace
-        void erase_trailing_ws(std::string &name);
+        void erase_trailing_ws(std::string& name);
 
         // wrapper for clang_visitChildren
         template <typename Fnc>
         void visit_children(cpp_cursor cur, Fnc f)
         {
-            auto cb = [](CXCursor cur, CXCursor parent, CXClientData data)
-            -> CXChildVisitResult
-            {
+            auto cb = [](CXCursor cur, CXCursor parent, CXClientData data) -> CXChildVisitResult {
                 return (*static_cast<Fnc*>(data))(cur, parent);
             };
             clang_visitChildren(cur, cb, &f);

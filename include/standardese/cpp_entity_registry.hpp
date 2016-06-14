@@ -16,22 +16,22 @@ namespace standardese
     class cpp_entity_registry
     {
     public:
-        void register_entity(const cpp_entity &e) const
+        void register_entity(const cpp_entity& e) const
         {
             std::unique_lock<std::mutex> lock(mutex_);
             map_.emplace(e.get_cursor(), &e);
         }
 
-        const cpp_entity& lookup_entity(const cpp_cursor &cur) const
+        const cpp_entity& lookup_entity(const cpp_cursor& cur) const
         {
             std::unique_lock<std::mutex> lock(mutex_);
             return *map_.at(cur);
         }
 
-        const cpp_entity* try_lookup(const cpp_cursor &cur) const STANDARDESE_NOEXCEPT
+        const cpp_entity* try_lookup(const cpp_cursor& cur) const STANDARDESE_NOEXCEPT
         {
             std::unique_lock<std::mutex> lock(mutex_);
-            auto iter = map_.find(cur);
+            auto                         iter = map_.find(cur);
             return iter == map_.end() ? nullptr : iter->second;
         }
 
@@ -49,13 +49,13 @@ namespace standardese
             return Kind;
         }
 
-        basic_cpp_entity_ref()
-        : cursor_(), name_("") {}
-
-        basic_cpp_entity_ref(cpp_cursor cur, cpp_name name)
-        : cursor_(cur), name_(std::move(name))
+        basic_cpp_entity_ref() : cursor_(), name_("")
         {
-            auto kind = clang_getCursorKind(cur);
+        }
+
+        basic_cpp_entity_ref(cpp_cursor cur, cpp_name name) : cursor_(cur), name_(std::move(name))
+        {
+            auto kind           = clang_getCursorKind(cur);
             auto valid_ref_kind = Kind == CXCursor_FirstInvalid || Kind == kind;
             assert(clang_isDeclaration(kind) || (clang_isReference(kind) && valid_ref_kind));
         }
@@ -75,7 +75,7 @@ namespace standardese
             return cursor_;
         }
 
-        const cpp_entity* get(const cpp_entity_registry &e) const STANDARDESE_NOEXCEPT
+        const cpp_entity* get(const cpp_entity_registry& e) const STANDARDESE_NOEXCEPT
         {
             return e.try_lookup(**this);
         }
@@ -100,7 +100,7 @@ namespace standardese
             if (is_inheriting_ctor())
                 // we have a CXCursor_TypeRef of the name of the class
                 // need to make it the constructor
-                name += + "::" + name;
+                name += +"::" + name;
 
             return scope.empty() ? name : scope + "::" + name;
         }
@@ -114,7 +114,7 @@ namespace standardese
             // go backwards
             // see if we have <str>::<str>
             std::string a, b;
-            auto before_scope = true;
+            auto        before_scope = true;
             for (auto i = name_.length(); i != 0; --i)
             {
                 auto c = name_.c_str()[i - 1];
@@ -137,17 +137,17 @@ namespace standardese
         }
 
         cpp_cursor cursor_;
-        cpp_name name_;
+        cpp_name   name_;
     };
 
     template <CXCursorKind Kind>
-    bool operator==(const basic_cpp_entity_ref<Kind> &a, const basic_cpp_entity_ref<Kind> &b)
+    bool operator==(const basic_cpp_entity_ref<Kind>& a, const basic_cpp_entity_ref<Kind>& b)
     {
         return *a == *b;
     }
 
     template <CXCursorKind Kind>
-    bool operator!=(const basic_cpp_entity_ref<Kind> &a, const basic_cpp_entity_ref<Kind> &b)
+    bool operator!=(const basic_cpp_entity_ref<Kind>& a, const basic_cpp_entity_ref<Kind>& b)
     {
         return !(a == b);
     }

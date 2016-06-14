@@ -11,8 +11,8 @@
 
 using namespace standardese;
 
-cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit &,
-                                                                cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit&, cpp_cursor cur,
+                                                                const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_InclusionDirective);
 
@@ -28,16 +28,17 @@ cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit
 
     auto k = source[i] == '<' ? kind::system : kind::local;
 
-    return detail::make_ptr<cpp_inclusion_directive>(cur, parent, detail::parse_name(cur).c_str(), k);
+    return detail::make_ptr<cpp_inclusion_directive>(cur, parent, detail::parse_name(cur).c_str(),
+                                                     k);
 }
 
 namespace
 {
-    void parse_macro(cpp_cursor cur, std::string &name, std::string &args, std::string &rep)
+    void parse_macro(cpp_cursor cur, std::string& name, std::string& args, std::string& rep)
     {
         auto source = detail::tokenizer::read_source(cur);
 
-        name = detail::parse_name(cur).c_str();
+        name   = detail::parse_name(cur).c_str();
         auto i = name.length();
         while (std::isspace(source[i]))
             ++i;
@@ -73,8 +74,8 @@ namespace
     }
 }
 
-cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit &,
-                                                          cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit&, cpp_cursor cur,
+                                                          const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_MacroDefinition);
 

@@ -10,15 +10,15 @@
 
 namespace standardese
 {
-    class cpp_type
-    : public cpp_entity
+    class cpp_type : public cpp_entity
     {
     public:
         CXType get_type() const STANDARDESE_NOEXCEPT;
 
     protected:
-        cpp_type(type t, cpp_cursor cur, const cpp_entity &parent)
-        : cpp_entity(t, cur, parent) {}
+        cpp_type(type t, cpp_cursor cur, const cpp_entity& parent) : cpp_entity(t, cur, parent)
+        {
+        }
     };
 
     class cpp_type_ref
@@ -47,21 +47,20 @@ namespace standardese
 
     private:
         cpp_name name_;
-        CXType type_;
+        CXType   type_;
     };
 
-    inline bool operator==(const cpp_type_ref &a, const cpp_type_ref &b) STANDARDESE_NOEXCEPT
+    inline bool operator==(const cpp_type_ref& a, const cpp_type_ref& b) STANDARDESE_NOEXCEPT
     {
         return clang_equalTypes(a.get_cxtype(), b.get_cxtype()) == 1u;
     }
 
-    inline bool operator!=(const cpp_type_ref &a, const cpp_type_ref &b) STANDARDESE_NOEXCEPT
+    inline bool operator!=(const cpp_type_ref& a, const cpp_type_ref& b) STANDARDESE_NOEXCEPT
     {
         return !(a == b);
     }
 
-    class cpp_type_alias final
-    : public cpp_type
+    class cpp_type_alias final : public cpp_type
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -69,8 +68,8 @@ namespace standardese
             return cpp_entity::type_alias_t;
         }
 
-        static cpp_ptr<cpp_type_alias> parse(translation_unit &tu,
-                                             cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_type_alias> parse(translation_unit& tu, cpp_cursor cur,
+                                             const cpp_entity& parent);
 
         const cpp_type_ref& get_target() const STANDARDESE_NOEXCEPT
         {
@@ -78,10 +77,10 @@ namespace standardese
         }
 
     private:
-        cpp_type_alias(cpp_cursor cur, const cpp_entity &parent,
-                       cpp_type_ref target)
-        : cpp_type(get_entity_type(), cur, parent),
-          target_(target) {}
+        cpp_type_alias(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref target)
+        : cpp_type(get_entity_type(), cur, parent), target_(target)
+        {
+        }
 
         cpp_type_ref target_;
 

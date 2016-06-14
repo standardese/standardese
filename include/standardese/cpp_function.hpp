@@ -12,8 +12,7 @@
 
 namespace standardese
 {
-    class cpp_function_parameter final
-    : public cpp_entity
+    class cpp_function_parameter final : public cpp_entity
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -21,8 +20,8 @@ namespace standardese
             return cpp_entity::function_parameter_t;
         }
 
-        static cpp_ptr<cpp_function_parameter> parse(translation_unit &tu,
-                                                     cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_function_parameter> parse(translation_unit& tu, cpp_cursor cur,
+                                                     const cpp_entity& parent);
 
         const cpp_type_ref& get_type() const STANDARDESE_NOEXCEPT
         {
@@ -40,10 +39,13 @@ namespace standardese
         }
 
     private:
-        cpp_function_parameter(cpp_cursor cur, const cpp_entity &parent,
-                               cpp_type_ref type, std::string def)
+        cpp_function_parameter(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref type,
+                               std::string def)
         : cpp_entity(get_entity_type(), cur, parent),
-          type_(std::move(type)), default_(std::move(def)) {}
+          type_(std::move(type)),
+          default_(std::move(def))
+        {
+        }
 
         cpp_type_ref type_;
         std::string  default_;
@@ -67,10 +69,10 @@ namespace standardese
 
     struct cpp_function_info
     {
-        cpp_function_flags flags = cpp_function_flags(0);
+        cpp_function_flags      flags      = cpp_function_flags(0);
         cpp_function_definition definition = cpp_function_definition_normal;
-        std::string noexcept_expression;
-        bool explicit_noexcept = false;
+        std::string             noexcept_expression;
+        bool                    explicit_noexcept = false;
 
         void set_flag(cpp_function_flags f) STANDARDESE_NOEXCEPT
         {
@@ -79,19 +81,20 @@ namespace standardese
     };
 
     // common stuff for all functions
-    class cpp_function_base
-    : public cpp_entity, private cpp_entity_container<cpp_function_parameter>
+    class cpp_function_base : public cpp_entity,
+                              private cpp_entity_container<cpp_function_parameter>
     {
     public:
-        static cpp_ptr<cpp_function_base> try_parse(translation_unit &tu,
-                                                    cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_function_base> try_parse(translation_unit& tu, cpp_cursor cur,
+                                                    const cpp_entity& parent);
 
         void add_parameter(cpp_ptr<cpp_function_parameter> param)
         {
             cpp_entity_container::add_entity(std::move(param));
         }
 
-        const cpp_entity_container<cpp_function_parameter>& get_parameters() const STANDARDESE_NOEXCEPT
+        const cpp_entity_container<cpp_function_parameter>& get_parameters() const
+            STANDARDESE_NOEXCEPT
         {
             return *this;
         }
@@ -130,18 +133,17 @@ namespace standardese
         }
 
     protected:
-        cpp_function_base(cpp_entity::type t,
-                          cpp_cursor cur, const cpp_entity &parent,
+        cpp_function_base(cpp_entity::type t, cpp_cursor cur, const cpp_entity& parent,
                           cpp_function_info info)
-        : cpp_entity(t, cur, parent),
-          info_(std::move(info)) {}
+        : cpp_entity(t, cur, parent), info_(std::move(info))
+        {
+        }
 
     private:
         cpp_function_info info_;
     };
 
-    class cpp_function final
-    : public cpp_function_base
+    class cpp_function final : public cpp_function_base
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -149,8 +151,8 @@ namespace standardese
             return cpp_entity::function_t;
         }
 
-        static cpp_ptr<cpp_function> parse(translation_unit &tu,
-                                           cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_function> parse(translation_unit& tu, cpp_cursor cur,
+                                           const cpp_entity& parent);
 
         const cpp_type_ref& get_return_type() const STANDARDESE_NOEXCEPT
         {
@@ -158,10 +160,12 @@ namespace standardese
         }
 
     private:
-        cpp_function(cpp_cursor cur, const cpp_entity &parent,
-                     cpp_type_ref ret, cpp_function_info info)
+        cpp_function(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref ret,
+                     cpp_function_info info)
         : cpp_function_base(get_entity_type(), cur, parent, std::move(info)),
-          return_(std::move(ret)) {}
+          return_(std::move(ret))
+        {
+        }
 
         cpp_type_ref return_;
 
@@ -214,9 +218,9 @@ namespace standardese
 
     struct cpp_member_function_info
     {
-        cpp_cv cv_qualifier = cpp_cv(0);
+        cpp_cv            cv_qualifier  = cpp_cv(0);
         cpp_ref_qualifier ref_qualifier = cpp_ref_none;
-        cpp_virtual virtual_flag = cpp_virtual_none;
+        cpp_virtual       virtual_flag  = cpp_virtual_none;
 
         void set_cv(cpp_cv cv) STANDARDESE_NOEXCEPT
         {
@@ -224,8 +228,7 @@ namespace standardese
         }
     };
 
-    class cpp_member_function final
-    : public cpp_function_base
+    class cpp_member_function final : public cpp_function_base
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -233,8 +236,8 @@ namespace standardese
             return cpp_entity::member_function_t;
         }
 
-        static cpp_ptr<cpp_member_function> parse(translation_unit &tu,
-                                           cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_member_function> parse(translation_unit& tu, cpp_cursor cur,
+                                                  const cpp_entity& parent);
 
         const cpp_type_ref& get_return_type() const STANDARDESE_NOEXCEPT
         {
@@ -257,20 +260,21 @@ namespace standardese
         }
 
     private:
-        cpp_member_function(cpp_cursor cur, const cpp_entity &parent,
-                            cpp_type_ref ret,
+        cpp_member_function(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref ret,
                             cpp_function_info finfo, cpp_member_function_info minfo)
         : cpp_function_base(get_entity_type(), cur, parent, std::move(finfo)),
-          return_(std::move(ret)), info_(std::move(minfo)) {}
+          return_(std::move(ret)),
+          info_(std::move(minfo))
+        {
+        }
 
-        cpp_type_ref return_;
+        cpp_type_ref             return_;
         cpp_member_function_info info_;
 
         friend detail::cpp_ptr_access;
     };
 
-    class cpp_conversion_op final
-    : public cpp_function_base
+    class cpp_conversion_op final : public cpp_function_base
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -278,8 +282,8 @@ namespace standardese
             return cpp_entity::conversion_op_t;
         }
 
-        static cpp_ptr<cpp_conversion_op> parse(translation_unit &tu,
-                                                cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_conversion_op> parse(translation_unit& tu, cpp_cursor cur,
+                                                const cpp_entity& parent);
 
         cpp_name get_name() const override;
 
@@ -304,20 +308,21 @@ namespace standardese
         }
 
     private:
-        cpp_conversion_op(cpp_cursor cur, const cpp_entity &parent,
-                          cpp_type_ref target,
+        cpp_conversion_op(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref target,
                           cpp_function_info finfo, cpp_member_function_info minfo)
         : cpp_function_base(get_entity_type(), cur, parent, std::move(finfo)),
-          target_type_(std::move(target)), info_(std::move(minfo)) {}
+          target_type_(std::move(target)),
+          info_(std::move(minfo))
+        {
+        }
 
-        cpp_type_ref target_type_;
+        cpp_type_ref             target_type_;
         cpp_member_function_info info_;
 
         friend detail::cpp_ptr_access;
     };
 
-    class cpp_constructor final
-    : public cpp_function_base
+    class cpp_constructor final : public cpp_function_base
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -325,20 +330,21 @@ namespace standardese
             return cpp_entity::constructor_t;
         }
 
-        static cpp_ptr<cpp_constructor> parse(translation_unit &tu,
-                                                cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_constructor> parse(translation_unit& tu, cpp_cursor cur,
+                                              const cpp_entity& parent);
 
         cpp_name get_name() const override;
 
     private:
-        cpp_constructor(cpp_cursor cur, const cpp_entity &parent, cpp_function_info info)
-        : cpp_function_base(get_entity_type(), cur, parent, std::move(info)) {}
+        cpp_constructor(cpp_cursor cur, const cpp_entity& parent, cpp_function_info info)
+        : cpp_function_base(get_entity_type(), cur, parent, std::move(info))
+        {
+        }
 
         friend detail::cpp_ptr_access;
     };
 
-    class cpp_destructor final
-    : public cpp_function_base
+    class cpp_destructor final : public cpp_function_base
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -346,8 +352,8 @@ namespace standardese
             return cpp_entity::destructor_t;
         }
 
-        static cpp_ptr<cpp_destructor> parse(translation_unit &tu,
-                                              cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_destructor> parse(translation_unit& tu, cpp_cursor cur,
+                                             const cpp_entity& parent);
 
         cpp_name get_name() const override;
 
@@ -357,10 +363,11 @@ namespace standardese
         }
 
     private:
-        cpp_destructor(cpp_cursor cur, const cpp_entity &parent,
-                       cpp_function_info info, cpp_virtual virt)
-        : cpp_function_base(get_entity_type(), cur, parent, std::move(info)),
-          virtual_(virt) {}
+        cpp_destructor(cpp_cursor cur, const cpp_entity& parent, cpp_function_info info,
+                       cpp_virtual virt)
+        : cpp_function_base(get_entity_type(), cur, parent, std::move(info)), virtual_(virt)
+        {
+        }
 
         cpp_virtual virtual_;
 
@@ -369,12 +376,14 @@ namespace standardese
 
     namespace detail
     {
-        inline bool is_virtual(const cpp_entity &e)
+        inline bool is_virtual(const cpp_entity& e)
         {
             if (e.get_entity_type() == cpp_entity::member_function_t)
-                return standardese::is_virtual(static_cast<const cpp_member_function&>(e).get_virtual());
+                return standardese::is_virtual(
+                    static_cast<const cpp_member_function&>(e).get_virtual());
             else if (e.get_entity_type() == cpp_entity::conversion_op_t)
-                return standardese::is_virtual(static_cast<const cpp_conversion_op&>(e).get_virtual());
+                return standardese::is_virtual(
+                    static_cast<const cpp_conversion_op&>(e).get_virtual());
             else if (e.get_entity_type() == cpp_entity::destructor_t)
                 return standardese::is_virtual(static_cast<const cpp_destructor&>(e).get_virtual());
 

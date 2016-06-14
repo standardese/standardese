@@ -12,32 +12,34 @@
 
 using namespace standardese;
 
-cpp_ptr<cpp_template_parameter> cpp_template_parameter::try_parse(translation_unit &tu,
-                                                                  cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_template_parameter> cpp_template_parameter::try_parse(translation_unit& tu,
+                                                                  cpp_cursor        cur,
+                                                                  const cpp_entity& parent)
 {
     switch (clang_getCursorKind(cur))
     {
-        case CXCursor_TemplateTypeParameter:
-            return cpp_template_type_parameter::parse(tu, cur, parent);
-        case CXCursor_NonTypeTemplateParameter:
-            return cpp_non_type_template_parameter::parse(tu, cur, parent);
-        case CXCursor_TemplateTemplateParameter:
-            return cpp_template_template_parameter::parse(tu, cur, parent);
-        default:
-            break;
+    case CXCursor_TemplateTypeParameter:
+        return cpp_template_type_parameter::parse(tu, cur, parent);
+    case CXCursor_NonTypeTemplateParameter:
+        return cpp_non_type_template_parameter::parse(tu, cur, parent);
+    case CXCursor_TemplateTemplateParameter:
+        return cpp_template_template_parameter::parse(tu, cur, parent);
+    default:
+        break;
     }
 
     return nullptr;
 }
 
-cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translation_unit &tu,
-                                                                        cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translation_unit& tu,
+                                                                        cpp_cursor        cur,
+                                                                        const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_TemplateTypeParameter);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto stream = detail::make_stream(tokenizer);
-    auto name = detail::parse_name(cur);
+    auto              stream = detail::make_stream(tokenizer);
+    auto              name   = detail::parse_name(cur);
 
     // skip typename
     auto res = detail::skip_if_token(stream, "typename");
@@ -46,7 +48,8 @@ cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translat
         res = detail::skip_if_token(stream, "class");
         if (!res)
             throw parse_error(source_location(cur),
-                              "unexpected token \'" + std::string(stream.peek().get_value().c_str()) + "\'");
+                              "unexpected token \'" + std::string(stream.peek().get_value().c_str())
+                                  + "\'");
     }
 
     // variadic parameter
@@ -76,23 +79,22 @@ cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translat
         detail::unmunch(def_name);
     }
 
-    return detail::make_ptr<cpp_template_type_parameter>(cur, parent,
-                                                         cpp_type_ref(def_name, {}), is_variadic);
+    return detail::make_ptr<cpp_template_type_parameter>(cur, parent, cpp_type_ref(def_name, {}),
+                                                         is_variadic);
 }
 
-cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(translation_unit &tu,
-                                                                                cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
+    translation_unit& tu, cpp_cursor cur, const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_NonTypeTemplateParameter);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto stream = detail::make_stream(tokenizer);
-    auto name = detail::parse_name(cur);
+    auto              stream = detail::make_stream(tokenizer);
+    auto              name   = detail::parse_name(cur);
 
     // given type
     std::string type_given;
-    while (stream.peek().get_value() != "..."
-        && stream.peek().get_value() != name.c_str())
+    while (stream.peek().get_value() != "..." && stream.peek().get_value() != name.c_str())
     {
         detail::skip_attribute(stream, cur);
         type_given += stream.get().get_value().c_str();
@@ -134,16 +136,17 @@ cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
 
     auto type = clang_getCursorType(cur);
     return detail::make_ptr<cpp_non_type_template_parameter>(cur, parent,
-                                                             cpp_type_ref(std::move(type_given), type), std::move(def),
-                                                             is_variadic);
+                                                             cpp_type_ref(std::move(type_given),
+                                                                          type),
+                                                             std::move(def), is_variadic);
 }
 
 namespace
 {
-    bool is_template_template_variadic(translation_unit &tu, cpp_cursor cur, const cpp_name &name)
+    bool is_template_template_variadic(translation_unit& tu, cpp_cursor cur, const cpp_name& name)
     {
         detail::tokenizer tokenizer(tu, cur);
-        auto stream = detail::make_stream(tokenizer);
+        auto              stream = detail::make_stream(tokenizer);
 
         auto found = false;
         while (!stream.done())
@@ -160,24 +163,23 @@ namespace
     }
 }
 
-cpp_ptr<cpp_template_template_parameter> cpp_template_template_parameter::parse(translation_unit &tu,
-                                                                                cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_template_template_parameter> cpp_template_template_parameter::parse(
+    translation_unit& tu, cpp_cursor cur, const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_TemplateTemplateParameter);
 
-    auto name = detail::parse_name(cur);
+    auto name     = detail::parse_name(cur);
     auto variadic = is_template_template_variadic(tu, cur, name);
-    auto result = detail::make_ptr<cpp_template_template_parameter>(cur, parent,
-                                                                    cpp_template_ref(), variadic);
+    auto result = detail::make_ptr<cpp_template_template_parameter>(cur, parent, cpp_template_ref(),
+                                                                    variadic);
 
-    detail::visit_children(cur, [&](CXCursor cur, CXCursor)
-    {
+    detail::visit_children(cur, [&](CXCursor cur, CXCursor) {
         if (auto param = cpp_template_parameter::try_parse(tu, cur, *result))
-           result->add_paramter(std::move(param));
+            result->add_paramter(std::move(param));
         else
         {
-           assert(clang_getCursorKind(cur) == CXCursor_TemplateRef);
-           result->default_ = cpp_template_ref(cur, detail::parse_name(cur));
+            assert(clang_getCursorKind(cur) == CXCursor_TemplateRef);
+            result->default_ = cpp_template_ref(cur, detail::parse_name(cur));
         }
 
         return CXChildVisit_Continue;
@@ -186,15 +188,15 @@ cpp_ptr<cpp_template_template_parameter> cpp_template_template_parameter::parse(
     return result;
 }
 
-bool standardese::is_full_specialization(translation_unit &tu, cpp_cursor cur)
+bool standardese::is_full_specialization(translation_unit& tu, cpp_cursor cur)
 {
     detail::tokenizer tokenizer(tu, cur);
-    auto stream = detail::make_stream(tokenizer);
+    auto              stream = detail::make_stream(tokenizer);
 
     return stream.get().get_value() == "template";
 }
 
-const cpp_function_base* standardese::get_function(const cpp_entity &e) STANDARDESE_NOEXCEPT
+const cpp_function_base* standardese::get_function(const cpp_entity& e) STANDARDESE_NOEXCEPT
 {
     if (is_function_like(e.get_entity_type()))
         return static_cast<const cpp_function_base*>(&e);
@@ -208,10 +210,9 @@ const cpp_function_base* standardese::get_function(const cpp_entity &e) STANDARD
 namespace
 {
     template <typename T>
-    void parse_parameters(translation_unit &tu, T &result, cpp_cursor cur)
+    void parse_parameters(translation_unit& tu, T& result, cpp_cursor cur)
     {
-        detail::visit_children(cur, [&](CXCursor cur, CXCursor)
-        {
+        detail::visit_children(cur, [&](CXCursor cur, CXCursor) {
             if (auto ptr = cpp_template_parameter::try_parse(tu, cur, result))
             {
                 result.add_template_parameter(std::move(ptr));
@@ -223,7 +224,7 @@ namespace
 
     // appends template paramters to name
     template <typename T>
-    cpp_name get_template_name(std::string name, T &result)
+    cpp_name get_template_name(std::string name, T& result)
     {
         name += "<";
         auto needs_comma = false;
@@ -248,13 +249,14 @@ namespace
     }
 
     // appends specialization arguments to name
-    cpp_name get_template_specialization_name(translation_unit &tu, cpp_cursor cur, const std::string &name)
+    cpp_name get_template_specialization_name(translation_unit& tu, cpp_cursor cur,
+                                              const std::string& name)
     {
         if (name.empty())
             return "";
 
         detail::tokenizer tokenizer(tu, cur);
-        auto stream = detail::make_stream(tokenizer);
+        auto              stream = detail::make_stream(tokenizer);
 
         while (stream.get().get_value() != name.c_str())
             ;
@@ -279,8 +281,8 @@ namespace
     }
 }
 
-cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit &tu,
-                                                            cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit& tu, cpp_cursor cur,
+                                                            const cpp_entity& parent)
 {
     auto result = detail::make_ptr<cpp_function_template>(cur, parent);
     parse_parameters(tu, *result, cur);
@@ -297,12 +299,13 @@ cpp_name cpp_function_template::get_name() const
     return get_template_name(func_->get_name().c_str(), *this);
 }
 
-cpp_function_template::cpp_function_template(cpp_cursor cur, const cpp_entity &parent)
+cpp_function_template::cpp_function_template(cpp_cursor cur, const cpp_entity& parent)
 : cpp_entity(get_entity_type(), cur, parent)
-{}
+{
+}
 
-cpp_ptr<cpp_function_template_specialization> cpp_function_template_specialization::parse(translation_unit &tu,
-                                                    cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_function_template_specialization> cpp_function_template_specialization::parse(
+    translation_unit& tu, cpp_cursor cur, const cpp_entity& parent)
 {
     auto result = detail::make_ptr<cpp_function_template_specialization>(cur, parent);
 
@@ -318,12 +321,14 @@ cpp_ptr<cpp_function_template_specialization> cpp_function_template_specializati
     return result;
 }
 
-cpp_function_template_specialization::cpp_function_template_specialization(cpp_cursor cur, const cpp_entity &parent)
-: cpp_entity(get_entity_type(), cur, parent),
-  name_("")
-{}
+cpp_function_template_specialization::cpp_function_template_specialization(cpp_cursor        cur,
+                                                                           const cpp_entity& parent)
+: cpp_entity(get_entity_type(), cur, parent), name_("")
+{
+}
 
-cpp_ptr<cpp_class_template> cpp_class_template::parse(translation_unit &tu, cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_class_template> cpp_class_template::parse(translation_unit& tu, cpp_cursor cur,
+                                                      const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_ClassTemplate);
 
@@ -343,9 +348,8 @@ cpp_name cpp_class_template::get_name() const
     return get_template_name(class_->get_name().c_str(), *this);
 }
 
-cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_specialization::parse(translation_unit &tu,
-                                                                                              cpp_cursor cur,
-                                                                                              const cpp_entity &parent)
+cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_specialization::parse(
+    translation_unit& tu, cpp_cursor cur, const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_ClassDecl
            || clang_getCursorKind(cur) == CXCursor_StructDecl
@@ -357,7 +361,7 @@ cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_speciali
     if (!ptr)
         return nullptr;
     result->class_ = std::move(ptr);
-    result->name_ = get_template_specialization_name(tu, cur, result->class_->get_name().c_str());
+    result->name_  = get_template_specialization_name(tu, cur, result->class_->get_name().c_str());
 
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
     assert(primary_cur != cpp_cursor());
@@ -367,7 +371,7 @@ cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_speciali
 }
 
 cpp_ptr<cpp_class_template_partial_specialization> cpp_class_template_partial_specialization::parse(
-                                        translation_unit &tu, cpp_cursor cur, const cpp_entity &parent)
+    translation_unit& tu, cpp_cursor cur, const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_ClassTemplatePartialSpecialization);
 
@@ -378,7 +382,7 @@ cpp_ptr<cpp_class_template_partial_specialization> cpp_class_template_partial_sp
     if (!ptr)
         return nullptr;
     result->class_ = std::move(ptr);
-    result->name_ = get_template_specialization_name(tu, cur, result->class_->get_name().c_str());
+    result->name_  = get_template_specialization_name(tu, cur, result->class_->get_name().c_str());
 
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
     assert(primary_cur != cpp_cursor());
@@ -387,7 +391,7 @@ cpp_ptr<cpp_class_template_partial_specialization> cpp_class_template_partial_sp
     return result;
 }
 
-const cpp_class* standardese::get_class(const cpp_entity &e) STANDARDESE_NOEXCEPT
+const cpp_class* standardese::get_class(const cpp_entity& e) STANDARDESE_NOEXCEPT
 {
     if (e.get_entity_type() == cpp_entity::class_t)
         return static_cast<const cpp_class*>(&e);
@@ -401,7 +405,8 @@ const cpp_class* standardese::get_class(const cpp_entity &e) STANDARDESE_NOEXCEP
 }
 
 #if CINDEX_VERSION_MINOR >= 32
-cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit &tu, cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit& tu, cpp_cursor cur,
+                                                      const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_TypeAliasTemplateDecl);
 
@@ -409,8 +414,7 @@ cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit &tu, cpp_
     parse_parameters(tu, *result, cur);
 
     cpp_cursor type;
-    detail::visit_children(cur, [&](cpp_cursor cur, cpp_cursor)
-    {
+    detail::visit_children(cur, [&](cpp_cursor cur, cpp_cursor) {
         if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl)
         {
             type = cur;

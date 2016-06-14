@@ -14,9 +14,9 @@ TEST_CASE("cpp_entity", "[cpp]")
     {
         cpp_name name;
 
-        test_entity(const char *name)
-        : cpp_entity(class_t, {}),
-          name(name) {}
+        test_entity(const char* name) : cpp_entity(class_t, {}), name(name)
+        {
+        }
 
         cpp_name get_name() const override
         {
@@ -26,11 +26,12 @@ TEST_CASE("cpp_entity", "[cpp]")
 
     struct container : cpp_entity_container<cpp_entity>
     {
-        container()
-        : cpp_entity_container() {}
+        container() : cpp_entity_container()
+        {
+        }
 
         // convenience
-        void add_entity(test_entity *e)
+        void add_entity(test_entity* e)
         {
             cpp_entity_container::add_entity(cpp_entity_ptr(e));
         }

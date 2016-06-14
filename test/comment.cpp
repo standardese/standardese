@@ -16,7 +16,7 @@ TEST_CASE("comment", "[doc]")
 
     SECTION("simple parsing")
     {
-        auto comment = comment::parse(p, "", R"(/// Hello World.)");
+        auto comment  = comment::parse(p, "", R"(/// Hello World.)");
         auto sections = comment.get_sections();
         REQUIRE(sections.size() == 1u);
 
@@ -25,7 +25,7 @@ TEST_CASE("comment", "[doc]")
     }
     SECTION("multiple sections explicit")
     {
-        auto comment = comment::parse(p, "", R"(/// \brief A
+        auto comment  = comment::parse(p, "", R"(/// \brief A
                                                 ///
                                                 /// \details B
                                                 /// C /// C
@@ -44,7 +44,7 @@ TEST_CASE("comment", "[doc]")
     }
     SECTION("multiple sections implicit")
     {
-        auto comment = comment::parse(p, "", R"(///  A
+        auto comment  = comment::parse(p, "", R"(///  A
                                                 ///
                                                 /// B
                                                 /// C

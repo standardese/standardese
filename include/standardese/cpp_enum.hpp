@@ -9,12 +9,11 @@
 
 namespace standardese
 {
-    class cpp_enum_value
-    : public cpp_entity
+    class cpp_enum_value : public cpp_entity
     {
     public:
-        static cpp_ptr<cpp_enum_value> parse(translation_unit &tu,
-                                             cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_enum_value> parse(translation_unit& tu, cpp_cursor cur,
+                                             const cpp_entity& parent);
 
         bool is_explicitly_given() const STANDARDESE_NOEXCEPT
         {
@@ -24,10 +23,11 @@ namespace standardese
         virtual cpp_name get_scope() const override;
 
     protected:
-        cpp_enum_value(cpp_entity::type t, cpp_cursor cur, const cpp_entity &parent,
+        cpp_enum_value(cpp_entity::type t, cpp_cursor cur, const cpp_entity& parent,
                        bool is_explicit)
-        : cpp_entity(t, cur, parent),
-          explicit_(is_explicit) {}
+        : cpp_entity(t, cur, parent), explicit_(is_explicit)
+        {
+        }
 
     private:
         bool explicit_;
@@ -35,8 +35,7 @@ namespace standardese
         friend detail::cpp_ptr_access;
     };
 
-    class cpp_signed_enum_value final
-    : public cpp_enum_value
+    class cpp_signed_enum_value final : public cpp_enum_value
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -50,18 +49,18 @@ namespace standardese
         }
 
     private:
-        cpp_signed_enum_value(cpp_cursor cur, const cpp_entity &parent,
-                              long long value, bool is_explicit)
-        : cpp_enum_value(get_entity_type(), cur, parent, is_explicit),
-          value_(value) {}
+        cpp_signed_enum_value(cpp_cursor cur, const cpp_entity& parent, long long value,
+                              bool is_explicit)
+        : cpp_enum_value(get_entity_type(), cur, parent, is_explicit), value_(value)
+        {
+        }
 
         long long value_;
 
         friend detail::cpp_ptr_access;
     };
 
-    class cpp_unsigned_enum_value final
-    : public cpp_enum_value
+    class cpp_unsigned_enum_value final : public cpp_enum_value
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -75,18 +74,18 @@ namespace standardese
         }
 
     private:
-        cpp_unsigned_enum_value(cpp_cursor cur, const cpp_entity &parent,
-                                unsigned long long value, bool is_explicit)
-        : cpp_enum_value(get_entity_type(), cur, parent, is_explicit),
-        value_(value) {}
+        cpp_unsigned_enum_value(cpp_cursor cur, const cpp_entity& parent, unsigned long long value,
+                                bool is_explicit)
+        : cpp_enum_value(get_entity_type(), cur, parent, is_explicit), value_(value)
+        {
+        }
 
         unsigned long long value_;
 
         friend detail::cpp_ptr_access;
     };
 
-    class cpp_enum final
-    : public cpp_type, public cpp_entity_container<cpp_enum_value>
+    class cpp_enum final : public cpp_type, public cpp_entity_container<cpp_enum_value>
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -94,8 +93,8 @@ namespace standardese
             return cpp_entity::enum_t;
         }
 
-        static cpp_ptr<cpp_enum> parse(translation_unit &tu,
-                                             cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_enum> parse(translation_unit& tu, cpp_cursor cur,
+                                       const cpp_entity& parent);
 
         void add_enum_value(cpp_ptr<cpp_enum_value> value)
         {
@@ -113,13 +112,15 @@ namespace standardese
         }
 
     private:
-        cpp_enum(cpp_cursor cur, const cpp_entity &parent,
-                 cpp_type_ref underlying, bool is_scoped)
+        cpp_enum(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref underlying, bool is_scoped)
         : cpp_type(get_entity_type(), cur, parent),
-          underlying_(std::move(underlying)), is_scoped_(is_scoped) {}
+          underlying_(std::move(underlying)),
+          is_scoped_(is_scoped)
+        {
+        }
 
         cpp_type_ref underlying_;
-        bool is_scoped_;
+        bool         is_scoped_;
 
         friend detail::cpp_ptr_access;
     };

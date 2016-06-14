@@ -30,43 +30,43 @@ struct translation_unit::impl
     detail::context context;
 
     tu_wrapper tu;
-    cpp_file *file;
+    cpp_file*  file;
 
-    const standardese::parser *parser;
+    const standardese::parser* parser;
 
-    impl(const standardese::parser &p, CXTranslationUnit tunit, const char *path, cpp_file *file)
-    : context(path),
-      tu(tunit),
-      file(file),
-      parser(&p)
+    impl(const standardese::parser& p, CXTranslationUnit tunit, const char* path, cpp_file* file)
+    : context(path), tu(tunit), file(file), parser(&p)
     {
         using namespace boost::wave;
 
         auto lang = support_cpp | support_option_variadics | support_option_long_long
-                    | support_option_insert_whitespace
-                    | support_option_single_line;
+                    | support_option_insert_whitespace | support_option_single_line;
         context.set_language(language_support(lang));
     }
 };
 
 // hidden function to get context from translation unit
-detail::context& standardese::detail::get_preprocessing_context(translation_unit &tu)
+detail::context& standardese::detail::get_preprocessing_context(translation_unit& tu)
 {
     return tu.pimpl_->context;
 }
 
-translation_unit::translation_unit(translation_unit &&other) STANDARDESE_NOEXCEPT
-: pimpl_(std::move(other.pimpl_)) {}
+translation_unit::translation_unit(translation_unit&& other) STANDARDESE_NOEXCEPT
+    : pimpl_(std::move(other.pimpl_))
+{
+}
 
-translation_unit::~translation_unit() STANDARDESE_NOEXCEPT {}
+translation_unit::~translation_unit() STANDARDESE_NOEXCEPT
+{
+}
 
-translation_unit &translation_unit::operator=(translation_unit &&other) STANDARDESE_NOEXCEPT
+translation_unit& translation_unit::operator=(translation_unit&& other) STANDARDESE_NOEXCEPT
 {
     pimpl_ = std::move(other.pimpl_);
     return *this;
 }
 
-const parser &translation_unit::get_parser() const STANDARDESE_NOEXCEPT
+const parser& translation_unit::get_parser() const STANDARDESE_NOEXCEPT
 {
     return *pimpl_->parser;
 }
@@ -83,7 +83,7 @@ CXFile translation_unit::get_cxfile() const STANDARDESE_NOEXCEPT
     return file;
 }
 
-const cpp_file &translation_unit::get_file() const STANDARDESE_NOEXCEPT
+const cpp_file& translation_unit::get_file() const STANDARDESE_NOEXCEPT
 {
     return *pimpl_->file;
 }
@@ -93,18 +93,18 @@ CXTranslationUnit translation_unit::get_cxunit() const STANDARDESE_NOEXCEPT
     return pimpl_->tu.get();
 }
 
-const cpp_entity_registry &translation_unit::get_registry() const STANDARDESE_NOEXCEPT
+const cpp_entity_registry& translation_unit::get_registry() const STANDARDESE_NOEXCEPT
 {
     return pimpl_->parser->get_registry();
 }
 
-translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, const char *path, cpp_file *file)
+translation_unit::translation_unit(const parser& par, CXTranslationUnit tu, const char* path,
+                                   cpp_file* file)
 : pimpl_(new impl(par, tu, path, file))
 {
     detail::scope_stack stack(pimpl_->file);
 
-    detail::visit_tu(pimpl_->tu.get(), get_cxfile(), [&](cpp_cursor cur, cpp_cursor parent)
-    {
+    detail::visit_tu(pimpl_->tu.get(), get_cxfile(), [&](cpp_cursor cur, cpp_cursor parent) {
         stack.pop_if_needed(parent);
 
         if (clang_getCursorSemanticParent(cur) != parent
@@ -117,15 +117,16 @@ translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, cons
             if (get_parser().get_logger()->level() <= spdlog::level::debug)
             {
                 auto location = source_location(cur);
-                get_parser().get_logger()->debug("Parsing entity '{}' of type '{}' at {}:{}",
-                                              string(clang_getCursorDisplayName(cur)).c_str(),
-                                              string(clang_getCursorKindSpelling(clang_getCursorKind(cur))).c_str(),
-                                              location.file_name, location.line);
+                get_parser()
+                    .get_logger()
+                    ->debug("Parsing entity '{}' of type '{}' at {}:{}",
+                            string(clang_getCursorDisplayName(cur)).c_str(),
+                            string(clang_getCursorKindSpelling(clang_getCursorKind(cur))).c_str(),
+                            location.file_name, location.line);
             }
 
-
             if (clang_getCursorKind(cur) == CXCursor_MacroExpansion)
-               pimpl_->context.add_macro_definition(detail::get_cmd_definition(cur));
+                pimpl_->context.add_macro_definition(detail::get_cmd_definition(cur));
             else
             {
                 auto entity = cpp_entity::try_parse(*this, cur, stack.cur_parent());
@@ -141,16 +142,18 @@ translation_unit::translation_unit(const parser &par, CXTranslationUnit tu, cons
 
             return CXChildVisit_Continue;
         }
-        catch (parse_error &ex)
+        catch (parse_error& ex)
         {
             if (ex.get_severity() == severity::warning)
                 get_parser().get_logger()->warn("when parsing {} ({}:{}): {}",
-                                             ex.get_location().entity_name, ex.get_location().file_name, ex.get_location().line,
-                                             ex.what());
+                                                ex.get_location().entity_name,
+                                                ex.get_location().file_name, ex.get_location().line,
+                                                ex.what());
             else
                 get_parser().get_logger()->error("when parsing {} ({}:{}): {}",
-                                                 ex.get_location().entity_name, ex.get_location().file_name, ex.get_location().line,
-                                                 ex.what());
+                                                 ex.get_location().entity_name,
+                                                 ex.get_location().file_name,
+                                                 ex.get_location().line, ex.what());
             return CXChildVisit_Continue;
         }
     });

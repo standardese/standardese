@@ -16,8 +16,7 @@ namespace standardese
 {
     struct cpp_cursor;
 
-    class libclang_error
-    : public std::runtime_error
+    class libclang_error : public std::runtime_error
     {
     public:
         libclang_error(CXErrorCode error, std::string type);
@@ -34,11 +33,12 @@ namespace standardese
     struct source_location
     {
         std::string entity_name, file_name;
-        unsigned line;
+        unsigned    line;
 
         source_location(std::string entity, std::string file, unsigned line)
         : entity_name(std::move(entity)), file_name(std::move(file)), line(line)
-        {}
+        {
+        }
 
         source_location(CXSourceLocation location, std::string entity);
 
@@ -51,18 +51,17 @@ namespace standardese
         error
     };
 
-    class parse_error
-    : public std::runtime_error
+    class parse_error : public std::runtime_error
     {
     public:
         parse_error(source_location location, std::string message, severity sev = severity::error)
-        : std::runtime_error(std::move(message)),
-          location_(std::move(location)), severity_(sev)
-        {}
+        : std::runtime_error(std::move(message)), location_(std::move(location)), severity_(sev)
+        {
+        }
 
         const source_location& get_location() const STANDARDESE_NOEXCEPT
         {
-           return location_;
+            return location_;
         }
 
         severity get_severity() const STANDARDESE_NOEXCEPT
@@ -72,7 +71,7 @@ namespace standardese
 
     private:
         source_location location_;
-        severity severity_;
+        severity        severity_;
     };
 } // namespace standardese
 

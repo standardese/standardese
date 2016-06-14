@@ -18,7 +18,7 @@ namespace standardese
     class comment
     {
     public:
-        static comment parse(const parser &p, const cpp_name &name, const cpp_raw_comment &comment);
+        static comment parse(const parser& p, const cpp_name& name, const cpp_raw_comment& comment);
 
         const std::vector<section>& get_sections() const STANDARDESE_NOEXCEPT
         {

@@ -92,11 +92,11 @@ TEST_CASE("cpp_variable", "[cpp]")
             {
                 ++count;
                 REQUIRE(type.get_name() == "auto");
-                #if CINDEX_VERSION_MINOR < 32
-                    REQUIRE(type.get_full_name() == "auto");
-                #else
-                    REQUIRE(type.get_full_name() == "unsigned int");
-                #endif
+#if CINDEX_VERSION_MINOR < 32
+                REQUIRE(type.get_full_name() == "auto");
+#else
+                REQUIRE(type.get_full_name() == "unsigned int");
+#endif
                 REQUIRE(var->get_initializer() == "f(4)");
                 REQUIRE(var->is_thread_local());
             }
@@ -142,8 +142,7 @@ TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
     auto tu = parse(p, "cpp_member_variable", code);
 
     auto count = 0u;
-    for_each(tu.get_file(), [&](const cpp_entity &t)
-    {
+    for_each(tu.get_file(), [&](const cpp_entity& t) {
         auto& c = dynamic_cast<const cpp_class&>(t);
         for (auto& e : c)
         {

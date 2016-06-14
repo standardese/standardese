@@ -13,8 +13,9 @@
 #include <standardese/string.hpp>
 #include <standardese/translation_unit.hpp>
 
-inline standardese::translation_unit parse(standardese::parser &p, const char *name, const char *code,
-                                           const standardese::compile_config &c = standardese::cpp_standard::cpp_14)
+inline standardese::translation_unit parse(
+    standardese::parser& p, const char* name, const char* code,
+    const standardese::compile_config& c = standardese::cpp_standard::cpp_14)
 {
     std::ofstream file(name);
     file << code;
@@ -24,26 +25,26 @@ inline standardese::translation_unit parse(standardese::parser &p, const char *n
 }
 
 template <typename T>
-std::vector<standardese::cpp_ptr<T>> parse_entity(standardese::translation_unit &unit, CXCursorKind kind)
+std::vector<standardese::cpp_ptr<T>> parse_entity(standardese::translation_unit& unit,
+                                                  CXCursorKind                   kind)
 {
     std::vector<standardese::cpp_ptr<T>> result;
 
     standardese::detail::visit_tu(unit.get_cxunit(), unit.get_cxfile(),
-                       [&](CXCursor cur, CXCursor)
-                       {
-                            if (clang_getCursorKind(cur) == kind)
-                            {
-                                result.push_back(T::parse(unit, cur, unit.get_file()));
-                                return CXChildVisit_Continue;
-                            }
-                            return CXChildVisit_Recurse;
-                       });
+                                  [&](CXCursor cur, CXCursor) {
+                                      if (clang_getCursorKind(cur) == kind)
+                                      {
+                                          result.push_back(T::parse(unit, cur, unit.get_file()));
+                                          return CXChildVisit_Continue;
+                                      }
+                                      return CXChildVisit_Recurse;
+                                  });
 
     return result;
 }
 
 template <typename Func>
-void for_each(const standardese::cpp_entity &e, Func f)
+void for_each(const standardese::cpp_entity& e, Func f)
 {
     using namespace standardese;
 

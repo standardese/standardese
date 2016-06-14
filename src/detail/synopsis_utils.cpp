@@ -9,10 +9,9 @@
 
 using namespace standardese;
 
-void detail::write_type_value_default(const parser &par,
-                              output_base::code_block_writer &out,
-                              const cpp_type_ref &type, const cpp_name &name,
-                              const std::string &def)
+void detail::write_type_value_default(const parser& par, output_base::code_block_writer& out,
+                                      const cpp_type_ref& type, const cpp_name& name,
+                                      const std::string& def)
 {
     std::string type_name = get_ref_name(par, type).c_str();
 
@@ -49,32 +48,31 @@ void detail::write_type_value_default(const parser &par,
         out << " = " << def;
 }
 
-void detail::write_class_name(output_base::code_block_writer &out,
-                      const cpp_name &name, int class_type)
+void detail::write_class_name(output_base::code_block_writer& out, const cpp_name& name,
+                              int class_type)
 {
     switch (class_type)
     {
-        case cpp_struct_t:
-            out << "struct ";
-            break;
-        case cpp_class_t:
-            out << "class ";
-            break;
-        case cpp_union_t:
-            out << "union ";
+    case cpp_struct_t:
+        out << "struct ";
+        break;
+    case cpp_class_t:
+        out << "class ";
+        break;
+    case cpp_union_t:
+        out << "union ";
     }
 
     out << name;
 }
 
-void detail::write_bases(const parser &par,
-                         output_base::code_block_writer &out, const cpp_class &c, bool extract_private)
+void detail::write_bases(const parser& par, output_base::code_block_writer& out, const cpp_class& c,
+                         bool extract_private)
 {
     auto comma = false;
-    for (auto &base : c.get_bases())
+    for (auto& base : c.get_bases())
     {
-        if (!extract_private
-            && base.get_access() == cpp_private)
+        if (!extract_private && base.get_access() == cpp_private)
             continue;
 
         if (comma)
@@ -87,17 +85,17 @@ void detail::write_bases(const parser &par,
 
         switch (base.get_access())
         {
-            case cpp_public:
-                if (c.get_class_type() == cpp_class_t)
-                    out << "public ";
-                break;
-            case cpp_private:
-                if (c.get_class_type() != cpp_class_t)
-                    out << "private ";
-                break;
-            case cpp_protected:
-                out << "protected ";
-                break;
+        case cpp_public:
+            if (c.get_class_type() == cpp_class_t)
+                out << "public ";
+            break;
+        case cpp_private:
+            if (c.get_class_type() != cpp_class_t)
+                out << "private ";
+            break;
+        case cpp_protected:
+            out << "protected ";
+            break;
         }
 
         out << get_ref_name(par, base.get_type());
@@ -107,9 +105,8 @@ void detail::write_bases(const parser &par,
         out << newl;
 }
 
-void detail::write_parameters(const parser &par,
-                              output_base::code_block_writer &out, const cpp_function_base &f,
-                              const cpp_name &override_name)
+void detail::write_parameters(const parser& par, output_base::code_block_writer& out,
+                              const cpp_function_base& f, const cpp_name& override_name)
 {
     if (override_name.empty())
         out << f.get_name();
@@ -118,9 +115,9 @@ void detail::write_parameters(const parser &par,
     out << '(';
 
     write_range(out, f.get_parameters(), ", ",
-                [&](output_base::code_block_writer &out, const cpp_function_parameter &p)
-                {
-                    detail::write_type_value_default(par, out, p.get_type(), p.get_name(), p.get_default_value());
+                [&](output_base::code_block_writer& out, const cpp_function_parameter& p) {
+                    detail::write_type_value_default(par, out, p.get_type(), p.get_name(),
+                                                     p.get_default_value());
                     return true;
                 });
 
@@ -134,7 +131,7 @@ void detail::write_parameters(const parser &par,
     out << ')';
 }
 
-void detail::write_noexcept(output_base::code_block_writer &out, const cpp_function_base &f)
+void detail::write_noexcept(output_base::code_block_writer& out, const cpp_function_base& f)
 {
     if (f.explicit_noexcept())
     {
@@ -145,7 +142,8 @@ void detail::write_noexcept(output_base::code_block_writer &out, const cpp_funct
     }
 }
 
-void detail::write_definition(output_base::code_block_writer &out, const cpp_function_base &f, bool pure)
+void detail::write_definition(output_base::code_block_writer& out, const cpp_function_base& f,
+                              bool pure)
 {
     if (pure)
     {
@@ -155,19 +153,19 @@ void detail::write_definition(output_base::code_block_writer &out, const cpp_fun
 
     switch (f.get_definition())
     {
-        case cpp_function_definition_normal:
-            out << ';';
-            break;
-        case cpp_function_definition_defaulted:
-            out << " = default;";
-            break;
-        case cpp_function_definition_deleted:
-            out << " = delete;";
-            break;
+    case cpp_function_definition_normal:
+        out << ';';
+        break;
+    case cpp_function_definition_defaulted:
+        out << " = default;";
+        break;
+    case cpp_function_definition_deleted:
+        out << " = delete;";
+        break;
     }
 }
 
-void detail::write_cv_ref(output_base::code_block_writer &out, int cv, int ref)
+void detail::write_cv_ref(output_base::code_block_writer& out, int cv, int ref)
 {
     if (cv & cpp_cv_const)
         out << " const";
@@ -180,7 +178,8 @@ void detail::write_cv_ref(output_base::code_block_writer &out, int cv, int ref)
         out << " &";
 }
 
-void detail::write_prefix(output_base::code_block_writer &out, int virtual_flag, bool constexpr_f, bool explicit_f)
+void detail::write_prefix(output_base::code_block_writer& out, int virtual_flag, bool constexpr_f,
+                          bool explicit_f)
 {
     if (virtual_flag == cpp_virtual_static)
         out << "static ";
@@ -194,7 +193,7 @@ void detail::write_prefix(output_base::code_block_writer &out, int virtual_flag,
         out << "constexpr ";
 }
 
-void detail::write_override_final(output_base::code_block_writer &out, int virtual_flag)
+void detail::write_override_final(output_base::code_block_writer& out, int virtual_flag)
 {
     if (virtual_flag == cpp_virtual_final)
         out << " final";

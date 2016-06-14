@@ -20,8 +20,8 @@ namespace standardese_tool
     namespace detail
     {
         // path must be given relative to the traversal directory
-        inline bool is_valid(const fs::path &path,
-                             const blacklist &extensions, const blacklist &files, const blacklist &dirs)
+        inline bool is_valid(const fs::path& path, const blacklist& extensions,
+                             const blacklist& files, const blacklist& dirs)
         {
             if (fs::is_directory(path))
             {
@@ -50,9 +50,8 @@ namespace standardese_tool
     // otherwise recursively traverses through the given directory and calls f for each valid file
     // returns false if path was a normal file that was marked as invalid, true otherwise
     template <typename Fun>
-    bool handle_path(const fs::path &path,
-                     const blacklist &extensions, const blacklist &files, blacklist dirs,
-                     Fun f)
+    bool handle_path(const fs::path& path, const blacklist& extensions, const blacklist& files,
+                     blacklist dirs, Fun f)
     {
         // remove trailing slash if any
         // otherwise Boost.Filesystem can't handle it
@@ -67,8 +66,8 @@ namespace standardese_tool
             auto end = fs::recursive_directory_iterator();
             for (auto iter = fs::recursive_directory_iterator(path); iter != end; ++iter)
             {
-                auto& cur = iter->path();
-                auto relative = fs::relative(cur, path);
+                auto& cur      = iter->path();
+                auto  relative = fs::relative(cur, path);
 
                 if (fs::is_directory(cur))
                 {

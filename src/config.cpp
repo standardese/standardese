@@ -4,7 +4,6 @@
 
 #include <standardese/config.hpp>
 
-
 #include <spdlog/details/format.h>
 
 #include <standardese/section.hpp>
@@ -46,11 +45,9 @@ std::string compile_config::macro_undefinition(std::string s)
     return "-U" + std::move(s);
 }
 
-comment_config::comment_config()
-: cmd_char_('\\')
+comment_config::comment_config() : cmd_char_('\\')
 {
-    #define STANDARDESE_DETAIL_SET(type) \
-        set_section_command(section_type::type, #type);
+#define STANDARDESE_DETAIL_SET(type) set_section_command(section_type::type, #type);
 
     STANDARDESE_DETAIL_SET(brief)
     STANDARDESE_DETAIL_SET(details)
@@ -66,16 +63,16 @@ comment_config::comment_config()
     STANDARDESE_DETAIL_SET(error_conditions)
     STANDARDESE_DETAIL_SET(notes)
 
-    #undef STANDARDESE_DETAIL_SET
+#undef STANDARDESE_DETAIL_SET
 }
 
-section_type comment_config::try_get_section(const std::string &command) const STANDARDESE_NOEXCEPT
+section_type comment_config::try_get_section(const std::string& command) const STANDARDESE_NOEXCEPT
 {
     auto iter = section_commands_.find(command);
     return iter == section_commands_.end() ? section_type::invalid : section_type(iter->second);
 }
 
-section_type comment_config::get_section(const std::string &command) const
+section_type comment_config::get_section(const std::string& command) const
 {
     auto iter = section_commands_.find(command);
     if (iter == section_commands_.end())
@@ -96,15 +93,16 @@ void comment_config::set_section_command(section_type t, std::string command)
     // insert new name
     auto res = section_commands_.emplace(std::move(command), unsigned(t));
     if (!res.second)
-        throw std::invalid_argument(fmt::format("Section command name '{}' already in use", command));
+        throw std::invalid_argument(
+            fmt::format("Section command name '{}' already in use", command));
 }
 
 output_config::output_config()
 : section_names_(std::size_t(section_type::count)),
-  hidden_name_("implementation-defined"), tab_width_(4u)
+  hidden_name_("implementation-defined"),
+  tab_width_(4u)
 {
-    #define STANDARDESE_DETAIL_SET(type, name) \
-        set_section_name(section_type::type, name);
+#define STANDARDESE_DETAIL_SET(type, name) set_section_name(section_type::type, name);
 
     STANDARDESE_DETAIL_SET(brief, "")
     STANDARDESE_DETAIL_SET(details, "")
@@ -120,5 +118,5 @@ output_config::output_config()
     STANDARDESE_DETAIL_SET(error_conditions, "Error conditions")
     STANDARDESE_DETAIL_SET(notes, "Notes")
 
-    #undef STANDARDESE_DETAIL_SET
+#undef STANDARDESE_DETAIL_SET
 }

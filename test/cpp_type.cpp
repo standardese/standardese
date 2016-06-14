@@ -41,9 +41,8 @@ TEST_CASE("cpp_type_alias", "[cpp]")
 
     auto tu = parse(p, "cpp_type_alias", code);
 
-    auto count = 0u;
-    auto lambda = [&](const cpp_entity &e)
-    {
+    auto count  = 0u;
+    auto lambda = [&](const cpp_entity& e) {
         if (!dynamic_cast<const cpp_type_alias*>(&e))
             return;
 
@@ -146,9 +145,8 @@ TEST_CASE("cpp_enum", "[cpp]")
     auto tu = parse(p, "cpp_enum", code);
 
     auto count = 0u;
-    for_each(tu.get_file(), [&](const cpp_entity &e)
-    {
-        auto &t = dynamic_cast<const cpp_enum&>(e);
+    for_each(tu.get_file(), [&](const cpp_entity& e) {
+        auto& t = dynamic_cast<const cpp_enum&>(e);
         REQUIRE(t.get_name() == t.get_full_name());
 
         if (t.get_name() == "a")
@@ -165,9 +163,9 @@ TEST_CASE("cpp_enum", "[cpp]")
                 REQUIRE(eval.get_full_name() == "a_" + std::to_string(i));
 
                 // it is implementation defined which integer is used
-                auto value = val.get_entity_type() == cpp_entity::unsigned_enum_value_t
-                             ? dynamic_cast<const cpp_unsigned_enum_value&>(val).get_value()
-                             : dynamic_cast<const cpp_signed_enum_value&>(val).get_value();
+                auto value = val.get_entity_type() == cpp_entity::unsigned_enum_value_t ?
+                                 dynamic_cast<const cpp_unsigned_enum_value&>(val).get_value() :
+                                 dynamic_cast<const cpp_signed_enum_value&>(val).get_value();
 
                 if (i == 3u)
                 {
@@ -257,8 +255,7 @@ TEST_CASE("cpp_class", "[cpp]")
     auto tu = parse(p, "cpp_class", code);
 
     auto count = 0u;
-    for_each(tu.get_file(), [&](const cpp_entity &e)
-    {
+    for_each(tu.get_file(), [&](const cpp_entity& e) {
         auto& c = dynamic_cast<const cpp_class&>(e);
         if (c.get_name() == "foo")
         {
@@ -277,34 +274,37 @@ TEST_CASE("cpp_class", "[cpp]")
                 {
                     ++count;
                     auto& access = dynamic_cast<const cpp_access_specifier&>(member);
-                    REQUIRE(access.get_access()  == cpp_private);
+                    REQUIRE(access.get_access() == cpp_private);
                 }
                 else if (member.get_name() == "protected")
                 {
                     ++count;
                     auto& access = dynamic_cast<const cpp_access_specifier&>(member);
-                    REQUIRE(access.get_access()  == cpp_protected);
+                    REQUIRE(access.get_access() == cpp_protected);
                 }
                 else if (member.get_name() == "nested_a")
                 {
                     ++count;
                     REQUIRE(!dynamic_cast<const cpp_class&>(member).is_final());
                     REQUIRE(member.get_full_name() == "foo::nested_a");
-                    REQUIRE(dynamic_cast<const cpp_class&>(member).get_class_type() == cpp_struct_t);
+                    REQUIRE(dynamic_cast<const cpp_class&>(member).get_class_type()
+                            == cpp_struct_t);
                 }
                 else if (member.get_name() == "nested_b")
                 {
                     ++count;
                     REQUIRE(!dynamic_cast<const cpp_class&>(member).is_final());
                     REQUIRE(member.get_full_name() == "foo::nested_b");
-                    REQUIRE(dynamic_cast<const cpp_class&>(member).get_class_type() == cpp_struct_t);
+                    REQUIRE(dynamic_cast<const cpp_class&>(member).get_class_type()
+                            == cpp_struct_t);
                 }
                 else if (member.get_name() == "nested_c")
                 {
                     ++count;
                     REQUIRE(!dynamic_cast<const cpp_class&>(member).is_final());
                     REQUIRE(member.get_full_name() == "foo::nested_c");
-                    REQUIRE(dynamic_cast<const cpp_class&>(member).get_class_type() == cpp_struct_t);
+                    REQUIRE(dynamic_cast<const cpp_class&>(member).get_class_type()
+                            == cpp_struct_t);
                 }
                 else
                     REQUIRE(dynamic_cast<const cpp_class*>(&member) != nullptr);

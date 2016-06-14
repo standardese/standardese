@@ -22,7 +22,7 @@ TEST_CASE("cpp_namespace", "[cpp]")
             namespace ns_0 {}
             inline namespace ns_1 {}
         )";
-        auto tu = parse(p, "cpp_namespace__basic_parsing", code);
+        auto tu   = parse(p, "cpp_namespace__basic_parsing", code);
 
         auto i = 0u;
         for (auto& e : tu.get_file())
@@ -134,8 +134,7 @@ TEST_CASE("cpp_namespace_alias", "[cpp]")
     auto tu = parse(p, "cpp_namespace_alias", code);
 
     auto count = 0u;
-    for_each(tu.get_file(), [&](const cpp_entity &e)
-    {
+    for_each(tu.get_file(), [&](const cpp_entity& e) {
         if (auto ptr = dynamic_cast<const cpp_namespace_alias*>(&e))
         {
             if (ptr->get_name() == "a")
@@ -178,14 +177,14 @@ TEST_CASE("cpp_namespace_alias", "[cpp]")
                 ++count;
                 REQUIRE(ptr->get_full_name() == "outer::inner::f");
                 REQUIRE(ptr->get_target().get_name() == "inner2");
-                REQUIRE(ptr->get_target().get_full_name()  == "outer::inner2");
+                REQUIRE(ptr->get_target().get_full_name() == "outer::inner2");
             }
             else if (ptr->get_name() == "g")
             {
                 ++count;
                 REQUIRE(ptr->get_full_name() == "outer::inner::g");
                 REQUIRE(ptr->get_target().get_name() == "inner2::inner");
-                REQUIRE(ptr->get_target().get_full_name()  == "outer::inner2::inner");
+                REQUIRE(ptr->get_target().get_full_name() == "outer::inner2::inner");
             }
             else if (ptr->get_name() == "h")
             {
@@ -198,8 +197,8 @@ TEST_CASE("cpp_namespace_alias", "[cpp]")
             {
                 ++count;
                 REQUIRE(ptr->get_full_name() == "i");
-                REQUIRE(ptr->get_target().get_name()  == "a::e");
-                REQUIRE(ptr->get_target().get_full_name()  == "outer::inner::e");
+                REQUIRE(ptr->get_target().get_name() == "a::e");
+                REQUIRE(ptr->get_target().get_full_name() == "outer::inner::e");
             }
             else
                 REQUIRE(false);
@@ -245,8 +244,7 @@ TEST_CASE("cpp_using_directive", "[cpp]")
     auto tu = parse(p, "cpp_namespace_alias", code);
 
     auto count = 0u;
-    for_each(tu.get_file(), [&](const cpp_entity &e)
-    {
+    for_each(tu.get_file(), [&](const cpp_entity& e) {
         if (auto ptr = dynamic_cast<const cpp_using_directive*>(&e))
         {
             if (*std::prev(ptr->get_comment().end()) == 'a')
@@ -338,8 +336,7 @@ TEST_CASE("cpp_using_declaration", "[cpp]")
     auto tu = parse(p, "cpp_using_declaration", code);
 
     auto count = 0u;
-    for_each(tu.get_file(), [&](const cpp_entity &e)
-    {
+    for_each(tu.get_file(), [&](const cpp_entity& e) {
         if (auto ptr = dynamic_cast<const cpp_using_declaration*>(&e))
         {
             if (ptr->get_comment() == "/// a")
@@ -365,7 +362,7 @@ TEST_CASE("cpp_using_declaration", "[cpp]")
         }
         else if (e.get_name() == "derived")
         {
-            for (auto& m : dynamic_cast<const cpp_class &>(e))
+            for (auto& m : dynamic_cast<const cpp_class&>(e))
             {
                 if (m.get_name() == "base")
                     continue; // skip base specifier

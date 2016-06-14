@@ -11,7 +11,7 @@ using namespace standardese;
 TEST_CASE("output_stream_base")
 {
     std::ostringstream str;
-    streambuf_output out(*str.rdbuf());
+    streambuf_output   out(*str.rdbuf());
 
     SECTION("newline test")
     {

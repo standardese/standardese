@@ -18,11 +18,11 @@
 #include <standardese/cpp_entity_registry.hpp>
 
 #if CINDEX_VERSION_MAJOR != 0
-    #error "require libclang version 0.x"
+#error "require libclang version 0.x"
 #endif
 
 #if CINDEX_VERSION_MINOR < 30
-    #error "require at least libclang version 0.30 (bundled with 3.7.1)"
+#error "require at least libclang version 0.30 (bundled with 3.7.1)"
 #endif
 
 namespace standardese
@@ -49,7 +49,7 @@ namespace standardese
             }
 
         private:
-            mutable std::mutex mutex_;
+            mutable std::mutex          mutex_;
             mutable file_container_impl impl_;
         };
     } // namespace detail
@@ -63,7 +63,7 @@ namespace standardese
 
         explicit parser(std::shared_ptr<spdlog::logger> logger);
 
-        parser(parser&&) = delete;
+        parser(parser&&)      = delete;
         parser(const parser&) = delete;
 
         ~parser() STANDARDESE_NOEXCEPT;
@@ -72,7 +72,7 @@ namespace standardese
         parser& operator=(const parser&) = delete;
 
         /// Parses a translation unit.
-        translation_unit parse(const char *path, const compile_config &c) const;
+        translation_unit parse(const char* path, const compile_config& c) const;
 
         const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT
         {
@@ -111,11 +111,11 @@ namespace standardese
         };
 
         cpp_entity_registry registry_;
-        comment_config comment_;
-        output_config output_;
+        comment_config      comment_;
+        output_config       output_;
         detail::wrapper<CXIndex, deleter> index_;
         std::shared_ptr<spdlog::logger> logger_;
-        detail::file_container files_;
+        detail::file_container          files_;
     };
 } // namespace standardese
 

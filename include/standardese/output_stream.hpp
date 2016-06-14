@@ -18,15 +18,15 @@ namespace standardese
     public:
         output_stream_base() = default;
 
-        output_stream_base(const output_stream_base &) = delete;
-        output_stream_base(output_stream_base &&) = delete;
+        output_stream_base(const output_stream_base&) = delete;
+        output_stream_base(output_stream_base&&)      = delete;
 
         virtual ~output_stream_base() STANDARDESE_NOEXCEPT;
 
-        output_stream_base &operator=(const output_stream_base &) = delete;
-        output_stream_base &operator=(output_stream_base &&) = delete;
+        output_stream_base& operator=(const output_stream_base&) = delete;
+        output_stream_base& operator=(output_stream_base&&) = delete;
 
-        void write_str(const char *str, std::size_t n);
+        void write_str(const char* str, std::size_t n);
 
         void write_char(char c);
 
@@ -53,19 +53,18 @@ namespace standardese
 
         void do_indent();
 
-        char last_ = 0;
+        char     last_  = 0;
         unsigned level_ = 0;
     };
 
-    class streambuf_output
-    : public output_stream_base
+    class streambuf_output : public output_stream_base
     {
     public:
-        streambuf_output(std::streambuf &buf) STANDARDESE_NOEXCEPT
-        : buffer_(&buf) {}
+        streambuf_output(std::streambuf& buf) STANDARDESE_NOEXCEPT : buffer_(&buf)
+        {
+        }
 
-        streambuf_output(std::ostream &out) STANDARDESE_NOEXCEPT
-        : buffer_(out.rdbuf())
+        streambuf_output(std::ostream& out) STANDARDESE_NOEXCEPT : buffer_(out.rdbuf())
         {
             assert(buffer_);
         }
@@ -76,15 +75,13 @@ namespace standardese
             buffer_->sputc(c);
         }
 
-        std::streambuf *buffer_;
+        std::streambuf* buffer_;
     };
 
-    class file_output
-    : public output_stream_base
+    class file_output : public output_stream_base
     {
     public:
-        file_output(const std::string &file) STANDARDESE_NOEXCEPT
-        : file_(file)
+        file_output(const std::string& file) STANDARDESE_NOEXCEPT : file_(file)
         {
             assert(file_.is_open());
         }

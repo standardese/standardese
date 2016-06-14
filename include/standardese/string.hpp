@@ -20,46 +20,41 @@ namespace standardese
     class string
     {
     public:
-        string(const char *str)
-        : length_(std::strlen(str)), type_(std_string)
+        string(const char* str) : length_(std::strlen(str)), type_(std_string)
         {
-            ::new(get_storage()) std::string(str, length_);
+            ::new (get_storage()) std::string(str, length_);
         }
 
         template <std::size_t N>
-        string(const char(&str)[N])
-        : length_(N), type_(literal)
+        string(const char (&str)[N]) : length_(N), type_(literal)
         {
-            ::new(get_storage()) const char*(str);
+            ::new (get_storage()) const char*(str);
         }
 
-        string(std::string str)
-        : length_(str.length()), type_(std_string)
+        string(std::string str) : length_(str.length()), type_(std_string)
         {
-            ::new(get_storage()) std::string(std::move(str));
+            ::new (get_storage()) std::string(std::move(str));
         }
 
-        string(CXString str) STANDARDESE_NOEXCEPT
-        : type_(cx_string)
+        string(CXString str) STANDARDESE_NOEXCEPT : type_(cx_string)
         {
             auto ptr = clang_getCString(str);
             if (ptr)
             {
                 length_ = std::strlen(ptr);
-                ::new(get_storage()) CXString(str);
+                ::new (get_storage()) CXString(str);
             }
             else
             {
-                type_ = literal;
+                type_   = literal;
                 length_ = 0;
-                ::new(get_storage()) const char*("");
+                ::new (get_storage()) const char*("");
             }
         }
 
-        string(const string &other)
-        : length_(other.length_), type_(std_string)
+        string(const string& other) : length_(other.length_), type_(std_string)
         {
-            ::new(get_storage()) std::string(other.c_str());
+            ::new (get_storage()) std::string(other.c_str());
         }
 
         ~string() STANDARDESE_NOEXCEPT
@@ -67,7 +62,7 @@ namespace standardese
             free();
         }
 
-        string& operator=(const string &other)
+        string& operator=(const string& other)
         {
             std::string str(other.c_str());
             if (type_ == std_string)
@@ -75,7 +70,7 @@ namespace standardese
             else
             {
                 free();
-                ::new(get_storage()) std::string(std::move(str));
+                ::new (get_storage()) std::string(std::move(str));
             }
             length_ = other.length_;
 
@@ -87,13 +82,13 @@ namespace standardese
             if (type_ == std_string)
                 return static_cast<const std::string*>(get_storage())->c_str();
             else if (type_ == literal)
-                return *static_cast<const char* const *>(get_storage());
+                return *static_cast<const char* const*>(get_storage());
             return clang_getCString(*static_cast<const CXString*>(get_storage()));
         }
 
         bool empty() const STANDARDESE_NOEXCEPT
         {
-            return  length_ == 0u;
+            return length_ == 0u;
         }
 
         std::size_t length() const STANDARDESE_NOEXCEPT
@@ -130,9 +125,10 @@ namespace standardese
                 static_cast<std::string*>(get_storage())->~basic_string();
         }
 
-        std::aligned_storage<(sizeof(std::string) > sizeof(CXString))
-                            ? sizeof(std::string) : sizeof(CXString)>::type storage_;
-        std::size_t length_;
+        std::aligned_storage<(sizeof(std::string) > sizeof(CXString)) ?
+                                 sizeof(std::string) :
+                                 sizeof(CXString)>::type storage_;
+        std::size_t                                      length_;
         enum
         {
             cx_string,
@@ -141,52 +137,52 @@ namespace standardese
         } type_;
     };
 
-    inline bool operator==(const string &a, const string &b) STANDARDESE_NOEXCEPT
+    inline bool operator==(const string& a, const string& b) STANDARDESE_NOEXCEPT
     {
         return std::strcmp(a.c_str(), b.c_str()) == 0;
     }
 
-    inline bool operator==(const string &a, const char *b) STANDARDESE_NOEXCEPT
+    inline bool operator==(const string& a, const char* b) STANDARDESE_NOEXCEPT
     {
         return std::strcmp(a.c_str(), b) == 0;
     }
 
-    inline bool operator==(const char *a, const string &b) STANDARDESE_NOEXCEPT
+    inline bool operator==(const char* a, const string& b) STANDARDESE_NOEXCEPT
     {
         return std::strcmp(a, b.c_str()) == 0;
     }
 
-    inline bool operator!=(const string &a, const string &b) STANDARDESE_NOEXCEPT
+    inline bool operator!=(const string& a, const string& b) STANDARDESE_NOEXCEPT
     {
         return !(a == b);
     }
 
-    inline bool operator!=(const string &a, const char *b) STANDARDESE_NOEXCEPT
+    inline bool operator!=(const string& a, const char* b) STANDARDESE_NOEXCEPT
     {
         return !(a == b);
     }
 
-    inline bool operator!=(const char *a, const string &b) STANDARDESE_NOEXCEPT
+    inline bool operator!=(const char* a, const string& b) STANDARDESE_NOEXCEPT
     {
         return !(a == b);
     }
 
-    inline bool operator<(const string &a, const string &b) STANDARDESE_NOEXCEPT
+    inline bool operator<(const string& a, const string& b) STANDARDESE_NOEXCEPT
     {
         return std::strcmp(a.c_str(), b.c_str()) < 0;
     }
 
-    inline bool operator>(const string &a, const string &b) STANDARDESE_NOEXCEPT
+    inline bool operator>(const string& a, const string& b) STANDARDESE_NOEXCEPT
     {
         return std::strcmp(a.c_str(), b.c_str()) > 0;
     }
 
-    inline bool operator>=(const string &a, const string &b) STANDARDESE_NOEXCEPT
+    inline bool operator>=(const string& a, const string& b) STANDARDESE_NOEXCEPT
     {
         return std::strcmp(a.c_str(), b.c_str()) >= 0;
     }
 
-    inline bool operator<=(const string &a, const string &b) STANDARDESE_NOEXCEPT
+    inline bool operator<=(const string& a, const string& b) STANDARDESE_NOEXCEPT
     {
         return std::strcmp(a.c_str(), b.c_str()) <= 0;
     }
@@ -194,7 +190,7 @@ namespace standardese
 
 namespace Catch
 {
-    inline std::string toString(const standardese::string &str)
+    inline std::string toString(const standardese::string& str)
     {
         return std::string("\"") + str.c_str() + '"';
     }

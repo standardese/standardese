@@ -23,17 +23,18 @@ namespace po = boost::program_options;
 
 constexpr auto terminal_width = 100u; // assume 100 columns for terminal help text
 
-void print_version(const char *exe_name)
+void print_version(const char* exe_name)
 {
-    std::clog << exe_name << " version " << STANDARDESE_VERSION_MAJOR << '.' << STANDARDESE_VERSION_MINOR << '\n';
+    std::clog << exe_name << " version " << STANDARDESE_VERSION_MAJOR << '.'
+              << STANDARDESE_VERSION_MINOR << '\n';
     std::clog << "Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>\n";
     std::clog << '\n';
-    std::clog << "Using libclang version: " << standardese::string(clang_getClangVersion()).c_str() << '\n';
+    std::clog << "Using libclang version: " << standardese::string(clang_getClangVersion()).c_str()
+              << '\n';
 }
 
-void print_usage(const char *exe_name,
-                 const po::options_description &generic,
-                 const po::options_description &configuration)
+void print_usage(const char* exe_name, const po::options_description& generic,
+                 const po::options_description& configuration)
 {
     std::clog << "Usage: " << exe_name << " [options] inputs\n";
     std::clog << '\n';
@@ -42,7 +43,7 @@ void print_usage(const char *exe_name,
     std::clog << configuration << '\n';
 }
 
-bool erase_prefix(std::string &str, const std::string &prefix)
+bool erase_prefix(std::string& str, const std::string& prefix)
 {
     auto res = str.find(prefix);
     if (res != 0u)
@@ -51,7 +52,7 @@ bool erase_prefix(std::string &str, const std::string &prefix)
     return true;
 }
 
-void handle_unparsed_options(standardese::parser &p, const po::parsed_options &options)
+void handle_unparsed_options(standardese::parser& p, const po::parsed_options& options)
 {
     using namespace standardese;
 
@@ -71,11 +72,11 @@ void handle_unparsed_options(standardese::parser &p, const po::parsed_options &o
                 p.get_output_config().set_section_name(section, opt.value[0]);
             }
             else
-               throw std::invalid_argument("unrecognized option '" + opt.string_key + "'");
+                throw std::invalid_argument("unrecognized option '" + opt.string_key + "'");
         }
 }
 
-standardese::cpp_standard parse_standard(const std::string &str)
+standardese::cpp_standard parse_standard(const std::string& str)
 {
     using namespace standardese;
 
@@ -91,7 +92,7 @@ standardese::cpp_standard parse_standard(const std::string &str)
         throw std::invalid_argument("invalid C++ standard '" + str + "'");
 }
 
-standardese::compile_config parse_config(const po::variables_map &map)
+standardese::compile_config parse_config(const po::variables_map& map)
 {
     using namespace standardese;
     compile_config result(parse_standard(map.at("compilation.standard").as<std::string>()));
@@ -120,6 +121,7 @@ standardese::compile_config parse_config(const po::variables_map &map)
 
 int main(int argc, char* argv[])
 {
+    // clang-format off
     po::options_description generic("Generic options", terminal_width), configuration("Configuration", terminal_width);
     generic.add_options()
             ("version,V", "prints version information and exits")
@@ -174,30 +176,32 @@ int main(int argc, char* argv[])
 
             ("output.section_name_", po::value<std::string>(),
              "override output name for the section following the name_ (e.g. output.section_name_requires=Require)");
-
+    // clang-format on
 
     po::options_description input("");
-    input.add_options()
-            ("input-files", po::value<std::vector<fs::path>>(), "input files");
+    input.add_options()("input-files", po::value<std::vector<fs::path>>(), "input files");
     po::positional_options_description input_pos;
     input_pos.add("input-files", -1);
 
     po::options_description cmd;
     cmd.add(generic).add(configuration).add(input);
 
-    po::variables_map map;
+    po::variables_map  map;
     po::parsed_options cmd_result(nullptr), file_result(nullptr);
     try
     {
-        cmd_result = po::command_line_parser(argc, argv).options(cmd)
-                             .positional(input_pos).allow_unregistered().run();
+        cmd_result = po::command_line_parser(argc, argv)
+                         .options(cmd)
+                         .positional(input_pos)
+                         .allow_unregistered()
+                         .run();
         po::store(cmd_result, map);
         po::notify(map);
 
         auto iter = map.find("config");
         if (iter != map.end())
         {
-            auto path = iter->second.as<fs::path>();
+            auto          path = iter->second.as<fs::path>();
             std::ifstream config(path.string());
             if (!config.is_open())
                 throw std::runtime_error("config file '" + path.generic_string() + "' not found");
@@ -209,7 +213,7 @@ int main(int argc, char* argv[])
             po::notify(map);
         }
     }
-    catch (std::exception &ex)
+    catch (std::exception& ex)
     {
         std::cerr << ex.what() << '\n';
         print_usage(argv[0], generic, configuration);
@@ -237,61 +241,63 @@ int main(int argc, char* argv[])
         print_usage(argv[0], generic, configuration);
         return 1;
     }
-    else try
-    {
-        using namespace standardese;
-
-        parser.get_comment_config().set_command_character(map.at("comment.command_character").as<char>());
-
-        auto input = map.at("input-files").as<std::vector<fs::path>>();
-        auto blacklist_ext = map.at("input.blacklist_ext").as<std::vector<std::string>>();
-        auto blacklist_file = map.at("input.blacklist_file").as<std::vector<std::string>>();
-        auto blacklist_dir = map.at("input.blacklist_dir").as<std::vector<std::string>>();
-        auto force_blacklist = map.at("input.force_blacklist").as<bool>();
-
-        auto& blacklist_entity = parser.get_output_config().get_blacklist();
-        for (auto& str : map.at("input.blacklist_entity_name").as<std::vector<std::string>>())
-            blacklist_entity.blacklist(str);
-        for (auto& str : map.at("input.blacklist_namespace").as<std::vector<std::string>>())
-            blacklist_entity.blacklist(str);
-        if (map.at("input.require_comment").as<bool>())
-            blacklist_entity.set_option(entity_blacklist::require_comment);
-        if (map.at("input.extract_private").as<bool>())
-            blacklist_entity.set_option(entity_blacklist::extract_private);
-
-        log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
-
-        assert(!input.empty());
-        for (auto& path : input)
+    else
+        try
         {
-            auto handle = [&](const fs::path &p)
+            using namespace standardese;
+
+            parser.get_comment_config().set_command_character(
+                map.at("comment.command_character").as<char>());
+
+            auto input           = map.at("input-files").as<std::vector<fs::path>>();
+            auto blacklist_ext   = map.at("input.blacklist_ext").as<std::vector<std::string>>();
+            auto blacklist_file  = map.at("input.blacklist_file").as<std::vector<std::string>>();
+            auto blacklist_dir   = map.at("input.blacklist_dir").as<std::vector<std::string>>();
+            auto force_blacklist = map.at("input.force_blacklist").as<bool>();
+
+            auto& blacklist_entity = parser.get_output_config().get_blacklist();
+            for (auto& str : map.at("input.blacklist_entity_name").as<std::vector<std::string>>())
+                blacklist_entity.blacklist(str);
+            for (auto& str : map.at("input.blacklist_namespace").as<std::vector<std::string>>())
+                blacklist_entity.blacklist(str);
+            if (map.at("input.require_comment").as<bool>())
+                blacklist_entity.set_option(entity_blacklist::require_comment);
+            if (map.at("input.extract_private").as<bool>())
+                blacklist_entity.set_option(entity_blacklist::extract_private);
+
+            log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
+
+            assert(!input.empty());
+            for (auto& path : input)
             {
-                log->info() << "Generating documentation for " << p << "...";
+                auto handle = [&](const fs::path& p) {
+                    log->info() << "Generating documentation for " << p << "...";
 
-                try
-                {
-                    auto tu = parser.parse(p.generic_string().c_str(), config);
+                    try
+                    {
+                        auto tu = parser.parse(p.generic_string().c_str(), config);
 
-                    file_output file(p.stem().generic_string() + ".md");
-                    markdown_output out(file);
-                    generate_doc_file(parser, out, tu.get_file());
-                }
-                catch (libclang_error &ex)
-                {
-                    log->error("libclang error on {}", ex.what());
-                }
-            };
+                        file_output     file(p.stem().generic_string() + ".md");
+                        markdown_output out(file);
+                        generate_doc_file(parser, out, tu.get_file());
+                    }
+                    catch (libclang_error& ex)
+                    {
+                        log->error("libclang error on {}", ex.what());
+                    }
+                };
 
-            auto res = standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir, handle);
-            if (!res && !force_blacklist)
-                // path is a normal file that is on the blacklist
-                // blacklist isn't enforced however
-                handle(path);
+                auto res = standardese_tool::handle_path(path, blacklist_ext, blacklist_file,
+                                                         blacklist_dir, handle);
+                if (!res && !force_blacklist)
+                    // path is a normal file that is on the blacklist
+                    // blacklist isn't enforced however
+                    handle(path);
+            }
         }
-    }
-    catch (std::exception &ex)
-    {
-        log->critical(ex.what());
-        return 1;
-    }
+        catch (std::exception& ex)
+        {
+            log->critical(ex.what());
+            return 1;
+        }
 }

@@ -11,7 +11,7 @@
 
 using namespace standardese;
 
-std::size_t no_parameters(const cpp_function_base &base)
+std::size_t no_parameters(const cpp_function_base& base)
 {
     std::size_t result = 0;
     for (auto& e : base.get_parameters())
@@ -73,11 +73,10 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
 
     // no need to check the parameters, same code as for variables
     auto count = 0u;
-    for_each(tu.get_file(), [&](const cpp_entity &e)
-    {
+    for_each(tu.get_file(), [&](const cpp_entity& e) {
         if (dynamic_cast<const cpp_function*>(&e))
         {
-            auto &func = dynamic_cast<const cpp_function &>(e);
+            auto& func = dynamic_cast<const cpp_function&>(e);
             REQUIRE(func.get_name() == func.get_full_name());
             if (func.get_name() != "c")
                 REQUIRE(func.get_definition() == cpp_function_definition_normal);
@@ -311,8 +310,7 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
     auto tu = parse(p, "cpp_conversion_op", code);
 
     auto count = 0u;
-    for_each(tu.get_file(), [&](const cpp_entity &t)
-    {
+    for_each(tu.get_file(), [&](const cpp_entity& t) {
         for (auto& e : dynamic_cast<const cpp_class&>(t))
         {
             auto& op = dynamic_cast<const cpp_conversion_op&>(e);
@@ -385,8 +383,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
     auto tu = parse(p, "cpp_conversion_op", code);
 
     auto count = 0u;
-    for_each(tu.get_file(), [&](const cpp_entity &t)
-    {
+    for_each(tu.get_file(), [&](const cpp_entity& t) {
         for (auto& e : dynamic_cast<const cpp_class&>(t))
         {
             auto& ctor = dynamic_cast<const cpp_constructor&>(e);
@@ -473,9 +470,8 @@ TEST_CASE("cpp_destructor", "[cpp]")
     auto tu = parse(p, "cpp_conversion_op", code);
 
     auto count = 0u;
-    for_each(tu.get_file(), [&](const cpp_entity &t)
-    {
-        auto& c = dynamic_cast<const cpp_class &>(t);
+    for_each(tu.get_file(), [&](const cpp_entity& t) {
+        auto& c = dynamic_cast<const cpp_class&>(t);
         if (c.get_name() == "a")
         {
             for (auto& e : c)
@@ -608,8 +604,7 @@ TEST_CASE("implicit virtual", "[cpp]")
     auto tu = parse(p, "implicit_virtual", code);
 
     auto count = 0u;
-    for_each(tu.get_file(), [&](const cpp_entity &e)
-    {
+    for_each(tu.get_file(), [&](const cpp_entity& e) {
         if (e.get_name() == "derived")
         {
             for (auto& member : dynamic_cast<const cpp_class&>(e))
@@ -617,37 +612,44 @@ TEST_CASE("implicit virtual", "[cpp]")
                 if (member.get_comment() == "/// a")
                 {
                     ++count;
-                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_overriden);
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
+                            == cpp_virtual_overriden);
                 }
                 else if (member.get_comment() == "/// b")
                 {
                     ++count;
-                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_none);
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
+                            == cpp_virtual_none);
                 }
                 else if (member.get_comment() == "/// c")
                 {
                     ++count;
-                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_overriden);
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
+                            == cpp_virtual_overriden);
                 }
                 else if (member.get_comment() == "/// d")
                 {
                     ++count;
-                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_none);
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
+                            == cpp_virtual_none);
                 }
                 else if (member.get_comment() == "/// e")
                 {
                     ++count;
-                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual() == cpp_virtual_overriden);
+                    REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
+                            == cpp_virtual_overriden);
                 }
                 else if (member.get_comment() == "/// f")
                 {
                     ++count;
-                    REQUIRE(dynamic_cast<const cpp_conversion_op&>(member).get_virtual() == cpp_virtual_overriden);
+                    REQUIRE(dynamic_cast<const cpp_conversion_op&>(member).get_virtual()
+                            == cpp_virtual_overriden);
                 }
                 else if (member.get_comment() == "/// g")
                 {
                     ++count;
-                    REQUIRE(dynamic_cast<const cpp_destructor&>(member).get_virtual() == cpp_virtual_overriden);
+                    REQUIRE(dynamic_cast<const cpp_destructor&>(member).get_virtual()
+                            == cpp_virtual_overriden);
                 }
                 else
                     REQUIRE(false);

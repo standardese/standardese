@@ -27,17 +27,18 @@ namespace standardese
         };
     }
 
-    constexpr detail::newl_t newl;
+    constexpr detail::newl_t   newl;
     constexpr detail::blankl_t blankl;
 
     class output_base
     {
     public:
-        output_base(output_stream_base &out) STANDARDESE_NOEXCEPT
-        : output_(&out) {}
+        output_base(output_stream_base& out) STANDARDESE_NOEXCEPT : output_(&out)
+        {
+        }
 
-        output_base(const output_base &) = delete;
-        output_base(output_base &&) = delete;
+        output_base(const output_base&) = delete;
+        output_base(output_base&&)      = delete;
 
         virtual ~output_base() STANDARDESE_NOEXCEPT;
 
@@ -56,26 +57,27 @@ namespace standardese
         class writer
         {
         public:
-            writer(output_base &output) STANDARDESE_NOEXCEPT
-            : output_(output) {}
+            writer(output_base& output) STANDARDESE_NOEXCEPT : output_(output)
+            {
+            }
 
-            writer(const writer &) = delete;
+            writer(const writer&) = delete;
 
             virtual ~writer() STANDARDESE_NOEXCEPT = default;
 
-            writer& operator<<(const char *str)
+            writer& operator<<(const char* str)
             {
                 output_.get_output().write_str(str, std::strlen(str));
                 return *this;
             }
 
-            writer& operator<<(const std::string &str)
+            writer& operator<<(const std::string& str)
             {
                 output_.get_output().write_str(str.c_str(), str.size());
                 return *this;
             }
 
-            writer& operator<<(const string &str)
+            writer& operator<<(const string& str)
             {
                 output_.get_output().write_str(str.c_str(), str.length());
                 return *this;
@@ -127,7 +129,7 @@ namespace standardese
             }
 
         protected:
-            output_base &output_;
+            output_base& output_;
 
         private:
             bool begin_[int(style::count)] = {};
@@ -136,8 +138,7 @@ namespace standardese
         class paragraph_writer : public writer
         {
         public:
-            paragraph_writer(output_base &output) STANDARDESE_NOEXCEPT
-            : writer(output)
+            paragraph_writer(output_base& output) STANDARDESE_NOEXCEPT : writer(output)
             {
                 output_.write_paragraph_begin();
             }
@@ -157,8 +158,9 @@ namespace standardese
         class heading_writer : public writer
         {
         public:
-            heading_writer(output_base &output, unsigned level) STANDARDESE_NOEXCEPT
-            : writer(output), level_(level)
+            heading_writer(output_base& output, unsigned level) STANDARDESE_NOEXCEPT
+                : writer(output),
+                  level_(level)
             {
                 output_.write_header_begin(level_);
             }
@@ -172,7 +174,7 @@ namespace standardese
             unsigned level_;
         };
 
-        void write_section_heading(const std::string &section_name)
+        void write_section_heading(const std::string& section_name)
         {
             do_write_section_heading(section_name);
         }
@@ -180,8 +182,7 @@ namespace standardese
         class code_block_writer : public writer
         {
         public:
-            code_block_writer(output_base &output) STANDARDESE_NOEXCEPT
-            : writer(output)
+            code_block_writer(output_base& output) STANDARDESE_NOEXCEPT : writer(output)
             {
                 output_.write_code_block_begin();
             }
@@ -242,26 +243,26 @@ namespace standardese
             write_code_block_begin();
         }
 
-        virtual void do_write_section_heading(const std::string &section_name) = 0;
+        virtual void do_write_section_heading(const std::string& section_name) = 0;
 
     private:
-        output_stream_base *output_;
+        output_stream_base* output_;
 
         friend writer;
         friend paragraph_writer;
         friend heading_writer;
     };
 
-    class markdown_output
-    : public output_base
+    class markdown_output : public output_base
     {
     public:
-        markdown_output(output_stream_base &output) STANDARDESE_NOEXCEPT
-        : output_base(output) {}
+        markdown_output(output_stream_base& output) STANDARDESE_NOEXCEPT : output_base(output)
+        {
+        }
 
     protected:
         void write_header_begin(unsigned level) override;
-        void write_header_end(unsigned  level) override;
+        void write_header_end(unsigned level) override;
 
         void do_write_seperator() override;
 
@@ -273,7 +274,7 @@ namespace standardese
         void write_code_block_begin() override;
         void write_code_block_end() override;
 
-        void do_write_section_heading(const std::string &section_name) override;
+        void do_write_section_heading(const std::string& section_name) override;
     };
 } // namespace standardese
 

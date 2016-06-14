@@ -10,8 +10,7 @@
 
 namespace standardese
 {
-    class cpp_namespace final
-    : public cpp_entity, public cpp_entity_container<cpp_entity>
+    class cpp_namespace final : public cpp_entity, public cpp_entity_container<cpp_entity>
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -19,8 +18,8 @@ namespace standardese
             return cpp_entity::namespace_t;
         }
 
-        static cpp_ptr<cpp_namespace> parse(translation_unit &tu,
-                                            cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_namespace> parse(translation_unit& tu, cpp_cursor cur,
+                                            const cpp_entity& parent);
 
         void add_entity(cpp_entity_ptr ptr)
         {
@@ -33,9 +32,10 @@ namespace standardese
         }
 
     private:
-        cpp_namespace(cpp_cursor cur, const cpp_entity &parent, bool is_inline)
-        : cpp_entity(get_entity_type(), cur, parent),
-          inline_(is_inline) {}
+        cpp_namespace(cpp_cursor cur, const cpp_entity& parent, bool is_inline)
+        : cpp_entity(get_entity_type(), cur, parent), inline_(is_inline)
+        {
+        }
 
         bool inline_;
 
@@ -44,8 +44,7 @@ namespace standardese
 
     using cpp_namespace_ref = basic_cpp_entity_ref<CXCursor_NamespaceRef>;
 
-    class cpp_namespace_alias final
-    : public cpp_entity
+    class cpp_namespace_alias final : public cpp_entity
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -53,8 +52,8 @@ namespace standardese
             return cpp_entity::namespace_alias_t;
         }
 
-        static cpp_ptr<cpp_namespace_alias> parse(translation_unit &tu,
-                                                  cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_namespace_alias> parse(translation_unit& tu, cpp_cursor cur,
+                                                  const cpp_entity& parent);
 
         const cpp_namespace_ref& get_target() const STANDARDESE_NOEXCEPT
         {
@@ -62,18 +61,17 @@ namespace standardese
         }
 
     private:
-        cpp_namespace_alias(cpp_cursor cur, const cpp_entity &parent,
-                            cpp_namespace_ref target)
-        : cpp_entity(get_entity_type(), cur, parent),
-          target_(target) {}
+        cpp_namespace_alias(cpp_cursor cur, const cpp_entity& parent, cpp_namespace_ref target)
+        : cpp_entity(get_entity_type(), cur, parent), target_(target)
+        {
+        }
 
         cpp_namespace_ref target_;
 
         friend detail::cpp_ptr_access;
     };
 
-    class cpp_using_directive final
-    : public cpp_entity
+    class cpp_using_directive final : public cpp_entity
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -81,8 +79,8 @@ namespace standardese
             return cpp_entity::using_directive_t;
         }
 
-        static cpp_ptr<cpp_using_directive> parse(translation_unit &tu,
-                                                  cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_using_directive> parse(translation_unit& tu, cpp_cursor cur,
+                                                  const cpp_entity& parent);
 
         cpp_name get_name() const override
         {
@@ -95,18 +93,17 @@ namespace standardese
         }
 
     private:
-        cpp_using_directive(cpp_cursor cur, const cpp_entity &parent,
-                            cpp_namespace_ref target)
-        : cpp_entity(get_entity_type(), cur, parent),
-          target_(target) {}
+        cpp_using_directive(cpp_cursor cur, const cpp_entity& parent, cpp_namespace_ref target)
+        : cpp_entity(get_entity_type(), cur, parent), target_(target)
+        {
+        }
 
         cpp_namespace_ref target_;
 
         friend detail::cpp_ptr_access;
     };
 
-    class cpp_using_declaration final
-    : public cpp_entity
+    class cpp_using_declaration final : public cpp_entity
     {
     public:
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
@@ -114,8 +111,8 @@ namespace standardese
             return cpp_entity::using_declaration_t;
         }
 
-        static cpp_ptr<cpp_using_declaration> parse(translation_unit &tu,
-                                                    cpp_cursor cur, const cpp_entity &parent);
+        static cpp_ptr<cpp_using_declaration> parse(translation_unit& tu, cpp_cursor cur,
+                                                    const cpp_entity& parent);
 
         cpp_name get_name() const override
         {
@@ -128,12 +125,12 @@ namespace standardese
         }
 
     private:
-        cpp_using_declaration(cpp_cursor cur, const cpp_entity &parent,
-                              cpp_entity_ref target)
-        : cpp_entity(get_entity_type(), cur, parent),
-          target_(target) {}
+        cpp_using_declaration(cpp_cursor cur, const cpp_entity& parent, cpp_entity_ref target)
+        : cpp_entity(get_entity_type(), cur, parent), target_(target)
+        {
+        }
 
-        cpp_entity_ref  target_;
+        cpp_entity_ref target_;
 
         friend detail::cpp_ptr_access;
     };

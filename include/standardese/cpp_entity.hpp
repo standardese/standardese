@@ -21,7 +21,7 @@ namespace standardese
     class cpp_entity_container;
     class translation_unit;
 
-    using cpp_name = string;
+    using cpp_name        = string;
     using cpp_raw_comment = string;
 
     template <typename T>
@@ -82,17 +82,18 @@ namespace standardese
             invalid_t
         };
 
-        static cpp_entity_ptr try_parse(translation_unit &tu, cpp_cursor cur, const cpp_entity &parent);
+        static cpp_entity_ptr try_parse(translation_unit& tu, cpp_cursor cur,
+                                        const cpp_entity& parent);
 
-        cpp_entity(cpp_entity &&) = delete;
+        cpp_entity(cpp_entity&&) = delete;
 
-        cpp_entity(const cpp_entity &) = delete;
+        cpp_entity(const cpp_entity&) = delete;
 
         virtual ~cpp_entity() STANDARDESE_NOEXCEPT = default;
 
-        cpp_entity &operator=(const cpp_entity &) = delete;
+        cpp_entity& operator=(const cpp_entity&) = delete;
 
-        cpp_entity &operator=(cpp_entity &&) = delete;
+        cpp_entity& operator=(cpp_entity&&) = delete;
 
         /// \returns The name of the entity as specified in the source.
         virtual cpp_name get_name() const;
@@ -109,7 +110,8 @@ namespace standardese
         cpp_name get_full_name() const
         {
             auto scope = get_scope();
-            return scope.empty() ? get_name() : std::string(scope.c_str()) + "::" + get_name().c_str();
+            return scope.empty() ? get_name() :
+                                   std::string(scope.c_str()) + "::" + get_name().c_str();
         }
 
         /// \returns The raw comment string.
@@ -141,18 +143,27 @@ namespace standardese
         }
 
     protected:
-        cpp_entity(type t, cpp_cursor cur, const cpp_entity &parent) STANDARDESE_NOEXCEPT
-        : cursor_(cur), next_(nullptr), parent_(&parent), t_(t) {}
+        cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent) STANDARDESE_NOEXCEPT
+            : cursor_(cur),
+              next_(nullptr),
+              parent_(&parent),
+              t_(t)
+        {
+        }
 
         /// \effects Creates it without a parent.
-        cpp_entity(type t, cpp_cursor cur) STANDARDESE_NOEXCEPT
-        : cursor_(cur), next_(nullptr), parent_(nullptr), t_(t) {}
+        cpp_entity(type t, cpp_cursor cur) STANDARDESE_NOEXCEPT : cursor_(cur),
+                                                                  next_(nullptr),
+                                                                  parent_(nullptr),
+                                                                  t_(t)
+        {
+        }
 
     private:
-        cpp_cursor cursor_;
+        cpp_cursor                  cursor_;
         std::unique_ptr<cpp_entity> next_;
-        const cpp_entity *parent_;
-        type t_;
+        const cpp_entity*           parent_;
+        type                        t_;
 
         template <typename T>
         friend class cpp_entity_container;
@@ -160,39 +171,33 @@ namespace standardese
 
     inline bool is_preprocessor(cpp_entity::type t) STANDARDESE_NOEXCEPT
     {
-       return t == cpp_entity::inclusion_directive_t
-              || t == cpp_entity::macro_definition_t;
+        return t == cpp_entity::inclusion_directive_t || t == cpp_entity::macro_definition_t;
     }
 
     inline bool is_variable(cpp_entity::type t) STANDARDESE_NOEXCEPT
     {
-        return t == cpp_entity::variable_t
-               || t == cpp_entity::member_variable_t
+        return t == cpp_entity::variable_t || t == cpp_entity::member_variable_t
                || t == cpp_entity::bitfield_t;
     }
 
     inline bool is_type(cpp_entity::type t) STANDARDESE_NOEXCEPT
     {
-        return t == cpp_entity::enum_t
-               || t == cpp_entity::class_t
-               || t == cpp_entity::type_alias_t;
+        return t == cpp_entity::enum_t || t == cpp_entity::class_t || t == cpp_entity::type_alias_t;
     }
 
     inline bool is_type_template(cpp_entity::type t) STANDARDESE_NOEXCEPT
     {
         return t == cpp_entity::class_template_t
-                || t == cpp_entity::class_template_partial_specialization_t
-                || t == cpp_entity::class_template_full_specialization_t
-                || t == cpp_entity::alias_template_t;
+               || t == cpp_entity::class_template_partial_specialization_t
+               || t == cpp_entity::class_template_full_specialization_t
+               || t == cpp_entity::alias_template_t;
     }
 
     inline bool is_function_like(cpp_entity::type t) STANDARDESE_NOEXCEPT
     {
-        return t == cpp_entity::function_t
-                || t == cpp_entity::member_function_t
-                || t == cpp_entity::conversion_op_t
-                || t == cpp_entity::constructor_t
-                || t == cpp_entity::destructor_t;
+        return t == cpp_entity::function_t || t == cpp_entity::member_function_t
+               || t == cpp_entity::conversion_op_t || t == cpp_entity::constructor_t
+               || t == cpp_entity::destructor_t;
     }
 
     inline bool is_function_template(cpp_entity::type t) STANDARDESE_NOEXCEPT
@@ -210,6 +215,7 @@ namespace standardese
     class cpp_entity_container
     {
         static_assert(std::is_base_of<cpp_entity, T>::value, "T must be derived from cpp_entity");
+
     public:
         ~cpp_entity_container() STANDARDESE_NOEXCEPT = default;
 
@@ -221,14 +227,15 @@ namespace standardese
         class iterator
         {
         public:
-            using value_type = T;
-            using reference = const T&;
-            using pointer = const T*;
-            using difference_type = std::ptrdiff_t;
+            using value_type        = T;
+            using reference         = const T&;
+            using pointer           = const T*;
+            using difference_type   = std::ptrdiff_t;
             using iterator_category = std::forward_iterator_tag;
 
-            iterator() STANDARDESE_NOEXCEPT
-            : cur_(nullptr) {}
+            iterator() STANDARDESE_NOEXCEPT : cur_(nullptr)
+            {
+            }
 
             reference operator*() const STANDARDESE_NOEXCEPT
             {
@@ -246,28 +253,29 @@ namespace standardese
                 return *this;
             }
 
-            iterator operator++(int) STANDARDESE_NOEXCEPT
+            iterator operator++(int)STANDARDESE_NOEXCEPT
             {
                 auto tmp = *this;
                 ++(*this);
                 return tmp;
             }
 
-            friend bool operator==(const iterator &a, const iterator &b) STANDARDESE_NOEXCEPT
+            friend bool operator==(const iterator& a, const iterator& b) STANDARDESE_NOEXCEPT
             {
                 return a.cur_ == b.cur_;
             }
 
-            friend bool operator!=(const iterator &a, const iterator &b) STANDARDESE_NOEXCEPT
+            friend bool operator!=(const iterator& a, const iterator& b) STANDARDESE_NOEXCEPT
             {
                 return !(a == b);
             }
 
         private:
-            iterator(cpp_entity *ptr)
-            : cur_(static_cast<pointer>(ptr)) {}
+            iterator(cpp_entity* ptr) : cur_(static_cast<pointer>(ptr))
+            {
+            }
 
-            const T *cur_;
+            const T* cur_;
 
             friend cpp_entity_container;
         };
@@ -283,8 +291,9 @@ namespace standardese
         }
 
     protected:
-        cpp_entity_container() STANDARDESE_NOEXCEPT
-        : first_(nullptr), last_(nullptr) {}
+        cpp_entity_container() STANDARDESE_NOEXCEPT : first_(nullptr), last_(nullptr)
+        {
+        }
 
         void add_entity(cpp_ptr<T> entity)
         {
@@ -294,32 +303,32 @@ namespace standardese
             if (last_)
             {
                 last_->next_ = std::move(entity);
-                last_ = last_->next_.get();
+                last_        = last_->next_.get();
             }
             else
             {
                 first_ = std::move(entity);
-                last_ = first_.get();
+                last_  = first_.get();
             }
         }
 
     private:
         cpp_entity_ptr first_;
-        cpp_entity *last_;
+        cpp_entity*    last_;
     };
 
     namespace detail
     {
         struct cpp_ptr_access
         {
-            template <typename T, typename ... Args>
+            template <typename T, typename... Args>
             static cpp_ptr<T> make(Args&&... args)
             {
                 return cpp_ptr<T>(new T(std::forward<Args>(args)...));
             }
         };
 
-        template <typename T, typename ... Args>
+        template <typename T, typename... Args>
         cpp_ptr<T> make_ptr(Args&&... args)
         {
             return cpp_ptr_access::make<T>(std::forward<Args>(args)...);

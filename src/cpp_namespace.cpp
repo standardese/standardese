@@ -13,7 +13,7 @@ using namespace standardese;
 
 namespace
 {
-    bool is_inline_namespace(translation_unit &tu, cpp_cursor cur)
+    bool is_inline_namespace(translation_unit& tu, cpp_cursor cur)
     {
         detail::tokenizer tokenizer(tu, cur);
         for (auto val : tokenizer)
@@ -25,8 +25,8 @@ namespace
     }
 }
 
-cpp_ptr<cpp_namespace> cpp_namespace::parse(translation_unit &tu,
-                                            cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_namespace> cpp_namespace::parse(translation_unit& tu, cpp_cursor cur,
+                                            const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_Namespace);
 
@@ -39,8 +39,7 @@ namespace
     cpp_cursor parse_target_cursor(CXCursor cur)
     {
         cpp_cursor result;
-        detail::visit_children(cur, [&](CXCursor cur, CXCursor)
-        {
+        detail::visit_children(cur, [&](CXCursor cur, CXCursor) {
             if (clang_isReference(clang_getCursorKind(cur)))
                 result = cur;
 
@@ -50,7 +49,7 @@ namespace
         return result;
     }
 
-    cpp_name parse_target(detail::token_stream &stream)
+    cpp_name parse_target(detail::token_stream& stream)
     {
         std::string target;
         while (!stream.done())
@@ -63,51 +62,54 @@ namespace
     }
 }
 
-cpp_ptr<cpp_namespace_alias> cpp_namespace_alias::parse(translation_unit &tu,
-                                                        cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_namespace_alias> cpp_namespace_alias::parse(translation_unit& tu, cpp_cursor cur,
+                                                        const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_NamespaceAlias);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto stream = detail::make_stream(tokenizer);
+    auto              stream = detail::make_stream(tokenizer);
 
     auto name = detail::parse_name(cur);
     detail::skip(stream, cur, {"namespace", name.c_str(), "="});
 
-    auto target = parse_target(stream);
+    auto target        = parse_target(stream);
     auto target_cursor = parse_target_cursor(cur);
 
-    return detail::make_ptr<cpp_namespace_alias>(cur, parent, cpp_namespace_ref(target_cursor, target));
+    return detail::make_ptr<cpp_namespace_alias>(cur, parent,
+                                                 cpp_namespace_ref(target_cursor, target));
 }
 
-cpp_ptr<cpp_using_directive> cpp_using_directive::parse(translation_unit &tu,
-                                   cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_using_directive> cpp_using_directive::parse(translation_unit& tu, cpp_cursor cur,
+                                                        const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_UsingDirective);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto stream = detail::make_stream(tokenizer);
+    auto              stream = detail::make_stream(tokenizer);
 
     detail::skip(stream, cur, {"using", "namespace"});
 
-    auto target = parse_target(stream);
+    auto target        = parse_target(stream);
     auto target_cursor = parse_target_cursor(cur);
 
-    return detail::make_ptr<cpp_using_directive>(cur, parent, cpp_namespace_ref(target_cursor, target));
+    return detail::make_ptr<cpp_using_directive>(cur, parent,
+                                                 cpp_namespace_ref(target_cursor, target));
 }
 
-cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(translation_unit &tu,
-                                     cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(translation_unit& tu, cpp_cursor cur,
+                                                            const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_UsingDeclaration);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto stream = detail::make_stream(tokenizer);
+    auto              stream = detail::make_stream(tokenizer);
 
     detail::skip(stream, cur, {"using"});
 
-    auto target = parse_target(stream);
+    auto target        = parse_target(stream);
     auto target_cursor = parse_target_cursor(cur);
 
-    return detail::make_ptr<cpp_using_declaration>(cur, parent, cpp_entity_ref(target_cursor, target));
+    return detail::make_ptr<cpp_using_declaration>(cur, parent,
+                                                   cpp_entity_ref(target_cursor, target));
 }

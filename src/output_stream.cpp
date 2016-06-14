@@ -6,9 +6,11 @@
 
 using namespace standardese;
 
-output_stream_base::~output_stream_base() STANDARDESE_NOEXCEPT {}
+output_stream_base::~output_stream_base() STANDARDESE_NOEXCEPT
+{
+}
 
-void output_stream_base::write_str(const char *str, std::size_t n)
+void output_stream_base::write_str(const char* str, std::size_t n)
 {
     for (std::size_t i = 0u; i != n; ++i)
         write_char(str[i]);

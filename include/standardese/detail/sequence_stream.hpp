@@ -10,75 +10,78 @@
 
 #include <standardese/noexcept.hpp>
 
-namespace standardese { namespace detail
+namespace standardese
 {
-    // Exposes a sequence with a streaming interface.
-    // It also allows out-of-range access.
-    template <typename Iter>
-    class sequence_stream
+    namespace detail
     {
-    public:
-        using iterator = Iter;
-        using value_type = typename std::iterator_traits<Iter>::value_type;
-
-        template <typename Cont>
-        explicit sequence_stream(Cont &array, value_type out_of_range = {})
-        : out_of_range_(std::move(out_of_range))
+        // Exposes a sequence with a streaming interface.
+        // It also allows out-of-range access.
+        template <typename Iter>
+        class sequence_stream
         {
-            using std::begin;
-            using std::end;
+        public:
+            using iterator   = Iter;
+            using value_type = typename std::iterator_traits<Iter>::value_type;
 
-            begin_ = begin(array);
-            cur_ = begin(array);
-            end_ = end(array);
-        }
+            template <typename Cont>
+            explicit sequence_stream(Cont& array, value_type out_of_range = {})
+            : out_of_range_(std::move(out_of_range))
+            {
+                using std::begin;
+                using std::end;
 
-        const value_type& peek() const STANDARDESE_NOEXCEPT
-        {
-            if (cur_ == end_)
-                return out_of_range_;
-            return *cur_;
-        }
+                begin_ = begin(array);
+                cur_   = begin(array);
+                end_   = end(array);
+            }
 
-        value_type peek(std::size_t offset) const STANDARDESE_NOEXCEPT
-        {
-            if (std::ptrdiff_t(offset) > left())
-                return out_of_range_;
-            return *std::next(cur_, offset);
-        }
+            const value_type& peek() const STANDARDESE_NOEXCEPT
+            {
+                if (cur_ == end_)
+                    return out_of_range_;
+                return *cur_;
+            }
 
-        void bump() STANDARDESE_NOEXCEPT
-        {
-            if (cur_ != end_)
-                ++cur_;
-        }
+            value_type peek(std::size_t offset) const STANDARDESE_NOEXCEPT
+            {
+                if (std::ptrdiff_t(offset) > left())
+                    return out_of_range_;
+                return *std::next(cur_, offset);
+            }
 
-        value_type get() STANDARDESE_NOEXCEPT
-        {
-            auto result = peek();
-            bump();
-            return result;
-        }
+            void bump() STANDARDESE_NOEXCEPT
+            {
+                if (cur_ != end_)
+                    ++cur_;
+            }
 
-        std::size_t size() const STANDARDESE_NOEXCEPT
-        {
-            return std::size_t(std::distance(begin_, end_));
-        }
+            value_type get() STANDARDESE_NOEXCEPT
+            {
+                auto result = peek();
+                bump();
+                return result;
+            }
 
-        std::ptrdiff_t left() const STANDARDESE_NOEXCEPT
-        {
-            return std::distance(cur_, end_);
-        }
+            std::size_t size() const STANDARDESE_NOEXCEPT
+            {
+                return std::size_t(std::distance(begin_, end_));
+            }
 
-        bool done() const STANDARDESE_NOEXCEPT
-        {
-            return cur_ == end_;
-        }
+            std::ptrdiff_t left() const STANDARDESE_NOEXCEPT
+            {
+                return std::distance(cur_, end_);
+            }
 
-    private:
-        Iter begin_, cur_, end_;
-        value_type out_of_range_;
-    };
-}} // namespace standardese::detail
+            bool done() const STANDARDESE_NOEXCEPT
+            {
+                return cur_ == end_;
+            }
+
+        private:
+            Iter       begin_, cur_, end_;
+            value_type out_of_range_;
+        };
+    }
+} // namespace standardese::detail
 
 #endif // STANDARDESE_DETAIL_SEQUENCE_STREAM_HPP_INCLUDED

@@ -16,29 +16,30 @@
 using namespace standardese;
 
 #if (BOOST_VERSION / 100000) != 1
-    #error "require Boost 1.x"
+#error "require Boost 1.x"
 #endif
 
 #if ((BOOST_VERSION / 100) % 1000) < 55
-    #warning "Boost less than 1.55 isn't tested"
+#warning "Boost less than 1.55 isn't tested"
 #endif
 
-void detail::skip_whitespace(token_stream &stream)
+void detail::skip_whitespace(token_stream& stream)
 {
     while (std::isspace(stream.peek().get_value()[0]))
         stream.bump();
 }
 
-void detail::skip(token_stream &stream, const cpp_cursor &cur, const char *value)
+void detail::skip(token_stream& stream, const cpp_cursor& cur, const char* value)
 {
     auto& val = stream.peek();
     if (val.get_value() != value)
-        throw parse_error(source_location(cur),
-                          std::string("expected \'") + value + "\' got \'" + val.get_value().c_str() + "\'");
+        throw parse_error(source_location(cur), std::string("expected \'") + value + "\' got \'"
+                                                    + val.get_value().c_str() + "\'");
     stream.bump();
 }
 
-void detail::skip(token_stream &stream, const cpp_cursor &cur, std::initializer_list<const char *> values)
+void detail::skip(token_stream& stream, const cpp_cursor& cur,
+                  std::initializer_list<const char*> values)
 {
     for (auto val : values)
     {
@@ -47,7 +48,7 @@ void detail::skip(token_stream &stream, const cpp_cursor &cur, std::initializer_
     }
 }
 
-bool detail::skip_if_token(detail::token_stream &stream, const char *token)
+bool detail::skip_if_token(detail::token_stream& stream, const char* token)
 {
     if (stream.peek().get_value() != token)
         return false;
@@ -56,10 +57,9 @@ bool detail::skip_if_token(detail::token_stream &stream, const char *token)
     return true;
 }
 
-void detail::skip_attribute(detail::token_stream &stream, const cpp_cursor &cur)
+void detail::skip_attribute(detail::token_stream& stream, const cpp_cursor& cur)
 {
-    if (stream.peek().get_value() == "["
-        && stream.peek(1).get_value() == "[")
+    if (stream.peek().get_value() == "[" && stream.peek(1).get_value() == "[")
     {
         stream.bump(); // opening
         skip_bracket_count(stream, cur, "[", "]");
@@ -77,11 +77,11 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
 {
     // query location
     auto source = clang_getCursorExtent(cur);
-    auto begin = clang_getRangeStart(source);
-    auto end = clang_getRangeEnd(source);
+    auto begin  = clang_getRangeStart(source);
+    auto end    = clang_getRangeEnd(source);
 
     // translate location into offset and file
-    CXFile file;
+    CXFile   file;
     unsigned begin_offset = 0u, end_offset = 0u;
     clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
     clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
@@ -135,8 +135,7 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
     // awesome libclang bug 3.0
     // the extent for a type alias is too short
     // needs to be extended until the semicolon
-    if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl
-        && result.back() != ';')
+    if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl && result.back() != ';')
         while (buf.sgetc() != ';')
         {
             result += buf.sgetc();
@@ -159,12 +158,15 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
     return result;
 }
 
-namespace standardese { namespace detail
+namespace standardese
 {
-    context& get_preprocessing_context(translation_unit &tu);
-}} // namespace standardese::detail
+    namespace detail
+    {
+        context& get_preprocessing_context(translation_unit& tu);
+    }
+} // namespace standardese::detail
 
-detail::tokenizer::tokenizer(translation_unit &tu, cpp_cursor cur)
+detail::tokenizer::tokenizer(translation_unit& tu, cpp_cursor cur)
 : source_(read_source(cur)), impl_(&get_preprocessing_context(tu))
 {
     // append trailing newline

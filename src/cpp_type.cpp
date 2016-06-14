@@ -17,9 +17,9 @@ CXType cpp_type::get_type() const STANDARDESE_NOEXCEPT
     return clang_getCursorType(get_cursor());
 }
 
-cpp_type_ref::cpp_type_ref(cpp_name name, CXType type)
-: name_(std::move(name)), type_(type)
-{}
+cpp_type_ref::cpp_type_ref(cpp_name name, CXType type) : name_(std::move(name)), type_(type)
+{
+}
 
 cpp_cursor cpp_type_ref::get_declaration() const STANDARDESE_NOEXCEPT
 {
@@ -40,13 +40,13 @@ cpp_name cpp_type_ref::get_full_name() const STANDARDESE_NOEXCEPT
 
 namespace
 {
-    cpp_name parse_alias_target(translation_unit &tu, cpp_cursor cur)
+    cpp_name parse_alias_target(translation_unit& tu, cpp_cursor cur)
     {
         std::string target_name;
 
         detail::tokenizer tokenizer(tu, cur);
-        auto stream = detail::make_stream(tokenizer);
-        auto name = detail::parse_name(cur);
+        auto              stream = detail::make_stream(tokenizer);
+        auto              name   = detail::parse_name(cur);
 
         if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl)
         {
@@ -80,8 +80,8 @@ namespace
     }
 }
 
-cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit &tu,
-                                              cpp_cursor cur, const cpp_entity &parent)
+cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit& tu, cpp_cursor cur,
+                                              const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl
            || clang_getCursorKind(cur) == CXCursor_TypeAliasDecl);

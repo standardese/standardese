@@ -32,11 +32,12 @@ namespace standardese
 
     struct section
     {
-        string body;
+        string       body;
         section_type type;
 
-        section(section_type t, string body)
-        : body(std::move(body)), type(t) {}
+        section(section_type t, string body) : body(std::move(body)), type(t)
+        {
+        }
     };
 } // namespace standardese
 

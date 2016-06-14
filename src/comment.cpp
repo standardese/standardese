@@ -14,7 +14,7 @@ using namespace standardese;
 
 namespace
 {
-    void trim_whitespace(std::string &str)
+    void trim_whitespace(std::string& str)
     {
         auto start = 0u;
         while (std::isspace(str[start]))
@@ -30,16 +30,15 @@ namespace
     }
 }
 
-comment comment::parse(const parser &p, const cpp_name &name, const cpp_raw_comment &raw_comment)
+comment comment::parse(const parser& p, const cpp_name& name, const cpp_raw_comment& raw_comment)
 {
     comment result;
 
     detail::sequence_stream<const char*> stream(raw_comment, '\n');
-    auto cur_section_t = section_type::brief;
-    std::string cur_body;
+    auto                                 cur_section_t = section_type::brief;
+    std::string                          cur_body;
 
-    auto finish_section = [&]
-    {
+    auto finish_section = [&] {
         if (cur_body.empty())
             return;
         trim_whitespace(cur_body);
@@ -80,7 +79,8 @@ comment comment::parse(const parser &p, const cpp_name &name, const cpp_raw_comm
 
             auto type = p.get_comment_config().try_get_section(section_name);
             if (type == section_type::invalid)
-                p.get_logger()->error("in comment of {}:{}: Invalid section name '{}'", name.c_str(), line, section_name);
+                p.get_logger()->error("in comment of {}:{}: Invalid section name '{}'",
+                                      name.c_str(), line, section_name);
             else
             {
                 finish_section();

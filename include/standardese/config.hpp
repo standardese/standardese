@@ -31,7 +31,7 @@ namespace standardese
 
     struct compile_config
     {
-        cpp_standard standard;
+        cpp_standard             standard;
         std::vector<std::string> options;
         std::string commands_dir; // if non-empty looks for a compile_commands.json specification
 
@@ -42,10 +42,14 @@ namespace standardese
         static std::string macro_undefinition(std::string s);
 
         compile_config(std::string commands_dir)
-        : standard(cpp_standard::count), commands_dir(std::move(commands_dir)) {}
+        : standard(cpp_standard::count), commands_dir(std::move(commands_dir))
+        {
+        }
 
         compile_config(cpp_standard s, std::vector<std::string> options = {})
-        : standard(s), options(std::move(options)) {}
+        : standard(s), options(std::move(options))
+        {
+        }
     };
 
     enum class section_type : unsigned;
@@ -67,9 +71,9 @@ namespace standardese
 
         void set_section_command(section_type t, std::string command);
 
-        section_type get_section(const std::string &command) const;
+        section_type get_section(const std::string& command) const;
 
-        section_type try_get_section(const std::string &command) const STANDARDESE_NOEXCEPT;
+        section_type try_get_section(const std::string& command) const STANDARDESE_NOEXCEPT;
 
     private:
         std::map<std::string, unsigned> section_commands_;
@@ -122,10 +126,10 @@ namespace standardese
         }
 
     private:
-        entity_blacklist blacklist_;
+        entity_blacklist         blacklist_;
         std::vector<std::string> section_names_;
-        std::string hidden_name_;
-        unsigned tab_width_;
+        std::string              hidden_name_;
+        unsigned                 tab_width_;
     };
 } // namespace standardese
 
