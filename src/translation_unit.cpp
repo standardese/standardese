@@ -119,10 +119,10 @@ translation_unit::translation_unit(const parser& par, CXTranslationUnit tu, cons
                 auto location = source_location(cur);
                 get_parser()
                     .get_logger()
-                    ->debug("Parsing entity '{}' of type '{}' at {}:{}",
+                    ->debug("parsing entity '{}' ({}:{}) of type '{}'",
                             string(clang_getCursorDisplayName(cur)).c_str(),
-                            string(clang_getCursorKindSpelling(clang_getCursorKind(cur))).c_str(),
-                            location.file_name, location.line);
+                            location.file_name, location.line,
+                            string(clang_getCursorKindSpelling(clang_getCursorKind(cur))).c_str());
             }
 
             if (clang_getCursorKind(cur) == CXCursor_MacroExpansion)
@@ -145,15 +145,35 @@ translation_unit::translation_unit(const parser& par, CXTranslationUnit tu, cons
         catch (parse_error& ex)
         {
             if (ex.get_severity() == severity::warning)
-                get_parser().get_logger()->warn("when parsing {} ({}:{}): {}",
+                get_parser().get_logger()->warn("when parsing '{}' ({}:{}): {}",
                                                 ex.get_location().entity_name,
                                                 ex.get_location().file_name, ex.get_location().line,
                                                 ex.what());
             else
-                get_parser().get_logger()->error("when parsing {} ({}:{}): {}",
+                get_parser().get_logger()->error("when parsing '{}' ({}:{}): {}",
                                                  ex.get_location().entity_name,
                                                  ex.get_location().file_name,
                                                  ex.get_location().line, ex.what());
+            return CXChildVisit_Continue;
+        }
+        catch (boost::wave::cpp_exception &ex)
+        {
+            using namespace boost::wave;
+            if (ex.get_errorcode() == preprocess_exception::alreadydefined_name
+                || ex.get_errorcode() == preprocess_exception::illegal_redefinition
+                || ex.get_errorcode() == preprocess_exception::macro_redefinition)
+                // ignore those error codes can happen for the predefined, builtin macros
+                return CXChildVisit_Continue;
+            else if (!is_recoverable(ex))
+                throw;
+            else if (ex.get_severity() >= util::severity_error)
+                get_parser().get_logger()->error("when parsing '{}' ({}:{}): {} (Boost.Wave)",
+                                                 ex.get_related_name(), ex.file_name(), ex.line_no(),
+                                                 preprocess_exception::error_text(ex.get_errorcode()));
+            else
+                get_parser().get_logger()->warn("when parsing '{}' ({}:{}): {} (Boost.Wave)",
+                                                ex.get_related_name(), ex.file_name(), ex.line_no(),
+                                                preprocess_exception::error_text(ex.get_errorcode()));
             return CXChildVisit_Continue;
         }
     });

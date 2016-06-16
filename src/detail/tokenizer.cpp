@@ -75,16 +75,19 @@ void detail::skip_attribute(detail::token_stream& stream, const cpp_cursor& cur)
 
 std::string detail::tokenizer::read_source(cpp_cursor cur)
 {
-    // query location
     auto source = clang_getCursorExtent(cur);
     auto begin  = clang_getRangeStart(source);
     auto end    = clang_getRangeEnd(source);
 
     // translate location into offset and file
-    CXFile   file;
+    CXFile   file = nullptr;
     unsigned begin_offset = 0u, end_offset = 0u;
     clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
     clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
+    
+    if (!file)
+        return "";
+    
     assert(end_offset > begin_offset);
 
     // open file buffer
