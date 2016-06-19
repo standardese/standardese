@@ -29,6 +29,12 @@ TEST_CASE("cpp_preprocessor", "[cpp]")
 
         #define E(...) __VA_ARGS__
 
+        #ifdef __cplusplus
+            #define F 0
+        #else
+            #define F 1
+        #endif
+
         struct ignore_me; // macro cannot be put last
     )";
 
@@ -81,8 +87,15 @@ TEST_CASE("cpp_preprocessor", "[cpp]")
             REQUIRE(macro.get_argument_string() == "(...)");
             REQUIRE(macro.get_replacement() == "__VA_ARGS__");
         }
+        else if (e.get_name() == "F")
+        {
+            ++count;
+            auto& macro = dynamic_cast<const cpp_macro_definition&>(e);
+            REQUIRE(macro.get_argument_string() == "");
+            REQUIRE(macro.get_replacement() == "0");
+        }
         else
             REQUIRE(false);
     }
-    REQUIRE(count == 7u);
+    REQUIRE(count == 8u);
 }

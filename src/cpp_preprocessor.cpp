@@ -34,11 +34,16 @@ cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit
 
 namespace
 {
-    void parse_macro(cpp_cursor cur, std::string& name, std::string& args, std::string& rep)
+    // returns true if macro is predefined
+    bool parse_macro(cpp_cursor cur, std::string& name, std::string& args, std::string& rep)
     {
-        auto source = detail::tokenizer::read_source(cur);
+        name = detail::parse_name(cur).c_str();
 
-        name   = detail::parse_name(cur).c_str();
+        auto source = detail::tokenizer::read_source(cur);
+        if (source.empty())
+            // predefined macro, cannot parse
+            return true;
+
         auto i = name.length();
         while (std::isspace(source[i]))
             ++i;
@@ -71,6 +76,8 @@ namespace
         while (i < source.size())
             rep += source[i++];
         detail::erase_trailing_ws(rep);
+
+        return false;
     }
 }
 
@@ -80,7 +87,8 @@ cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit&, cpp
     assert(clang_getCursorKind(cur) == CXCursor_MacroDefinition);
 
     std::string name, args, rep;
-    parse_macro(cur, name, args, rep);
+    auto        predefined = parse_macro(cur, name, args, rep);
+    assert(!predefined);
 
     return detail::make_ptr<cpp_macro_definition>(cur, parent, std::move(args), std::move(rep));
 }
