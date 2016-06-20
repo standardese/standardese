@@ -11,6 +11,7 @@
 namespace standardese
 {
     class parser;
+    class compile_config;
 
     namespace detail
     {
@@ -70,7 +71,8 @@ namespace standardese
         const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT;
 
     private:
-        translation_unit(const parser& par, CXTranslationUnit tu, const char* path, cpp_file* file);
+        translation_unit(const parser& par, CXTranslationUnit tu, const char* path, cpp_file* file,
+                         const compile_config& config);
 
         struct impl;
         std::unique_ptr<impl> pimpl_;

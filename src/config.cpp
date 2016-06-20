@@ -8,6 +8,7 @@
 #include <set>
 #include <spdlog/details/format.h>
 
+#include <standardese/detail/tokenizer.hpp>
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/error.hpp>
 #include <standardese/section.hpp>
@@ -160,6 +161,30 @@ std::vector<const char*> compile_config::get_flags() const
         result.push_back(flag.c_str());
 
     return result;
+}
+
+void compile_config::setup_context(detail::context& context) const
+{
+    for (auto iter = flags_.begin(); iter != flags_.end(); ++iter)
+    {
+        if (*iter == "-D")
+        {
+            ++iter;
+            context.add_macro_definition(*iter);
+        }
+        else if (*iter == "-U")
+        {
+            ++iter;
+            context.remove_macro_definition(*iter);
+        }
+        else if (iter->c_str()[0] == '-')
+        {
+            if (iter->c_str()[1] == 'D')
+                context.add_macro_definition(&(iter->c_str()[2]));
+            else if (iter->c_str()[1] == 'U')
+                context.remove_macro_definition(&(iter->c_str()[2]));
+        }
+    }
 }
 
 comment_config::comment_config() : cmd_char_('\\')

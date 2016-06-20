@@ -28,7 +28,7 @@ translation_unit parser::parse(const char* path, const compile_config& c) const
     auto              file_ptr = file.get();
     files_.add_file(std::move(file));
 
-    return translation_unit(*this, tu, path, file_ptr);
+    return translation_unit(*this, tu, path, file_ptr, c);
 }
 
 parser::parser()

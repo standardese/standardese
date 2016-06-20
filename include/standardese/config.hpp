@@ -15,6 +15,11 @@
 
 namespace standardese
 {
+    namespace detail
+    {
+        struct context;
+    } // namespace detail
+
     /// C++ standard to be used
     enum class cpp_standard
     {
@@ -36,10 +41,15 @@ namespace standardese
 
         void add_include(string path);
 
+    private:
         std::vector<const char*> get_flags() const;
 
-    private:
+        void setup_context(detail::context& context) const;
+
         std::vector<string> flags_;
+
+        friend class translation_unit;
+        friend class parser;
     };
 
     enum class section_type : unsigned;

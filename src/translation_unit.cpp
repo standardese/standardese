@@ -34,7 +34,8 @@ struct translation_unit::impl
 
     const standardese::parser* parser;
 
-    impl(const standardese::parser& p, CXTranslationUnit tunit, const char* path, cpp_file* file)
+    impl(const standardese::parser& p, CXTranslationUnit tunit, const char* path, cpp_file* file,
+         const compile_config& config)
     : context(path), tu(tunit), file(file), parser(&p)
     {
         using namespace boost::wave;
@@ -42,6 +43,8 @@ struct translation_unit::impl
         auto lang = support_cpp | support_option_variadics | support_option_long_long
                     | support_option_insert_whitespace | support_option_single_line;
         context.set_language(language_support(lang));
+
+        config.setup_context(context);
     }
 };
 
@@ -99,8 +102,8 @@ const cpp_entity_registry& translation_unit::get_registry() const STANDARDESE_NO
 }
 
 translation_unit::translation_unit(const parser& par, CXTranslationUnit tu, const char* path,
-                                   cpp_file* file)
-: pimpl_(new impl(par, tu, path, file))
+                                   cpp_file* file, const compile_config& config)
+: pimpl_(new impl(par, tu, path, file, config))
 {
     detail::scope_stack stack(pimpl_->file);
 
