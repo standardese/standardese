@@ -4,8 +4,12 @@
 
 #include <standardese/config.hpp>
 
+#include <clang-c/CXCompilationDatabase.h>
+#include <set>
 #include <spdlog/details/format.h>
 
+#include <standardese/detail/wrapper.hpp>
+#include <standardese/error.hpp>
 #include <standardese/section.hpp>
 
 using namespace standardese;
@@ -23,26 +27,139 @@ namespace
     }
 
     auto standards_initializer = (init_standards(), 0);
+
+    struct database_deleter
+    {
+        void operator()(CXCompilationDatabase db) const STANDARDESE_NOEXCEPT
+        {
+            clang_CompilationDatabase_dispose(db);
+        }
+    };
+
+    using database = detail::wrapper<CXCompilationDatabase, database_deleter>;
+
+    struct commands_deleter
+    {
+        void operator()(CXCompileCommands db) const STANDARDESE_NOEXCEPT
+        {
+            clang_CompileCommands_dispose(db);
+        }
+    };
+
+    using commands = detail::wrapper<CXCompileCommands, commands_deleter>;
+
+    std::set<std::string> get_db_args(const char* commands_dir)
+    {
+        auto error   = CXCompilationDatabase_NoError;
+        auto db_impl = clang_CompilationDatabase_fromDirectory(commands_dir, &error);
+        if (error != CXCompilationDatabase_NoError)
+            throw libclang_error(error == CXCompilationDatabase_CanNotLoadDatabase ?
+                                     CXError_InvalidArguments :
+                                     CXError_Failure,
+                                 std::string("CXCompilationDatabase (") + commands_dir + ")");
+
+        database              db(db_impl);
+        std::set<std::string> db_args;
+
+        commands cmds(clang_CompilationDatabase_getAllCompileCommands(db.get()));
+        auto     num = clang_CompileCommands_getSize(cmds.get());
+        for (auto i = 0u; i != num; ++i)
+        {
+            auto cmd     = clang_CompileCommands_getCommand(cmds.get(), i);
+            auto no_args = clang_CompileCommand_getNumArgs(cmd);
+
+            auto        was_ignored = false;
+            std::string cur;
+            for (auto j = 1u; j != no_args; ++j)
+            {
+                string str(clang_CompileCommand_getArg(cmd, j));
+
+                // skip -c arg and -o arg
+                if (str == "-c" || str == "-o")
+                    was_ignored = true;
+                else if (was_ignored)
+                    was_ignored = false;
+                else if (*str.c_str() == '-')
+                {
+                    // we have an option
+                    // store it to later append with parameter
+                    // but if there is no option, it will be non-empty on the next option
+                    if (!cur.empty())
+                    {
+                        db_args.insert(std::move(cur));
+                        cur.clear();
+                    }
+                    cur += str.c_str();
+                }
+                else
+                {
+                    db_args.insert(cur + str.c_str());
+                    cur.clear();
+                }
+            }
+        }
+
+        return db_args;
+    }
 }
 
-const char* detail::to_option(cpp_standard standard) STANDARDESE_NOEXCEPT
+#define STANDARDESE_DETAIL_STRINGIFY_IMPL(x) #x
+#define STANDARDESE_DETAIL_STRINGIFY(x) STANDARDESE_DETAIL_STRINGIFY_IMPL(x)
+
+compile_config::compile_config(cpp_standard standard, string commands_dir)
+: flags_{"-x", "c++", "-I", STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR)}
 {
-    return standards[int(standard)];
+    // cmake sucks at string handling, so sometimes LIBCLANG_SYSTEM_INCLUDE_DIR isn't a string
+    // so we need to stringify it
+    // but if the argument was a string, libclang can't handle the double qoutes
+    // so unstringify it then at runtime (you can't do that in the preprocessor...)
+    if (flags_.back().c_str()[0] == '"')
+    {
+        std::string str = flags_.back().c_str() + 1;
+        str.pop_back();
+        flags_.back() = std::move(str);
+    }
+
+    if (!commands_dir.empty())
+    {
+        auto db_args = get_db_args(commands_dir.c_str());
+
+        flags_.reserve(flags_.size() + db_args.size());
+        for (auto& arg : db_args)
+            flags_.push_back(arg);
+    }
+
+    if (standard != cpp_standard::count)
+        flags_.push_back(standards[int(standard)]);
 }
 
-std::string compile_config::include_directory(std::string s)
+void compile_config::add_macro_definition(string def)
 {
-    return "-I" + std::move(s);
+    flags_.push_back("-D");
+    flags_.push_back(std::move(def));
 }
 
-std::string compile_config::macro_definition(std::string s)
+void compile_config::remove_macro_definition(string def)
 {
-    return "-D" + std::move(s);
+    flags_.push_back("-U");
+    flags_.push_back(std::move(def));
 }
 
-std::string compile_config::macro_undefinition(std::string s)
+void compile_config::add_include(string path)
 {
-    return "-U" + std::move(s);
+    flags_.push_back("-I");
+    flags_.push_back(std::move(path));
+}
+
+std::vector<const char*> compile_config::get_flags() const
+{
+    std::vector<const char*> result;
+    result.reserve(flags_.size());
+
+    for (auto& flag : flags_)
+        result.push_back(flag.c_str());
+
+    return result;
 }
 
 comment_config::comment_config() : cmd_char_('\\')

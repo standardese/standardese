@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <standardese/noexcept.hpp>
+#include <standardese/string.hpp>
 #include <standardese/synopsis.hpp>
 
 namespace standardese
@@ -24,32 +25,21 @@ namespace standardese
         count
     };
 
-    namespace detail
+    class compile_config
     {
-        const char* to_option(cpp_standard standard) STANDARDESE_NOEXCEPT;
-    } // namespace detail
+    public:
+        compile_config(cpp_standard standard, string commands_dir = "");
 
-    struct compile_config
-    {
-        cpp_standard             standard;
-        std::vector<std::string> options;
-        std::string commands_dir; // if non-empty looks for a compile_commands.json specification
+        void add_macro_definition(string def);
 
-        static std::string include_directory(std::string s);
+        void remove_macro_definition(string def);
 
-        static std::string macro_definition(std::string s);
+        void add_include(string path);
 
-        static std::string macro_undefinition(std::string s);
+        std::vector<const char*> get_flags() const;
 
-        compile_config(std::string commands_dir)
-        : standard(cpp_standard::count), commands_dir(std::move(commands_dir))
-        {
-        }
-
-        compile_config(cpp_standard s, std::vector<std::string> options = {})
-        : standard(s), options(std::move(options))
-        {
-        }
+    private:
+        std::vector<string> flags_;
     };
 
     enum class section_type : unsigned;

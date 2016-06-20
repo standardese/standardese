@@ -95,26 +95,26 @@ standardese::cpp_standard parse_standard(const std::string& str)
 standardese::compile_config parse_config(const po::variables_map& map)
 {
     using namespace standardese;
-    compile_config result(parse_standard(map.at("compilation.standard").as<std::string>()));
 
+    auto standard = parse_standard(map.at("compilation.standard").as<std::string>());
     auto dir = map.find("compilation.commands_dir");
-    if (dir != map.end())
-        result.commands_dir = dir->second.as<std::string>();
+
+    compile_config result(standard, dir == map.end() ? "" : dir->second.as<std::string>());
 
     auto incs = map.find("compilation.include_dir");
     if (incs != map.end())
         for (auto& val : incs->second.as<std::vector<std::string>>())
-            result.options.push_back(compile_config::include_directory(val));
+            result.add_include(val);
 
     auto defs = map.find("compilation.macro_definition");
     if (defs != map.end())
         for (auto& val : defs->second.as<std::vector<std::string>>())
-            result.options.push_back(compile_config::macro_definition(val));
+            result.add_macro_definition(val);
 
     auto undefs = map.find("compilation.macro_undefinition");
     if (undefs != map.end())
         for (auto& val : undefs->second.as<std::vector<std::string>>())
-            result.options.push_back(compile_config::macro_undefinition(val));
+            result.remove_macro_definition(val);
 
     return result;
 }
