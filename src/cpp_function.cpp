@@ -397,172 +397,16 @@ cpp_ptr<cpp_function> cpp_function::parse(translation_unit& tu, cpp_cursor cur,
 
 namespace
 {
-    bool is_implicit_virtual(translation_unit& tu, const cpp_function_base& func,
-                             const cpp_class& cur_base);
-
-    bool check_bases(translation_unit& tu, const cpp_function_base& func, const cpp_class& c)
+    bool is_implicit_virtual(cpp_cursor cur)
     {
-        auto result = false;
-        for (auto& base : c.get_bases())
-        {
-            cpp_ptr<cpp_class> cptr;
-            auto               cur_base = base.get_class(tu.get_registry());
-            if (!cur_base)
-            {
-                if (base.get_type().is_invalid())
-                    continue;
+        CXCursor* ptr  = nullptr;
+        auto      size = 0u;
+        clang_getOverriddenCursors(cur, &ptr, &size);
 
-                auto decl =
-                    clang_getTypeDeclaration(clang_getCanonicalType(base.get_type().get_cxtype()));
-                if (!clang_isDeclaration(clang_getCursorKind(decl)))
-                    continue;
+        if (ptr)
+            clang_disposeOverriddenCursors(ptr);
 
-                cptr = cpp_class::parse(tu, decl, tu.get_file());
-                if (!cptr)
-                    // happens in a template class when the base is a primary template without definition
-                    continue;
-
-                detail::visit_children(cptr->get_cursor(), [&](cpp_cursor cur, cpp_cursor) {
-                    // skip unnecessary cursors
-                    // only need the three functions that can be virtual
-                    // as well as further base classes
-                    auto kind = clang_getCursorKind(cur);
-                    if (kind != CXCursor_CXXMethod && kind != CXCursor_ConversionFunction
-                        && kind != CXCursor_Destructor && kind != CXCursor_CXXBaseSpecifier)
-                        return CXChildVisit_Continue;
-
-                    auto e = cpp_entity::try_parse(tu, cur, *cptr);
-                    if (!e)
-                        return CXChildVisit_Continue;
-                    cptr->add_entity(std::move(e));
-                    return CXChildVisit_Continue;
-                });
-                cur_base = cptr.get();
-            }
-
-            assert(cur_base);
-            result = is_implicit_virtual(tu, func, *cur_base);
-            if (result)
-                return result;
-        }
-
-        return result;
-    }
-
-    bool compare_parameter(const cpp_function_base& a, const cpp_function_base& b)
-    {
-        auto a_begin = a.get_parameters().begin();
-        auto a_end   = a.get_parameters().end();
-        auto b_begin = b.get_parameters().begin();
-        auto b_end   = b.get_parameters().end();
-
-        while (a_begin != a_end && b_begin != b_end)
-        {
-            auto& cur_a = *a_begin;
-            auto& cur_b = *b_begin;
-            if (cur_a.get_name() != cur_b.get_name())
-                return false;
-            else if (cur_a.get_type() != cur_b.get_type())
-                return false;
-
-            ++a_begin;
-            ++b_begin;
-        }
-
-        return (a_begin == a_end) == (b_begin == b_end);
-    }
-
-    bool can_be_overriden(const cpp_member_function& a, const cpp_member_function& b)
-    {
-        if (!is_virtual(a.get_virtual()) || a.get_virtual() == cpp_virtual_final)
-            return false;
-
-        if (a.is_variadic() != b.is_variadic())
-            return false;
-        else if (a.get_cv() != b.get_cv())
-            return false;
-        else if (a.get_ref_qualifier() != b.get_ref_qualifier())
-            return false;
-        else if (a.get_return_type() != b.get_return_type())
-            return false;
-        else if (a.get_name() != b.get_name())
-            return false;
-        else if (a.get_noexcept() != b.get_noexcept())
-            return false;
-
-        return compare_parameter(a, b);
-    }
-
-    bool can_be_overriden(const cpp_conversion_op& a, const cpp_conversion_op& b)
-    {
-        if (!is_virtual(a.get_virtual()) || a.get_virtual() == cpp_virtual_final)
-            return false;
-
-        if (a.is_explicit() != b.is_explicit())
-            return false;
-        else if (a.get_cv() != b.get_cv())
-            return false;
-        else if (a.get_ref_qualifier() != b.get_ref_qualifier())
-            return false;
-        else if (a.get_target_type() != b.get_target_type())
-            return false;
-        else if (a.get_name() != b.get_name())
-            return false;
-        else if (a.get_noexcept() != b.get_noexcept())
-            return false;
-
-        return true;
-    }
-
-    bool can_be_overriden(const cpp_destructor& a, const cpp_destructor& b)
-    {
-        if (!is_virtual(a.get_virtual()) || a.get_virtual() == cpp_virtual_final)
-            return false;
-
-        return a.get_noexcept() == b.get_noexcept();
-    }
-
-    bool can_be_overriden(const cpp_function_base& a, const cpp_function_base& b)
-    {
-        assert(a.get_entity_type() == b.get_entity_type());
-
-        if (a.get_entity_type() == cpp_entity::member_function_t)
-            return can_be_overriden(static_cast<const cpp_member_function&>(a),
-                                    static_cast<const cpp_member_function&>(b));
-        else if (a.get_entity_type() == cpp_entity::conversion_op_t)
-            return can_be_overriden(static_cast<const cpp_conversion_op&>(a),
-                                    static_cast<const cpp_conversion_op&>(b));
-        else if (a.get_entity_type() == cpp_entity::destructor_t)
-            return can_be_overriden(static_cast<const cpp_destructor&>(a),
-                                    static_cast<const cpp_destructor&>(b));
-
-        assert(false);
-        return false;
-    }
-
-    bool is_implicit_virtual(translation_unit& tu, const cpp_function_base& func,
-                             const cpp_class& cur_base)
-    {
-        for (auto& member : cur_base)
-        {
-            if (member.get_entity_type() == func.get_entity_type()
-                && can_be_overriden(static_cast<const cpp_function_base&>(member), func))
-                return true;
-        }
-
-        return check_bases(tu, func, cur_base);
-    }
-
-    bool is_implicit_virtual(translation_unit& tu, const cpp_function_base& func)
-    {
-        assert(func.get_entity_type() != cpp_entity::function_t
-               && func.get_entity_type() != cpp_entity::constructor_t);
-        if (func.is_constexpr())
-            return cpp_virtual_none;
-
-        auto parent = get_class(func.get_parent());
-        assert(parent);
-        return check_bases(tu, func, *parent);
+        return ptr != nullptr;
     }
 }
 
@@ -585,7 +429,7 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit& tu, cp
     parse_parameters(tu, result.get(), cur);
 
     if ((result->get_virtual() == cpp_virtual_none || result->get_virtual() == cpp_virtual_new)
-        && is_implicit_virtual(tu, *result))
+        && is_implicit_virtual(cur))
         // check for implicit virtual
         result->info_.virtual_flag = cpp_virtual_overriden;
 
@@ -685,7 +529,7 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
     auto result = detail::make_ptr<cpp_conversion_op>(cur, parent, std::move(type),
                                                       std::move(finfo), std::move(minfo));
     if ((result->get_virtual() == cpp_virtual_none || result->get_virtual() == cpp_virtual_new)
-        && is_implicit_virtual(tu, *result))
+        && is_implicit_virtual(cur))
         // check for implicit virtual
         result->info_.virtual_flag = cpp_virtual_overriden;
     return result;
@@ -853,7 +697,7 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor c
 
     auto result = detail::make_ptr<cpp_destructor>(cur, parent, std::move(info), virtual_flag);
     if ((result->get_virtual() == cpp_virtual_none || result->get_virtual() == cpp_virtual_new)
-        && is_implicit_virtual(tu, *result))
+        && is_implicit_virtual(cur))
         // check for implicit virtual
         result->virtual_ = cpp_virtual_overriden;
     return result;
