@@ -10,6 +10,38 @@
 
 namespace standardese
 {
+    class cpp_language_linkage final : public cpp_entity, public cpp_entity_container<cpp_entity>
+    {
+    public:
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity::language_linkage_t;
+        }
+
+        static cpp_ptr<cpp_language_linkage> parse(translation_unit& tu, cpp_cursor cur,
+                                                   const cpp_entity& parent);
+
+        void add_entity(cpp_entity_ptr ptr)
+        {
+            cpp_entity_container::add_entity(std::move(ptr));
+        }
+
+        cpp_name get_name() const override
+        {
+            return name_;
+        }
+
+    private:
+        cpp_language_linkage(cpp_cursor cur, const cpp_entity& parent, string name)
+        : cpp_entity(get_entity_type(), cur, parent), name_(std::move(name))
+        {
+        }
+
+        string name_;
+
+        friend detail::cpp_ptr_access;
+    };
+
     class cpp_namespace final : public cpp_entity, public cpp_entity_container<cpp_entity>
     {
     public:

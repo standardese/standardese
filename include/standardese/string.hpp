@@ -20,7 +20,11 @@ namespace standardese
     class string
     {
     public:
-        string(const char* str) : length_(std::strlen(str)), type_(std_string)
+        string(const char* str) : string(str, std::strlen(str))
+        {
+        }
+
+        string(const char* str, std::size_t n) : length_(n), type_(std_string)
         {
             ::new (get_storage()) std::string(str, length_);
         }

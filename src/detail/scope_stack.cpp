@@ -26,6 +26,7 @@ namespace
         switch (e.get_entity_type())
         {
         case cpp_entity::file_t:
+        case cpp_entity::language_linkage_t:
         case cpp_entity::namespace_t:
         case cpp_entity::enum_t:
         case cpp_entity::class_t:
@@ -46,6 +47,10 @@ namespace
         {
         case cpp_entity::file_t:
             static_cast<cpp_file&>(container).add_entity(std::move(ptr));
+            break;
+
+        case cpp_entity::language_linkage_t:
+            static_cast<cpp_language_linkage&>(container).add_entity(std::move(ptr));
             break;
 
         case cpp_entity::namespace_t:

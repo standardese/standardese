@@ -5,6 +5,7 @@
 #include <standardese/cpp_entity.hpp>
 
 #include <standardese/detail/parse_utils.hpp>
+#include <standardese/detail/tokenizer.hpp>
 #include <standardese/cpp_class.hpp>
 #include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_function.hpp>
@@ -93,6 +94,11 @@ cpp_entity_ptr cpp_entity::try_parse(translation_unit& tu, cpp_cursor cur, const
     default:
         break;
     }
+
+    // check for extern "C" specifier
+    detail::tokenizer tokenizer(tu, cur);
+    if (tokenizer.begin()->get_value() == "extern")
+        return cpp_language_linkage::parse(tu, cur, parent);
 
     auto spelling = string(clang_getCursorKindSpelling(clang_getCursorKind(cur)));
     throw parse_error(source_location(cur),

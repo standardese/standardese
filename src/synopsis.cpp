@@ -26,6 +26,7 @@ const entity_blacklist::documentation_t entity_blacklist::documentation;
 entity_blacklist::entity_blacklist()
 {
     type_blacklist_.set(cpp_entity::inclusion_directive_t);
+    type_blacklist_.set(cpp_entity::language_linkage_t);
     type_blacklist_.set(cpp_entity::base_class_t);
     type_blacklist_.set(cpp_entity::using_declaration_t);
     type_blacklist_.set(cpp_entity::using_directive_t);
@@ -119,23 +120,19 @@ namespace
     }
 
     //=== namespace related ===//
-    void do_write_synopsis(const parser& par, output_base::code_block_writer& out,
-                           const cpp_namespace& ns)
+    template <class Container>
+    void write_entity_range(const parser& par, output_base::code_block_writer& out, Container& cont)
     {
         auto& blacklist = par.get_output_config().get_blacklist();
 
-        if (ns.is_inline())
-            out << "inline ";
-        out << "namespace " << ns.get_name();
-
-        if (ns.empty())
+        if (cont.empty())
             out << "{}";
         else
         {
             out << newl << '{' << newl;
             out.indent(par.get_output_config().get_tab_width());
 
-            detail::write_range(out, ns, blankl,
+            detail::write_range(out, cont, blankl,
                                 [&](output_base::code_block_writer& out, const cpp_entity& e) {
                                     if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
                                         return false;
@@ -146,6 +143,23 @@ namespace
             out.unindent(par.get_output_config().get_tab_width());
             out << newl << '}';
         }
+    }
+
+    void do_write_synopsis(const parser& par, output_base::code_block_writer& out,
+                           const cpp_language_linkage& lang)
+    {
+        out << "extern \"" << lang.get_name() << '"';
+        write_entity_range(par, out, lang);
+    }
+
+    void do_write_synopsis(const parser& par, output_base::code_block_writer& out,
+                           const cpp_namespace& ns)
+    {
+        if (ns.is_inline())
+            out << "inline ";
+        out << "namespace " << ns.get_name();
+
+        write_entity_range(par, out, ns);
     }
 
     void do_write_synopsis(const parser& par, output_base::code_block_writer& out,
@@ -538,6 +552,8 @@ namespace
 
             STANDARDESE_DETAIL_HANDLE(inclusion_directive)
             STANDARDESE_DETAIL_HANDLE(macro_definition)
+
+            STANDARDESE_DETAIL_HANDLE(language_linkage)
 
             STANDARDESE_DETAIL_HANDLE(namespace)
             STANDARDESE_DETAIL_HANDLE(namespace_alias)

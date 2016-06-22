@@ -11,6 +11,21 @@
 
 using namespace standardese;
 
+cpp_ptr<cpp_language_linkage> cpp_language_linkage::parse(translation_unit& tu, cpp_cursor cur,
+                                                          const cpp_entity& parent)
+{
+    assert(clang_getCursorKind(cur) == CXCursor_UnexposedDecl);
+
+    detail::tokenizer tokenizer(tu, cur);
+    auto              stream = detail::make_stream(tokenizer);
+
+    detail::skip(stream, cur, {"extern"});
+    auto   str = stream.get().get_value();
+    string name(str.c_str() + 1, str.size() - 2); // cut quotes
+
+    return detail::make_ptr<cpp_language_linkage>(cur, parent, std::move(name));
+}
+
 namespace
 {
     bool is_inline_namespace(translation_unit& tu, cpp_cursor cur)

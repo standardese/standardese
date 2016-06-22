@@ -12,6 +12,66 @@
 
 using namespace standardese;
 
+TEST_CASE("cpp_language_linkage", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(
+            /// a
+            extern "C"
+            {
+                struct a {};
+                struct b {};
+            }
+
+            struct c {};
+
+            /// b
+            extern "C++"
+            {
+                struct d {};
+                struct e {};
+            }
+        )";
+
+    auto tu    = parse(p, "cpp_language_linkage", code);
+    auto count = 0;
+    for (auto& e : tu.get_file())
+    {
+        if (e.get_entity_type() == cpp_entity::language_linkage_t)
+        {
+            ++count;
+            auto& lang = dynamic_cast<const cpp_language_linkage&>(e);
+
+            if (lang.get_comment() == "/// a")
+            {
+                REQUIRE(lang.get_name() == "C");
+
+                for (auto& child : lang)
+                {
+                    auto valid = child.get_name() == "a" || child.get_name() == "b";
+                    REQUIRE(valid);
+                }
+            }
+            else if (lang.get_comment() == "/// b")
+            {
+                REQUIRE(lang.get_name() == "C++");
+
+                for (auto& child : lang)
+                {
+                    auto valid = child.get_name() == "d" || child.get_name() == "e";
+                    REQUIRE(valid);
+                }
+            }
+            else
+                REQUIRE(false);
+        }
+        else
+            REQUIRE(e.get_name() == "c");
+    }
+    REQUIRE(count == 2u);
+}
+
 TEST_CASE("cpp_namespace", "[cpp]")
 {
     parser p;

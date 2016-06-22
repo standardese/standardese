@@ -121,6 +121,8 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
     case cpp_entity::macro_definition_t:
         return "macro";
 
+    case cpp_entity::language_linkage_t:
+        return "language linkage";
     case cpp_entity::namespace_t:
         return "namespace";
     case cpp_entity::namespace_alias_t:
