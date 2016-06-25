@@ -130,6 +130,8 @@ int main(int argc, char* argv[])
             ("config,c", po::value<fs::path>(), "read options from additional config file as well")
             ("verbose,v", po::value<bool>()->implicit_value(true)->default_value(false),
              "prints more information")
+            ("jobs,j", po::value<unsigned>()->default_value(standardese_tool::default_no_threads()),
+             "sets the number of threads to use")
             ("color", po::value<bool>()->implicit_value(true)->default_value(true),
              "enable/disable color support of logger");
 
@@ -198,6 +200,9 @@ int main(int argc, char* argv[])
                          .run();
         po::store(cmd_result, map);
         po::notify(map);
+
+        if (map.at("jobs").as<unsigned>() == 0)
+            throw std::invalid_argument("number of threads must not be 0");
 
         auto iter = map.find("config");
         if (iter != map.end())
@@ -268,7 +273,7 @@ int main(int argc, char* argv[])
 
             log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
 
-            standardese_tool::thread_pool  pool(standardese_tool::default_no_threads());
+            standardese_tool::thread_pool  pool(map.at("jobs").as<unsigned>());
             std::vector<std::future<void>> futures;
             futures.reserve(input.size());
 
