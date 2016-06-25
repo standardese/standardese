@@ -8,6 +8,7 @@ set(src main.cpp)
 add_executable(standardese_tool ${header} ${src})
 comp_target_features(standardese_tool PRIVATE CPP11)
 target_link_libraries(standardese_tool PUBLIC standardese)
+target_include_directories(standardese_tool PUBLIC $<BUILD_INTERFACE:${THREADPOOL_INCLUDE_DIR}>)
 set_target_properties(standardese_tool PROPERTIES OUTPUT_NAME standardese)
 
 # link Boost

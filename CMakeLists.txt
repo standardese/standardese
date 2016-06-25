@@ -76,6 +76,16 @@ if((NOT SPDLOG_INCLUDE_DIR) OR (NOT EXISTS ${SPDLOG_INCLUDE_DIR}))
 endif()
 install(DIRECTORY ${SPDLOG_INCLUDE_DIR}/spdlog DESTINATION ${include_dest})
 
+# add ThreadPool
+if((NOT THREADPOOL_INCLUDE_DIR) OR (NOT EXISTS ${THREADPOOL_INCLUDE_DIR}))
+    message("Unable to find ThreadPool, cloning...")
+    execute_process(COMMAND git submodule update --init -- external/ThreadPool
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    set(THREADPOOL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/ThreadPool
+        CACHE PATH "ThreadPool include directory")
+    # don't need to be installed
+endif()
+
 if (MSVC)
     add_compile_options(
         # Disable warnings
