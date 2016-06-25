@@ -1,3 +1,6 @@
 [submodule "external/spdlog"]
     path = external/spdlog
     url = git://github.com/gabime/spdlog.git
+[submodule "external/ThreadPool"]
+	path = external/ThreadPool
+	url = git://github.com/progschj/ThreadPool.git

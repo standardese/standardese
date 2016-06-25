@@ -17,6 +17,7 @@
 #include <standardese/parser.hpp>
 
 #include "filesystem.hpp"
+#include "thread_pool.hpp"
 
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
@@ -97,7 +98,7 @@ standardese::compile_config parse_config(const po::variables_map& map)
     using namespace standardese;
 
     auto standard = parse_standard(map.at("compilation.standard").as<std::string>());
-    auto dir = map.find("compilation.commands_dir");
+    auto dir      = map.find("compilation.commands_dir");
 
     compile_config result(standard, dir == map.end() ? "" : dir->second.as<std::string>());
 
@@ -129,6 +130,8 @@ int main(int argc, char* argv[])
             ("config,c", po::value<fs::path>(), "read options from additional config file as well")
             ("verbose,v", po::value<bool>()->implicit_value(true)->default_value(false),
              "prints more information")
+            ("jobs,j", po::value<unsigned>()->default_value(standardese_tool::default_no_threads()),
+             "sets the number of threads to use")
             ("color", po::value<bool>()->implicit_value(true)->default_value(true),
              "enable/disable color support of logger");
 
@@ -197,6 +200,9 @@ int main(int argc, char* argv[])
                          .run();
         po::store(cmd_result, map);
         po::notify(map);
+
+        if (map.at("jobs").as<unsigned>() == 0)
+            throw std::invalid_argument("number of threads must not be 0");
 
         auto iter = map.find("config");
         if (iter != map.end())
@@ -267,10 +273,14 @@ int main(int argc, char* argv[])
 
             log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
 
+            standardese_tool::thread_pool  pool(map.at("jobs").as<unsigned>());
+            std::vector<std::future<void>> futures;
+            futures.reserve(input.size());
+
             assert(!input.empty());
             for (auto& path : input)
             {
-                auto handle = [&](const fs::path& p) {
+                auto generate = [&](const fs::path& p) {
                     log->info() << "Generating documentation for " << p << "...";
 
                     try
@@ -287,6 +297,10 @@ int main(int argc, char* argv[])
                     }
                 };
 
+                auto handle = [&](const fs::path& p) {
+                    futures.push_back(standardese_tool::add_job(pool, generate, p));
+                };
+
                 auto res = standardese_tool::handle_path(path, blacklist_ext, blacklist_file,
                                                          blacklist_dir, handle);
                 if (!res && !force_blacklist)
@@ -294,6 +308,9 @@ int main(int argc, char* argv[])
                     // blacklist isn't enforced however
                     handle(path);
             }
+
+            for (auto& f : futures)
+                f.get();
         }
         catch (std::exception& ex)
         {
