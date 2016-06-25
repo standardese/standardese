@@ -17,6 +17,7 @@
 #include <standardese/parser.hpp>
 
 #include "filesystem.hpp"
+#include "options.hpp"
 #include "thread_pool.hpp"
 
 namespace fs = boost::filesystem;
@@ -42,82 +43,6 @@ void print_usage(const char* exe_name, const po::options_description& generic,
     std::clog << generic << '\n';
     std::clog << '\n';
     std::clog << configuration << '\n';
-}
-
-bool erase_prefix(std::string& str, const std::string& prefix)
-{
-    auto res = str.find(prefix);
-    if (res != 0u)
-        return false;
-    str.erase(0, prefix.size());
-    return true;
-}
-
-void handle_unparsed_options(standardese::parser& p, const po::parsed_options& options)
-{
-    using namespace standardese;
-
-    for (auto& opt : options.options)
-        if (opt.unregistered)
-        {
-            auto name = opt.string_key;
-
-            if (erase_prefix(name, "comment.cmd_name_"))
-            {
-                auto section = p.get_comment_config().get_section(name);
-                p.get_comment_config().set_section_command(section, opt.value[0]);
-            }
-            else if (erase_prefix(name, "output.section_name_"))
-            {
-                auto section = p.get_comment_config().get_section(name);
-                p.get_output_config().set_section_name(section, opt.value[0]);
-            }
-            else
-                throw std::invalid_argument("unrecognized option '" + opt.string_key + "'");
-        }
-}
-
-standardese::cpp_standard parse_standard(const std::string& str)
-{
-    using namespace standardese;
-
-    if (str == "c++98")
-        return cpp_standard::cpp_98;
-    else if (str == "c++03")
-        return cpp_standard::cpp_03;
-    else if (str == "c++11")
-        return cpp_standard::cpp_11;
-    else if (str == "c++14")
-        return cpp_standard::cpp_14;
-    else
-        throw std::invalid_argument("invalid C++ standard '" + str + "'");
-}
-
-standardese::compile_config parse_config(const po::variables_map& map)
-{
-    using namespace standardese;
-
-    auto standard = parse_standard(map.at("compilation.standard").as<std::string>());
-    auto dir      = map.find("compilation.commands_dir");
-
-    compile_config result(standard, dir == map.end() ? "" : dir->second.as<std::string>());
-
-    auto incs = map.find("compilation.include_dir");
-    if (incs != map.end())
-        for (auto& val : incs->second.as<std::vector<std::string>>())
-            result.add_include(val);
-
-    auto defs = map.find("compilation.macro_definition");
-    if (defs != map.end())
-        for (auto& val : defs->second.as<std::vector<std::string>>())
-            result.add_macro_definition(val);
-
-    auto undefs = map.find("compilation.macro_undefinition");
-    if (undefs != map.end())
-        for (auto& val : undefs->second.as<std::vector<std::string>>())
-            result.remove_macro_definition(val);
-
-    return result;
 }
 
 int main(int argc, char* argv[])
@@ -181,43 +106,13 @@ int main(int argc, char* argv[])
              "override output name for the section following the name_ (e.g. output.section_name_requires=Require)");
     // clang-format on
 
-    po::options_description input("");
-    input.add_options()("input-files", po::value<std::vector<fs::path>>(), "input files");
-    po::positional_options_description input_pos;
-    input_pos.add("input-files", -1);
-
-    po::options_description cmd;
-    cmd.add(generic).add(configuration).add(input);
-
-    po::variables_map  map;
-    po::parsed_options cmd_result(nullptr), file_result(nullptr);
+    standardese_tool::configuration config;
     try
     {
-        cmd_result = po::command_line_parser(argc, argv)
-                         .options(cmd)
-                         .positional(input_pos)
-                         .allow_unregistered()
-                         .run();
-        po::store(cmd_result, map);
-        po::notify(map);
+        config = standardese_tool::get_configuration(argc, argv, generic, configuration);
 
-        if (map.at("jobs").as<unsigned>() == 0)
+        if (config.map.at("jobs").as<unsigned>() == 0)
             throw std::invalid_argument("number of threads must not be 0");
-
-        auto iter = map.find("config");
-        if (iter != map.end())
-        {
-            auto          path = iter->second.as<fs::path>();
-            std::ifstream config(path.string());
-            if (!config.is_open())
-                throw std::runtime_error("config file '" + path.generic_string() + "' not found");
-
-            po::options_description conf;
-            conf.add(configuration);
-            file_result = po::parse_config_file(config, configuration, true);
-            po::store(file_result, map);
-            po::notify(map);
-        }
     }
     catch (std::exception& ex)
     {
@@ -226,16 +121,10 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    auto log = spdlog::stdout_logger_mt("standardese_log", map.at("color").as<bool>());
-    log->set_pattern("[%l] %v");
-    if (map.at("verbose").as<bool>())
-        log->set_level(spdlog::level::debug);
-
-    standardese::parser parser(log);
-
-    auto config = parse_config(map);
-    handle_unparsed_options(parser, cmd_result);
-    handle_unparsed_options(parser, file_result);
+    auto& map            = config.map;
+    auto& parser         = *config.parser;
+    auto& compile_config = config.compile_config;
+    auto& log            = parser.get_logger();
 
     if (map.count("help"))
         print_usage(argv[0], generic, configuration);
@@ -285,7 +174,7 @@ int main(int argc, char* argv[])
 
                     try
                     {
-                        auto tu = parser.parse(p.generic_string().c_str(), config);
+                        auto tu = parser.parse(p.generic_string().c_str(), compile_config);
 
                         file_output     file(p.stem().generic_string() + ".md");
                         markdown_output out(file);
