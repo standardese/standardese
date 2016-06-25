@@ -68,12 +68,10 @@ endif()
 
 # add spdlog
 if((NOT SPDLOG_INCLUDE_DIR) OR (NOT EXISTS ${SPDLOG_INCLUDE_DIR}))
-    message("Unable to find spdlog, downloading...")
-    file(DOWNLOAD https://github.com/gabime/spdlog/archive/master.zip
-         ${CMAKE_CURRENT_BINARY_DIR}/spdlog.zip)
-    execute_process(COMMAND ${CMAKE_COMMAND} -E tar xzf spdlog.zip
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-    set(SPDLOG_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/spdlog-master/include/
+    message("Unable to find spdlog, cloning...")
+    execute_process(COMMAND git submodule update --init -- external/spdlog
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    set(SPDLOG_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/spdlog/include/
         CACHE PATH "spdlog include directory")
 endif()
 install(DIRECTORY ${SPDLOG_INCLUDE_DIR}/spdlog DESTINATION ${include_dest})
@@ -100,4 +98,4 @@ endif()
 
 # install configuration
 install(EXPORT standardese DESTINATION "${lib_dest}")
-install(FILES standardese-config.cmake spdlog-license.md LICENSE DESTINATION "${lib_dest}")
+install(FILES standardese-config.cmake LICENSE DESTINATION "${lib_dest}")
