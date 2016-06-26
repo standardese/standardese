@@ -202,4 +202,4 @@ Thanks a lot to:
 
 * Victor @vitaut Zverovich, for bugfixes
 
-And everyone else how shares and uses this project!
+And everyone else who shares and uses this project!
