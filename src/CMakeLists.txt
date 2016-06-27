@@ -79,6 +79,9 @@ target_link_libraries(standardese PUBLIC Threads::Threads)
 target_include_directories(standardese PUBLIC ${LIBCLANG_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${LIBCLANG_LIBRARY})
 
+# link cmark
+target_link_libraries(standardese PUBLIC libcmark)
+
 # link Boost
 find_package(Boost COMPONENTS wave filesystem system thread date_time chrono REQUIRED)
 target_include_directories(standardese PUBLIC ${Boost_INCLUDE_DIR})
