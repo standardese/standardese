@@ -179,8 +179,10 @@ int main(int argc, char* argv[])
                     {
                         auto tu = parser.parse(p.generic_string().c_str(), compile_config);
 
-                        file_output     file(p.stem().generic_string() + ".md");
-                        markdown_output out(file);
+                        file_output            file(p.stem().generic_string() + ".md");
+                        output_format_markdown markdown(terminal_width);
+                        output                 out(file, markdown);
+
                         generate_doc_file(parser, out, tu.get_file());
                     }
                     catch (libclang_error& ex)

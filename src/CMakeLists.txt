@@ -31,6 +31,7 @@ set(header
         ../include/standardese/md_entity.hpp
         ../include/standardese/md_inlines.hpp
         ../include/standardese/output.hpp
+        ../include/standardese/output_format.hpp
         ../include/standardese/output_stream.hpp
         ../include/standardese/parser.hpp
         ../include/standardese/section.hpp
@@ -58,7 +59,7 @@ set(src
         md_blocks.cpp
         md_entity.cpp
         md_inlines.cpp
-        output.cpp
+        output_format.cpp
         output_stream.cpp
         parser.cpp
         synopsis.cpp

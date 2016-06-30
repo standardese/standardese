@@ -12,7 +12,7 @@
 
 namespace standardese
 {
-    class output_base;
+    class output;
     class parser;
 
     class entity_blacklist
@@ -99,7 +99,7 @@ namespace standardese
         int                                options_ = 0;
     };
 
-    void write_synopsis(const parser& p, output_base& out, const doc_entity& e);
+    void write_synopsis(const parser& p, output& out, const doc_entity& e);
 } // namespace standardese
 
 #endif // STANDARDESE_SYNOPSIS_HPP_INCLUDED

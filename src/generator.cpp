@@ -42,10 +42,10 @@ namespace
         return get_default_access(e.get_class());
     }
 
-    void dispatch(const parser& p, output_base& output, unsigned level, const cpp_entity& e);
+    void dispatch(const parser& p, output& output, unsigned level, const cpp_entity& e);
 
     template <class Entity, class Container>
-    void handle_container(const parser& p, output_base& output, unsigned level, const Entity& e,
+    void handle_container(const parser& p, output& output, unsigned level, const Entity& e,
                           const Container& container)
     {
         auto& blacklist = p.get_output_config().get_blacklist();
@@ -65,11 +65,9 @@ namespace
                      || cur_access != cpp_private || detail::is_virtual(child))
                 dispatch(p, output, level + 1, child);
         }
-
-        output.write_seperator();
     }
 
-    void dispatch(const parser& p, output_base& output, unsigned level, const cpp_entity& e)
+    void dispatch(const parser& p, output& output, unsigned level, const cpp_entity& e)
     {
         auto& blacklist = p.get_output_config().get_blacklist();
         if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
@@ -188,22 +186,13 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
     return "should never get here";
 }
 
-void standardese::generate_doc_entity(const parser& p, output_base& output, unsigned level,
+void standardese::generate_doc_entity(const parser& p, output& output, unsigned level,
                                       const doc_entity& doc)
 {
-    auto& e       = doc.get_cpp_entity();
-    auto& comment = doc.get_comment();
-
-    auto type = get_entity_type_spelling(e.get_entity_type());
-
-    output_base::heading_writer(output, level) << char(std::toupper(type[0])) << &type[1] << ' '
-                                               << output_base::style::code_span << e.get_full_name()
-                                               << output_base::style::code_span;
-
     write_synopsis(p, output, doc);
 }
 
-void standardese::generate_doc_file(const parser& p, output_base& output, const cpp_file& f)
+void standardese::generate_doc_file(const parser& p, output& output, const cpp_file& f)
 {
     generate_doc_entity(p, output, 1, doc_entity(p, f));
 
