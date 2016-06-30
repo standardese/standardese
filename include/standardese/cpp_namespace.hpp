@@ -23,7 +23,7 @@ namespace standardese
 
         void add_entity(cpp_entity_ptr ptr)
         {
-            cpp_entity_container::add_entity(std::move(ptr));
+            cpp_entity_container<cpp_entity>::add_entity(std::move(ptr));
         }
 
         cpp_name get_name() const override
@@ -55,7 +55,7 @@ namespace standardese
 
         void add_entity(cpp_entity_ptr ptr)
         {
-            cpp_entity_container::add_entity(std::move(ptr));
+            cpp_entity_container<cpp_entity>::add_entity(std::move(ptr));
         }
 
         bool is_inline() const STANDARDESE_NOEXCEPT

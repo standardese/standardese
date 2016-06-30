@@ -51,12 +51,12 @@ cpp_ptr<cpp_enum_value> cpp_enum_value::parse(translation_unit& tu, cpp_cursor c
     if (is_signed_integer(type))
     {
         auto value = clang_getEnumConstantDeclValue(cur);
-        return detail::make_ptr<cpp_signed_enum_value>(cur, parent, value, is_explicit);
+        return detail::make_cpp_ptr<cpp_signed_enum_value>(cur, parent, value, is_explicit);
     }
     else if (is_unsigned_integer(type))
     {
         auto value = clang_getEnumConstantDeclUnsignedValue(cur);
-        return detail::make_ptr<cpp_unsigned_enum_value>(cur, parent, value, is_explicit);
+        return detail::make_cpp_ptr<cpp_unsigned_enum_value>(cur, parent, value, is_explicit);
     }
 
     assert(!"enum type is neither signed nor unsigned");
@@ -131,6 +131,7 @@ cpp_ptr<cpp_enum> cpp_enum::parse(translation_unit& tu, cpp_cursor cur, const cp
 
     auto underlying_type = clang_getEnumDeclIntegerType(cur);
 
-    return detail::make_ptr<cpp_enum>(cur, parent, cpp_type_ref(underlying_name, underlying_type),
-                                      is_scoped);
+    return detail::make_cpp_ptr<cpp_enum>(cur, parent,
+                                          cpp_type_ref(underlying_name, underlying_type),
+                                          is_scoped);
 }

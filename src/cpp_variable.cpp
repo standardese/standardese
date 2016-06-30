@@ -67,8 +67,8 @@ cpp_ptr<cpp_variable> cpp_variable::parse(translation_unit& tu, cpp_cursor cur,
     if (is_mutable)
         throw parse_error(source_location(cur), "non-member variable is mutable");
 
-    return detail::make_ptr<cpp_variable>(cur, parent, std::move(type), std::move(initializer),
-                                          is_thread_local);
+    return detail::make_cpp_ptr<cpp_variable>(cur, parent, std::move(type), std::move(initializer),
+                                              is_thread_local);
 }
 
 cpp_ptr<cpp_member_variable_base> cpp_member_variable_base::parse(translation_unit& tu,
@@ -88,12 +88,12 @@ cpp_ptr<cpp_member_variable_base> cpp_member_variable_base::parse(translation_un
     if (clang_Cursor_isBitField(cur))
     {
         auto no_bits = clang_getFieldDeclBitWidth(cur);
-        result       = detail::make_ptr<cpp_bitfield>(cur, parent, std::move(type),
-                                                std::move(initializer), no_bits, is_mutable);
+        result       = detail::make_cpp_ptr<cpp_bitfield>(cur, parent, std::move(type),
+                                                    std::move(initializer), no_bits, is_mutable);
     }
     else
-        result = detail::make_ptr<cpp_member_variable>(cur, parent, std::move(type),
-                                                       std::move(initializer), is_mutable);
+        result = detail::make_cpp_ptr<cpp_member_variable>(cur, parent, std::move(type),
+                                                           std::move(initializer), is_mutable);
 
     return result;
 }

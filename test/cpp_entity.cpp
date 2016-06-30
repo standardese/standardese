@@ -26,14 +26,14 @@ TEST_CASE("cpp_entity", "[cpp]")
 
     struct container : cpp_entity_container<cpp_entity>
     {
-        container() : cpp_entity_container()
+        container() : cpp_entity_container<cpp_entity>()
         {
         }
 
         // convenience
         void add_entity(test_entity* e)
         {
-            cpp_entity_container::add_entity(cpp_entity_ptr(e));
+            cpp_entity_container<cpp_entity>::add_entity(cpp_entity_ptr(e));
         }
     };
 

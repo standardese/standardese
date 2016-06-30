@@ -28,8 +28,8 @@ cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit
 
     auto k = source[i] == '<' ? kind::system : kind::local;
 
-    return detail::make_ptr<cpp_inclusion_directive>(cur, parent, detail::parse_name(cur).c_str(),
-                                                     k);
+    return detail::make_cpp_ptr<cpp_inclusion_directive>(cur, parent,
+                                                         detail::parse_name(cur).c_str(), k);
 }
 
 namespace
@@ -90,7 +90,7 @@ cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit&, cpp
     auto        predefined = parse_macro(cur, name, args, rep);
     assert(!predefined);
 
-    return detail::make_ptr<cpp_macro_definition>(cur, parent, std::move(args), std::move(rep));
+    return detail::make_cpp_ptr<cpp_macro_definition>(cur, parent, std::move(args), std::move(rep));
 }
 
 std::string detail::get_cmd_definition(cpp_cursor expansion_ref)

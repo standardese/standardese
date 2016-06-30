@@ -73,6 +73,28 @@ namespace standardese
         source_location location_;
         severity        severity_;
     };
+
+    class comment_parse_error : public std::runtime_error
+    {
+    public:
+        comment_parse_error(std::string message, unsigned line, unsigned column)
+        : std::runtime_error(std::move(message)), line_(line), column_(column)
+        {
+        }
+
+        unsigned get_line() const STANDARDESE_NOEXCEPT
+        {
+            return line_;
+        }
+
+        unsigned get_column() const STANDARDESE_NOEXCEPT
+        {
+            return column_;
+        }
+
+    private:
+        unsigned line_, column_;
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_ERROR_HPP_INCLUDED

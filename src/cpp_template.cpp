@@ -79,8 +79,9 @@ cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translat
         detail::unmunch(def_name);
     }
 
-    return detail::make_ptr<cpp_template_type_parameter>(cur, parent, cpp_type_ref(def_name, {}),
-                                                         is_variadic);
+    return detail::make_cpp_ptr<cpp_template_type_parameter>(cur, parent,
+                                                             cpp_type_ref(def_name, {}),
+                                                             is_variadic);
 }
 
 cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
@@ -135,10 +136,10 @@ cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
     }
 
     auto type = clang_getCursorType(cur);
-    return detail::make_ptr<cpp_non_type_template_parameter>(cur, parent,
-                                                             cpp_type_ref(std::move(type_given),
-                                                                          type),
-                                                             std::move(def), is_variadic);
+    return detail::make_cpp_ptr<cpp_non_type_template_parameter>(cur, parent,
+                                                                 cpp_type_ref(std::move(type_given),
+                                                                              type),
+                                                                 std::move(def), is_variadic);
 }
 
 namespace
@@ -170,8 +171,9 @@ cpp_ptr<cpp_template_template_parameter> cpp_template_template_parameter::parse(
 
     auto name     = detail::parse_name(cur);
     auto variadic = is_template_template_variadic(tu, cur, name);
-    auto result = detail::make_ptr<cpp_template_template_parameter>(cur, parent, cpp_template_ref(),
-                                                                    variadic);
+    auto result =
+        detail::make_cpp_ptr<cpp_template_template_parameter>(cur, parent, cpp_template_ref(),
+                                                              variadic);
 
     detail::visit_children(cur, [&](CXCursor cur, CXCursor) {
         if (auto param = cpp_template_parameter::try_parse(tu, cur, *result))
@@ -284,7 +286,7 @@ namespace
 cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit& tu, cpp_cursor cur,
                                                             const cpp_entity& parent)
 {
-    auto result = detail::make_ptr<cpp_function_template>(cur, parent);
+    auto result = detail::make_cpp_ptr<cpp_function_template>(cur, parent);
     parse_parameters(tu, *result, cur);
 
     auto func = cpp_function_base::try_parse(tu, cur, parent);
@@ -307,7 +309,7 @@ cpp_function_template::cpp_function_template(cpp_cursor cur, const cpp_entity& p
 cpp_ptr<cpp_function_template_specialization> cpp_function_template_specialization::parse(
     translation_unit& tu, cpp_cursor cur, const cpp_entity& parent)
 {
-    auto result = detail::make_ptr<cpp_function_template_specialization>(cur, parent);
+    auto result = detail::make_cpp_ptr<cpp_function_template_specialization>(cur, parent);
 
     auto func = cpp_function_base::try_parse(tu, cur, parent);
     assert(func);
@@ -332,7 +334,7 @@ cpp_ptr<cpp_class_template> cpp_class_template::parse(translation_unit& tu, cpp_
 {
     assert(clang_getCursorKind(cur) == CXCursor_ClassTemplate);
 
-    auto result = detail::make_ptr<cpp_class_template>(cur, parent);
+    auto result = detail::make_cpp_ptr<cpp_class_template>(cur, parent);
     parse_parameters(tu, *result, cur);
 
     auto ptr = cpp_class::parse(tu, cur, parent);
@@ -355,7 +357,7 @@ cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_speciali
            || clang_getCursorKind(cur) == CXCursor_StructDecl
            || clang_getCursorKind(cur) == CXCursor_UnionDecl);
 
-    auto result = detail::make_ptr<cpp_class_template_full_specialization>(cur, parent);
+    auto result = detail::make_cpp_ptr<cpp_class_template_full_specialization>(cur, parent);
 
     auto ptr = cpp_class::parse(tu, cur, parent);
     if (!ptr)
@@ -375,7 +377,7 @@ cpp_ptr<cpp_class_template_partial_specialization> cpp_class_template_partial_sp
 {
     assert(clang_getCursorKind(cur) == CXCursor_ClassTemplatePartialSpecialization);
 
-    auto result = detail::make_ptr<cpp_class_template_partial_specialization>(cur, parent);
+    auto result = detail::make_cpp_ptr<cpp_class_template_partial_specialization>(cur, parent);
     parse_parameters(tu, *result, cur);
 
     auto ptr = cpp_class::parse(tu, cur, parent);
@@ -410,7 +412,7 @@ cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit& tu, cpp_
 {
     assert(clang_getCursorKind(cur) == CXCursor_TypeAliasTemplateDecl);
 
-    auto result = detail::make_ptr<cpp_alias_template>(cur, parent);
+    auto result = detail::make_cpp_ptr<cpp_alias_template>(cur, parent);
     parse_parameters(tu, *result, cur);
 
     cpp_cursor type;

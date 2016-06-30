@@ -3,6 +3,7 @@
 # found in the top-level directory of this distribution.
 
 set(detail_header
+        ../include/standardese/detail/entity_container.hpp
         ../include/standardese/detail/parse_utils.hpp
         ../include/standardese/detail/scope_stack.hpp
         ../include/standardese/detail/sequence_stream.hpp
@@ -26,6 +27,9 @@ set(header
         ../include/standardese/doc_entity.hpp
         ../include/standardese/error.hpp
         ../include/standardese/generator.hpp
+        ../include/standardese/md_blocks.hpp
+        ../include/standardese/md_entity.hpp
+        ../include/standardese/md_inlines.hpp
         ../include/standardese/output.hpp
         ../include/standardese/output_stream.hpp
         ../include/standardese/parser.hpp
@@ -51,6 +55,9 @@ set(src
         cpp_variable.cpp
         error.cpp
         generator.cpp
+        md_blocks.cpp
+        md_entity.cpp
+        md_inlines.cpp
         output.cpp
         output_stream.cpp
         parser.cpp

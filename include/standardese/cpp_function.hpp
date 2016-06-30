@@ -90,7 +90,7 @@ namespace standardese
 
         void add_parameter(cpp_ptr<cpp_function_parameter> param)
         {
-            cpp_entity_container::add_entity(std::move(param));
+            cpp_entity_container<cpp_function_parameter>::add_entity(std::move(param));
         }
 
         const cpp_entity_container<cpp_function_parameter>& get_parameters() const

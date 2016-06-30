@@ -53,7 +53,7 @@ cpp_ptr<cpp_access_specifier> cpp_access_specifier::parse(translation_unit&, cpp
 {
     assert(clang_getCursorKind(cur) == CXCursor_CXXAccessSpecifier);
 
-    return detail::make_ptr<cpp_access_specifier>(cur, parent, parse_access_specifier(cur));
+    return detail::make_cpp_ptr<cpp_access_specifier>(cur, parent, parse_access_specifier(cur));
 }
 
 cpp_ptr<cpp_base_class> cpp_base_class::parse(translation_unit&, cpp_cursor cur,
@@ -66,8 +66,8 @@ cpp_ptr<cpp_base_class> cpp_base_class::parse(translation_unit&, cpp_cursor cur,
     auto a    = parse_access_specifier(cur);
     auto virt = clang_isVirtualBase(cur);
 
-    return detail::make_ptr<cpp_base_class>(cur, parent, cpp_type_ref(std::move(name), type), a,
-                                            !!virt);
+    return detail::make_cpp_ptr<cpp_base_class>(cur, parent, cpp_type_ref(std::move(name), type), a,
+                                                !!virt);
 }
 
 cpp_name cpp_base_class::get_name() const
@@ -159,7 +159,7 @@ cpp_ptr<cpp_class> cpp_class::parse(translation_unit& tu, cpp_cursor cur, const 
     if (!definition)
         return nullptr;
 
-    return detail::make_ptr<cpp_class>(cur, parent, ctype, is_final);
+    return detail::make_cpp_ptr<cpp_class>(cur, parent, ctype, is_final);
 }
 
 bool standardese::is_base_of(const cpp_entity_registry& registry, const cpp_class& base,

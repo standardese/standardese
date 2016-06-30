@@ -20,6 +20,8 @@
 #include "options.hpp"
 #include "thread_pool.hpp"
 
+#include <standardese/comment.hpp>
+
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
