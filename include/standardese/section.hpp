@@ -29,16 +29,6 @@ namespace standardese
         count,
         invalid = count
     };
-
-    struct section
-    {
-        string       body;
-        section_type type;
-
-        section(section_type t, string body) : body(std::move(body)), type(t)
-        {
-        }
-    };
 } // namespace standardese
 
 #endif // STANDARDESE_SECTION_HPP_INCLUDED

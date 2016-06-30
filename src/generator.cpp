@@ -201,22 +201,6 @@ void standardese::generate_doc_entity(const parser& p, output_base& output, unsi
                                                << output_base::style::code_span;
 
     write_synopsis(p, output, doc);
-
-    auto                          last_type = section_type::brief;
-    output_base::paragraph_writer writer(output);
-    for (auto& sec : comment.get_sections())
-    {
-        if (last_type != sec.type)
-        {
-            writer.start_new();
-            auto& section_name = p.get_output_config().get_section_name(sec.type);
-            if (!section_name.empty())
-                output.write_section_heading(section_name);
-        }
-
-        writer << sec.body << newl;
-        last_type = sec.type;
-    }
 }
 
 void standardese::generate_doc_file(const parser& p, output_base& output, const cpp_file& f)

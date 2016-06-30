@@ -39,11 +39,6 @@ namespace standardese
     public:
         static comment parse(const parser& p, const cpp_name& name, const cpp_raw_comment& comment);
 
-        std::vector<section> get_sections() const STANDARDESE_NOEXCEPT
-        {
-            return {};
-        }
-
         const md_document& get_document() const STANDARDESE_NOEXCEPT
         {
             return *document_;

@@ -6,6 +6,7 @@
 #define STANDARDESE_MD_BLOCKS_HPP_INCLUDED
 
 #include <standardese/md_entity.hpp>
+#include <standardese/section.hpp>
 
 namespace standardese
 {
@@ -122,11 +123,24 @@ namespace standardese
 
         static md_ptr<md_paragraph> parse(comment& c, cmark_node* cur, const md_entity& parent);
 
+        section_type get_section_type() const STANDARDESE_NOEXCEPT
+        {
+            return section_type_;
+        }
+
+        void set_section_type(section_type t) STANDARDESE_NOEXCEPT
+        {
+            section_type_ = t;
+        }
+
     private:
         md_paragraph(cmark_node* node, const md_entity& parent) STANDARDESE_NOEXCEPT
-            : md_container(get_entity_type(), node, parent)
+            : md_container(get_entity_type(), node, parent),
+              section_type_(section_type::details)
         {
         }
+
+        section_type section_type_;
 
         friend detail::md_ptr_access;
     };

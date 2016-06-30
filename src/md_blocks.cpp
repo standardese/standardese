@@ -29,6 +29,8 @@ md_list_type md_list::get_list_type() const STANDARDESE_NOEXCEPT
         return md_list_type::bullet;
     case CMARK_ORDERED_LIST:
         return md_list_type::ordered;
+    case CMARK_NO_LIST:
+        break;
     }
     assert(false);
     return md_list_type::bullet;
