@@ -10,6 +10,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
+#include <cmark_version.h>
 #include <spdlog/spdlog.h>
 
 #include <standardese/error.hpp>
@@ -19,8 +20,6 @@
 #include "filesystem.hpp"
 #include "options.hpp"
 #include "thread_pool.hpp"
-
-#include <standardese/comment.hpp>
 
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
@@ -35,6 +34,7 @@ void print_version(const char* exe_name)
     std::clog << '\n';
     std::clog << "Using libclang version: " << standardese::string(clang_getClangVersion()).c_str()
               << '\n';
+    std::clog << "Using cmark version: " << CMARK_VERSION_STRING << '\n';
 }
 
 void print_usage(const char* exe_name, const po::options_description& generic,
@@ -163,6 +163,7 @@ int main(int argc, char* argv[])
                 blacklist_entity.set_option(entity_blacklist::extract_private);
 
             log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
+            log->debug("Using cmark version: {}", CMARK_VERSION_STRING);
 
             standardese_tool::thread_pool  pool(map.at("jobs").as<unsigned>());
             std::vector<std::future<void>> futures;
