@@ -10,6 +10,8 @@
 #include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_template.hpp>
+#include <standardese/md_blocks.hpp>
+#include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
 
 using namespace standardese;
@@ -65,6 +67,8 @@ namespace
                      || cur_access != cpp_private || detail::is_virtual(child))
                 dispatch(p, output, level + 1, child);
         }
+
+        output.write_separator();
     }
 
     void dispatch(const parser& p, output& output, unsigned level, const cpp_entity& e)
@@ -186,10 +190,36 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
     return "should never get here";
 }
 
+namespace
+{
+    md_ptr<md_heading> make_heading(const cpp_entity& e, const md_document& doc, unsigned level)
+    {
+        auto heading = md_heading::make(doc, level);
+
+        auto type     = get_entity_type_spelling(e.get_entity_type());
+        auto text_str = fmt::format("{}{} ", char(std::toupper(type[0])), &type[1]);
+        auto text     = md_text::make(*heading, text_str.c_str());
+        heading->add_entity(std::move(text));
+
+        auto code = md_code::make(*heading, e.get_full_name().c_str());
+        heading->add_entity(std::move(code));
+
+        return heading;
+    }
+}
+
 void standardese::generate_doc_entity(const parser& p, output& output, unsigned level,
                                       const doc_entity& doc)
 {
+    auto& e       = doc.get_cpp_entity();
+    auto& comment = doc.get_comment();
+
+    auto heading = make_heading(e, comment.get_document(), level);
+    output.render(*heading);
+
     write_synopsis(p, output, doc);
+
+    output.render(comment.get_document());
 }
 
 void standardese::generate_doc_file(const parser& p, output& output, const cpp_file& f)

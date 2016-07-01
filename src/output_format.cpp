@@ -46,3 +46,10 @@ void output_format_markdown::do_write_code_block(output_stream_base& output, boo
         output.write_str("cpp", 3);
     output.write_blank_line();
 }
+
+void output_format_markdown::do_write_separator(output_stream_base& output)
+{
+    output.write_blank_line();
+    output.write_str("---", 3);
+    output.write_blank_line();
+}

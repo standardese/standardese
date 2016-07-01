@@ -120,6 +120,11 @@ namespace standardese
             output& output_;
         };
 
+        void write_separator()
+        {
+            format_->write_separator(get_output());
+        }
+
         output_stream_base& get_output() STANDARDESE_NOEXCEPT
         {
             return *stream_;
