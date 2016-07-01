@@ -19,6 +19,8 @@ namespace standardese
 
         static md_ptr<md_text> parse(comment& c, cmark_node* cur, const md_entity& parent);
 
+        static md_ptr<md_text> make(const md_entity& parent, const char* text);
+
     private:
         md_text(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
             : md_leave(get_entity_type(), cur, parent)
@@ -37,6 +39,8 @@ namespace standardese
         }
 
         static md_ptr<md_soft_break> parse(comment& c, cmark_node* cur, const md_entity& parent);
+
+        static md_ptr<md_soft_break> make(const md_entity& parent);
 
     private:
         md_soft_break(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
@@ -57,6 +61,8 @@ namespace standardese
 
         static md_ptr<md_line_break> parse(comment& c, cmark_node* cur, const md_entity& parent);
 
+        static md_ptr<md_line_break> make(const md_entity& parent);
+
     private:
         md_line_break(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
             : md_leave(get_entity_type(), cur, parent)
@@ -75,6 +81,8 @@ namespace standardese
         }
 
         static md_ptr<md_code> parse(comment& c, cmark_node* cur, const md_entity& parent);
+
+        static md_ptr<md_code> make(const md_entity& parent, const char* code);
 
     private:
         md_code(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
@@ -95,6 +103,8 @@ namespace standardese
 
         static md_ptr<md_emphasis> parse(comment& c, cmark_node* cur, const md_entity& parent);
 
+        static md_ptr<md_emphasis> make(const md_entity& parent);
+
     private:
         md_emphasis(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
             : md_container(get_entity_type(), cur, parent)
@@ -114,6 +124,8 @@ namespace standardese
 
         static md_ptr<md_strong> parse(comment& c, cmark_node* cur, const md_entity& parent);
 
+        static md_ptr<md_strong> make(const md_entity& parent);
+
     private:
         md_strong(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
             : md_container(get_entity_type(), cur, parent)
@@ -132,6 +144,9 @@ namespace standardese
         }
 
         static md_ptr<md_link> parse(comment& c, cmark_node* cur, const md_entity& parent);
+
+        static md_ptr<standardese::md_link> make(const md_entity& parent, const char* destination,
+                                                 const char* title);
 
         const char* get_title() const STANDARDESE_NOEXCEPT;
 

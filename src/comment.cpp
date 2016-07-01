@@ -15,11 +15,6 @@
 
 using namespace standardese;
 
-md_document::~md_document()
-{
-    cmark_node_free(get_node());
-}
-
 namespace
 {
     struct parser_deleter
@@ -172,10 +167,9 @@ namespace
 
             try
             {
-                auto entity = md_entity::try_parse(result, node, *containers.top());
-
                 if (ev == CMARK_EVENT_ENTER)
                 {
+                    auto entity = md_entity::try_parse(result, node, *containers.top());
                     add_entity(containers, std::move(entity));
                 }
                 else if (ev == CMARK_EVENT_EXIT)

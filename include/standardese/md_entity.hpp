@@ -62,7 +62,7 @@ namespace standardese
 
         md_entity(const md_entity&) = delete;
 
-        virtual ~md_entity() STANDARDESE_NOEXCEPT = default;
+        virtual ~md_entity() STANDARDESE_NOEXCEPT;
 
         md_entity& operator=(md_entity&&) = delete;
 
@@ -148,10 +148,7 @@ namespace standardese
     class md_container : public md_entity, public md_entity_container
     {
     public:
-        void add_entity(md_entity_ptr entity)
-        {
-            md_entity_container::add_entity(std::move(entity));
-        }
+        void add_entity(md_entity_ptr entity);
 
     protected:
         md_container(md_entity::type t, cmark_node* node,

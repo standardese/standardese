@@ -24,8 +24,6 @@ namespace standardese
             return md_entity::document_t;
         }
 
-        ~md_document() STANDARDESE_NOEXCEPT override;
-
     private:
         md_document(cmark_node* node) : md_container(get_entity_type(), node)
         {

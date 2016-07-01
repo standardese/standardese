@@ -20,6 +20,8 @@ namespace standardese
 
         static md_ptr<md_block_quote> parse(comment& c, cmark_node* cur, const md_entity& parent);
 
+        static md_ptr<md_block_quote> make(const md_entity& parent);
+
     private:
         md_block_quote(cmark_node* node, const md_entity& parent) STANDARDESE_NOEXCEPT
             : md_container(get_entity_type(), node, parent)
@@ -53,6 +55,9 @@ namespace standardese
 
         static md_ptr<md_list> parse(comment& c, cmark_node* cur, const md_entity& parent);
 
+        static md_ptr<md_list> make(const md_entity& parent, md_list_type type,
+                                    md_list_delimiter delim, int start, bool is_tight);
+
         md_list_type get_list_type() const STANDARDESE_NOEXCEPT;
 
         md_list_delimiter get_delimiter() const STANDARDESE_NOEXCEPT;
@@ -83,6 +88,8 @@ namespace standardese
 
         static md_ptr<md_list_item> parse(comment& c, cmark_node* cur, const md_entity& parent);
 
+        static md_ptr<md_list_item> make(const md_entity& parent);
+
     private:
         md_list_item(cmark_node* node, const md_entity& parent) STANDARDESE_NOEXCEPT
             : md_container(get_entity_type(), node, parent)
@@ -101,6 +108,9 @@ namespace standardese
         }
 
         static md_ptr<md_code_block> parse(comment& c, cmark_node* cur, const md_entity& parent);
+
+        static md_ptr<md_code_block> make(const md_entity& parent, const char* code,
+                                          const char* fence);
 
         const char* get_fence_info() const STANDARDESE_NOEXCEPT;
 
@@ -122,6 +132,8 @@ namespace standardese
         }
 
         static md_ptr<md_paragraph> parse(comment& c, cmark_node* cur, const md_entity& parent);
+
+        static md_ptr<md_paragraph> make(const md_entity& parent);
 
         section_type get_section_type() const STANDARDESE_NOEXCEPT
         {
@@ -155,6 +167,10 @@ namespace standardese
 
         static md_ptr<md_heading> parse(comment& c, cmark_node* cur, const md_entity& parent);
 
+        static md_ptr<md_heading> make(const md_entity& parent, int level);
+
+        int get_level() const STANDARDESE_NOEXCEPT;
+
     private:
         md_heading(cmark_node* node, const md_entity& parent) STANDARDESE_NOEXCEPT
             : md_container(get_entity_type(), node, parent)
@@ -174,6 +190,8 @@ namespace standardese
 
         static md_ptr<md_thematic_break> parse(comment& c, cmark_node* cur,
                                                const md_entity& parent);
+
+        static md_ptr<md_thematic_break> make(const md_entity& parent);
 
     private:
         md_thematic_break(cmark_node* node, const md_entity& parent) STANDARDESE_NOEXCEPT
