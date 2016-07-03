@@ -107,7 +107,9 @@ int main(int argc, char* argv[])
              "whether or not each line in the documentation comment is one paragraph")
 
             ("output.section_name_", po::value<std::string>(),
-             "override output name for the section following the name_ (e.g. output.section_name_requires=Require)");
+             "override output name for the section following the name_ (e.g. output.section_name_requires=Require)")
+            ("output.tab_width", po::value<unsigned>()->default_value(4),
+             "the tab width (i.e. number of spaces, won't emit tab) of the code in the synthesis");
     // clang-format on
 
     standardese_tool::configuration config;
@@ -149,6 +151,8 @@ int main(int argc, char* argv[])
                 map.at("comment.command_character").as<char>());
             parser.get_comment_config().set_implicit_paragraph(
                 map.at("comment.implicit_paragraph").as<bool>());
+
+            parser.get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
 
             auto input           = map.at("input-files").as<std::vector<fs::path>>();
             auto blacklist_ext   = map.at("input.blacklist_ext").as<std::vector<std::string>>();
