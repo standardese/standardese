@@ -95,7 +95,10 @@ if((NOT CMARK_LIBRARY) OR (NOT CMARK_INCLUDE_DIR))
     execute_process(COMMAND git submodule update --init -- external/cmark
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
     set(CMARK_TESTS OFF)
-    add_subdirectory(external/cmark)
+    add_subdirectory(external/cmark ${CMAKE_CURRENT_BINARY_DIR}/cmark)
+    target_include_directories(libcmark PUBLIC
+                               $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/cmark/src>
+                               $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/cmark/src>)
 else()
     add_library(libcmark INTERFACE)
     target_include_directories(libcmark INTERFACE ${CMARK_INCLUDE_DIR})
