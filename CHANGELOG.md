@@ -1,3 +1,25 @@
+## Upcoming
+
+### Buildsystem
+
+* New method of handling external projects
+
+### Library
+
+* Completely redone comment parsing
+
+* Ability to use almost arbitrary Markdown in the documentation comments
+
+### Tool
+
+* Multithreaded documentation generation and new option `jobs/j` to specify number of threads.
+
+* New options: `comment.implicit_paragraph`, `output.tab_width`
+
+## 0.1-1
+
+Bugfixes, better compiler support.
+
 ## 0.1
 
 ### Buildsystem

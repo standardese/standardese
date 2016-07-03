@@ -29,6 +29,7 @@ namespace std
 {
 
     /// \effects Exchanges values stored in two locations.
+    ///
     /// \requires Type `T` shall be `MoveConstructible` and `MoveAssignable`.
     template <class T>
     void swap(T &a, T &b) noexcept(is_nothrow_move_constructible<T>::value &&
@@ -166,21 +167,17 @@ See `standardese-config.cmake` for a documentation of `standardese_generate()`.
 ### Documentation syntax overview
 
 standardese currently requires comments with triple slashes `///` for documentation.
+You can use arbitrary\* Markdown\* in the documentation comments and it will be rendered appropriately.
 
-Inside the comments you can use the basic inline Markdown syntax (`` ` ``, `*`, etc.) for formatting.
+> The Markdown flavor used is [CommonMark](https://commonmark.org).
+> standardese does not support inline HTML (for obvious reasons) or images.
 
-> You can currently use *arbitrary* Markdown because the comments are just copied to the output file
-> which is Markdown itself.
-> But this *will* change in a future version.
-
-Special commands are introduced by the *command character* (a backslash by default).
+Special commands are introduced by the *command character* (a backslash by default) at the beginning of a new (Markdown) paragraph.
 It currently only supports *sections*.
 
 A section is the basic way of standardese documentation.
 It supports all the sections the C++ standard uses, as explained in the example.
 Those sections will create a paragraph in the output prefixed with a human readable name.
-A section will end on the next line or when a new section comes.
-If you use the same sections two or more times in a row it will be detected and merged.
 
 There are two special sections, `brief` and `details`.
 They are not labeled in the output and will be used in future versions.
