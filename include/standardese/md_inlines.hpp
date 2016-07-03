@@ -17,7 +17,7 @@ namespace standardese
             return md_entity::text_t;
         }
 
-        static md_ptr<md_text> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_text> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_text> make(const md_entity& parent, const char* text);
 
@@ -38,7 +38,7 @@ namespace standardese
             return md_entity::soft_break_t;
         }
 
-        static md_ptr<md_soft_break> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_soft_break> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_soft_break> make(const md_entity& parent);
 
@@ -59,7 +59,7 @@ namespace standardese
             return md_entity::line_break_t;
         }
 
-        static md_ptr<md_line_break> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_line_break> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_line_break> make(const md_entity& parent);
 
@@ -80,7 +80,7 @@ namespace standardese
             return md_entity::code_t;
         }
 
-        static md_ptr<md_code> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_code> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_code> make(const md_entity& parent, const char* code);
 
@@ -101,7 +101,7 @@ namespace standardese
             return md_entity::emphasis_t;
         }
 
-        static md_ptr<md_emphasis> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_emphasis> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_emphasis> make(const md_entity& parent);
 
@@ -124,7 +124,7 @@ namespace standardese
             return md_entity::strong_t;
         }
 
-        static md_ptr<md_strong> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_strong> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_strong> make(const md_entity& parent);
 
@@ -147,7 +147,7 @@ namespace standardese
             return md_entity::link_t;
         }
 
-        static md_ptr<md_link> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_link> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<standardese::md_link> make(const md_entity& parent, const char* destination,
                                                  const char* title);

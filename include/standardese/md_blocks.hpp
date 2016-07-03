@@ -18,7 +18,7 @@ namespace standardese
             return md_entity::block_quote_t;
         }
 
-        static md_ptr<md_block_quote> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_block_quote> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_block_quote> make(const md_entity& parent);
 
@@ -53,7 +53,7 @@ namespace standardese
             return md_entity::list_t;
         }
 
-        static md_ptr<md_list> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_list> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_list> make(const md_entity& parent, md_list_type type,
                                     md_list_delimiter delim, int start, bool is_tight);
@@ -86,7 +86,7 @@ namespace standardese
             return md_entity::list_item_t;
         }
 
-        static md_ptr<md_list_item> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_list_item> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_list_item> make(const md_entity& parent);
 
@@ -107,7 +107,7 @@ namespace standardese
             return md_entity::code_block_t;
         }
 
-        static md_ptr<md_code_block> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_code_block> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_code_block> make(const md_entity& parent, const char* code,
                                           const char* fence);
@@ -131,7 +131,7 @@ namespace standardese
             return md_entity::paragraph_t;
         }
 
-        static md_ptr<md_paragraph> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_paragraph> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_paragraph> make(const md_entity& parent);
 
@@ -159,7 +159,7 @@ namespace standardese
             return md_entity::heading_t;
         }
 
-        static md_ptr<md_heading> parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_ptr<md_heading> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_heading> make(const md_entity& parent, int level);
 
@@ -182,8 +182,7 @@ namespace standardese
             return md_entity::thematic_break_t;
         }
 
-        static md_ptr<md_thematic_break> parse(comment& c, cmark_node* cur,
-                                               const md_entity& parent);
+        static md_ptr<md_thematic_break> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_thematic_break> make(const md_entity& parent);
 

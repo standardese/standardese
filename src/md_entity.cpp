@@ -14,13 +14,13 @@
 
 using namespace standardese;
 
-md_entity_ptr md_entity::try_parse(comment& c, cmark_node* cur, const md_entity& parent)
+md_entity_ptr md_entity::try_parse(cmark_node* cur, const md_entity& parent)
 {
     switch (cmark_node_get_type(cur))
     {
 #define STANDARDESE_DETAIL_HANDLE(value, name)                                                     \
     case CMARK_NODE_##value:                                                                       \
-        return md_##name::parse(c, cur, parent);
+        return md_##name::parse(cur, parent);
 
         STANDARDESE_DETAIL_HANDLE(BLOCK_QUOTE, block_quote)
         STANDARDESE_DETAIL_HANDLE(LIST, list)

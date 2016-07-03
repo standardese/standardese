@@ -42,7 +42,7 @@ namespace
         }
     }
 
-    md_ptr<md_document> parse_document(const parser& p, const cpp_raw_comment& raw_comment)
+    cmark_node* parse_document(const parser& p, const cpp_raw_comment& raw_comment)
     {
         md_parser parser(cmark_parser_new(CMARK_OPT_NORMALIZE));
 
@@ -80,8 +80,7 @@ namespace
         // final line
         cmark_parser_feed(parser.get(), cur_start, cur_length);
 
-        auto doc_node = cmark_parser_finish(parser.get());
-        return detail::make_md_ptr<md_document>(doc_node);
+        return cmark_parser_finish(parser.get());
     }
 
     struct iter_deleter
@@ -112,18 +111,6 @@ namespace
         // now remove the node from the tree
         // iteration will go to the next node in order
         cmark_node_free(node);
-    }
-
-    void add_entity(std::stack<md_container*>& containers, md_entity_ptr entity)
-    {
-        assert(entity);
-
-        auto ptr = entity.get();
-        containers.top()->add_entity(std::move(entity));
-
-        if (is_container(ptr->get_entity_type()))
-            // new scope
-            containers.push(static_cast<md_container*>(ptr));
     }
 
     void parse_command(const parser& p, md_paragraph& paragraph, bool& first)
@@ -169,15 +156,17 @@ namespace
         paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
     }
 
-    void parse_children(comment& result, md_document& document, const parser& p,
+    void parse_children(md_comment& comment, const parser& p, cmark_node* root,
                         const cpp_name& name)
     {
         std::stack<md_container*> containers;
-        containers.push(&document);
+        containers.push(&comment);
+
+        std::vector<md_entity_ptr> direct_children;
 
         auto    ev              = CMARK_EVENT_NONE;
         auto    first_paragraph = true;
-        md_iter iter(cmark_iter_new(containers.top()->get_node()));
+        md_iter iter(cmark_iter_new(root));
         while ((ev = cmark_iter_next(iter.get())) != CMARK_EVENT_DONE)
         {
             auto node = cmark_iter_get_node(iter.get());
@@ -189,8 +178,16 @@ namespace
             {
                 if (ev == CMARK_EVENT_ENTER)
                 {
-                    auto entity = md_entity::try_parse(result, node, *containers.top());
-                    add_entity(containers, std::move(entity));
+                    auto entity = md_entity::try_parse(node, *containers.top());
+                    auto parent = containers.top();
+
+                    if (is_container(entity->get_entity_type()))
+                        containers.push(static_cast<md_container*>(entity.get()));
+
+                    if (cmark_node_parent(node) == root)
+                        direct_children.push_back(std::move(entity));
+                    else
+                        parent->add_entity(std::move(entity));
                 }
                 else if (ev == CMARK_EVENT_EXIT)
                 {
@@ -209,12 +206,22 @@ namespace
                 remove_node(node, iter.get());
             }
         }
+
+        for (auto& e : direct_children)
+            comment.add_entity(std::move(e));
     }
 }
 
-comment comment::parse(const parser& p, const cpp_name& name, const cpp_raw_comment& raw_comment)
+md_ptr<md_comment> md_comment::parse(const parser& p, const cpp_name& name,
+                                     const cpp_raw_comment& comment)
 {
-    comment result(parse_document(p, raw_comment));
-    parse_children(result, *result.document_, p, name);
+    auto result = detail::make_md_ptr<md_comment>();
+
+    auto root = parse_document(p, comment);
+    parse_children(*result, p, root, name);
     return result;
+}
+
+md_comment::md_comment() : md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK))
+{
 }

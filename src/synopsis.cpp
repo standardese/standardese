@@ -600,7 +600,7 @@ namespace
 
 void standardese::write_synopsis(const parser& p, output& out, const doc_entity& e)
 {
-    output::code_block_writer w(out, e.get_comment().get_document());
+    output::code_block_writer w(out, e.get_comment());
     if (e.has_cpp_entity())
         dispatch(p, w, e.get_cpp_entity(), true);
 }

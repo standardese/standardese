@@ -9,7 +9,7 @@
 
 using namespace standardese;
 
-md_ptr<md_text> md_text::parse(comment&, cmark_node* cur, const md_entity& parent)
+md_ptr<md_text> md_text::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_TEXT);
     return detail::make_md_ptr<md_text>(cur, parent);
@@ -22,7 +22,7 @@ md_ptr<md_text> md_text::make(const md_entity& parent, const char* text)
     return detail::make_md_ptr<md_text>(node, parent);
 }
 
-md_ptr<md_soft_break> md_soft_break::parse(comment&, cmark_node* cur, const md_entity& parent)
+md_ptr<md_soft_break> md_soft_break::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_SOFTBREAK);
     return detail::make_md_ptr<md_soft_break>(cur, parent);
@@ -34,7 +34,7 @@ md_ptr<md_soft_break> md_soft_break::make(const md_entity& parent)
     return detail::make_md_ptr<md_soft_break>(node, parent);
 }
 
-md_ptr<md_line_break> md_line_break::parse(comment&, cmark_node* cur, const md_entity& parent)
+md_ptr<md_line_break> md_line_break::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_LINEBREAK);
     return detail::make_md_ptr<md_line_break>(cur, parent);
@@ -46,7 +46,7 @@ md_ptr<md_line_break> md_line_break::make(const md_entity& parent)
     return detail::make_md_ptr<md_line_break>(node, parent);
 }
 
-md_ptr<md_code> md_code::parse(comment&, cmark_node* cur, const md_entity& parent)
+md_ptr<md_code> md_code::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_CODE);
     return detail::make_md_ptr<md_code>(cur, parent);
@@ -59,7 +59,7 @@ md_ptr<md_code> md_code::make(const md_entity& parent, const char* code)
     return detail::make_md_ptr<md_code>(node, parent);
 }
 
-md_ptr<md_emphasis> md_emphasis::parse(comment&, cmark_node* cur, const md_entity& parent)
+md_ptr<md_emphasis> md_emphasis::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_EMPH);
     return detail::make_md_ptr<md_emphasis>(cur, parent);
@@ -81,7 +81,7 @@ md_ptr<md_emphasis> md_emphasis::make(const md_entity& parent, const char* str)
     return emph;
 }
 
-md_ptr<md_strong> md_strong::parse(comment&, cmark_node* cur, const md_entity& parent)
+md_ptr<md_strong> md_strong::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_STRONG);
     return detail::make_md_ptr<md_strong>(cur, parent);
@@ -103,7 +103,7 @@ md_ptr<md_strong> md_strong::make(const md_entity& parent, const char* str)
     return strong;
 }
 
-md_ptr<md_link> md_link::parse(comment&, cmark_node* cur, const md_entity& parent)
+md_ptr<md_link> md_link::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_LINK);
     return detail::make_md_ptr<md_link>(cur, parent);

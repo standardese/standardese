@@ -69,7 +69,7 @@ namespace
                 dispatch(p, out, level + 1, child);
         }
 
-        out.render(*md_thematic_break::make(doc.get_comment().get_document()));
+        out.render(*md_thematic_break::make(doc.get_comment()));
     }
 
     void dispatch(const parser& p, output& output, unsigned level, const cpp_entity& e)
@@ -193,7 +193,7 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
 
 namespace
 {
-    md_ptr<md_heading> make_heading(const cpp_entity& e, const md_document& doc, unsigned level)
+    md_ptr<md_heading> make_heading(const cpp_entity& e, const md_comment& doc, unsigned level)
     {
         auto heading = md_heading::make(doc, level);
 
@@ -215,12 +215,12 @@ void standardese::generate_doc_entity(const parser& p, output& output, unsigned 
     auto& e       = doc.get_cpp_entity();
     auto& comment = doc.get_comment();
 
-    auto heading = make_heading(e, comment.get_document(), level);
+    auto heading = make_heading(e, comment, level);
     output.render(*heading);
 
     write_synopsis(p, output, doc);
 
-    output.render(comment.get_document());
+    output.render(comment);
 }
 
 void standardese::generate_doc_file(const parser& p, output& output, const cpp_file& f)
