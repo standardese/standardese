@@ -81,7 +81,7 @@ For a more complete example check out [this gist](https://gist.github.com/foonat
 ## Installation
 
 Standardese uses [CMake](https://cmake.org/) as build system.
-Simply clone the project and run `cmake -DSTANDARDESE_BUILD_TEST=OFF --build . --target install` to build the library and the tool and install it on your system.
+Simply clone the project and run `cmake -DSTANDARDESE_BUILD_TEST=OFF <source_dir>` followed by `cmake --build . --target install` to build the library and the tool and install it on your system.
 
 Both require libclang - only tested with version `3.7.1` and `3.8`.
 If it isn't found, set the CMake variable `LIBCLANG_INCLUDE_DIR` to the folder where `clang-c/Index.h` is located,
