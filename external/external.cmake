@@ -83,3 +83,24 @@ if((NOT THREADPOOL_INCLUDE_DIR) OR (NOT EXISTS ${THREADPOOL_INCLUDE_DIR}))
         CACHE PATH "ThreadPool include directory")
     # don't need to be installed
 endif()
+
+#
+# add cmark
+#
+find_library(CMARK_LIBRARY "cmark" "/usr/lib" "/usr/local/lib")
+find_path(CMARK_INCLUDE_DIR "cmark.h" "/usr/include" "/usr/local/include")
+
+if((NOT CMARK_LIBRARY) OR (NOT CMARK_INCLUDE_DIR))
+    message("Unable to find cmark, installing it myself...")
+    execute_process(COMMAND git submodule update --init -- external/cmark
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    set(CMARK_TESTS OFF)
+    add_subdirectory(external/cmark)
+else()
+    add_library(libcmark INTERFACE)
+    target_include_directories(libcmark INTERFACE ${CMARK_INCLUDE_DIR})
+    target_link_libraries(libcmark INTERFACE ${CMARK_LIBRARY})
+
+    # install fake target
+    install(TARGETS libcmark EXPORT standardese DESTINATION ${lib_dir})
+endif()

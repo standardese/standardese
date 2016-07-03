@@ -10,6 +10,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
+#include <cmark_version.h>
 #include <spdlog/spdlog.h>
 
 #include <standardese/error.hpp>
@@ -33,6 +34,7 @@ void print_version(const char* exe_name)
     std::clog << '\n';
     std::clog << "Using libclang version: " << standardese::string(clang_getClangVersion()).c_str()
               << '\n';
+    std::clog << "Using cmark version: " << CMARK_VERSION_STRING << '\n';
 }
 
 void print_usage(const char* exe_name, const po::options_description& generic,
@@ -101,9 +103,13 @@ int main(int argc, char* argv[])
              "character used to introduce special commands")
             ("comment.cmd_name_", po::value<std::string>(),
              "override name for the command following the name_ (e.g. comment.cmd_name_requires=require)")
+            ("comment.implicit_paragraph", po::value<bool>()->implicit_value(true)->default_value(false),
+             "whether or not each line in the documentation comment is one paragraph")
 
             ("output.section_name_", po::value<std::string>(),
-             "override output name for the section following the name_ (e.g. output.section_name_requires=Require)");
+             "override output name for the section following the name_ (e.g. output.section_name_requires=Require)")
+            ("output.tab_width", po::value<unsigned>()->default_value(4),
+             "the tab width (i.e. number of spaces, won't emit tab) of the code in the synthesis");
     // clang-format on
 
     standardese_tool::configuration config;
@@ -143,6 +149,10 @@ int main(int argc, char* argv[])
 
             parser.get_comment_config().set_command_character(
                 map.at("comment.command_character").as<char>());
+            parser.get_comment_config().set_implicit_paragraph(
+                map.at("comment.implicit_paragraph").as<bool>());
+
+            parser.get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
 
             auto input           = map.at("input-files").as<std::vector<fs::path>>();
             auto blacklist_ext   = map.at("input.blacklist_ext").as<std::vector<std::string>>();
@@ -161,6 +171,7 @@ int main(int argc, char* argv[])
                 blacklist_entity.set_option(entity_blacklist::extract_private);
 
             log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
+            log->debug("Using cmark version: {}", CMARK_VERSION_STRING);
 
             standardese_tool::thread_pool  pool(map.at("jobs").as<unsigned>());
             std::vector<std::future<void>> futures;
@@ -176,8 +187,10 @@ int main(int argc, char* argv[])
                     {
                         auto tu = parser.parse(p.generic_string().c_str(), compile_config);
 
-                        file_output     file(p.stem().generic_string() + ".md");
-                        markdown_output out(file);
+                        file_output            file(p.stem().generic_string() + ".md");
+                        output_format_markdown markdown(terminal_width);
+                        output                 out(file, markdown);
+
                         generate_doc_file(parser, out, tu.get_file());
                     }
                     catch (libclang_error& ex)

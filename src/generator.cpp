@@ -10,6 +10,8 @@
 #include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_template.hpp>
+#include <standardese/md_blocks.hpp>
+#include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
 
 using namespace standardese;
@@ -42,10 +44,10 @@ namespace
         return get_default_access(e.get_class());
     }
 
-    void dispatch(const parser& p, output_base& output, unsigned level, const cpp_entity& e);
+    void dispatch(const parser& p, output& output, unsigned level, const cpp_entity& e);
 
     template <class Entity, class Container>
-    void handle_container(const parser& p, output_base& output, unsigned level, const Entity& e,
+    void handle_container(const parser& p, output& output, unsigned level, const Entity& e,
                           const Container& container)
     {
         auto& blacklist = p.get_output_config().get_blacklist();
@@ -66,10 +68,10 @@ namespace
                 dispatch(p, output, level + 1, child);
         }
 
-        output.write_seperator();
+        output.write_separator();
     }
 
-    void dispatch(const parser& p, output_base& output, unsigned level, const cpp_entity& e)
+    void dispatch(const parser& p, output& output, unsigned level, const cpp_entity& e)
     {
         auto& blacklist = p.get_output_config().get_blacklist();
         if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
@@ -188,38 +190,39 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
     return "should never get here";
 }
 
-void standardese::generate_doc_entity(const parser& p, output_base& output, unsigned level,
+namespace
+{
+    md_ptr<md_heading> make_heading(const cpp_entity& e, const md_document& doc, unsigned level)
+    {
+        auto heading = md_heading::make(doc, level);
+
+        auto type     = get_entity_type_spelling(e.get_entity_type());
+        auto text_str = fmt::format("{}{} ", char(std::toupper(type[0])), &type[1]);
+        auto text     = md_text::make(*heading, text_str.c_str());
+        heading->add_entity(std::move(text));
+
+        auto code = md_code::make(*heading, e.get_full_name().c_str());
+        heading->add_entity(std::move(code));
+
+        return heading;
+    }
+}
+
+void standardese::generate_doc_entity(const parser& p, output& output, unsigned level,
                                       const doc_entity& doc)
 {
     auto& e       = doc.get_cpp_entity();
     auto& comment = doc.get_comment();
 
-    auto type = get_entity_type_spelling(e.get_entity_type());
-
-    output_base::heading_writer(output, level) << char(std::toupper(type[0])) << &type[1] << ' '
-                                               << output_base::style::code_span << e.get_full_name()
-                                               << output_base::style::code_span;
+    auto heading = make_heading(e, comment.get_document(), level);
+    output.render(*heading);
 
     write_synopsis(p, output, doc);
 
-    auto                          last_type = section_type::brief;
-    output_base::paragraph_writer writer(output);
-    for (auto& sec : comment.get_sections())
-    {
-        if (last_type != sec.type)
-        {
-            writer.start_new();
-            auto& section_name = p.get_output_config().get_section_name(sec.type);
-            if (!section_name.empty())
-                output.write_section_heading(section_name);
-        }
-
-        writer << sec.body << newl;
-        last_type = sec.type;
-    }
+    output.render(comment.get_document());
 }
 
-void standardese::generate_doc_file(const parser& p, output_base& output, const cpp_file& f)
+void standardese::generate_doc_file(const parser& p, output& output, const cpp_file& f)
 {
     generate_doc_entity(p, output, 1, doc_entity(p, f));
 

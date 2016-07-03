@@ -6,9 +6,17 @@
 
 #include <catch.hpp>
 
+#include <standardese/md_blocks.hpp>
+#include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
 
 using namespace standardese;
+
+std::string get_text(const md_paragraph& paragraph)
+{
+    REQUIRE(paragraph.begin()->get_entity_type() == md_entity::text_t);
+    return dynamic_cast<const md_text&>(*paragraph.begin()).get_string();
+}
 
 TEST_CASE("comment", "[doc]")
 {
@@ -16,71 +24,111 @@ TEST_CASE("comment", "[doc]")
 
     SECTION("simple parsing")
     {
-        auto comment  = comment::parse(p, "", R"(/// Hello World.)");
-        auto sections = comment.get_sections();
-        REQUIRE(sections.size() == 1u);
+        auto comment = comment::parse(p, "", R"(/// Hello World.)");
+        auto count   = 0u;
+        for (auto& child : comment.get_document())
+        {
+            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
 
-        REQUIRE(sections[0].type == section_type::brief);
-        REQUIRE(sections[0].body == "Hello World.");
+            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
+            REQUIRE(get_text(paragraph) == std::string("Hello World."));
+            REQUIRE(paragraph.get_section_type() == section_type::brief);
+            ++count;
+        }
+        REQUIRE(count == 1u);
     }
     SECTION("multiple sections explicit")
     {
-        auto comment  = comment::parse(p, "", R"(/// \brief A
-                                                ///
-                                                /// \details B
-                                                /// C /// C
+        auto comment = comment::parse(p, "", R"(/// \brief A
+                                                 ///
+                                                 /// \details B
+                                                 /// C
                                                )");
-        auto sections = comment.get_sections();
-        REQUIRE(sections.size() == 3u);
 
-        REQUIRE(sections[0].type == section_type::brief);
-        REQUIRE(sections[0].body == "A");
+        auto count = 0u;
+        for (auto& child : comment.get_document())
+        {
+            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
+            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
 
-        REQUIRE(sections[1].type == section_type::details);
-        REQUIRE(sections[1].body == "B");
-
-        REQUIRE(sections[2].type == section_type::details);
-        REQUIRE(sections[2].body == "C /// C");
+            if (get_text(paragraph) == "A")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::brief);
+            }
+            else if (get_text(paragraph) == "B")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::details);
+            }
+            else
+                REQUIRE(false);
+        }
+        REQUIRE(count == 2u);
     }
     SECTION("multiple sections implicit")
     {
-        auto comment  = comment::parse(p, "", R"(///  A
+        auto comment = comment::parse(p, "", R"(///  A
                                                 ///
                                                 /// B
-                                                /// C
+                                                /// C /// C
                                                )");
-        auto sections = comment.get_sections();
-        REQUIRE(sections.size() == 3u);
 
-        REQUIRE(sections[0].type == section_type::brief);
-        REQUIRE(sections[0].body == "A");
+        auto count = 0u;
+        for (auto& child : comment.get_document())
+        {
+            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
+            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
 
-        REQUIRE(sections[1].type == section_type::details);
-        REQUIRE(sections[1].body == "B");
-
-        REQUIRE(sections[2].type == section_type::details);
-        REQUIRE(sections[2].body == "C");
+            if (get_text(paragraph) == "A")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::brief);
+            }
+            else if (get_text(paragraph) == "B")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::details);
+            }
+            else
+                REQUIRE(false);
+        }
+        REQUIRE(count == 2u);
     }
     SECTION("cherry pick other commands")
     {
         auto comment = comment::parse(p, "", R"(/// \effects A A
                                                 /// A A
+                                                ///
                                                 /// \returns B B
+                                                ///
                                                 /// \error_conditions C C)");
 
-        auto sections = comment.get_sections();
-        REQUIRE(sections.size() == 4u);
+        auto count = 0u;
+        for (auto& child : comment.get_document())
+        {
+            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
+            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
+            INFO(get_text(paragraph));
 
-        REQUIRE(sections[0].type == section_type::effects);
-        REQUIRE(sections[0].body == "A A");
-
-        REQUIRE(sections[1].type == section_type::effects);
-        REQUIRE(sections[1].body == "A A");
-
-        REQUIRE(sections[2].type == section_type::returns);
-        REQUIRE(sections[2].body == "B B");
-
-        REQUIRE(sections[3].type == section_type::error_conditions);
-        REQUIRE(sections[3].body == "C C");
+            if (get_text(paragraph) == " A A")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::effects);
+            }
+            else if (get_text(paragraph) == " B B")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::returns);
+            }
+            else if (get_text(paragraph) == " C C")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::error_conditions);
+            }
+            else
+                REQUIRE(false);
+        }
+        REQUIRE(count == 3u);
     }
 }

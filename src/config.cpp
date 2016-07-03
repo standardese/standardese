@@ -187,7 +187,7 @@ void compile_config::setup_context(detail::context& context) const
     }
 }
 
-comment_config::comment_config() : cmd_char_('\\')
+comment_config::comment_config() : cmd_char_('\\'), implicit_par_(false)
 {
 #define STANDARDESE_DETAIL_SET(type) set_section_command(section_type::type, #type);
 

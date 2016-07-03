@@ -9,24 +9,45 @@
 #include <vector>
 
 #include <standardese/cpp_entity.hpp>
+#include <standardese/md_entity.hpp>
 #include <standardese/section.hpp>
 
 namespace standardese
 {
     class parser;
 
+    class md_document final : public md_container
+    {
+    public:
+        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return md_entity::document_t;
+        }
+
+    private:
+        md_document(cmark_node* node) : md_container(get_entity_type(), node)
+        {
+        }
+
+        friend detail::md_ptr_access;
+    };
+
     class comment
     {
     public:
         static comment parse(const parser& p, const cpp_name& name, const cpp_raw_comment& comment);
 
-        const std::vector<section>& get_sections() const STANDARDESE_NOEXCEPT
+        const md_document& get_document() const STANDARDESE_NOEXCEPT
         {
-            return sections_;
+            return *document_;
         }
 
     private:
-        std::vector<section> sections_;
+        comment(md_ptr<md_document> document) : document_(std::move(document))
+        {
+        }
+
+        md_ptr<md_document> document_;
     };
 } // namespace standardese
 

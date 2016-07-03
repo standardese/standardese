@@ -130,12 +130,12 @@ namespace standardese
                 cpp_entity_container<cpp_entity>::add_entity(std::move(e));
         }
 
-        cpp_entity_container<cpp_entity>::iterator begin() const STANDARDESE_NOEXCEPT
+        cpp_entity_container<cpp_entity>::const_iterator begin() const STANDARDESE_NOEXCEPT
         {
             return cpp_entity_container<cpp_entity>::begin();
         }
 
-        cpp_entity_container<cpp_entity>::iterator end() const STANDARDESE_NOEXCEPT
+        cpp_entity_container<cpp_entity>::const_iterator end() const STANDARDESE_NOEXCEPT
         {
             return cpp_entity_container<cpp_entity>::end();
         }

@@ -59,7 +59,7 @@ namespace standardese
         }
 
         template <class Container, typename T, typename Func>
-        void write_range(output_base::code_block_writer& out, const Container& cont, T sep, Func f)
+        void write_range(output::code_block_writer& out, const Container& cont, T sep, Func f)
         {
             auto need = false;
             for (auto& e : cont)
@@ -71,30 +71,29 @@ namespace standardese
             }
         }
 
-        void write_type_value_default(const parser& par, output_base::code_block_writer& out,
+        void write_type_value_default(const parser& par, output::code_block_writer& out,
                                       const cpp_type_ref& type, const cpp_name& name,
                                       const std::string& def = "");
 
-        void write_class_name(output_base::code_block_writer& out, const cpp_name& name,
-                              int class_type);
+        void write_class_name(output::code_block_writer& out, const cpp_name& name, int class_type);
 
-        void write_bases(const parser& par, output_base::code_block_writer& out, const cpp_class& c,
+        void write_bases(const parser& par, output::code_block_writer& out, const cpp_class& c,
                          bool extract_private);
 
-        void write_parameters(const parser& par, output_base::code_block_writer& out,
+        void write_parameters(const parser& par, output::code_block_writer& out,
                               const cpp_function_base& f, const cpp_name& override_name);
 
-        void write_noexcept(output_base::code_block_writer& out, const cpp_function_base& f);
+        void write_noexcept(output::code_block_writer& out, const cpp_function_base& f);
 
-        void write_definition(output_base::code_block_writer& out, const cpp_function_base& f,
+        void write_definition(output::code_block_writer& out, const cpp_function_base& f,
                               bool pure = false);
 
-        void write_cv_ref(output_base::code_block_writer& out, int cv, int ref);
+        void write_cv_ref(output::code_block_writer& out, int cv, int ref);
 
-        void write_prefix(output_base::code_block_writer& out, int virtual_flag, bool constexpr_f,
+        void write_prefix(output::code_block_writer& out, int virtual_flag, bool constexpr_f,
                           bool explicit_f = false);
 
-        void write_override_final(output_base::code_block_writer& out, int virtual_flag);
+        void write_override_final(output::code_block_writer& out, int virtual_flag);
     }
 } // namespace standardese::detail
 
