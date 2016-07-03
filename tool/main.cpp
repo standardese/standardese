@@ -107,19 +107,45 @@ int main(int argc, char* argv[])
             ("comment.implicit_paragraph", po::value<bool>()->implicit_value(true)->default_value(false),
              "whether or not each line in the documentation comment is one paragraph")
 
+            ("output.format", po::value<std::string>()->default_value("commonmark"),
+             "the output format used (commonmark, latex, man, html, xml)")
             ("output.section_name_", po::value<std::string>(),
              "override output name for the section following the name_ (e.g. output.section_name_requires=Require)")
             ("output.tab_width", po::value<unsigned>()->default_value(4),
-             "the tab width (i.e. number of spaces, won't emit tab) of the code in the synthesis");
+             "the tab width (i.e. number of spaces, won't emit tab) of the code in the synthesis")
+            ("output.width", po::value<unsigned>()->default_value(terminal_width),
+             "the width of the output (used in e.g. commonmark format)");
     // clang-format on
 
-    standardese_tool::configuration config;
+    standardese_tool::configuration                  config;
+    std::unique_ptr<standardese::output_format_base> format;
     try
     {
         config = standardese_tool::get_configuration(argc, argv, generic, configuration);
 
         if (config.map.at("jobs").as<unsigned>() == 0)
             throw std::invalid_argument("number of threads must not be 0");
+
+        auto width = config.map.at("output.width").as<unsigned>();
+
+        auto& format_str = config.map.at("output.format").as<std::string>();
+        if (format_str == "commonmark")
+            format = std::unique_ptr<standardese::output_format_base>(
+                new standardese::output_format_markdown(width));
+        else if (format_str == "latex")
+            format = std::unique_ptr<standardese::output_format_base>(
+                new standardese::output_format_latex(width));
+        else if (format_str == "man")
+            format = std::unique_ptr<standardese::output_format_base>(
+                new standardese::output_format_man(width));
+        else if (format_str == "html")
+            format = std::unique_ptr<standardese::output_format_base>(
+                new standardese::output_format_html);
+        else if (format_str == "xml")
+            format = std::unique_ptr<standardese::output_format_base>(
+                new standardese::output_format_xml);
+        else
+            throw std::invalid_argument("unknown format '" + format_str + "'");
     }
     catch (std::exception& ex)
     {
@@ -190,9 +216,8 @@ int main(int argc, char* argv[])
 
                         auto doc = generate_doc_file(parser, tu.get_file());
 
-                        output_format_xml format;
-                        file_output file(p.stem().generic_string() + '.' + format.extension());
-                        output      out(file, format);
+                        file_output file(p.stem().generic_string() + '.' + format->extension());
+                        output      out(file, *format);
                         out.render(*doc);
                     }
                     catch (libclang_error& ex)
