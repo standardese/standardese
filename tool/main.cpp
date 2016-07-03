@@ -103,6 +103,8 @@ int main(int argc, char* argv[])
              "character used to introduce special commands")
             ("comment.cmd_name_", po::value<std::string>(),
              "override name for the command following the name_ (e.g. comment.cmd_name_requires=require)")
+            ("comment.implicit_paragraph", po::value<bool>()->implicit_value(true)->default_value(false),
+             "whether or not each line in the documentation comment is one paragraph")
 
             ("output.section_name_", po::value<std::string>(),
              "override output name for the section following the name_ (e.g. output.section_name_requires=Require)");
@@ -145,6 +147,8 @@ int main(int argc, char* argv[])
 
             parser.get_comment_config().set_command_character(
                 map.at("comment.command_character").as<char>());
+            parser.get_comment_config().set_implicit_paragraph(
+                map.at("comment.implicit_paragraph").as<bool>());
 
             auto input           = map.at("input-files").as<std::vector<fs::path>>();
             auto blacklist_ext   = map.at("input.blacklist_ext").as<std::vector<std::string>>();

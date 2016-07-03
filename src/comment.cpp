@@ -42,7 +42,7 @@ namespace
         }
     }
 
-    md_ptr<md_document> parse_document(const cpp_raw_comment& raw_comment)
+    md_ptr<md_document> parse_document(const parser& p, const cpp_raw_comment& raw_comment)
     {
         md_parser parser(cmark_parser_new(CMARK_OPT_NORMALIZE));
 
@@ -61,6 +61,13 @@ namespace
                 skip_comment(++cur);
                 cur_start  = cur;
                 cur_length = 0u;
+
+                if (p.get_comment_config().get_implicit_paragraph())
+                {
+                    // add empty line to finish paragraph
+                    char newline = '\n';
+                    cmark_parser_feed(parser.get(), &newline, 1);
+                }
             }
             else
             {
@@ -207,7 +214,7 @@ namespace
 
 comment comment::parse(const parser& p, const cpp_name& name, const cpp_raw_comment& raw_comment)
 {
-    comment result(parse_document(raw_comment));
+    comment result(parse_document(p, raw_comment));
     parse_children(result, *result.document_, p, name);
     return result;
 }
