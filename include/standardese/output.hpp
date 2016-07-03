@@ -32,6 +32,79 @@ namespace standardese
     constexpr detail::newl_t   newl;
     constexpr detail::blankl_t blankl;
 
+    class code_block_writer
+    {
+    public:
+        code_block_writer(const md_entity& parent) STANDARDESE_NOEXCEPT : parent_(&parent)
+        {
+        }
+
+        md_ptr<md_code_block> get_code_block(const char* fence = "cpp")
+        {
+            return md_code_block::make(*parent_, stream_.get_string().c_str(), fence);
+        }
+
+        void indent(unsigned width)
+        {
+            stream_.indent(width);
+        }
+
+        void unindent(unsigned width)
+        {
+            stream_.unindent(width);
+        }
+
+        code_block_writer& operator<<(const char* str)
+        {
+            stream_.write_str(str, std::strlen(str));
+            return *this;
+        }
+
+        code_block_writer& operator<<(const std::string& str)
+        {
+            stream_.write_str(str.c_str(), str.size());
+            return *this;
+        }
+
+        code_block_writer& operator<<(const string& str)
+        {
+            stream_.write_str(str.c_str(), str.length());
+            return *this;
+        }
+
+        code_block_writer& operator<<(char c)
+        {
+            stream_.write_char(c);
+            return *this;
+        }
+
+        code_block_writer& operator<<(long long value)
+        {
+            return *this << std::to_string(value);
+        }
+
+        code_block_writer& operator<<(unsigned long long value)
+        {
+            return *this << std::to_string(value);
+        }
+
+        code_block_writer& operator<<(detail::newl_t)
+        {
+            stream_.write_new_line();
+            return *this;
+        }
+
+        code_block_writer& operator<<(detail::blankl_t)
+        {
+            stream_.write_blank_line();
+            return *this;
+        }
+
+    private:
+        string_output    stream_;
+        const md_entity* parent_;
+    };
+
     class output
     {
     public:
@@ -45,84 +118,6 @@ namespace standardese
         {
             format_->render(*stream_, entity);
         }
-
-        class code_block_writer
-        {
-        public:
-            code_block_writer(output& out, const md_entity& parent) STANDARDESE_NOEXCEPT
-                : output_(out),
-                  parent_(&parent)
-            {
-            }
-
-            code_block_writer(const code_block_writer&) = delete;
-
-            ~code_block_writer() STANDARDESE_NOEXCEPT_IF(false)
-            {
-                output_.render(*md_code_block::make(*parent_, stream_.get_string().c_str(), "cpp"));
-            }
-
-            void indent(unsigned width)
-            {
-                stream_.indent(width);
-            }
-
-            void unindent(unsigned width)
-            {
-                stream_.unindent(width);
-            }
-
-            code_block_writer& operator<<(const char* str)
-            {
-                stream_.write_str(str, std::strlen(str));
-                return *this;
-            }
-
-            code_block_writer& operator<<(const std::string& str)
-            {
-                stream_.write_str(str.c_str(), str.size());
-                return *this;
-            }
-
-            code_block_writer& operator<<(const string& str)
-            {
-                stream_.write_str(str.c_str(), str.length());
-                return *this;
-            }
-
-            code_block_writer& operator<<(char c)
-            {
-                stream_.write_char(c);
-                return *this;
-            }
-
-            code_block_writer& operator<<(long long value)
-            {
-                return *this << std::to_string(value);
-            }
-
-            code_block_writer& operator<<(unsigned long long value)
-            {
-                return *this << std::to_string(value);
-            }
-
-            code_block_writer& operator<<(detail::newl_t)
-            {
-                stream_.write_new_line();
-                return *this;
-            }
-
-            code_block_writer& operator<<(detail::blankl_t)
-            {
-                stream_.write_blank_line();
-                return *this;
-            }
-
-        private:
-            output&          output_;
-            string_output    stream_;
-            const md_entity* parent_;
-        };
 
         output_stream_base& get_output() STANDARDESE_NOEXCEPT
         {

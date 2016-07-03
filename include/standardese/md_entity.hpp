@@ -30,7 +30,8 @@ namespace standardese
         {
             _begin_block,
 
-            comment_t = _begin_block,
+            document_t = _begin_block,
+            comment_t,
             block_quote_t,
             list_t,
             list_item_t,
@@ -108,6 +109,8 @@ namespace standardese
 
         template <class T, class Base, template <typename> class Ptr>
         friend class detail::entity_container;
+
+        friend class md_container;
     };
 
     inline bool is_block(md_entity::type t) STANDARDESE_NOEXCEPT

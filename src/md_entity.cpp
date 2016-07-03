@@ -89,13 +89,15 @@ md_container::md_container(md_entity::type t, cmark_node* node) STANDARDESE_NOEX
 
 void md_container::add_entity(md_entity_ptr entity)
 {
-    if (cmark_node_parent(entity->get_node()) != entity->get_parent().get_node())
+    if (!entity->has_parent()
+        || cmark_node_parent(entity->get_node()) != entity->get_parent().get_node())
     {
         // synthesized node, need to add
         cmark_node_unlink(entity->get_node());
-        auto res = cmark_node_append_child(entity->get_parent().get_node(), entity->get_node());
+        auto res = cmark_node_append_child(get_node(), entity->get_node());
         assert(res);
     }
 
+    entity->parent_ = this;
     md_entity_container::add_entity(std::move(entity));
 }
