@@ -93,7 +93,8 @@ void md_container::add_entity(md_entity_ptr entity)
     {
         // synthesized node, need to add
         cmark_node_unlink(entity->get_node());
-        cmark_node_append_child(entity->get_parent().get_node(), entity->get_node());
+        auto res = cmark_node_append_child(entity->get_parent().get_node(), entity->get_node());
+        assert(res);
     }
 
     md_entity_container::add_entity(std::move(entity));

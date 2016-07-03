@@ -9,7 +9,6 @@
 
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/md_entity.hpp>
-#include <standardese/output_stream.hpp>
 
 using namespace standardese;
 
@@ -36,20 +35,4 @@ void output_format_markdown::do_render(output_stream_base& output, const md_enti
 
     for (auto ptr = str.get(); *ptr; ++ptr)
         output.write_char(*ptr);
-}
-
-void output_format_markdown::do_write_code_block(output_stream_base& output, bool begin)
-{
-    output.write_blank_line();
-    output.write_str("```", 3);
-    if (begin)
-        output.write_str("cpp", 3);
-    output.write_blank_line();
-}
-
-void output_format_markdown::do_write_separator(output_stream_base& output)
-{
-    output.write_blank_line();
-    output.write_str("---", 3);
-    output.write_blank_line();
 }

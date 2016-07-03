@@ -13,6 +13,7 @@
 #include <standardese/output_format.hpp>
 #include <standardese/output_stream.hpp>
 #include <standardese/string.hpp>
+#include "md_blocks.hpp"
 
 namespace standardese
 {
@@ -48,49 +49,50 @@ namespace standardese
         class code_block_writer
         {
         public:
-            code_block_writer(output& output) STANDARDESE_NOEXCEPT : output_(output)
+            code_block_writer(output& out, const md_entity& parent) STANDARDESE_NOEXCEPT
+                : output_(out),
+                  parent_(&parent)
             {
-                output_.get_format().write_code_block_begin(output.get_output());
             }
 
             code_block_writer(const code_block_writer&) = delete;
 
-            ~code_block_writer() STANDARDESE_NOEXCEPT
+            ~code_block_writer() STANDARDESE_NOEXCEPT_IF(false)
             {
-                output_.get_format().write_code_block_end(output_.get_output());
+                output_.render(*md_code_block::make(*parent_, stream_.get_string().c_str(), "cpp"));
             }
 
             void indent(unsigned width)
             {
-                output_.get_output().indent(width);
+                stream_.indent(width);
             }
 
             void unindent(unsigned width)
             {
-                output_.get_output().unindent(width);
+                stream_.unindent(width);
             }
 
             code_block_writer& operator<<(const char* str)
             {
-                output_.get_output().write_str(str, std::strlen(str));
+                stream_.write_str(str, std::strlen(str));
                 return *this;
             }
 
             code_block_writer& operator<<(const std::string& str)
             {
-                output_.get_output().write_str(str.c_str(), str.size());
+                stream_.write_str(str.c_str(), str.size());
                 return *this;
             }
 
             code_block_writer& operator<<(const string& str)
             {
-                output_.get_output().write_str(str.c_str(), str.length());
+                stream_.write_str(str.c_str(), str.length());
                 return *this;
             }
 
             code_block_writer& operator<<(char c)
             {
-                output_.get_output().write_char(c);
+                stream_.write_char(c);
                 return *this;
             }
 
@@ -106,24 +108,21 @@ namespace standardese
 
             code_block_writer& operator<<(detail::newl_t)
             {
-                output_.get_output().write_new_line();
+                stream_.write_new_line();
                 return *this;
             }
 
             code_block_writer& operator<<(detail::blankl_t)
             {
-                output_.get_output().write_blank_line();
+                stream_.write_blank_line();
                 return *this;
             }
 
         private:
-            output& output_;
+            output&          output_;
+            string_output    stream_;
+            const md_entity* parent_;
         };
-
-        void write_separator()
-        {
-            format_->write_separator(get_output());
-        }
 
         output_stream_base& get_output() STANDARDESE_NOEXCEPT
         {

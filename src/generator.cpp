@@ -47,14 +47,15 @@ namespace
     void dispatch(const parser& p, output& output, unsigned level, const cpp_entity& e);
 
     template <class Entity, class Container>
-    void handle_container(const parser& p, output& output, unsigned level, const Entity& e,
+    void handle_container(const parser& p, output& out, unsigned level, const Entity& e,
                           const Container& container)
     {
         auto& blacklist = p.get_output_config().get_blacklist();
         if (blacklist.is_set(entity_blacklist::require_comment) && e.get_comment().empty())
             return;
 
-        generate_doc_entity(p, output, level, doc_entity(p, e));
+        auto doc = doc_entity(p, e);
+        generate_doc_entity(p, out, level, doc);
 
         auto cur_access = get_default_access(e);
         for (auto& child : container)
@@ -65,10 +66,10 @@ namespace
                         .get_access();
             else if (blacklist.is_set(entity_blacklist::extract_private)
                      || cur_access != cpp_private || detail::is_virtual(child))
-                dispatch(p, output, level + 1, child);
+                dispatch(p, out, level + 1, child);
         }
 
-        output.write_separator();
+        out.render(*md_thematic_break::make(doc.get_comment().get_document()));
     }
 
     void dispatch(const parser& p, output& output, unsigned level, const cpp_entity& e)
