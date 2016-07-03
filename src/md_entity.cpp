@@ -69,6 +69,11 @@ md_leave::md_leave(md_entity::type t, cmark_node* node,
     assert(is_leave(t));
 }
 
+void md_leave::set_string(const char* str)
+{
+    cmark_node_set_literal(get_node(), str);
+}
+
 md_container::md_container(md_entity::type t, cmark_node* node,
                            const md_entity& parent) STANDARDESE_NOEXCEPT
     : md_entity(t, node, parent)

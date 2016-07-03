@@ -32,8 +32,8 @@ namespace standardese
             {
             public:
                 using value_type        = T;
-                using reference         = const T&;
-                using pointer           = const T*;
+                using reference         = T&;
+                using pointer           = T*;
                 using difference_type   = std::ptrdiff_t;
                 using iterator_category = std::forward_iterator_tag;
 
@@ -79,17 +79,85 @@ namespace standardese
                 {
                 }
 
+                T* cur_;
+
+                friend entity_container;
+            };
+
+            class const_iterator
+            {
+            public:
+                using value_type        = T;
+                using reference         = const T&;
+                using pointer           = const T*;
+                using difference_type   = std::ptrdiff_t;
+                using iterator_category = std::forward_iterator_tag;
+
+                const_iterator() STANDARDESE_NOEXCEPT : cur_(nullptr)
+                {
+                }
+
+                reference operator*() const STANDARDESE_NOEXCEPT
+                {
+                    return *cur_;
+                }
+
+                pointer operator->() const STANDARDESE_NOEXCEPT
+                {
+                    return cur_;
+                }
+
+                const_iterator& operator++() STANDARDESE_NOEXCEPT
+                {
+                    cur_ = static_cast<pointer>(cur_->next_.get());
+                    return *this;
+                }
+
+                const_iterator operator++(int)STANDARDESE_NOEXCEPT
+                {
+                    auto tmp = *this;
+                    ++(*this);
+                    return tmp;
+                }
+
+                friend bool operator==(const const_iterator& a,
+                                       const const_iterator& b) STANDARDESE_NOEXCEPT
+                {
+                    return a.cur_ == b.cur_;
+                }
+
+                friend bool operator!=(const const_iterator& a,
+                                       const const_iterator& b) STANDARDESE_NOEXCEPT
+                {
+                    return !(a == b);
+                }
+
+            private:
+                const_iterator(Base* ptr) : cur_(static_cast<pointer>(ptr))
+                {
+                }
+
                 const T* cur_;
 
                 friend entity_container;
             };
 
-            iterator begin() const STANDARDESE_NOEXCEPT
+            iterator begin() STANDARDESE_NOEXCEPT
             {
                 return iterator(first_.get());
             }
 
-            iterator end() const STANDARDESE_NOEXCEPT
+            iterator end() STANDARDESE_NOEXCEPT
+            {
+                return {};
+            }
+
+            const_iterator begin() const STANDARDESE_NOEXCEPT
+            {
+                return const_iterator(first_.get());
+            }
+
+            const_iterator end() const STANDARDESE_NOEXCEPT
             {
                 return {};
             }

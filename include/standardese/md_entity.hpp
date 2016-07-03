@@ -139,7 +139,9 @@ namespace standardese
     class md_leave : public md_entity
     {
     public:
-        virtual const char* get_string() const STANDARDESE_NOEXCEPT;
+        const char* get_string() const STANDARDESE_NOEXCEPT;
+
+        void set_string(const char* str);
 
     protected:
         md_leave(md_entity::type t, cmark_node* node, const md_entity& parent) STANDARDESE_NOEXCEPT;

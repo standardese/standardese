@@ -7,6 +7,8 @@
 #include <cassert>
 #include <cmark.h>
 
+#include <standardese/md_inlines.hpp>
+
 using namespace standardese;
 
 md_ptr<md_block_quote> md_block_quote::parse(comment&, cmark_node* cur, const md_entity& parent)
@@ -143,6 +145,35 @@ md_ptr<md_paragraph> md_paragraph::make(const md_entity& parent)
 {
     auto node = cmark_node_new(CMARK_NODE_PARAGRAPH);
     return detail::make_md_ptr<md_paragraph>(node, parent);
+}
+
+void md_paragraph::set_section_type(section_type t, const std::string& name)
+{
+    section_type_ = t;
+
+    if (name.empty())
+        return;
+
+    auto& emph = static_cast<md_emphasis&>(*section_node_);
+    assert(emph.begin()->get_entity_type() == md_entity::text_t);
+
+    // set section text
+    static_cast<md_text&>(*emph.begin()).set_string((name + ':').c_str());
+
+    // add leading whitespace to first paragraph text
+    assert(begin()->get_entity_type() == md_entity::text_t);
+    auto& text = static_cast<md_text&>(*begin());
+    text.set_string((' ' + std::string(text.get_string())).c_str());
+}
+
+md_paragraph::md_paragraph(cmark_node* node, const md_entity& parent)
+: md_container(get_entity_type(), node, parent),
+  section_node_(md_emphasis::make(*this, "")),
+  section_type_(section_type::invalid)
+{
+    // add the section node as child on the cmark api
+    auto res = cmark_node_prepend_child(get_node(), section_node_->get_node());
+    assert(res);
 }
 
 md_ptr<md_heading> md_heading::parse(comment&, cmark_node* cur, const md_entity& parent)

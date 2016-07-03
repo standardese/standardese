@@ -105,6 +105,8 @@ namespace standardese
 
         static md_ptr<md_emphasis> make(const md_entity& parent);
 
+        static md_ptr<md_emphasis> make(const md_entity& parent, const char* str);
+
     private:
         md_emphasis(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
             : md_container(get_entity_type(), cur, parent)
@@ -125,6 +127,8 @@ namespace standardese
         static md_ptr<md_strong> parse(comment& c, cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_strong> make(const md_entity& parent);
+
+        static md_ptr<md_strong> make(const md_entity& parent, const char* str);
 
     private:
         md_strong(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT

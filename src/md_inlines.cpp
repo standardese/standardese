@@ -71,6 +71,16 @@ md_ptr<md_emphasis> md_emphasis::make(const md_entity& parent)
     return detail::make_md_ptr<md_emphasis>(node, parent);
 }
 
+md_ptr<md_emphasis> md_emphasis::make(const md_entity& parent, const char* str)
+{
+    auto emph = make(parent);
+
+    auto text = md_text::make(*emph, str);
+    emph->add_entity(std::move(text));
+
+    return emph;
+}
+
 md_ptr<md_strong> md_strong::parse(comment&, cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_STRONG);
@@ -81,6 +91,16 @@ md_ptr<md_strong> md_strong::make(const md_entity& parent)
 {
     auto node = cmark_node_new(CMARK_NODE_STRONG);
     return detail::make_md_ptr<md_strong>(node, parent);
+}
+
+md_ptr<md_strong> md_strong::make(const md_entity& parent, const char* str)
+{
+    auto strong = make(parent);
+
+    auto text = md_text::make(*strong, str);
+    strong->add_entity(std::move(text));
+
+    return strong;
 }
 
 md_ptr<md_link> md_link::parse(comment&, cmark_node* cur, const md_entity& parent)

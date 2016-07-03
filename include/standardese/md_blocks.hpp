@@ -140,19 +140,13 @@ namespace standardese
             return section_type_;
         }
 
-        void set_section_type(section_type t) STANDARDESE_NOEXCEPT
-        {
-            section_type_ = t;
-        }
+        void set_section_type(section_type t, const std::string& name);
 
     private:
-        md_paragraph(cmark_node* node, const md_entity& parent) STANDARDESE_NOEXCEPT
-            : md_container(get_entity_type(), node, parent),
-              section_type_(section_type::details)
-        {
-        }
+        md_paragraph(cmark_node* node, const md_entity& parent);
 
-        section_type section_type_;
+        md_entity_ptr section_node_;
+        section_type  section_type_;
 
         friend detail::md_ptr_access;
     };

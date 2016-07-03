@@ -122,7 +122,9 @@ namespace
     void parse_command(const parser& p, md_paragraph& paragraph, bool& first)
     {
         // set implicit section type
-        paragraph.set_section_type(first ? section_type::brief : section_type::details);
+        auto def_section = first ? section_type::brief : section_type::details;
+        paragraph.set_section_type(def_section,
+                                   p.get_output_config().get_section_name(def_section));
         first = false;
 
         if (paragraph.begin()->get_entity_type() != md_entity::text_t)
@@ -130,7 +132,9 @@ namespace
             // i.e. not emphasis or similar
             return;
 
-        auto str = static_cast<const md_text&>(*paragraph.begin()).get_string();
+        auto& text = static_cast<md_text&>(*paragraph.begin());
+
+        auto str = text.get_string();
         if (*str != p.get_comment_config().get_command_character())
             // require command at first place
             return;
@@ -146,7 +150,16 @@ namespace
             throw comment_parse_error("Unknown command '" + command + "'",
                                       cmark_node_get_start_line(paragraph.get_node()),
                                       cmark_node_get_start_column(paragraph.get_node()));
-        paragraph.set_section_type(section);
+
+        // remove command + command character + whitespace
+        auto new_str = text.get_string() + command.size() + 1;
+        while (std::isspace(*new_str))
+            ++new_str;
+
+        // need a copy, cmark can't handle it otherwise, https://github.com/jgm/cmark/issues/139
+        text.set_string(std::string(new_str).c_str());
+
+        paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
     }
 
     void parse_children(comment& result, md_document& document, const parser& p,

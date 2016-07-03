@@ -51,12 +51,12 @@ TEST_CASE("comment", "[doc]")
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
 
-            if (get_text(paragraph) == "\\brief A")
+            if (get_text(paragraph) == "A")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::brief);
             }
-            else if (get_text(paragraph) == "\\details B")
+            else if (get_text(paragraph) == "B")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::details);
@@ -111,17 +111,17 @@ TEST_CASE("comment", "[doc]")
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
             INFO(get_text(paragraph));
 
-            if (get_text(paragraph) == "\\effects A A")
+            if (get_text(paragraph) == " A A")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::effects);
             }
-            else if (get_text(paragraph) == "\\returns B B")
+            else if (get_text(paragraph) == " B B")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::returns);
             }
-            else if (get_text(paragraph) == "\\error_conditions C C")
+            else if (get_text(paragraph) == " C C")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::error_conditions);
