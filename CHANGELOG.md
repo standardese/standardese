@@ -6,15 +6,15 @@
 
 ### Library
 
-* Completely redone comment parsing
+* Completely redone comment parsing, add ability to use almost arbitrary Markdown in the documentation comments
 
-* Ability to use almost arbitrary Markdown in the documentation comments
+* More output formats
 
 ### Tool
 
 * Multithreaded documentation generation and new option `jobs/j` to specify number of threads.
 
-* New options: `comment.implicit_paragraph`, `output.tab_width`
+* New options: `comment.implicit_paragraph`, `output.format`, `output.width` and `output.tab_width`
 
 ## 0.1-1
 
