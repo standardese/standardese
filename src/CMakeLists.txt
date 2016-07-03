@@ -1,4 +1,4 @@
-# Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+﻿# Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
 # This file is subject to the license terms in the LICENSE file
 # found in the top-level directory of this distribution.
 
@@ -88,7 +88,7 @@ target_include_directories(standardese PUBLIC ${LIBCLANG_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${LIBCLANG_LIBRARY})
 
 # link cmark
-target_link_libraries(standardese PUBLIC libcmark)
+target_link_libraries(standardese PUBLIC libcmark_static)
 
 # link Boost
 find_package(Boost COMPONENTS wave filesystem system thread date_time chrono REQUIRED)
