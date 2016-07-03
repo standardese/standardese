@@ -18,15 +18,15 @@ std::string get_text(const md_paragraph& paragraph)
     return dynamic_cast<const md_text&>(*paragraph.begin()).get_string();
 }
 
-TEST_CASE("comment", "[doc]")
+TEST_CASE("md_comment", "[doc]")
 {
     parser p;
 
     SECTION("simple parsing")
     {
-        auto comment = comment::parse(p, "", R"(/// Hello World.)");
+        auto comment = md_comment::parse(p, "", R"(/// Hello World.)");
         auto count   = 0u;
-        for (auto& child : comment.get_document())
+        for (auto& child : *comment)
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
 
@@ -39,14 +39,14 @@ TEST_CASE("comment", "[doc]")
     }
     SECTION("multiple sections explicit")
     {
-        auto comment = comment::parse(p, "", R"(/// \brief A
+        auto comment = md_comment::parse(p, "", R"(/// \brief A
                                                  ///
                                                  /// \details B
                                                  /// C
                                                )");
 
         auto count = 0u;
-        for (auto& child : comment.get_document())
+        for (auto& child : *comment)
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
@@ -68,14 +68,14 @@ TEST_CASE("comment", "[doc]")
     }
     SECTION("multiple sections implicit")
     {
-        auto comment = comment::parse(p, "", R"(///  A
+        auto comment = md_comment::parse(p, "", R"(///  A
                                                 ///
                                                 /// B
                                                 /// C /// C
                                                )");
 
         auto count = 0u;
-        for (auto& child : comment.get_document())
+        for (auto& child : *comment)
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
@@ -97,7 +97,7 @@ TEST_CASE("comment", "[doc]")
     }
     SECTION("cherry pick other commands")
     {
-        auto comment = comment::parse(p, "", R"(/// \effects A A
+        auto comment = md_comment::parse(p, "", R"(/// \effects A A
                                                 /// A A
                                                 ///
                                                 /// \returns B B
@@ -105,7 +105,7 @@ TEST_CASE("comment", "[doc]")
                                                 /// \error_conditions C C)");
 
         auto count = 0u;
-        for (auto& child : comment.get_document())
+        for (auto& child : *comment)
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);

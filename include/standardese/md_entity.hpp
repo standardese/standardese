@@ -16,8 +16,6 @@ typedef struct cmark_node cmark_node;
 
 namespace standardese
 {
-    class comment;
-
     template <typename T>
     using md_ptr = std::unique_ptr<T>;
 
@@ -33,6 +31,7 @@ namespace standardese
             _begin_block,
 
             document_t = _begin_block,
+            comment_t,
             block_quote_t,
             list_t,
             list_item_t,
@@ -56,7 +55,7 @@ namespace standardese
             count = _end_inline,
         };
 
-        static md_entity_ptr try_parse(comment& c, cmark_node* cur, const md_entity& parent);
+        static md_entity_ptr try_parse(cmark_node* cur, const md_entity& parent);
 
         md_entity(md_entity&&) = delete;
 
@@ -110,6 +109,8 @@ namespace standardese
 
         template <class T, class Base, template <typename> class Ptr>
         friend class detail::entity_container;
+
+        friend class md_container;
     };
 
     inline bool is_block(md_entity::type t) STANDARDESE_NOEXCEPT

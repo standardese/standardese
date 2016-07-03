@@ -14,13 +14,13 @@
 
 using namespace standardese;
 
-md_entity_ptr md_entity::try_parse(comment& c, cmark_node* cur, const md_entity& parent)
+md_entity_ptr md_entity::try_parse(cmark_node* cur, const md_entity& parent)
 {
     switch (cmark_node_get_type(cur))
     {
 #define STANDARDESE_DETAIL_HANDLE(value, name)                                                     \
     case CMARK_NODE_##value:                                                                       \
-        return md_##name::parse(c, cur, parent);
+        return md_##name::parse(cur, parent);
 
         STANDARDESE_DETAIL_HANDLE(BLOCK_QUOTE, block_quote)
         STANDARDESE_DETAIL_HANDLE(LIST, list)
@@ -89,12 +89,15 @@ md_container::md_container(md_entity::type t, cmark_node* node) STANDARDESE_NOEX
 
 void md_container::add_entity(md_entity_ptr entity)
 {
-    if (cmark_node_parent(entity->get_node()) != entity->get_parent().get_node())
+    if (!entity->has_parent()
+        || cmark_node_parent(entity->get_node()) != entity->get_parent().get_node())
     {
         // synthesized node, need to add
         cmark_node_unlink(entity->get_node());
-        cmark_node_append_child(entity->get_parent().get_node(), entity->get_node());
+        auto res = cmark_node_append_child(get_node(), entity->get_node());
+        assert(res);
     }
 
+    entity->parent_ = this;
     md_entity_container::add_entity(std::move(entity));
 }

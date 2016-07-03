@@ -4,6 +4,8 @@
 
 #include <standardese/generator.hpp>
 
+#include <cmark.h>
+
 #include <standardese/comment.hpp>
 #include <standardese/cpp_class.hpp>
 #include <standardese/cpp_enum.hpp>
@@ -44,17 +46,18 @@ namespace
         return get_default_access(e.get_class());
     }
 
-    void dispatch(const parser& p, output& output, unsigned level, const cpp_entity& e);
+    void dispatch(const parser& p, md_document& output, unsigned level, const cpp_entity& e);
 
     template <class Entity, class Container>
-    void handle_container(const parser& p, output& output, unsigned level, const Entity& e,
+    void handle_container(const parser& p, md_document& out, unsigned level, const Entity& e,
                           const Container& container)
     {
         auto& blacklist = p.get_output_config().get_blacklist();
         if (blacklist.is_set(entity_blacklist::require_comment) && e.get_comment().empty())
             return;
 
-        generate_doc_entity(p, output, level, doc_entity(p, e));
+        auto doc = doc_entity(p, e);
+        generate_doc_entity(p, out, level, doc);
 
         auto cur_access = get_default_access(e);
         for (auto& child : container)
@@ -65,13 +68,13 @@ namespace
                         .get_access();
             else if (blacklist.is_set(entity_blacklist::extract_private)
                      || cur_access != cpp_private || detail::is_virtual(child))
-                dispatch(p, output, level + 1, child);
+                dispatch(p, out, level + 1, child);
         }
 
-        output.write_separator();
+        out.add_entity(md_thematic_break::make(doc.get_comment()));
     }
 
-    void dispatch(const parser& p, output& output, unsigned level, const cpp_entity& e)
+    void dispatch(const parser& p, md_document& output, unsigned level, const cpp_entity& e)
     {
         auto& blacklist = p.get_output_config().get_blacklist();
         if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
@@ -109,6 +112,11 @@ namespace
             break;
         }
     }
+}
+
+md_ptr<md_document> md_document::make()
+{
+    return detail::make_md_ptr<md_document>(cmark_node_new(CMARK_NODE_DOCUMENT));
 }
 
 const char* standardese::get_entity_type_spelling(cpp_entity::type t)
@@ -208,24 +216,27 @@ namespace
     }
 }
 
-void standardese::generate_doc_entity(const parser& p, output& output, unsigned level,
+void standardese::generate_doc_entity(const parser& p, md_document& document, unsigned level,
                                       const doc_entity& doc)
 {
-    auto& e       = doc.get_cpp_entity();
-    auto& comment = doc.get_comment();
+    auto& e = doc.get_cpp_entity();
 
-    auto heading = make_heading(e, comment.get_document(), level);
-    output.render(*heading);
+    auto heading = make_heading(e, document, level);
+    document.add_entity(std::move(heading));
 
-    write_synopsis(p, output, doc);
+    write_synopsis(p, document, doc);
 
-    output.render(comment.get_document());
+    document.add_entity(md_comment::parse(p, e.get_name(), e.get_comment()));
 }
 
-void standardese::generate_doc_file(const parser& p, output& output, const cpp_file& f)
+md_ptr<md_document> standardese::generate_doc_file(const parser& p, const cpp_file& f)
 {
-    generate_doc_entity(p, output, 1, doc_entity(p, f));
+    auto doc = md_document::make();
+
+    generate_doc_entity(p, *doc, 1, doc_entity(p, f));
 
     for (auto& e : f)
-        dispatch(p, output, 2, e);
+        dispatch(p, *doc, 2, e);
+
+    return doc;
 }

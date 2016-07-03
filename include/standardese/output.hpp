@@ -13,6 +13,7 @@
 #include <standardese/output_format.hpp>
 #include <standardese/output_stream.hpp>
 #include <standardese/string.hpp>
+#include "md_blocks.hpp"
 
 namespace standardese
 {
@@ -31,6 +32,79 @@ namespace standardese
     constexpr detail::newl_t   newl;
     constexpr detail::blankl_t blankl;
 
+    class code_block_writer
+    {
+    public:
+        code_block_writer(const md_entity& parent) STANDARDESE_NOEXCEPT : parent_(&parent)
+        {
+        }
+
+        md_ptr<md_code_block> get_code_block(const char* fence = "cpp")
+        {
+            return md_code_block::make(*parent_, stream_.get_string().c_str(), fence);
+        }
+
+        void indent(unsigned width)
+        {
+            stream_.indent(width);
+        }
+
+        void unindent(unsigned width)
+        {
+            stream_.unindent(width);
+        }
+
+        code_block_writer& operator<<(const char* str)
+        {
+            stream_.write_str(str, std::strlen(str));
+            return *this;
+        }
+
+        code_block_writer& operator<<(const std::string& str)
+        {
+            stream_.write_str(str.c_str(), str.size());
+            return *this;
+        }
+
+        code_block_writer& operator<<(const string& str)
+        {
+            stream_.write_str(str.c_str(), str.length());
+            return *this;
+        }
+
+        code_block_writer& operator<<(char c)
+        {
+            stream_.write_char(c);
+            return *this;
+        }
+
+        code_block_writer& operator<<(long long value)
+        {
+            return *this << std::to_string(value);
+        }
+
+        code_block_writer& operator<<(unsigned long long value)
+        {
+            return *this << std::to_string(value);
+        }
+
+        code_block_writer& operator<<(detail::newl_t)
+        {
+            stream_.write_new_line();
+            return *this;
+        }
+
+        code_block_writer& operator<<(detail::blankl_t)
+        {
+            stream_.write_blank_line();
+            return *this;
+        }
+
+    private:
+        string_output    stream_;
+        const md_entity* parent_;
+    };
+
     class output
     {
     public:
@@ -43,86 +117,6 @@ namespace standardese
         void render(const md_entity& entity)
         {
             format_->render(*stream_, entity);
-        }
-
-        class code_block_writer
-        {
-        public:
-            code_block_writer(output& output) STANDARDESE_NOEXCEPT : output_(output)
-            {
-                output_.get_format().write_code_block_begin(output.get_output());
-            }
-
-            code_block_writer(const code_block_writer&) = delete;
-
-            ~code_block_writer() STANDARDESE_NOEXCEPT
-            {
-                output_.get_format().write_code_block_end(output_.get_output());
-            }
-
-            void indent(unsigned width)
-            {
-                output_.get_output().indent(width);
-            }
-
-            void unindent(unsigned width)
-            {
-                output_.get_output().unindent(width);
-            }
-
-            code_block_writer& operator<<(const char* str)
-            {
-                output_.get_output().write_str(str, std::strlen(str));
-                return *this;
-            }
-
-            code_block_writer& operator<<(const std::string& str)
-            {
-                output_.get_output().write_str(str.c_str(), str.size());
-                return *this;
-            }
-
-            code_block_writer& operator<<(const string& str)
-            {
-                output_.get_output().write_str(str.c_str(), str.length());
-                return *this;
-            }
-
-            code_block_writer& operator<<(char c)
-            {
-                output_.get_output().write_char(c);
-                return *this;
-            }
-
-            code_block_writer& operator<<(long long value)
-            {
-                return *this << std::to_string(value);
-            }
-
-            code_block_writer& operator<<(unsigned long long value)
-            {
-                return *this << std::to_string(value);
-            }
-
-            code_block_writer& operator<<(detail::newl_t)
-            {
-                output_.get_output().write_new_line();
-                return *this;
-            }
-
-            code_block_writer& operator<<(detail::blankl_t)
-            {
-                output_.get_output().write_blank_line();
-                return *this;
-            }
-
-        private:
-            output& output_;
-        };
-
-        void write_separator()
-        {
-            format_->write_separator(get_output());
         }
 
         output_stream_base& get_output() STANDARDESE_NOEXCEPT

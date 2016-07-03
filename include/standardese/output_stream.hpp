@@ -94,6 +94,27 @@ namespace standardese
 
         std::ofstream file_;
     };
+
+    class string_output : public output_stream_base
+    {
+    public:
+        string_output() STANDARDESE_NOEXCEPT
+        {
+        }
+
+        const std::string& get_string() const STANDARDESE_NOEXCEPT
+        {
+            return str_;
+        }
+
+    private:
+        void do_write_char(char c) override
+        {
+            str_.push_back(c);
+        }
+
+        std::string str_;
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_OUTPUT_STREAM_HPP_INCLUDED
