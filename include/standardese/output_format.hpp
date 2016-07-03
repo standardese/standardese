@@ -7,6 +7,7 @@
 
 #include <standardese/noexcept.hpp>
 #include "output_stream.hpp"
+#include "md_entity.hpp"
 
 namespace standardese
 {
@@ -29,17 +30,51 @@ namespace standardese
             do_render(output, entity);
         }
 
+        const char* extension() const STANDARDESE_NOEXCEPT
+        {
+            return get_extension();
+        }
+
     protected:
         output_format_base() STANDARDESE_NOEXCEPT = default;
 
     private:
         virtual void do_render(output_stream_base& output, const md_entity& entity) = 0;
+
+        virtual const char* get_extension() const STANDARDESE_NOEXCEPT = 0;
     };
+
+    class output_format_xml : public output_format_base
+    {
+    private:
+        void do_render(output_stream_base& output, const md_entity& entity) override;
+
+        const char* get_extension() const STANDARDESE_NOEXCEPT override
+        {
+            return "xml";
+        }
+    };
+
+    class output_format_html : public output_format_base
+    {
+    private:
+        void do_render(output_stream_base& output, const md_entity& entity) override;
+
+        const char* get_extension() const STANDARDESE_NOEXCEPT override
+        {
+            return "html";
+        }
+    };
+
+    namespace detail
+    {
+        constexpr unsigned default_width = 100;
+    } // namespace detail
 
     class output_format_markdown : public output_format_base
     {
     public:
-        explicit output_format_markdown(unsigned width = 100) : width_(width)
+        explicit output_format_markdown(unsigned width = detail::default_width) : width_(width)
         {
         }
 
@@ -55,6 +90,67 @@ namespace standardese
 
     private:
         void do_render(output_stream_base& output, const md_entity& entity) override;
+
+        const char* get_extension() const STANDARDESE_NOEXCEPT override
+        {
+            return "md";
+        }
+
+        unsigned width_;
+    };
+
+    class output_format_man : public output_format_base
+    {
+    public:
+        explicit output_format_man(unsigned width = detail::default_width) : width_(width)
+        {
+        }
+
+        unsigned get_width() const STANDARDESE_NOEXCEPT
+        {
+            return width_;
+        }
+
+        void set_width(unsigned w) STANDARDESE_NOEXCEPT
+        {
+            width_ = w;
+        }
+
+    private:
+        void do_render(output_stream_base& output, const md_entity& entity) override;
+
+        const char* get_extension() const STANDARDESE_NOEXCEPT override
+        {
+            return "man";
+        }
+
+        unsigned width_;
+    };
+
+    class output_format_latex : public output_format_base
+    {
+    public:
+        explicit output_format_latex(unsigned width = detail::default_width) : width_(width)
+        {
+        }
+
+        unsigned get_width() const STANDARDESE_NOEXCEPT
+        {
+            return width_;
+        }
+
+        void set_width(unsigned w) STANDARDESE_NOEXCEPT
+        {
+            width_ = w;
+        }
+
+    private:
+        void do_render(output_stream_base& output, const md_entity& entity) override;
+
+        const char* get_extension() const STANDARDESE_NOEXCEPT override
+        {
+            return "tex";
+        }
 
         unsigned width_;
     };

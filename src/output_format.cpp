@@ -27,12 +27,40 @@ namespace
     };
 
     using cmark_str = detail::wrapper<char*, cmark_deleter>;
+
+    void write(output_stream_base& output, const cmark_str& str)
+    {
+        for (auto ptr = str.get(); *ptr; ++ptr)
+            output.write_char(*ptr);
+    }
+}
+
+void output_format_xml::do_render(output_stream_base& output, const md_entity& entity)
+{
+    cmark_str str(cmark_render_xml(entity.get_node(), CMARK_OPT_NOBREAKS));
+    write(output, str);
+}
+
+void output_format_html::do_render(output_stream_base& output, const md_entity& entity)
+{
+    cmark_str str(cmark_render_html(entity.get_node(), CMARK_OPT_NOBREAKS));
+    write(output, str);
 }
 
 void output_format_markdown::do_render(output_stream_base& output, const md_entity& entity)
 {
     cmark_str str(cmark_render_commonmark(entity.get_node(), CMARK_OPT_NOBREAKS, width_));
+    write(output, str);
+}
 
-    for (auto ptr = str.get(); *ptr; ++ptr)
-        output.write_char(*ptr);
+void output_format_man::do_render(output_stream_base& output, const md_entity& entity)
+{
+    cmark_str str(cmark_render_man(entity.get_node(), CMARK_OPT_NOBREAKS, width_));
+    write(output, str);
+}
+
+void output_format_latex::do_render(output_stream_base& output, const md_entity& entity)
+{
+    cmark_str str(cmark_render_latex(entity.get_node(), CMARK_OPT_NOBREAKS, width_));
+    write(output, str);
 }
