@@ -139,7 +139,7 @@ namespace
         while (!std::isspace(*str))
             command += *str++;
 
-        auto section = p.get_comment_config().get_section(command);
+        auto section = p.get_comment_config().try_get_section(command);
         if (section == section_type::invalid)
             throw comment_parse_error("Unknown command '" + command + "'",
                                       cmark_node_get_start_line(paragraph.get_node()),
