@@ -107,7 +107,8 @@ int main(int argc, char* argv[])
             ("comment.implicit_paragraph", po::value<bool>()->implicit_value(true)->default_value(false),
              "whether or not each line in the documentation comment is one paragraph")
 
-            ("output.format", po::value<std::string>()->default_value("commonmark"),
+            ("output.format",
+             po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"commonmark"}, "{commonmark}"),
              "the output format used (commonmark, latex, man, html, xml)")
             ("output.section_name_", po::value<std::string>(),
              "override output name for the section following the name_ (e.g. output.section_name_requires=Require)")
@@ -117,8 +118,8 @@ int main(int argc, char* argv[])
              "the width of the output (used in e.g. commonmark format)");
     // clang-format on
 
-    standardese_tool::configuration                  config;
-    std::unique_ptr<standardese::output_format_base> format;
+    standardese_tool::configuration                               config;
+    std::vector<std::unique_ptr<standardese::output_format_base>> formats;
     try
     {
         config = standardese_tool::get_configuration(argc, argv, generic, configuration);
@@ -127,25 +128,21 @@ int main(int argc, char* argv[])
             throw std::invalid_argument("number of threads must not be 0");
 
         auto width = config.map.at("output.width").as<unsigned>();
-
-        auto& format_str = config.map.at("output.format").as<std::string>();
-        if (format_str == "commonmark")
-            format = std::unique_ptr<standardese::output_format_base>(
-                new standardese::output_format_markdown(width));
-        else if (format_str == "latex")
-            format = std::unique_ptr<standardese::output_format_base>(
-                new standardese::output_format_latex(width));
-        else if (format_str == "man")
-            format = std::unique_ptr<standardese::output_format_base>(
-                new standardese::output_format_man(width));
-        else if (format_str == "html")
-            format = std::unique_ptr<standardese::output_format_base>(
-                new standardese::output_format_html);
-        else if (format_str == "xml")
-            format = std::unique_ptr<standardese::output_format_base>(
-                new standardese::output_format_xml);
-        else
-            throw std::invalid_argument("unknown format '" + format_str + "'");
+        for (auto& format_str : config.map.at("output.format").as<std::vector<std::string>>())
+        {
+            if (format_str == "commonmark")
+                formats.emplace_back(new standardese::output_format_markdown(width));
+            else if (format_str == "latex")
+                formats.emplace_back(new standardese::output_format_latex(width));
+            else if (format_str == "man")
+                formats.emplace_back(new standardese::output_format_man(width));
+            else if (format_str == "html")
+                formats.emplace_back(new standardese::output_format_html);
+            else if (format_str == "xml")
+                formats.emplace_back(new standardese::output_format_xml);
+            else
+                throw std::invalid_argument("unknown format '" + format_str + "'");
+        }
     }
     catch (std::exception& ex)
     {
@@ -204,6 +201,12 @@ int main(int argc, char* argv[])
             std::vector<std::future<void>> futures;
             futures.reserve(input.size());
 
+            if (formats.size() > 1u)
+            {
+                for (auto& format : formats)
+                    fs::create_directories(format->extension());
+            }
+
             assert(!input.empty());
             for (auto& path : input)
             {
@@ -215,10 +218,16 @@ int main(int argc, char* argv[])
                         auto tu = parser.parse(p.generic_string().c_str(), compile_config);
 
                         auto doc = generate_doc_file(parser, tu.get_file());
+                        for (auto& format : formats)
+                        {
+                            fs::path folder = formats.size() > 1u ? format->extension() : "";
+                            fs::path file_name =
+                                (p.stem().generic_string() + '.' + format->extension()).c_str();
 
-                        file_output file(p.stem().generic_string() + '.' + format->extension());
-                        output      out(file, *format);
-                        out.render(*doc);
+                            file_output file((folder / file_name).native());
+                            output      out(file, *format);
+                            out.render(*doc);
+                        }
                     }
                     catch (libclang_error& ex)
                     {
