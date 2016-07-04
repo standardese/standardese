@@ -19,20 +19,28 @@ namespace standardese_tool
 
     namespace detail
     {
-        // path must be given relative to the traversal directory
-        inline bool is_valid(const fs::path& path, const blacklist& extensions,
-                             const blacklist& files, const blacklist& dirs)
+        inline bool is_valid(const fs::path& path, const fs::path& root,
+                             const blacklist& extensions, const blacklist& files,
+                             const blacklist& dirs)
         {
+#if BOOST_VERSION / 100 % 1000 < 60
+            auto relative = path.c_str() + root.native().size();
+            if (*relative == '/' || *relative == '\\')
+                ++relative;
+#else
+            auto relative = fs::relative(path, root);
+#endif
+
             if (fs::is_directory(path))
             {
                 for (auto& d : dirs)
-                    if (path == d)
+                    if (relative == d)
                         return false;
             }
             else
             {
                 for (auto& f : files)
-                    if (path == f)
+                    if (relative == f)
                         return false;
 
                 auto ext = path.extension();
@@ -66,15 +74,14 @@ namespace standardese_tool
             auto end = fs::recursive_directory_iterator();
             for (auto iter = fs::recursive_directory_iterator(path); iter != end; ++iter)
             {
-                auto& cur      = iter->path();
-                auto  relative = fs::relative(cur, path);
+                auto& cur = iter->path();
 
                 if (fs::is_directory(cur))
                 {
-                    if (!detail::is_valid(relative, extensions, files, dirs))
+                    if (!detail::is_valid(cur, path, extensions, files, dirs))
                         iter.no_push();
                 }
-                else if (detail::is_valid(relative, extensions, files, dirs))
+                else if (detail::is_valid(cur, path, extensions, files, dirs))
                 {
                     f(cur);
                 }
@@ -82,7 +89,7 @@ namespace standardese_tool
         }
         else if (!fs::exists(path))
             throw std::runtime_error("file '" + path.generic_string() + "' does not exist");
-        else if (detail::is_valid(path, extensions, files, dirs))
+        else if (detail::is_valid(path, "", extensions, files, dirs))
         {
             f(path);
         }
