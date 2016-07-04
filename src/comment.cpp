@@ -136,7 +136,7 @@ namespace
 
         // read until whitespace
         std::string command;
-        while (!std::isspace(*str))
+        while (*str && !std::isspace(*str))
             command += *str++;
 
         auto section = p.get_comment_config().try_get_section(command);
@@ -203,6 +203,13 @@ namespace
             {
                 p.get_logger()->warn("when parsing comments of '{}' ({}:{}): {}", name.c_str(),
                                      error.get_line(), error.get_column(), error.what());
+
+                if (cmark_node_parent(node) == root)
+                {
+                    // if the parant is root, remove from direct_children as well
+                    assert(direct_children.back()->get_node() == node);
+                    direct_children.pop_back();
+                }
                 remove_node(node, iter.get());
             }
         }

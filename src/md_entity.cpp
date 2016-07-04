@@ -53,8 +53,8 @@ md_entity_ptr md_entity::try_parse(cmark_node* cur, const md_entity& parent)
 
 md_entity::~md_entity() STANDARDESE_NOEXCEPT
 {
-    cmark_node_unlink(node_);
-    cmark_node_free(node_);
+    if (cmark_node_parent(node_) == nullptr)
+        cmark_node_free(node_);
 }
 
 const char* md_leave::get_string() const STANDARDESE_NOEXCEPT
@@ -89,8 +89,8 @@ md_container::md_container(md_entity::type t, cmark_node* node) STANDARDESE_NOEX
 
 void md_container::add_entity(md_entity_ptr entity)
 {
-    if (!entity->has_parent()
-        || cmark_node_parent(entity->get_node()) != entity->get_parent().get_node())
+    entity->parent_ = this;
+    if (cmark_node_parent(entity->get_node()) != get_node())
     {
         // synthesized node, need to add
         cmark_node_unlink(entity->get_node());
@@ -98,6 +98,5 @@ void md_container::add_entity(md_entity_ptr entity)
         assert(res);
     }
 
-    entity->parent_ = this;
     md_entity_container::add_entity(std::move(entity));
 }
