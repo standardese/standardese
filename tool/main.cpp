@@ -73,6 +73,9 @@ int main(int argc, char* argv[])
             ("input.blacklist_dir",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
              "directory that is forbidden, relative to traversed directory")
+            ("input.blacklist_dotfiles",
+             po::value<bool>()->implicit_value(true)->default_value(true),
+             "whether or not dotfiles are blacklisted")
             ("input.blacklist_entity_name",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
              "C++ entity names (and all children) that are forbidden")
@@ -178,11 +181,12 @@ int main(int argc, char* argv[])
 
             parser.get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
 
-            auto input           = map.at("input-files").as<std::vector<fs::path>>();
-            auto blacklist_ext   = map.at("input.blacklist_ext").as<std::vector<std::string>>();
-            auto blacklist_file  = map.at("input.blacklist_file").as<std::vector<std::string>>();
-            auto blacklist_dir   = map.at("input.blacklist_dir").as<std::vector<std::string>>();
-            auto force_blacklist = map.at("input.force_blacklist").as<bool>();
+            auto input              = map.at("input-files").as<std::vector<fs::path>>();
+            auto blacklist_ext      = map.at("input.blacklist_ext").as<std::vector<std::string>>();
+            auto blacklist_file     = map.at("input.blacklist_file").as<std::vector<std::string>>();
+            auto blacklist_dir      = map.at("input.blacklist_dir").as<std::vector<std::string>>();
+            auto blacklist_dotfiles = map.at("input.blacklist_dotfiles").as<bool>();
+            auto force_blacklist    = map.at("input.force_blacklist").as<bool>();
 
             auto& blacklist_entity = parser.get_output_config().get_blacklist();
             for (auto& str : map.at("input.blacklist_entity_name").as<std::vector<std::string>>())
@@ -240,7 +244,7 @@ int main(int argc, char* argv[])
                 };
 
                 auto res = standardese_tool::handle_path(path, blacklist_ext, blacklist_file,
-                                                         blacklist_dir, handle);
+                                                         blacklist_dir, blacklist_dotfiles, handle);
                 if (!res && !force_blacklist)
                     // path is a normal file that is on the blacklist
                     // blacklist isn't enforced however

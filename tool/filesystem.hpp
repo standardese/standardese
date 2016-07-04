@@ -21,8 +21,11 @@ namespace standardese_tool
     {
         inline bool is_valid(const fs::path& path, const fs::path& root,
                              const blacklist& extensions, const blacklist& files,
-                             const blacklist& dirs)
+                             const blacklist& dirs, bool blacklist_dotfiles)
         {
+            if (blacklist_dotfiles && path.filename().generic_string()[0] == '.')
+                return false;
+
 #if BOOST_VERSION / 100 % 1000 < 60
             auto relative = path.c_str() + root.native().size();
             if (*relative == '/' || *relative == '\\')
@@ -59,7 +62,7 @@ namespace standardese_tool
     // returns false if path was a normal file that was marked as invalid, true otherwise
     template <typename Fun>
     bool handle_path(const fs::path& path, const blacklist& extensions, const blacklist& files,
-                     blacklist dirs, Fun f)
+                     blacklist dirs, bool blacklist_dotfiles, Fun f)
     {
         // remove trailing slash if any
         // otherwise Boost.Filesystem can't handle it
@@ -78,10 +81,10 @@ namespace standardese_tool
 
                 if (fs::is_directory(cur))
                 {
-                    if (!detail::is_valid(cur, path, extensions, files, dirs))
+                    if (!detail::is_valid(cur, path, extensions, files, dirs, blacklist_dotfiles))
                         iter.no_push();
                 }
-                else if (detail::is_valid(cur, path, extensions, files, dirs))
+                else if (detail::is_valid(cur, path, extensions, files, dirs, blacklist_dotfiles))
                 {
                     f(cur);
                 }
@@ -89,7 +92,7 @@ namespace standardese_tool
         }
         else if (!fs::exists(path))
             throw std::runtime_error("file '" + path.generic_string() + "' does not exist");
-        else if (detail::is_valid(path, "", extensions, files, dirs))
+        else if (detail::is_valid(path, "", extensions, files, dirs, blacklist_dotfiles))
         {
             f(path);
         }

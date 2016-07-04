@@ -14,7 +14,7 @@
 
 * Multithreaded documentation generation and new option `jobs/j` to specify number of threads.
 
-* New options: `comment.implicit_paragraph`, `output.format`, `output.width` and `output.tab_width`
+* New options:  `input.blacklist_dotfiles`, `comment.implicit_paragraph`, `output.format`, `output.width` and `output.tab_width`
 
 ## 0.1-1
 
