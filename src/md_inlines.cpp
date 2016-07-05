@@ -25,7 +25,7 @@ md_ptr<md_text> md_text::make(const md_entity& parent, const char* text)
 md_entity_ptr md_text::do_clone(const md_entity* parent) const
 {
     assert(parent);
-    return make(*parent, get_string());
+    return std::move(make(*parent, get_string()));
 }
 
 md_ptr<md_soft_break> md_soft_break::parse(cmark_node* cur, const md_entity& parent)
@@ -43,7 +43,7 @@ md_ptr<md_soft_break> md_soft_break::make(const md_entity& parent)
 md_entity_ptr md_soft_break::do_clone(const md_entity* parent) const
 {
     assert(parent);
-    return make(*parent);
+    return std::move(make(*parent));
 }
 
 md_ptr<md_line_break> md_line_break::parse(cmark_node* cur, const md_entity& parent)
@@ -61,7 +61,7 @@ md_ptr<md_line_break> md_line_break::make(const md_entity& parent)
 md_entity_ptr md_line_break::do_clone(const md_entity* parent) const
 {
     assert(parent);
-    return make(*parent);
+    return std::move(make(*parent));
 }
 
 md_ptr<md_code> md_code::parse(cmark_node* cur, const md_entity& parent)
@@ -80,7 +80,7 @@ md_ptr<md_code> md_code::make(const md_entity& parent, const char* code)
 md_entity_ptr md_code::do_clone(const md_entity* parent) const
 {
     assert(parent);
-    return make(*parent, get_string());
+    return std::move(make(*parent, get_string()));
 }
 
 md_ptr<md_emphasis> md_emphasis::parse(cmark_node* cur, const md_entity& parent)
@@ -113,7 +113,7 @@ md_entity_ptr md_emphasis::do_clone(const md_entity* parent) const
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
 
-    return result;
+    return std::move(result);
 }
 
 md_ptr<md_strong> md_strong::parse(cmark_node* cur, const md_entity& parent)
@@ -146,7 +146,7 @@ md_entity_ptr md_strong::do_clone(const md_entity* parent) const
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
 
-    return result;
+    return std::move(result);
 }
 
 md_ptr<md_link> md_link::parse(cmark_node* cur, const md_entity& parent)
@@ -181,5 +181,5 @@ md_entity_ptr md_link::do_clone(const md_entity* parent) const
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
 
-    return result;
+    return std::move(result);
 }

@@ -137,7 +137,7 @@ md_entity_ptr md_document::do_clone(const md_entity* parent) const
     auto result = make();
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
-    return result;
+    return std::move(result);
 }
 
 const char* standardese::get_entity_type_spelling(cpp_entity::type t)

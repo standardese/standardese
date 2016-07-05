@@ -254,5 +254,5 @@ md_entity_ptr md_comment::do_clone(const md_entity*) const
     result->excluded_ = excluded_;
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
-    return result;
+    return std::move(result);
 }

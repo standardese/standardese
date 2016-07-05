@@ -31,7 +31,7 @@ md_entity_ptr md_block_quote::do_clone(const md_entity* parent) const
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
 
-    return result;
+    return std::move(result);
 }
 
 md_ptr<md_list> md_list::parse(cmark_node* cur, const md_entity& parent)
@@ -82,7 +82,7 @@ md_entity_ptr md_list::do_clone(const md_entity* parent) const
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
 
-    return result;
+    return std::move(result);
 }
 
 md_list_type md_list::get_list_type() const STANDARDESE_NOEXCEPT
@@ -145,7 +145,7 @@ md_entity_ptr md_list_item::do_clone(const md_entity* parent) const
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
 
-    return result;
+    return std::move(result);
 }
 
 md_ptr<md_code_block> md_code_block::parse(cmark_node* cur, const md_entity& parent)
@@ -171,7 +171,7 @@ const char* md_code_block::get_fence_info() const STANDARDESE_NOEXCEPT
 md_entity_ptr md_code_block::do_clone(const md_entity* parent) const
 {
     assert(parent);
-    return make(*parent, get_string(), get_fence_info());
+    return std::move(make(*parent, get_string(), get_fence_info()));
 }
 
 md_ptr<md_paragraph> md_paragraph::parse(cmark_node* cur, const md_entity& parent)
@@ -217,13 +217,6 @@ void md_paragraph::set_section_type(section_type t, const std::string& name)
     }
 }
 
-md_paragraph::md_paragraph(cmark_node* node, const md_entity& parent)
-: md_container(get_entity_type(), node, parent),
-  section_node_(md_emphasis::make(*this, "")),
-  section_type_(section_type::invalid)
-{
-}
-
 md_entity_ptr md_paragraph::do_clone(const md_entity* parent) const
 {
     assert(parent);
@@ -240,7 +233,14 @@ md_entity_ptr md_paragraph::do_clone(const md_entity* parent) const
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
 
-    return result;
+    return std::move(result);
+}
+
+md_paragraph::md_paragraph(cmark_node* node, const md_entity& parent)
+: md_container(get_entity_type(), node, parent),
+  section_node_(md_emphasis::make(*this, "")),
+  section_type_(section_type::invalid)
+{
 }
 
 md_ptr<md_heading> md_heading::parse(cmark_node* cur, const md_entity& parent)
@@ -269,7 +269,7 @@ md_entity_ptr md_heading::do_clone(const md_entity* parent) const
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
 
-    return result;
+    return std::move(result);
 }
 
 md_ptr<md_thematic_break> md_thematic_break::parse(cmark_node* cur, const md_entity& parent)
@@ -287,5 +287,5 @@ md_ptr<md_thematic_break> md_thematic_break::make(const md_entity& parent)
 md_entity_ptr md_thematic_break::do_clone(const md_entity* parent) const
 {
     assert(parent);
-    return make(*parent);
+    return std::move(make(*parent));
 }
