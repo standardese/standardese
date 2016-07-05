@@ -46,20 +46,34 @@ namespace
         return get_default_access(e.get_class());
     }
 
+    bool is_blacklisted(const parser& p, const cpp_entity& e)
+    {
+        auto& blacklist = p.get_output_config().get_blacklist();
+        if (e.get_entity_type() != cpp_entity::namespace_t
+            && blacklist.is_set(entity_blacklist::require_comment) && e.get_raw_comment().empty()
+            && e.has_comment()) // only valid for entities which can have comments except namespaces
+            return true;
+        else if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
+            return true;
+        else if (e.has_comment() && e.get_comment().is_excluded())
+            return true;
+
+        return false;
+    }
+
     void dispatch(const parser& p, md_document& output, unsigned level, const cpp_entity& e);
 
     template <class Entity, class Container>
-    void handle_container(const parser& p, md_document& out, unsigned level, const Entity& e,
+    void handle_container(const parser& p, md_document& out, unsigned level, const doc_entity& doc,
                           const Container& container)
     {
-        auto& blacklist = p.get_output_config().get_blacklist();
-        if (blacklist.is_set(entity_blacklist::require_comment) && e.get_comment().empty())
+        if (is_blacklisted(p, doc.get_cpp_entity()))
             return;
 
-        auto doc = doc_entity(p, e);
         generate_doc_entity(p, out, level, doc);
 
-        auto cur_access = get_default_access(e);
+        auto  cur_access = get_default_access(static_cast<const Entity&>(doc.get_cpp_entity()));
+        auto& blacklist  = p.get_output_config().get_blacklist();
         for (auto& child : container)
         {
             if (child.get_entity_type() == cpp_entity::access_specifier_t)
@@ -76,8 +90,7 @@ namespace
 
     void dispatch(const parser& p, md_document& output, unsigned level, const cpp_entity& e)
     {
-        auto& blacklist = p.get_output_config().get_blacklist();
-        if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
+        if (is_blacklisted(p, e))
             return;
 
         switch (e.get_entity_type())
@@ -89,8 +102,8 @@ namespace
 
 #define STANDARDESE_DETAIL_HANDLE(name, ...)                                                       \
     case cpp_entity::name##_t:                                                                     \
-        handle_container(p, output, level, static_cast<const cpp_##name&>(e),                      \
-                         static_cast<const cpp_##name&>(e) __VA_ARGS__);                           \
+        handle_container<cpp_##name>(p, output, level, e,                                          \
+                                     static_cast<const cpp_##name&>(e) __VA_ARGS__);               \
         break;
 
 #define STANDARDESE_DETAIL_NOTHING
@@ -106,9 +119,7 @@ namespace
 #undef STANDARDESE_DETAIL_NOTHING
 
         default:
-            if (blacklist.is_set(entity_blacklist::require_comment) && e.get_comment().empty())
-                break;
-            generate_doc_entity(p, output, level, doc_entity(p, e));
+            generate_doc_entity(p, output, level, e);
             break;
         }
     }
@@ -117,6 +128,16 @@ namespace
 md_ptr<md_document> md_document::make()
 {
     return detail::make_md_ptr<md_document>(cmark_node_new(CMARK_NODE_DOCUMENT));
+}
+
+md_entity_ptr md_document::do_clone(const md_entity* parent) const
+{
+    assert(!parent);
+
+    auto result = make();
+    for (auto& child : *this)
+        result->add_entity(child.clone(*result));
+    return result;
 }
 
 const char* standardese::get_entity_type_spelling(cpp_entity::type t)
@@ -226,14 +247,15 @@ void standardese::generate_doc_entity(const parser& p, md_document& document, un
 
     write_synopsis(p, document, doc);
 
-    document.add_entity(md_comment::parse(p, e.get_name(), e.get_comment()));
+    if (doc.has_comment())
+        document.add_entity(doc.get_comment().clone());
 }
 
 md_ptr<md_document> standardese::generate_doc_file(const parser& p, const cpp_file& f)
 {
     auto doc = md_document::make();
 
-    generate_doc_entity(p, *doc, 1, doc_entity(p, f));
+    generate_doc_entity(p, *doc, 1, f);
 
     for (auto& e : f)
         dispatch(p, *doc, 2, e);

@@ -8,7 +8,7 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
-#include <clang-c/Index.h>
+#include <standardese/translation_unit.hpp>
 
 using namespace standardese;
 
@@ -89,5 +89,7 @@ cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit& tu, cpp_cursor c
     auto name = parse_alias_target(tu, cur);
     auto type = clang_getTypedefDeclUnderlyingType(cur);
 
-    return detail::make_cpp_ptr<cpp_type_alias>(cur, parent, cpp_type_ref(name, type));
+    return detail::make_cpp_ptr<cpp_type_alias>(cur, md_comment::parse(tu.get_parser(), name,
+                                                                       detail::parse_comment(cur)),
+                                                parent, cpp_type_ref(name, type));
 }

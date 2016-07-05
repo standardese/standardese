@@ -23,6 +23,17 @@ md_ptr<md_block_quote> md_block_quote::make(const md_entity& parent)
     return detail::make_md_ptr<md_block_quote>(node, parent);
 }
 
+md_entity_ptr md_block_quote::do_clone(const md_entity* parent) const
+{
+    assert(parent);
+
+    auto result = make(*parent);
+    for (auto& child : *this)
+        result->add_entity(child.clone(*result));
+
+    return result;
+}
+
 md_ptr<md_list> md_list::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_LIST);
@@ -61,6 +72,17 @@ md_ptr<md_list> md_list::make(const md_entity& parent, md_list_type type, md_lis
     cmark_node_set_list_tight(node, is_tight);
 
     return detail::make_md_ptr<md_list>(node, parent);
+}
+
+md_entity_ptr md_list::do_clone(const md_entity* parent) const
+{
+    assert(parent);
+
+    auto result = make(*parent, get_list_type(), get_delimiter(), get_start(), is_tight());
+    for (auto& child : *this)
+        result->add_entity(child.clone(*result));
+
+    return result;
 }
 
 md_list_type md_list::get_list_type() const STANDARDESE_NOEXCEPT
@@ -115,6 +137,17 @@ md_ptr<md_list_item> md_list_item::make(const md_entity& parent)
     return detail::make_md_ptr<md_list_item>(node, parent);
 }
 
+md_entity_ptr md_list_item::do_clone(const md_entity* parent) const
+{
+    assert(parent);
+
+    auto result = make(*parent);
+    for (auto& child : *this)
+        result->add_entity(child.clone(*result));
+
+    return result;
+}
+
 md_ptr<md_code_block> md_code_block::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_CODE_BLOCK);
@@ -133,6 +166,12 @@ md_ptr<standardese::md_code_block> md_code_block::make(const md_entity& parent, 
 const char* md_code_block::get_fence_info() const STANDARDESE_NOEXCEPT
 {
     return cmark_node_get_fence_info(get_node());
+}
+
+md_entity_ptr md_code_block::do_clone(const md_entity* parent) const
+{
+    assert(parent);
+    return make(*parent, get_string(), get_fence_info());
 }
 
 md_ptr<md_paragraph> md_paragraph::parse(cmark_node* cur, const md_entity& parent)
@@ -161,12 +200,16 @@ void md_paragraph::set_section_type(section_type t, const std::string& name)
         assert(emph.begin()->get_entity_type() == md_entity::text_t);
 
         // set section text
-        static_cast<md_text&>(*emph.begin()).set_string((name + ':').c_str());
+        static_cast<md_text&>(*emph.begin())
+            .set_string(name.back() == ':' ? name.c_str() : (name + ':').c_str());
 
         // add leading whitespace to first paragraph text
-        assert(begin()->get_entity_type() == md_entity::text_t);
-        auto& text = static_cast<md_text&>(*begin());
-        text.set_string((' ' + std::string(text.get_string())).c_str());
+        if (!empty())
+        {
+            assert(begin()->get_entity_type() == md_entity::text_t);
+            auto& text = static_cast<md_text&>(*begin());
+            text.set_string((' ' + std::string(text.get_string())).c_str());
+        }
 
         // add the section node as child on the cmark api
         auto res = cmark_node_prepend_child(get_node(), section_node_->get_node());
@@ -179,6 +222,25 @@ md_paragraph::md_paragraph(cmark_node* node, const md_entity& parent)
   section_node_(md_emphasis::make(*this, "")),
   section_type_(section_type::invalid)
 {
+}
+
+md_entity_ptr md_paragraph::do_clone(const md_entity* parent) const
+{
+    assert(parent);
+
+    auto result = make(*parent);
+
+    if (section_type_ != section_type::invalid)
+    {
+        auto& text =
+            static_cast<const md_text&>(*static_cast<const md_emphasis&>(*section_node_).begin());
+        result->set_section_type(section_type_, text.get_string());
+    }
+
+    for (auto& child : *this)
+        result->add_entity(child.clone(*result));
+
+    return result;
 }
 
 md_ptr<md_heading> md_heading::parse(cmark_node* cur, const md_entity& parent)
@@ -199,6 +261,17 @@ int md_heading::get_level() const STANDARDESE_NOEXCEPT
     return cmark_node_get_heading_level(get_node());
 }
 
+md_entity_ptr md_heading::do_clone(const md_entity* parent) const
+{
+    assert(parent);
+
+    auto result = make(*parent, get_level());
+    for (auto& child : *this)
+        result->add_entity(child.clone(*result));
+
+    return result;
+}
+
 md_ptr<md_thematic_break> md_thematic_break::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_THEMATIC_BREAK);
@@ -209,4 +282,10 @@ md_ptr<md_thematic_break> md_thematic_break::make(const md_entity& parent)
 {
     auto node = cmark_node_new(CMARK_NODE_THEMATIC_BREAK);
     return detail::make_md_ptr<md_thematic_break>(node, parent);
+}
+
+md_entity_ptr md_thematic_break::do_clone(const md_entity* parent) const
+{
+    assert(parent);
+    return make(*parent);
 }

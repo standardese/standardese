@@ -10,6 +10,7 @@
 #include <type_traits>
 
 #include <standardese/noexcept.hpp>
+#include <standardese/string.hpp>
 
 namespace standardese
 {

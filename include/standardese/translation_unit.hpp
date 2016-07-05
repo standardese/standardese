@@ -40,7 +40,8 @@ namespace standardese
 
     private:
         cpp_file(cpp_cursor cur, cpp_name path)
-        : cpp_entity(get_entity_type(), cur), path_(std::move(path))
+        : cpp_entity(get_entity_type(), cur, (std::unique_ptr<md_comment>())),
+          path_(std::move(path))
         {
         }
 

@@ -390,7 +390,9 @@ cpp_ptr<cpp_function> cpp_function::parse(translation_unit& tu, cpp_cursor cur,
         throw parse_error(source_location(cur), "ref qualifier on normal function");
 
     auto result =
-        detail::make_cpp_ptr<cpp_function>(cur, parent, std::move(return_type), std::move(finfo));
+        detail::make_cpp_ptr<cpp_function>(cur, md_comment::parse(tu.get_parser(), name,
+                                                                  detail::parse_comment(cur)),
+                                           parent, std::move(return_type), std::move(finfo));
     parse_parameters(tu, result.get(), cur);
     return result;
 }
@@ -424,8 +426,12 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit& tu, cp
     cpp_member_function_info minfo;
     auto                     return_type = parse_member_function(stream, cur, name, finfo, minfo);
 
-    auto result = detail::make_cpp_ptr<cpp_member_function>(cur, parent, std::move(return_type),
-                                                            std::move(finfo), std::move(minfo));
+    auto result =
+        detail::make_cpp_ptr<cpp_member_function>(cur,
+                                                  md_comment::parse(tu.get_parser(), name,
+                                                                    detail::parse_comment(cur)),
+                                                  parent, std::move(return_type), std::move(finfo),
+                                                  std::move(minfo));
     parse_parameters(tu, result.get(), cur);
 
     if ((result->get_virtual() == cpp_virtual_none || result->get_virtual() == cpp_virtual_new)
@@ -526,8 +532,10 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
     if (finfo.noexcept_expression.empty())
         finfo.noexcept_expression = "false";
 
-    auto result = detail::make_cpp_ptr<cpp_conversion_op>(cur, parent, std::move(type),
-                                                          std::move(finfo), std::move(minfo));
+    auto comment = md_comment::parse(tu.get_parser(), type.get_name(), detail::parse_comment(cur));
+    auto result =
+        detail::make_cpp_ptr<cpp_conversion_op>(cur, std::move(comment), parent, std::move(type),
+                                                std::move(finfo), std::move(minfo));
     if ((result->get_virtual() == cpp_virtual_none || result->get_virtual() == cpp_virtual_new)
         && is_implicit_virtual(cur))
         // check for implicit virtual
@@ -617,7 +625,10 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit& tu, cpp_cursor
     if (!info.explicit_noexcept)
         info.noexcept_expression = "false";
 
-    auto result = detail::make_cpp_ptr<cpp_constructor>(cur, parent, std::move(info));
+    auto result =
+        detail::make_cpp_ptr<cpp_constructor>(cur, md_comment::parse(tu.get_parser(), name,
+                                                                     detail::parse_comment(cur)),
+                                              parent, std::move(info));
     parse_parameters(tu, result.get(), cur);
     return result;
 }
@@ -695,7 +706,10 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor c
     if (!info.explicit_noexcept)
         info.noexcept_expression = "true";
 
-    auto result = detail::make_cpp_ptr<cpp_destructor>(cur, parent, std::move(info), virtual_flag);
+    auto result =
+        detail::make_cpp_ptr<cpp_destructor>(cur, md_comment::parse(tu.get_parser(), name,
+                                                                    detail::parse_comment(cur)),
+                                             parent, std::move(info), virtual_flag);
     if ((result->get_virtual() == cpp_virtual_none || result->get_virtual() == cpp_virtual_new)
         && is_implicit_virtual(cur))
         // check for implicit virtual

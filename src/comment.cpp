@@ -42,7 +42,7 @@ namespace
         }
     }
 
-    cmark_node* parse_document(const parser& p, const cpp_raw_comment& raw_comment)
+    cmark_node* parse_document(const parser& p, const string& raw_comment)
     {
         md_parser parser(cmark_parser_new(CMARK_OPT_NORMALIZE));
 
@@ -113,25 +113,17 @@ namespace
         cmark_node_free(node);
     }
 
-    void parse_command(const parser& p, md_paragraph& paragraph, bool& first)
+    std::string read_command(const parser& p, md_paragraph& paragraph)
     {
-        // set implicit section type
-        auto def_section = first ? section_type::brief : section_type::details;
-        paragraph.set_section_type(def_section,
-                                   p.get_output_config().get_section_name(def_section));
-        first = false;
-
         if (paragraph.begin()->get_entity_type() != md_entity::text_t)
             // a raw text as first child for section is required
             // i.e. not emphasis or similar
-            return;
+            return "";
 
-        auto& text = static_cast<md_text&>(*paragraph.begin());
-
-        auto str = text.get_string();
+        auto str = static_cast<md_text&>(*paragraph.begin()).get_string();
         if (*str != p.get_comment_config().get_command_character())
             // require command at first place
-            return;
+            return "";
         ++str;
 
         // read until whitespace
@@ -139,21 +131,43 @@ namespace
         while (*str && !std::isspace(*str))
             command += *str++;
 
-        auto section = p.get_comment_config().try_get_section(command);
-        if (section == section_type::invalid)
-            throw comment_parse_error("Unknown command '" + command + "'",
-                                      cmark_node_get_start_line(paragraph.get_node()),
-                                      cmark_node_get_start_column(paragraph.get_node()));
+        return command;
+    }
 
+    void remove_command_string(md_paragraph& paragraph, const std::string& command)
+    {
         // remove command + command character + whitespace
-        auto new_str = text.get_string() + command.size() + 1;
+        auto& text    = static_cast<md_text&>(*paragraph.begin());
+        auto  new_str = text.get_string() + command.size() + 1;
         while (std::isspace(*new_str))
             ++new_str;
 
         // need a copy, cmark can't handle it otherwise, https://github.com/jgm/cmark/issues/139
         text.set_string(std::string(new_str).c_str());
+    }
 
-        paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
+    void parse_command(const parser& p, md_comment& comment, md_paragraph& paragraph, bool& first)
+    {
+        // set implicit section type
+        auto def_section = first ? section_type::brief : section_type::details;
+        paragraph.set_section_type(def_section,
+                                   p.get_output_config().get_section_name(def_section));
+        first = false;
+
+        auto command = read_command(p, paragraph);
+        if (command.empty())
+            return;
+        remove_command_string(paragraph, command);
+
+        auto section = p.get_comment_config().try_get_section(command);
+        if (section != section_type::invalid)
+            paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
+        else if (command == p.get_comment_config().exclude_command())
+            comment.set_excluded(true);
+        else
+            throw comment_parse_error("Unknown command '" + command + "'",
+                                      cmark_node_get_start_line(paragraph.get_node()),
+                                      cmark_node_get_start_column(paragraph.get_node()));
     }
 
     void parse_children(md_comment& comment, const parser& p, cmark_node* root,
@@ -196,7 +210,8 @@ namespace
                     containers.pop();
 
                     if (top->get_entity_type() == md_entity::paragraph_t)
-                        parse_command(p, *static_cast<md_paragraph*>(top), first_paragraph);
+                        parse_command(p, comment, *static_cast<md_paragraph*>(top),
+                                      first_paragraph);
                 }
             }
             catch (comment_parse_error& error)
@@ -219,8 +234,7 @@ namespace
     }
 }
 
-md_ptr<md_comment> md_comment::parse(const parser& p, const cpp_name& name,
-                                     const cpp_raw_comment& comment)
+md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const string& comment)
 {
     auto result = detail::make_md_ptr<md_comment>();
 
@@ -229,6 +243,16 @@ md_ptr<md_comment> md_comment::parse(const parser& p, const cpp_name& name,
     return result;
 }
 
-md_comment::md_comment() : md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK))
+md_comment::md_comment()
+: md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK)), excluded_(false)
 {
+}
+
+md_entity_ptr md_comment::do_clone(const md_entity*) const
+{
+    auto result       = detail::make_md_ptr<md_comment>();
+    result->excluded_ = excluded_;
+    for (auto& child : *this)
+        result->add_entity(child.clone(*result));
+    return result;
 }

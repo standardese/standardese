@@ -8,9 +8,7 @@
 #include <string>
 #include <vector>
 
-#include <standardese/cpp_entity.hpp>
 #include <standardese/md_entity.hpp>
-#include <standardese/section.hpp>
 
 namespace standardese
 {
@@ -24,11 +22,30 @@ namespace standardese
             return md_entity::comment_t;
         }
 
-        static md_ptr<md_comment> parse(const parser& p, const cpp_name& name,
-                                        const cpp_raw_comment& comment);
+        static md_ptr<md_comment> parse(const parser& p, const string& name, const string& comment);
+
+        bool is_excluded() const STANDARDESE_NOEXCEPT
+        {
+            return excluded_;
+        }
+
+        void set_excluded(bool b) STANDARDESE_NOEXCEPT
+        {
+            excluded_ = b;
+        }
+
+        md_entity_ptr clone() const
+        {
+            return do_clone(nullptr);
+        }
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
 
     private:
         md_comment();
+
+        bool excluded_;
 
         friend detail::md_ptr_access;
     };

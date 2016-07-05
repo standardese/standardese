@@ -41,7 +41,7 @@ namespace standardese
 
     private:
         cpp_access_specifier(cpp_cursor cur, const cpp_entity& parent, cpp_access_specifier_t a)
-        : cpp_entity(get_entity_type(), cur, parent), access_(a)
+        : cpp_entity(get_entity_type(), cur, nullptr, parent), access_(a)
         {
         }
 
@@ -87,7 +87,7 @@ namespace standardese
     private:
         cpp_base_class(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref type,
                        cpp_access_specifier_t a, bool virt)
-        : cpp_entity(get_entity_type(), cur, parent),
+        : cpp_entity(get_entity_type(), cur, nullptr, parent),
           type_(std::move(type)),
           access_(a),
           virtual_(virt)
@@ -161,8 +161,9 @@ namespace standardese
         }
 
     private:
-        cpp_class(cpp_cursor cur, const cpp_entity& parent, cpp_class_type t, bool is_final)
-        : cpp_type(get_entity_type(), cur, parent), type_(t), final_(is_final)
+        cpp_class(cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent,
+                  cpp_class_type t, bool is_final)
+        : cpp_type(get_entity_type(), cur, std::move(comment), parent), type_(t), final_(is_final)
         {
         }
 

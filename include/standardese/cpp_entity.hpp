@@ -12,6 +12,7 @@
 #include <type_traits>
 
 #include <standardese/detail/entity_container.hpp>
+#include <standardese/comment.hpp>
 #include <standardese/cpp_cursor.hpp>
 #include <standardese/noexcept.hpp>
 #include <standardese/string.hpp>
@@ -19,9 +20,9 @@
 namespace standardese
 {
     class translation_unit;
+    class parser;
 
-    using cpp_name        = string;
-    using cpp_raw_comment = string;
+    using cpp_name = string;
 
     template <typename T>
     using cpp_ptr = std::unique_ptr<T>;
@@ -115,8 +116,19 @@ namespace standardese
                                    std::string(scope.c_str()) + "::" + get_name().c_str();
         }
 
-        /// \returns The raw comment string.
-        cpp_raw_comment get_comment() const;
+        /// \returns The raw comment.
+        string get_raw_comment() const;
+
+        virtual bool has_comment() const STANDARDESE_NOEXCEPT
+        {
+            return comment_ != nullptr;
+        }
+
+        /// \returns The comment.
+        virtual const md_comment& get_comment() const STANDARDESE_NOEXCEPT
+        {
+            return *comment_;
+        }
 
         /// \returns The type of the entity.
         type get_entity_type() const STANDARDESE_NOEXCEPT
@@ -144,27 +156,16 @@ namespace standardese
         }
 
     protected:
-        cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent) STANDARDESE_NOEXCEPT
-            : cursor_(cur),
-              next_(nullptr),
-              parent_(&parent),
-              t_(t)
-        {
-        }
+        cpp_entity(type t, cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent);
 
-        /// \effects Creates it without a parent.
-        cpp_entity(type t, cpp_cursor cur) STANDARDESE_NOEXCEPT : cursor_(cur),
-                                                                  next_(nullptr),
-                                                                  parent_(nullptr),
-                                                                  t_(t)
-        {
-        }
+        cpp_entity(type t, cpp_cursor cur, md_ptr<md_comment> comment);
 
     private:
-        cpp_cursor                  cursor_;
-        std::unique_ptr<cpp_entity> next_;
-        const cpp_entity*           parent_;
-        type                        t_;
+        cpp_cursor         cursor_;
+        md_ptr<md_comment> comment_;
+        cpp_entity_ptr     next_;
+        const cpp_entity*  parent_;
+        type               t_;
 
         template <typename T, class Base, template <typename> class Ptr>
         friend class detail::entity_container;

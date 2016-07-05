@@ -33,6 +33,10 @@ namespace standardese
     {
         struct file_container_impl : cpp_entity_container<cpp_entity>
         {
+            file_container_impl()
+            {
+            }
+
             void add_file(cpp_entity_ptr e) STANDARDESE_NOEXCEPT
             {
                 add_entity(std::move(e));

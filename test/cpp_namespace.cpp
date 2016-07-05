@@ -43,7 +43,7 @@ TEST_CASE("cpp_language_linkage", "[cpp]")
             ++count;
             auto& lang = dynamic_cast<const cpp_language_linkage&>(e);
 
-            if (lang.get_comment() == "/// a")
+            if (lang.get_raw_comment() == "/// a")
             {
                 REQUIRE(lang.get_name() == "C");
 
@@ -53,7 +53,7 @@ TEST_CASE("cpp_language_linkage", "[cpp]")
                     REQUIRE(valid);
                 }
             }
-            else if (lang.get_comment() == "/// b")
+            else if (lang.get_raw_comment() == "/// b")
             {
                 REQUIRE(lang.get_name() == "C++");
 
@@ -307,37 +307,37 @@ TEST_CASE("cpp_using_directive", "[cpp]")
     for_each(tu.get_file(), [&](const cpp_entity& e) {
         if (auto ptr = dynamic_cast<const cpp_using_directive*>(&e))
         {
-            if (*std::prev(ptr->get_comment().end()) == 'a')
+            if (*std::prev(ptr->get_raw_comment().end()) == 'a')
             {
                 ++count;
                 REQUIRE(ptr->get_target().get_name() == "inner");
                 REQUIRE(ptr->get_target().get_full_name() == "outer::inner");
             }
-            else if (*std::prev(ptr->get_comment().end()) == 'b')
+            else if (*std::prev(ptr->get_raw_comment().end()) == 'b')
             {
                 ++count;
                 REQUIRE(ptr->get_target().get_name() == "foo");
                 REQUIRE(ptr->get_target().get_full_name() == "foo");
             }
-            else if (*std::prev(ptr->get_comment().end()) == 'c')
+            else if (*std::prev(ptr->get_raw_comment().end()) == 'c')
             {
                 ++count;
                 REQUIRE(ptr->get_target().get_name() == "outer::inner");
                 REQUIRE(ptr->get_target().get_full_name() == "outer::inner");
             }
-            else if (*std::prev(ptr->get_comment().end()) == 'd')
+            else if (*std::prev(ptr->get_raw_comment().end()) == 'd')
             {
                 ++count;
                 REQUIRE(ptr->get_target().get_name() == "outer");
                 REQUIRE(ptr->get_target().get_full_name() == "outer");
             }
-            else if (*std::prev(ptr->get_comment().end()) == 'e')
+            else if (*std::prev(ptr->get_raw_comment().end()) == 'e')
             {
                 ++count;
                 REQUIRE(ptr->get_target().get_name() == "inner");
                 REQUIRE(ptr->get_target().get_full_name() == "outer::inner");
             }
-            else if (*std::prev(ptr->get_comment().end()) == 'f')
+            else if (*std::prev(ptr->get_raw_comment().end()) == 'f')
             {
                 ++count;
                 REQUIRE(ptr->get_target().get_name() == "bar");
@@ -399,19 +399,19 @@ TEST_CASE("cpp_using_declaration", "[cpp]")
     for_each(tu.get_file(), [&](const cpp_entity& e) {
         if (auto ptr = dynamic_cast<const cpp_using_declaration*>(&e))
         {
-            if (ptr->get_comment() == "/// a")
+            if (ptr->get_raw_comment() == "/// a")
             {
                 ++count;
                 REQUIRE(ptr->get_target().get_name() == "inner::bar");
                 REQUIRE(ptr->get_target().get_full_name() == "ns::inner::bar");
             }
-            else if (ptr->get_comment() == "/// b")
+            else if (ptr->get_raw_comment() == "/// b")
             {
                 ++count;
                 REQUIRE(ptr->get_target().get_name() == "ns::foo");
                 REQUIRE(ptr->get_target().get_full_name() == "ns::foo");
             }
-            else if (ptr->get_comment() == "/// c")
+            else if (ptr->get_raw_comment() == "/// c")
             {
                 ++count;
                 REQUIRE(ptr->get_target().get_name() == "ns::inner::bar");
@@ -428,14 +428,14 @@ TEST_CASE("cpp_using_declaration", "[cpp]")
                     continue; // skip base specifier
 
                 auto& ud = dynamic_cast<const cpp_using_declaration&>(m);
-                if (ud.get_comment() == "/// d")
+                if (ud.get_raw_comment() == "/// d")
                 {
                     ++count;
                     REQUIRE(ud.get_target().get_name() == "base::base");
                     INFO(ud.get_target().get_scope().c_str());
                     REQUIRE(ud.get_target().get_full_name() == "base::base");
                 }
-                else if (ud.get_comment() == "/// e")
+                else if (ud.get_raw_comment() == "/// e")
                 {
                     ++count;
                     REQUIRE(ud.get_target().get_name() == "base::foo");

@@ -85,6 +85,8 @@ namespace standardese
 
         section_type try_get_section(const std::string& command) const STANDARDESE_NOEXCEPT;
 
+        const char* exclude_command() const STANDARDESE_NOEXCEPT;
+
     private:
         std::map<std::string, unsigned> section_commands_;
         char cmd_char_;

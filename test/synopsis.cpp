@@ -15,7 +15,7 @@ TEST_CASE("entity_blacklist")
         cpp_name name;
 
         dummy_entity(cpp_name name, cpp_entity::type t)
-        : cpp_entity(t, cpp_cursor()), name(std::move(name))
+        : cpp_entity(t, cpp_cursor(), (std::unique_ptr<md_comment>())), name(std::move(name))
         {
         }
 

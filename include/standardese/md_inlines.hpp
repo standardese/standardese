@@ -21,6 +21,9 @@ namespace standardese
 
         static md_ptr<md_text> make(const md_entity& parent, const char* text);
 
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
     private:
         md_text(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
             : md_leave(get_entity_type(), cur, parent)
@@ -41,6 +44,9 @@ namespace standardese
         static md_ptr<md_soft_break> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_soft_break> make(const md_entity& parent);
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
 
     private:
         md_soft_break(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
@@ -63,6 +69,9 @@ namespace standardese
 
         static md_ptr<md_line_break> make(const md_entity& parent);
 
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
     private:
         md_line_break(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
             : md_leave(get_entity_type(), cur, parent)
@@ -83,6 +92,9 @@ namespace standardese
         static md_ptr<md_code> parse(cmark_node* cur, const md_entity& parent);
 
         static md_ptr<md_code> make(const md_entity& parent, const char* code);
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
 
     private:
         md_code(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
@@ -107,6 +119,9 @@ namespace standardese
 
         static md_ptr<md_emphasis> make(const md_entity& parent, const char* str);
 
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
     private:
         md_emphasis(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
             : md_container(get_entity_type(), cur, parent)
@@ -129,6 +144,9 @@ namespace standardese
         static md_ptr<md_strong> make(const md_entity& parent);
 
         static md_ptr<md_strong> make(const md_entity& parent, const char* str);
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
 
     private:
         md_strong(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
@@ -155,6 +173,9 @@ namespace standardese
         const char* get_title() const STANDARDESE_NOEXCEPT;
 
         const char* get_destination() const STANDARDESE_NOEXCEPT;
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
 
     private:
         md_link(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT

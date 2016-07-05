@@ -28,7 +28,7 @@ namespace standardese
     protected:
         cpp_template_parameter(cpp_entity::type t, cpp_cursor cur, const cpp_entity& e,
                                bool is_variadic)
-        : cpp_entity(t, cur, e), variadic_(is_variadic)
+        : cpp_entity(t, cur, nullptr, e), variadic_(is_variadic)
         {
         }
 
@@ -183,6 +183,10 @@ namespace standardese
 
         cpp_name get_name() const override;
 
+        bool has_comment() const STANDARDESE_NOEXCEPT override;
+
+        const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
+
         const cpp_function_base& get_function() const STANDARDESE_NOEXCEPT
         {
             return *func_;
@@ -212,6 +216,10 @@ namespace standardese
         {
             return name_;
         }
+
+        bool has_comment() const STANDARDESE_NOEXCEPT override;
+
+        const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
 
         const cpp_function_base& get_function() const STANDARDESE_NOEXCEPT
         {
@@ -262,6 +270,10 @@ namespace standardese
 
         cpp_name get_name() const override;
 
+        bool has_comment() const STANDARDESE_NOEXCEPT override;
+
+        const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
+
         const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const
             STANDARDESE_NOEXCEPT
         {
@@ -275,7 +287,7 @@ namespace standardese
 
     private:
         cpp_class_template(cpp_cursor cur, const cpp_entity& parent)
-        : cpp_entity(get_entity_type(), cur, parent)
+        : cpp_entity(get_entity_type(), cur, nullptr, parent)
         {
         }
 
@@ -306,6 +318,10 @@ namespace standardese
             return name_;
         }
 
+        bool has_comment() const STANDARDESE_NOEXCEPT override;
+
+        const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
+
         const cpp_class& get_class() const STANDARDESE_NOEXCEPT
         {
             return *class_;
@@ -318,7 +334,7 @@ namespace standardese
 
     private:
         cpp_class_template_full_specialization(cpp_cursor cur, const cpp_entity& parent)
-        : cpp_entity(get_entity_type(), cur, parent), name_("")
+        : cpp_entity(get_entity_type(), cur, nullptr, parent), name_("")
         {
         }
 
@@ -358,6 +374,10 @@ namespace standardese
             return name_;
         }
 
+        bool has_comment() const STANDARDESE_NOEXCEPT override;
+
+        const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
+
         const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const
             STANDARDESE_NOEXCEPT
         {
@@ -376,7 +396,7 @@ namespace standardese
 
     private:
         cpp_class_template_partial_specialization(cpp_cursor cur, const cpp_entity& parent)
-        : cpp_entity(get_entity_type(), cur, parent), name_("")
+        : cpp_entity(get_entity_type(), cur, nullptr, parent), name_("")
         {
         }
 
@@ -413,6 +433,10 @@ namespace standardese
 
         cpp_name get_name() const override;
 
+        bool has_comment() const STANDARDESE_NOEXCEPT override;
+
+        const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
+
         const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const
             STANDARDESE_NOEXCEPT
         {
@@ -426,7 +450,7 @@ namespace standardese
 
     private:
         cpp_alias_template(cpp_cursor cur, const cpp_entity& parent)
-        : cpp_entity(get_entity_type(), cur, parent)
+        : cpp_entity(get_entity_type(), cur, nullptr, parent)
         {
         }
 

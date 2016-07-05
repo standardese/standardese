@@ -41,7 +41,7 @@ namespace standardese
     private:
         cpp_function_parameter(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref type,
                                std::string def)
-        : cpp_entity(get_entity_type(), cur, parent),
+        : cpp_entity(get_entity_type(), cur, nullptr, parent),
           type_(std::move(type)),
           default_(std::move(def))
         {
@@ -133,9 +133,9 @@ namespace standardese
         }
 
     protected:
-        cpp_function_base(cpp_entity::type t, cpp_cursor cur, const cpp_entity& parent,
-                          cpp_function_info info)
-        : cpp_entity(t, cur, parent), info_(std::move(info))
+        cpp_function_base(cpp_entity::type t, cpp_cursor cur, md_ptr<md_comment> comment,
+                          const cpp_entity& parent, cpp_function_info info)
+        : cpp_entity(t, cur, std::move(comment), parent), info_(std::move(info))
         {
         }
 
@@ -160,9 +160,9 @@ namespace standardese
         }
 
     private:
-        cpp_function(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref ret,
-                     cpp_function_info info)
-        : cpp_function_base(get_entity_type(), cur, parent, std::move(info)),
+        cpp_function(cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent,
+                     cpp_type_ref ret, cpp_function_info info)
+        : cpp_function_base(get_entity_type(), cur, std::move(comment), parent, std::move(info)),
           return_(std::move(ret))
         {
         }
@@ -260,9 +260,10 @@ namespace standardese
         }
 
     private:
-        cpp_member_function(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref ret,
-                            cpp_function_info finfo, cpp_member_function_info minfo)
-        : cpp_function_base(get_entity_type(), cur, parent, std::move(finfo)),
+        cpp_member_function(cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent,
+                            cpp_type_ref ret, cpp_function_info finfo,
+                            cpp_member_function_info minfo)
+        : cpp_function_base(get_entity_type(), cur, std::move(comment), parent, std::move(finfo)),
           return_(std::move(ret)),
           info_(std::move(minfo))
         {
@@ -308,9 +309,10 @@ namespace standardese
         }
 
     private:
-        cpp_conversion_op(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref target,
-                          cpp_function_info finfo, cpp_member_function_info minfo)
-        : cpp_function_base(get_entity_type(), cur, parent, std::move(finfo)),
+        cpp_conversion_op(cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent,
+                          cpp_type_ref target, cpp_function_info finfo,
+                          cpp_member_function_info minfo)
+        : cpp_function_base(get_entity_type(), cur, std::move(comment), parent, std::move(finfo)),
           target_type_(std::move(target)),
           info_(std::move(minfo))
         {
@@ -336,8 +338,9 @@ namespace standardese
         cpp_name get_name() const override;
 
     private:
-        cpp_constructor(cpp_cursor cur, const cpp_entity& parent, cpp_function_info info)
-        : cpp_function_base(get_entity_type(), cur, parent, std::move(info))
+        cpp_constructor(cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent,
+                        cpp_function_info info)
+        : cpp_function_base(get_entity_type(), cur, std::move(comment), parent, std::move(info))
         {
         }
 
@@ -363,9 +366,10 @@ namespace standardese
         }
 
     private:
-        cpp_destructor(cpp_cursor cur, const cpp_entity& parent, cpp_function_info info,
-                       cpp_virtual virt)
-        : cpp_function_base(get_entity_type(), cur, parent, std::move(info)), virtual_(virt)
+        cpp_destructor(cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent,
+                       cpp_function_info info, cpp_virtual virt)
+        : cpp_function_base(get_entity_type(), cur, std::move(comment), parent, std::move(info)),
+          virtual_(virt)
         {
         }
 

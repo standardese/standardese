@@ -13,23 +13,18 @@ namespace standardese
     class doc_entity
     {
     public:
-        doc_entity(const parser& p, const cpp_entity& e)
-        : comment_(md_comment::parse(p, e.get_name(), e.get_comment())), entity_(&e)
+        doc_entity(const cpp_entity& entity) STANDARDESE_NOEXCEPT : entity_(&entity)
         {
         }
 
-        doc_entity(md_ptr<md_comment> com) : comment_(std::move(com))
+        bool has_comment() const STANDARDESE_NOEXCEPT
         {
+            return entity_->has_comment();
         }
 
         const md_comment& get_comment() const STANDARDESE_NOEXCEPT
         {
-            return *comment_;
-        }
-
-        bool has_cpp_entity() const STANDARDESE_NOEXCEPT
-        {
-            return entity_ != nullptr;
+            return entity_->get_comment();
         }
 
         const cpp_entity& get_cpp_entity() const STANDARDESE_NOEXCEPT
@@ -38,8 +33,7 @@ namespace standardese
         }
 
     private:
-        md_ptr<md_comment> comment_;
-        const cpp_entity*  entity_;
+        const cpp_entity* entity_;
     };
 } // namespace standardese
 

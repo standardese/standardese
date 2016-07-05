@@ -19,15 +19,23 @@ namespace standardese
 {
     namespace detail
     {
+        inline bool is_blacklisted(const parser& p, const cpp_entity& e)
+        {
+            auto& blacklist = p.get_output_config().get_blacklist();
+            if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                return true;
+            else if (e.has_comment() && e.get_comment().is_excluded())
+                return true;
+            return false;
+        }
+
         template <CXCursorKind Kind>
         bool is_blacklisted(const parser& par, const basic_cpp_entity_ref<Kind>& ref)
         {
             auto target = ref.get(par.get_registry());
             if (!target)
                 return false;
-            return par.get_output_config()
-                .get_blacklist()
-                .is_blacklisted(entity_blacklist::synopsis, *target);
+            return is_blacklisted(par, *target);
         }
 
         inline bool is_blacklisted(const parser& par, const cpp_type_ref& ref)
@@ -38,9 +46,7 @@ namespace standardese
             auto entity = par.get_registry().try_lookup(decl);
             if (!entity)
                 return false;
-            return par.get_output_config()
-                .get_blacklist()
-                .is_blacklisted(entity_blacklist::synopsis, *entity);
+            return is_blacklisted(par, *entity);
         }
 
         template <CXCursorKind Kind>

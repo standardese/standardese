@@ -10,6 +10,8 @@
 
 * More output formats
 
+* New commmand: `exclude` to exclude entites from the output via comment
+
 ### Tool
 
 * Multithreaded documentation generation and new option `jobs/j` to specify number of threads.

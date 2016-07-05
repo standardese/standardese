@@ -6,9 +6,10 @@
 
 #include <cassert>
 
-#include <standardese/cpp_template.hpp>
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
+#include <standardese/cpp_template.hpp>
+#include <standardese/translation_unit.hpp>
 
 using namespace standardese;
 
@@ -159,7 +160,10 @@ cpp_ptr<cpp_class> cpp_class::parse(translation_unit& tu, cpp_cursor cur, const 
     if (!definition)
         return nullptr;
 
-    return detail::make_cpp_ptr<cpp_class>(cur, parent, ctype, is_final);
+    return detail::make_cpp_ptr<cpp_class>(cur, md_comment::parse(tu.get_parser(),
+                                                                  detail::parse_name(cur),
+                                                                  detail::parse_comment(cur)),
+                                           parent, ctype, is_final);
 }
 
 bool standardese::is_base_of(const cpp_entity_registry& registry, const cpp_class& base,

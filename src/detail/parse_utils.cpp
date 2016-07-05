@@ -38,6 +38,11 @@ cpp_name detail::parse_name(CXType type)
     return cpp_name(clang_getTypeSpelling(type));
 }
 
+string detail::parse_comment(cpp_cursor cur)
+{
+    return string(clang_Cursor_getRawCommentText(cur));
+}
+
 cpp_name detail::parse_class_name(cpp_cursor cur)
 {
     std::string name = parse_name(cur).c_str();

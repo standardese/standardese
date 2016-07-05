@@ -74,6 +74,7 @@ namespace standardese
 
         cmark_node* get_node() const STANDARDESE_NOEXCEPT
         {
+            // screw const-correctness
             return node_;
         }
 
@@ -85,6 +86,11 @@ namespace standardese
         const md_entity& get_parent() const STANDARDESE_NOEXCEPT
         {
             return *parent_;
+        }
+
+        md_entity_ptr clone(const md_entity& parent) const
+        {
+            return do_clone(&parent);
         }
 
     protected:
@@ -100,6 +106,8 @@ namespace standardese
                                                                    type_(t)
         {
         }
+
+        virtual md_entity_ptr do_clone(const md_entity* parent) const = 0;
 
     private:
         md_ptr<md_entity> next_;

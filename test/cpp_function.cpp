@@ -389,7 +389,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
             auto& ctor = dynamic_cast<const cpp_constructor&>(e);
             REQUIRE(!ctor.is_variadic());
 
-            if (ctor.get_comment() == "/// a")
+            if (ctor.get_raw_comment() == "/// a")
             {
                 ++count;
                 REQUIRE(no_parameters(ctor) == 0u);
@@ -399,7 +399,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_deleted);
             }
-            else if (ctor.get_comment() == "/// b")
+            else if (ctor.get_raw_comment() == "/// b")
             {
                 ++count;
                 REQUIRE(no_parameters(ctor) == 1u);
@@ -409,7 +409,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
             }
-            else if (ctor.get_comment() == "/// c")
+            else if (ctor.get_raw_comment() == "/// c")
             {
                 ++count;
                 REQUIRE(no_parameters(ctor) == 1u);
@@ -419,7 +419,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
             }
-            else if (ctor.get_comment() == "/// d")
+            else if (ctor.get_raw_comment() == "/// d")
             {
                 ++count;
                 REQUIRE(no_parameters(ctor) == 1u);
@@ -609,43 +609,43 @@ TEST_CASE("implicit virtual", "[cpp]")
         {
             for (auto& member : dynamic_cast<const cpp_class&>(e))
             {
-                if (member.get_comment() == "/// a")
+                if (member.get_raw_comment() == "/// a")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
                             == cpp_virtual_overriden);
                 }
-                else if (member.get_comment() == "/// b")
+                else if (member.get_raw_comment() == "/// b")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
                             == cpp_virtual_none);
                 }
-                else if (member.get_comment() == "/// c")
+                else if (member.get_raw_comment() == "/// c")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
                             == cpp_virtual_overriden);
                 }
-                else if (member.get_comment() == "/// d")
+                else if (member.get_raw_comment() == "/// d")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
                             == cpp_virtual_none);
                 }
-                else if (member.get_comment() == "/// e")
+                else if (member.get_raw_comment() == "/// e")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
                             == cpp_virtual_overriden);
                 }
-                else if (member.get_comment() == "/// f")
+                else if (member.get_raw_comment() == "/// f")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_conversion_op&>(member).get_virtual()
                             == cpp_virtual_overriden);
                 }
-                else if (member.get_comment() == "/// g")
+                else if (member.get_raw_comment() == "/// g")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_destructor&>(member).get_virtual()

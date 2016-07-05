@@ -110,7 +110,17 @@ cpp_name cpp_entity::get_name() const
     return detail::parse_name(cursor_);
 }
 
-cpp_raw_comment cpp_entity::get_comment() const
+string cpp_entity::get_raw_comment() const
 {
-    return clang_Cursor_getRawCommentText(cursor_);
+    return detail::parse_comment(cursor_);
+}
+
+cpp_entity::cpp_entity(type t, cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent)
+: cursor_(cur), comment_(std::move(comment)), next_(nullptr), parent_(&parent), t_(t)
+{
+}
+
+cpp_entity::cpp_entity(type t, cpp_cursor cur, md_ptr<md_comment> comment)
+: cursor_(cur), comment_(std::move(comment)), next_(nullptr), parent_(nullptr), t_(t)
+{
 }

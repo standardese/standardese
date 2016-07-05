@@ -14,7 +14,8 @@ TEST_CASE("cpp_entity", "[cpp]")
     {
         cpp_name name;
 
-        test_entity(const char* name) : cpp_entity(class_t, {}), name(name)
+        test_entity(const char* name)
+        : cpp_entity(class_t, {}, (std::unique_ptr<md_comment>())), name(name)
         {
         }
 

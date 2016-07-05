@@ -239,6 +239,11 @@ void comment_config::set_section_command(section_type t, std::string command)
             fmt::format("Section command name '{}' already in use", command));
 }
 
+const char* comment_config::exclude_command() const STANDARDESE_NOEXCEPT
+{
+    return "exclude";
+}
+
 output_config::output_config()
 : section_names_(std::size_t(section_type::count)),
   hidden_name_("implementation-defined"),

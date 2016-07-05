@@ -22,6 +22,14 @@ namespace standardese
 
         static md_ptr<md_document> make();
 
+        md_entity_ptr clone() const
+        {
+            return do_clone(nullptr);
+        }
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
     private:
         md_document(cmark_node* node) : md_container(get_entity_type(), node)
         {

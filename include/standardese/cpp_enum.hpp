@@ -23,9 +23,9 @@ namespace standardese
         virtual cpp_name get_scope() const override;
 
     protected:
-        cpp_enum_value(cpp_entity::type t, cpp_cursor cur, const cpp_entity& parent,
-                       bool is_explicit)
-        : cpp_entity(t, cur, parent), explicit_(is_explicit)
+        cpp_enum_value(cpp_entity::type t, cpp_cursor cur, md_ptr<md_comment> comment,
+                       const cpp_entity& parent, bool is_explicit)
+        : cpp_entity(t, cur, std::move(comment), parent), explicit_(is_explicit)
         {
         }
 
@@ -49,9 +49,10 @@ namespace standardese
         }
 
     private:
-        cpp_signed_enum_value(cpp_cursor cur, const cpp_entity& parent, long long value,
-                              bool is_explicit)
-        : cpp_enum_value(get_entity_type(), cur, parent, is_explicit), value_(value)
+        cpp_signed_enum_value(cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent,
+                              long long value, bool is_explicit)
+        : cpp_enum_value(get_entity_type(), cur, std::move(comment), parent, is_explicit),
+          value_(value)
         {
         }
 
@@ -74,9 +75,11 @@ namespace standardese
         }
 
     private:
-        cpp_unsigned_enum_value(cpp_cursor cur, const cpp_entity& parent, unsigned long long value,
+        cpp_unsigned_enum_value(cpp_cursor cur, md_ptr<md_comment> comment,
+                                const cpp_entity& parent, unsigned long long value,
                                 bool is_explicit)
-        : cpp_enum_value(get_entity_type(), cur, parent, is_explicit), value_(value)
+        : cpp_enum_value(get_entity_type(), cur, std::move(comment), parent, is_explicit),
+          value_(value)
         {
         }
 
@@ -112,8 +115,9 @@ namespace standardese
         }
 
     private:
-        cpp_enum(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref underlying, bool is_scoped)
-        : cpp_type(get_entity_type(), cur, parent),
+        cpp_enum(cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent,
+                 cpp_type_ref underlying, bool is_scoped)
+        : cpp_type(get_entity_type(), cur, std::move(comment), parent),
           underlying_(std::move(underlying)),
           is_scoped_(is_scoped)
         {

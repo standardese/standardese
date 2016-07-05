@@ -85,8 +85,7 @@ namespace
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_file& f)
     {
         detail::write_range(out, f, blankl, [&](code_block_writer& out, const cpp_entity& e) {
-            if (par.get_output_config().get_blacklist().is_blacklisted(entity_blacklist::synopsis,
-                                                                       e))
+            if (detail::is_blacklisted(par, e))
                 return false;
             dispatch(par, out, e, false);
             return true;
@@ -120,8 +119,6 @@ namespace
     template <class Container>
     void write_entity_range(const parser& par, code_block_writer& out, Container& cont)
     {
-        auto& blacklist = par.get_output_config().get_blacklist();
-
         if (cont.empty())
             out << "{}";
         else
@@ -131,14 +128,14 @@ namespace
 
             detail::write_range(out, cont, blankl,
                                 [&](code_block_writer& out, const cpp_entity& e) {
-                                    if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                                    if (detail::is_blacklisted(par, e))
                                         return false;
                                     dispatch(par, out, e, false);
                                     return true;
                                 });
 
             out.unindent(par.get_output_config().get_tab_width());
-            out << newl << '}';
+            out << '}';
         }
     }
 
@@ -199,8 +196,6 @@ namespace
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_enum& e,
                            bool top_level)
     {
-        auto& blacklist = par.get_output_config().get_blacklist();
-
         out << "enum ";
         if (e.is_scoped())
             out << "class ";
@@ -218,7 +213,7 @@ namespace
                 out.indent(par.get_output_config().get_tab_width());
 
                 detail::write_range(out, e, newl, [&](code_block_writer& out, const cpp_entity& e) {
-                    if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                    if (detail::is_blacklisted(par, e))
                         return false;
                     dispatch(par, out, e, false);
                     return true;
@@ -271,7 +266,7 @@ namespace
                             need_access = true;
                         cur_access      = new_access;
                     }
-                    else if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+                    else if (detail::is_blacklisted(par, e))
                         return false;
                     else if (blacklist.is_set(entity_blacklist::extract_private)
                              || cur_access != cpp_private || detail::is_virtual(e))
@@ -588,10 +583,6 @@ namespace
 void standardese::write_synopsis(const parser& p, md_document& out, const doc_entity& e)
 {
     code_block_writer w(out);
-
-    if (e.has_cpp_entity())
-    {
-        dispatch(p, w, e.get_cpp_entity(), true);
-        out.add_entity(w.get_code_block());
-    }
+    dispatch(p, w, e.get_cpp_entity(), true);
+    out.add_entity(w.get_code_block());
 }
