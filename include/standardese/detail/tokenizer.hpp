@@ -72,18 +72,20 @@ namespace standardese
             detail::skip(stream, cur, open);
 
             auto bracket_count = 1;
-            while (bracket_count != 0)
+            auto expr_bracket  = 0;
+            while (bracket_count != 0 || expr_bracket != 0)
             {
                 auto spelling = stream.get().get_value();
-                if (spelling == open)
+                if (expr_bracket == 0 && spelling == open)
                     ++bracket_count;
-                else if (spelling == close)
+                else if (expr_bracket == 0 && spelling == close)
                     --bracket_count;
-                else if (std::strcmp(close, ">") == 0 && spelling == ">>")
-                {
-                    // just hope nobody uses a right shift operator
+                else if (expr_bracket == 0 && std::strcmp(close, ">") == 0 && spelling == ">>")
                     bracket_count -= 2;
-                }
+                else if (spelling == "(")
+                    ++expr_bracket;
+                else if (spelling == ")")
+                    --expr_bracket;
 
                 f(spelling.c_str());
             }

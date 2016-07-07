@@ -53,11 +53,16 @@ cpp_name detail::parse_class_name(cpp_cursor cur)
 void detail::unmunch(std::string& str)
 {
     auto balance = 0;
+    auto parens  = 0;
     for (auto c : str)
-        if (c == '<')
+        if (parens == 0 && c == '<')
             balance++;
-        else if (c == '>')
+        else if (parens == 0 && c == '>')
             balance--;
+        else if (c == '(')
+            ++parens;
+        else if (c == ')')
+            --parens;
 
     assert(balance == 0 || balance == -1);
     if (balance == -1)

@@ -80,14 +80,14 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
     auto end    = clang_getRangeEnd(source);
 
     // translate location into offset and file
-    CXFile   file = nullptr;
+    CXFile   file         = nullptr;
     unsigned begin_offset = 0u, end_offset = 0u;
     clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
     clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
-    
+
     if (!file)
         return "";
-    
+
     assert(end_offset > begin_offset);
 
     // open file buffer
@@ -147,7 +147,8 @@ std::string detail::tokenizer::read_source(cpp_cursor cur)
 
     // prevent more awesome libclang bugs:
     // read until next line, just to be somewhat sure
-    if (clang_getCursorKind(cur) != CXCursor_ParmDecl
+    if (clang_isDeclaration(clang_getCursorKind(cur))
+        && clang_getCursorKind(cur) != CXCursor_ParmDecl
         && clang_getCursorKind(cur) != CXCursor_TemplateTypeParameter
         && clang_getCursorKind(cur) != CXCursor_NonTypeTemplateParameter
         && clang_getCursorKind(cur) != CXCursor_TemplateTemplateParameter
