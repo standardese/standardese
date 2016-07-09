@@ -25,6 +25,7 @@
 #include <standardese/detail/sequence_stream.hpp>
 #include <standardese/error.hpp>
 #include <standardese/string.hpp>
+#include <standardese/cpp_cursor.hpp>
 
 namespace standardese
 {
@@ -105,11 +106,14 @@ namespace standardese
         public:
             static std::string read_source(cpp_cursor cur);
 
+            static CXFile read_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset);
+
             tokenizer(translation_unit& tu, cpp_cursor cur);
 
-            context::iterator_type begin()
+            context::iterator_type begin(unsigned offset = 0)
             {
-                return impl_->begin(source_.begin(), source_.end());
+                assert(offset < source_.size());
+                return impl_->begin(source_.begin() + offset, source_.end());
             }
 
             context::iterator_type end()
@@ -127,11 +131,11 @@ namespace standardese
             context*    impl_;
         };
 
-        inline token_stream make_stream(tokenizer& t)
+        inline token_stream make_stream(tokenizer& t, unsigned offset = 0)
         {
             auto last =
                 boost::wave::cpplexer::lex_token<>(boost::wave::token_id::T_SEMICOLON, ";", {});
-            return token_stream(t, last);
+            return token_stream(t.begin(offset), t.end(), last);
         }
     }
 } // namespace standardese::detail

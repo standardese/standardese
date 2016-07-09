@@ -28,12 +28,6 @@ namespace standardese
         // cannot use parse_name(), adds "struct"/... before
         cpp_name parse_class_name(cpp_cursor cur);
 
-        // when concatenating tokens for the default values
-        // template <typename T = foo<int>> yields foo<int>>
-        // because >> is one token
-        // count brackets, if unbalanced, remove final >
-        void unmunch(std::string& str);
-
         // erases template arguments
         void erase_template_args(std::string& name);
 

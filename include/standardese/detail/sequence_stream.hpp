@@ -35,6 +35,11 @@ namespace standardese
                 end_   = end(array);
             }
 
+            explicit sequence_stream(Iter begin, Iter end, value_type out_of_range = {})
+            : begin_(begin), cur_(begin), end_(end), out_of_range_(std::move(out_of_range))
+            {
+            }
+
             const value_type& peek() const STANDARDESE_NOEXCEPT
             {
                 if (cur_ == end_)
@@ -60,6 +65,16 @@ namespace standardese
                 auto result = peek();
                 bump();
                 return result;
+            }
+
+            iterator get_iter() const STANDARDESE_NOEXCEPT
+            {
+                return cur_;
+            }
+
+            void reset(iterator iter) STANDARDESE_NOEXCEPT
+            {
+                cur_ = iter;
             }
 
             std::size_t size() const STANDARDESE_NOEXCEPT

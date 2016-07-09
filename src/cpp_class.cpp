@@ -109,7 +109,8 @@ namespace
         return cpp_class_t;
     }
 
-    bool parse_class(translation_unit& tu, cpp_cursor cur, bool& is_final)
+    bool parse_class(translation_unit& tu, cpp_cursor cur, bool& is_final,
+                     std::string& specialization_name)
     {
         detail::tokenizer tokenizer(tu, cur);
         auto              stream = detail::make_stream(tokenizer);
@@ -121,33 +122,62 @@ namespace
 
         if (detail::skip_if_token(stream, "template"))
         {
-            detail::skip_bracket_count(stream, cur, "<", ">");
-            detail::skip_whitespace(stream);
-        }
-
-        // skip class/struct/union/keyword and name
-        stream.bump();
-        detail::skip_whitespace(stream);
-        detail::skip_attribute(stream, cur);
-        detail::skip_whitespace(stream);
-        detail::skip(stream, cur, {name.c_str()});
-
-        if (stream.peek().get_value() == "<")
-        {
-            detail::skip_bracket_count(stream, cur, "<", ">");
-            detail::skip_whitespace(stream);
-        }
-
-        if (stream.peek().get_value() == "final")
-        {
-            stream.bump();
-            detail::skip_whitespace(stream);
-            is_final = true;
+            // skip until class name
+            while (stream.peek().get_value() != name.c_str())
+                stream.bump();
         }
         else
-            is_final = false;
+        {
+            // skip class/struct/union/keyword
+            stream.bump();
+            detail::skip_whitespace(stream);
+            detail::skip_attribute(stream, cur);
+            detail::skip_whitespace(stream);
+        }
+        detail::skip(stream, cur, {name.c_str()});
 
-        return stream.peek().get_value() != ";";
+        // we need to go backwards from the end
+        // but the iterator doesn't support that, so store them
+        std::vector<detail::token_stream::iterator> tokens;
+        for (; !stream.done(); stream.bump())
+        {
+            if (stream.peek().get_value() == ";")
+                // end of class declaration
+                return false;
+            else if (stream.peek().get_value() == ":")
+                // beginning of bases
+                break;
+            else if (stream.peek().get_value() == "{"
+                     && (tokens.empty() || tokens.back()->get_value() == ">"))
+                // beginning of class definition
+                // just rudimentary check against uniform initialization inside the args
+                break;
+            else if (!std::isspace(stream.peek().get_value()[0]))
+                tokens.push_back(stream.get_iter());
+        }
+
+        is_final = false;
+        for (auto iter = tokens.rbegin(); iter != tokens.rend(); ++iter)
+        {
+            auto& token = *iter;
+            auto& str   = token->get_value();
+
+            if (str == "final")
+                is_final = true;
+            else if (str == ">")
+            {
+                // end of template arguments
+                // concatenate them all
+                stream.reset(tokens.front());
+                specialization_name = name.c_str();
+                while (stream.get_iter() != *std::prev(iter.base()))
+                    specialization_name += stream.get().get_value().c_str();
+                specialization_name += '>';
+                break;
+            }
+        }
+
+        return true;
     }
 }
 
@@ -155,10 +185,28 @@ cpp_ptr<cpp_class> cpp_class::parse(translation_unit& tu, cpp_cursor cur, const 
 {
     auto ctype = parse_class_type(cur);
 
-    auto is_final   = false;
-    auto definition = parse_class(tu, cur, is_final);
+    auto        is_final = false;
+    std::string args;
+    auto        definition = parse_class(tu, cur, is_final, args);
     if (!definition)
         return nullptr;
+
+    if (!args.empty()
+        && parent.get_entity_type() == cpp_entity::class_template_full_specialization_t)
+    {
+        auto& non_const = const_cast<cpp_entity&>(parent); // save here
+        auto& templ     = static_cast<cpp_class_template_full_specialization&>(non_const);
+        templ.name_     = std::move(args);
+    }
+    else if (!args.empty()
+             && parent.get_entity_type() == cpp_entity::class_template_partial_specialization_t)
+    {
+        auto& non_const = const_cast<cpp_entity&>(parent); // save here
+        auto& templ     = static_cast<cpp_class_template_partial_specialization&>(non_const);
+        templ.name_     = std::move(args);
+    }
+    else
+        assert(args.empty());
 
     return detail::make_cpp_ptr<cpp_class>(cur, md_comment::parse(tu.get_parser(),
                                                                   detail::parse_name(cur),

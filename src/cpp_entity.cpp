@@ -110,6 +110,15 @@ cpp_name cpp_entity::get_name() const
     return detail::parse_name(cursor_);
 }
 
+cpp_name cpp_entity::get_scope() const
+{
+    if (!parent_ || parent_->get_entity_type() == file_t)
+        return "";
+    else if (is_template(parent_->get_entity_type()))
+        return parent_->get_scope();
+    return parent_->get_full_name();
+}
+
 string cpp_entity::get_raw_comment() const
 {
     return detail::parse_comment(cursor_);

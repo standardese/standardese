@@ -50,28 +50,6 @@ cpp_name detail::parse_class_name(cpp_cursor cur)
     return name.substr(pos + 1);
 }
 
-void detail::unmunch(std::string& str)
-{
-    auto balance = 0;
-    auto parens  = 0;
-    for (auto c : str)
-        if (parens == 0 && c == '<')
-            balance++;
-        else if (parens == 0 && c == '>')
-            balance--;
-        else if (c == '(')
-            ++parens;
-        else if (c == ')')
-            --parens;
-
-    assert(balance == 0 || balance == -1);
-    if (balance == -1)
-    {
-        assert(str.back() == '>');
-        str.pop_back();
-    }
-}
-
 void detail::erase_template_args(std::string& name)
 {
     auto beg = name.find('<');

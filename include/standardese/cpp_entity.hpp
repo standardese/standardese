@@ -100,13 +100,7 @@ namespace standardese
         /// \returns The name of the entity as specified in the source.
         virtual cpp_name get_name() const;
 
-        /// \returns The scope of the entity, without trailing `::`, empty for global scope.
-        virtual cpp_name get_scope() const
-        {
-            if (!parent_ || parent_->get_entity_type() == file_t)
-                return "";
-            return parent_->get_full_name();
-        }
+        virtual cpp_name get_scope() const;
 
         /// \returns The full name of the entity, scope followed by name.
         cpp_name get_full_name() const

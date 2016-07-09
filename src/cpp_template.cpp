@@ -9,6 +9,7 @@
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/cpp_function.hpp>
+#include <clang-c/Index.h>
 
 using namespace standardese;
 
@@ -76,7 +77,6 @@ cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translat
             def_name += stream.get().get_value().c_str();
 
         detail::erase_trailing_ws(def_name);
-        detail::unmunch(def_name);
     }
 
     return detail::make_cpp_ptr<cpp_template_type_parameter>(cur, parent,
@@ -119,7 +119,6 @@ cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
         type_given += stream.get().get_value().c_str();
 
     detail::erase_trailing_ws(type_given);
-    detail::unmunch(type_given);
 
     // default
     std::string def;
@@ -132,7 +131,6 @@ cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
             def += stream.get().get_value().c_str();
 
         detail::erase_trailing_ws(def);
-        detail::unmunch(def);
     }
 
     auto type = clang_getCursorType(cur);
@@ -212,16 +210,26 @@ const cpp_function_base* standardese::get_function(const cpp_entity& e) STANDARD
 namespace
 {
     template <typename T>
-    void parse_parameters(translation_unit& tu, T& result, cpp_cursor cur)
+    unsigned parse_parameters(translation_unit& tu, T& result, cpp_cursor cur)
     {
+        cpp_cursor last;
         detail::visit_children(cur, [&](CXCursor cur, CXCursor) {
             if (auto ptr = cpp_template_parameter::try_parse(tu, cur, result))
             {
+                last = cur;
                 result.add_template_parameter(std::move(ptr));
                 return CXChildVisit_Continue;
             }
             return CXChildVisit_Break;
         });
+
+        if (clang_Cursor_isNull(last))
+            return 0u;
+
+        // determine template offset
+        unsigned begin, end;
+        detail::tokenizer::read_range(last, begin, end);
+        return end;
     }
 
     // appends template paramters to name
@@ -250,46 +258,35 @@ namespace
         return name;
     }
 
-    // appends specialization arguments to name
-    cpp_name get_template_specialization_name(translation_unit& tu, cpp_cursor cur,
-                                              const std::string& name)
+    unsigned get_template_offset(cpp_cursor cur, unsigned last_offset)
     {
-        if (name.empty())
-            return "";
+        assert(last_offset);
+        auto source = detail::tokenizer::read_source(cur);
 
-        detail::tokenizer tokenizer(tu, cur);
-        auto              stream = detail::make_stream(tokenizer);
+        unsigned begin, end;
+        detail::tokenizer::read_range(cur, begin, end);
 
-        while (stream.get().get_value() != name.c_str())
-            ;
+        // make relative
+        last_offset -= begin;
 
-        auto result = name + "<";
+        // find closing bracket
+        while (std::isspace(source[last_offset]))
+            ++last_offset;
+        assert(source[last_offset] == '>');
+        ++last_offset;
 
-        auto bracket_count = 1;
-        detail::skip(stream, cur, "<");
-        while (bracket_count == 1)
-        {
-            auto spelling = stream.get().get_value();
-
-            if (spelling == "<")
-                ++bracket_count;
-            else if (spelling == ">")
-                --bracket_count;
-
-            result += spelling.c_str();
-        }
-
-        return result;
+        return last_offset;
     }
 }
 
 cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit& tu, cpp_cursor cur,
                                                             const cpp_entity& parent)
 {
-    auto result = detail::make_cpp_ptr<cpp_function_template>(cur, parent);
-    parse_parameters(tu, *result, cur);
+    auto result      = detail::make_cpp_ptr<cpp_function_template>(cur, parent);
+    auto last_offset = parse_parameters(tu, *result, cur);
 
-    auto func = cpp_function_base::try_parse(tu, cur, parent);
+    auto func =
+        cpp_function_base::try_parse(tu, cur, *result, get_template_offset(cur, last_offset));
     assert(func);
     result->func_ = std::move(func);
 
@@ -321,10 +318,9 @@ cpp_ptr<cpp_function_template_specialization> cpp_function_template_specializati
 {
     auto result = detail::make_cpp_ptr<cpp_function_template_specialization>(cur, parent);
 
-    auto func = cpp_function_base::try_parse(tu, cur, parent);
+    auto func = cpp_function_base::try_parse(tu, cur, *result);
     assert(func);
     result->func_ = std::move(func);
-    result->name_ = get_template_specialization_name(tu, cur, result->func_->get_name().c_str());
 
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
     assert(primary_cur != cpp_cursor());
@@ -357,7 +353,7 @@ cpp_ptr<cpp_class_template> cpp_class_template::parse(translation_unit& tu, cpp_
     auto result = detail::make_cpp_ptr<cpp_class_template>(cur, parent);
     parse_parameters(tu, *result, cur);
 
-    auto ptr = cpp_class::parse(tu, cur, parent);
+    auto ptr = cpp_class::parse(tu, cur, *result);
     if (!ptr)
         return nullptr;
     result->class_ = std::move(ptr);
@@ -389,11 +385,10 @@ cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_speciali
 
     auto result = detail::make_cpp_ptr<cpp_class_template_full_specialization>(cur, parent);
 
-    auto ptr = cpp_class::parse(tu, cur, parent);
+    auto ptr = cpp_class::parse(tu, cur, *result);
     if (!ptr)
         return nullptr;
     result->class_ = std::move(ptr);
-    result->name_  = get_template_specialization_name(tu, cur, result->class_->get_name().c_str());
 
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
     assert(primary_cur != cpp_cursor());
@@ -419,11 +414,10 @@ cpp_ptr<cpp_class_template_partial_specialization> cpp_class_template_partial_sp
     auto result = detail::make_cpp_ptr<cpp_class_template_partial_specialization>(cur, parent);
     parse_parameters(tu, *result, cur);
 
-    auto ptr = cpp_class::parse(tu, cur, parent);
+    auto ptr = cpp_class::parse(tu, cur, *result);
     if (!ptr)
         return nullptr;
     result->class_ = std::move(ptr);
-    result->name_  = get_template_specialization_name(tu, cur, result->class_->get_name().c_str());
 
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
     assert(primary_cur != cpp_cursor());

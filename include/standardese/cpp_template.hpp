@@ -239,6 +239,7 @@ namespace standardese
         cpp_ptr<cpp_function_base> func_;
 
         friend detail::cpp_ptr_access;
+        friend cpp_function_base;
     };
 
     /// \returns If `e` is a function type returns a pointer to `e`,
@@ -343,6 +344,7 @@ namespace standardese
         cpp_ptr<cpp_class> class_;
 
         friend detail::cpp_ptr_access;
+        friend cpp_class;
     };
 
     class cpp_class_template_partial_specialization final
@@ -405,6 +407,7 @@ namespace standardese
         cpp_ptr<cpp_class> class_;
 
         friend detail::cpp_ptr_access;
+        friend cpp_class;
     };
 
     /// \returns If `e` is a class returns a pointer to `e`,

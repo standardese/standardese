@@ -86,7 +86,8 @@ namespace standardese
     {
     public:
         static cpp_ptr<cpp_function_base> try_parse(translation_unit& tu, cpp_cursor cur,
-                                                    const cpp_entity& parent);
+                                                    const cpp_entity& parent,
+                                                    unsigned          template_offset = 0);
 
         void add_parameter(cpp_ptr<cpp_function_parameter> param)
         {
@@ -139,6 +140,8 @@ namespace standardese
         {
         }
 
+        void set_template_specialization_name(cpp_name name);
+
     private:
         cpp_function_info info_;
     };
@@ -152,7 +155,7 @@ namespace standardese
         }
 
         static cpp_ptr<cpp_function> parse(translation_unit& tu, cpp_cursor cur,
-                                           const cpp_entity& parent);
+                                           const cpp_entity& parent, unsigned template_offset = 0);
 
         const cpp_type_ref& get_return_type() const STANDARDESE_NOEXCEPT
         {
@@ -237,7 +240,8 @@ namespace standardese
         }
 
         static cpp_ptr<cpp_member_function> parse(translation_unit& tu, cpp_cursor cur,
-                                                  const cpp_entity& parent);
+                                                  const cpp_entity& parent,
+                                                  unsigned          template_offset = 0);
 
         const cpp_type_ref& get_return_type() const STANDARDESE_NOEXCEPT
         {
@@ -284,7 +288,8 @@ namespace standardese
         }
 
         static cpp_ptr<cpp_conversion_op> parse(translation_unit& tu, cpp_cursor cur,
-                                                const cpp_entity& parent);
+                                                const cpp_entity& parent,
+                                                unsigned          template_offset = 0);
 
         cpp_name get_name() const override;
 
@@ -333,7 +338,8 @@ namespace standardese
         }
 
         static cpp_ptr<cpp_constructor> parse(translation_unit& tu, cpp_cursor cur,
-                                              const cpp_entity& parent);
+                                              const cpp_entity& parent,
+                                              unsigned          template_offset = 0);
 
         cpp_name get_name() const override;
 
@@ -356,7 +362,8 @@ namespace standardese
         }
 
         static cpp_ptr<cpp_destructor> parse(translation_unit& tu, cpp_cursor cur,
-                                             const cpp_entity& parent);
+                                             const cpp_entity& parent,
+                                             unsigned          template_offset = 0);
 
         cpp_name get_name() const override;
 
