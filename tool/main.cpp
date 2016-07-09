@@ -228,7 +228,7 @@ int main(int argc, char* argv[])
                             fs::path file_name =
                                 (p.stem().generic_string() + '.' + format->extension()).c_str();
 
-                            file_output file((folder / file_name).native());
+                            file_output file((folder / file_name).string());
                             output      out(file, *format);
                             out.render(*doc);
                         }
