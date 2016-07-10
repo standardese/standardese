@@ -377,6 +377,8 @@ namespace
 
     bool is_function_ptr(const std::string& return_type)
     {
+        if (return_type.empty())
+		    return false;
         auto iter = return_type.rbegin();
         while (std::isspace(*iter))
             ++iter;
