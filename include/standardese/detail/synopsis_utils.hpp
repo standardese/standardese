@@ -75,11 +75,13 @@ namespace standardese
 
                 need = f(out, e);
             }
+
+            out.remove_trailing_line();
         }
 
         void write_type_value_default(const parser& par, code_block_writer& out,
                                       const cpp_type_ref& type, const cpp_name& name,
-                                      const std::string& def = "");
+                                      const std::string& def = "", bool variadic = false);
 
         void write_class_name(code_block_writer& out, const cpp_name& name, int class_type);
 

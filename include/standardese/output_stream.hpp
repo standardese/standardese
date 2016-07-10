@@ -44,12 +44,26 @@ namespace standardese
             write_char('\n');
         }
 
+        void remove_trailing_line()
+        {
+            if (last_ == '\n')
+            {
+                undo_write();
+                for (auto i = 0u; i != level_; ++i)
+                    undo_write();
+            }
+        }
+
         void indent(unsigned width);
 
         void unindent(unsigned width);
 
     private:
         virtual void do_write_char(char c) = 0;
+
+        virtual void undo_write()
+        {
+        }
 
         void do_indent();
 
@@ -111,6 +125,11 @@ namespace standardese
         void do_write_char(char c) override
         {
             str_.push_back(c);
+        }
+
+        void undo_write() override
+        {
+            str_.pop_back();
         }
 
         std::string str_;

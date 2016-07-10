@@ -11,7 +11,7 @@ using namespace standardese;
 
 void detail::write_type_value_default(const parser& par, code_block_writer& out,
                                       const cpp_type_ref& type, const cpp_name& name,
-                                      const std::string& def)
+                                      const std::string& def, bool variadic)
 {
     std::string type_name = get_ref_name(par, type).c_str();
 
@@ -22,7 +22,11 @@ void detail::write_type_value_default(const parser& par, code_block_writer& out,
         {
             for (auto i = 0u; i <= pos + 1; ++i)
                 out << type_name[i];
+
+            if (variadic)
+                out << " ... ";
             out << name;
+
             for (auto i = pos + 2; i != type_name.size(); ++i)
                 out << type_name[i];
         }
@@ -33,16 +37,27 @@ void detail::write_type_value_default(const parser& par, code_block_writer& out,
             {
                 for (auto i = 0u; i != pos; ++i)
                     out << type_name[i];
+                if (variadic)
+                    out << " ...";
                 out << ' ' << name;
                 for (auto i = pos; i != type_name.size(); ++i)
                     out << type_name[i];
             }
             else
-                out << type_name << ' ' << name;
+            {
+                out << type_name;
+                if (variadic)
+                    out << " ...";
+                out << ' ' << name;
+            }
         }
     }
     else
+    {
         out << type_name;
+        if (variadic)
+            out << " ...";
+    }
 
     if (!def.empty())
         out << " = " << def;

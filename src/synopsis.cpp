@@ -135,7 +135,7 @@ namespace
                                 });
 
             out.unindent(par.get_output_config().get_tab_width());
-            out << '}';
+            out << newl << '}';
         }
     }
 
@@ -216,6 +216,7 @@ namespace
                     if (detail::is_blacklisted(par, e))
                         return false;
                     dispatch(par, out, e, false);
+                    out << ',';
                     return true;
                 });
 
@@ -255,16 +256,23 @@ namespace
                 out << newl << '{' << newl;
                 out.indent(par.get_output_config().get_tab_width());
 
-                auto cur_access  = c.get_class_type() == cpp_class_t ? cpp_private : cpp_public;
-                auto need_access = false;
-                auto first       = true;
-                detail::write_range(out, c, newl, [&](code_block_writer& out, const cpp_entity& e) {
+                auto last_access = c.get_class_type() == cpp_class_t ?
+                                       cpp_private :
+                                       cpp_public; // last written access
+                auto cur_access  = last_access;    // access of current entity
+                auto need_access = false;          // need change in access modifier
+                detail::write_range(out, c, blankl, [&](code_block_writer& out,
+                                                        const cpp_entity& e) {
                     if (e.get_entity_type() == cpp_entity::access_specifier_t)
                     {
-                        auto new_access = static_cast<const cpp_access_specifier&>(e).get_access();
-                        if (new_access != cur_access)
+                        cur_access = static_cast<const cpp_access_specifier&>(e).get_access();
+                        if (cur_access != last_access)
+                            // change in access
                             need_access = true;
-                        cur_access      = new_access;
+                        else if (need_access)
+                            // no change but change still requested
+                            // because a previous entity changed it but it wasn't written after all
+                            need_access = false;
                     }
                     else if (detail::is_blacklisted(par, e))
                         return false;
@@ -273,12 +281,9 @@ namespace
                     {
                         if (need_access)
                         {
-                            if (!first)
-                                out << blankl;
-                            else
-                                first = false;
                             write_access(par, out, cur_access);
                             need_access = false;
+                            last_access = cur_access;
                         }
                         dispatch(par, out, e, false);
                         return true;
@@ -405,7 +410,7 @@ namespace
                            const cpp_non_type_template_parameter& p)
     {
         detail::write_type_value_default(par, out, p.get_type(), p.get_name(),
-                                         p.get_default_value());
+                                         p.get_default_value(), p.is_variadic());
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out,

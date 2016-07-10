@@ -54,6 +54,11 @@ namespace standardese
             stream_.unindent(width);
         }
 
+        void remove_trailing_line()
+        {
+            stream_.remove_trailing_line();
+        }
+
         code_block_writer& operator<<(const char* str)
         {
             stream_.write_str(str, std::strlen(str));
