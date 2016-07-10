@@ -187,7 +187,7 @@ namespace
                  && clang_getCursorKind(cur) != CXCursor_NonTypeTemplateParameter
                  && clang_getCursorKind(cur) != CXCursor_TemplateTemplateParameter
                  && clang_getCursorKind(cur) != CXCursor_CXXBaseSpecifier)
-            while (buf.sgetc() != '\n')
+            while (buf.sgetc() != '\n' && buf.sgetc() != std::char_traits<char>::eof())
             {
                 result += buf.sgetc();
                 buf.sbumpc();

@@ -19,55 +19,33 @@ std::size_t no_parameters(const cpp_function_base& base)
     return result;
 }
 
-TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
+TEST_CASE("cpp_function", "[cpp]")
 {
     parser p;
 
-    auto code = R"(
-        void a(int x, const char *ptr = nullptr);
+    auto code = R"(void a(int x, const char *ptr = nullptr);
 
-        int b(int c, ...)
-        {
-            return 0;
-        }
+int b(int c, ...)
+{
+    return 0;
+}
 
-        int *c(int a = b(0)) = delete;
+int *c(int a = b(0)) = delete;
 
-        [[foo]] char & __attribute__((d)) d() noexcept [[bar]];
+[[foo]] char & __attribute__((d)) d() noexcept [[bar]];
 
-        const int e() noexcept(false);
+const int e() noexcept(false);
 
-        int (*f(int a))(volatile char&&);
+int (*f(int a))(volatile char&&);
 
-        constexpr auto g() -> const char&&;
+constexpr auto g() -> const char&&;
 
-        auto h() noexcept(noexcept(e()))
-        {
-            return 0;
-        }
+auto h() noexcept(noexcept(e()))
+{
+    return 0;
+}
 
-        decltype(auto) i();
-
-        struct base
-        {
-            static void j();
-
-            virtual int& k() const = 0;
-
-            void l() volatile && = delete;
-
-            virtual void m(int a = h()) {}
-        };
-
-        struct derived : base
-        {
-            virtual int& k() const override;
-
-            void m(int a = h()) final;
-
-            derived& operator   =(const derived &a) = default;
-        };
-    )";
+decltype(auto) i();)";
 
     auto tu = parse(p, "cpp_function", code);
 
@@ -176,7 +154,42 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
             else
                 REQUIRE(false);
         }
-        else if (e.get_name() == "base")
+        else
+            REQUIRE(false);
+    });
+    REQUIRE(count == 9u);
+}
+
+TEST_CASE("cpp_member_function", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(struct base
+{
+    static void j();
+
+    virtual int& k() const = 0;
+
+    void l() volatile && = delete;
+
+    virtual void m(int a = (j(), 0)) {}
+};
+
+struct derived : base
+{
+    virtual int& k() const override;
+
+    void m(int a = (j(), 0)) final;
+
+    derived& operator   =(const derived &a) = default;
+};)";
+
+    auto tu = parse(p, "cpp_member_function", code);
+
+    // no need to check the parameters, same code as for variables
+    auto count = 0u;
+    for_each(tu.get_file(), [&](const cpp_entity& e) {
+        if (e.get_name() == "base")
         {
             auto& c = dynamic_cast<const cpp_class&>(e);
             for (auto& ent : c)
@@ -289,7 +302,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
         else
             REQUIRE(false);
     });
-    REQUIRE(count == 16u);
+    REQUIRE(count == 7u);
 }
 
 TEST_CASE("cpp_conversion_op", "[cpp]")
