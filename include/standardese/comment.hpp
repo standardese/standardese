@@ -39,6 +39,8 @@ namespace standardese
             return do_clone(nullptr);
         }
 
+        std::string get_output_name() const;
+
     protected:
         md_entity_ptr do_clone(const md_entity* parent) const override;
 

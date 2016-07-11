@@ -86,7 +86,7 @@ TEST_CASE("entity_blacklist")
 
 std::string get_synopsis(const parser& p, const cpp_entity& e)
 {
-    auto doc = md_document::make();
+    auto doc = md_document::make("");
     write_synopsis(p, *doc, e);
 
     REQUIRE(doc->begin()->get_entity_type() == md_entity::code_block_t);

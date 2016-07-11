@@ -125,16 +125,16 @@ namespace
     }
 }
 
-md_ptr<md_document> md_document::make()
+md_ptr<standardese::md_document> md_document::make(std::string name)
 {
-    return detail::make_md_ptr<md_document>(cmark_node_new(CMARK_NODE_DOCUMENT));
+    return detail::make_md_ptr<md_document>(cmark_node_new(CMARK_NODE_DOCUMENT), std::move(name));
 }
 
 md_entity_ptr md_document::do_clone(const md_entity* parent) const
 {
     assert(!parent);
 
-    auto result = make();
+    auto result = make(name_);
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
     return std::move(result);
@@ -251,9 +251,10 @@ void standardese::generate_doc_entity(const parser& p, md_document& document, un
         document.add_entity(doc.get_comment().clone());
 }
 
-md_ptr<md_document> standardese::generate_doc_file(const parser& p, const cpp_file& f)
+md_ptr<md_document> standardese::generate_doc_file(const parser& p, const cpp_file& f,
+                                                   std::string name)
 {
-    auto doc = md_document::make();
+    auto doc = md_document::make(std::move(name));
 
     generate_doc_entity(p, *doc, 1, f);
 

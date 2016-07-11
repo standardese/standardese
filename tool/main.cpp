@@ -221,7 +221,7 @@ int main(int argc, char* argv[])
                     {
                         auto tu = parser.parse(p.generic_string().c_str(), compile_config);
 
-                        auto doc = generate_doc_file(parser, tu.get_file());
+                        auto doc = generate_doc_file(parser, tu.get_file(), tu.get_path().c_str());
                         for (auto& format : formats)
                         {
                             fs::path folder = formats.size() > 1u ? format->extension() : "";

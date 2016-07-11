@@ -9,6 +9,7 @@
 
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/error.hpp>
+#include <standardese/generator.hpp>
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
@@ -255,4 +256,24 @@ md_entity_ptr md_comment::do_clone(const md_entity*) const
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
     return std::move(result);
+}
+
+namespace
+{
+    const md_document& get_document(const md_entity* cur) STANDARDESE_NOEXCEPT
+    {
+        while (cur->get_entity_type() != md_entity::document_t)
+        {
+            assert(cur->has_parent());
+            cur = &cur->get_parent();
+        }
+
+        return static_cast<const md_document&>(*cur);
+    }
+}
+
+std::string md_comment::get_output_name() const
+{
+    auto& document = get_document(this);
+    return document.get_output_name();
 }
