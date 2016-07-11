@@ -9,11 +9,11 @@
 #include <string>
 #include <ostream>
 
+#include <standardese/md_blocks.hpp>
 #include <standardese/noexcept.hpp>
 #include <standardese/output_format.hpp>
 #include <standardese/output_stream.hpp>
 #include <standardese/string.hpp>
-#include "md_blocks.hpp"
 
 namespace standardese
 {
@@ -110,32 +110,32 @@ namespace standardese
         const md_entity* parent_;
     };
 
+    class md_document;
+
+    using path = std::string;
+
     class output
     {
     public:
-        output(output_stream_base& stream, output_format_base& format) STANDARDESE_NOEXCEPT
-            : stream_(&stream),
-              format_(&format)
+        output(path prefix, output_format_base& format)
+        : prefix_(std::move(prefix)), format_(&format)
         {
         }
 
-        void render(const md_entity& entity)
-        {
-            format_->render(*stream_, entity);
-        }
-
-        output_stream_base& get_output() STANDARDESE_NOEXCEPT
-        {
-            return *stream_;
-        }
+        void render(const md_document& document);
 
         output_format_base& get_format() STANDARDESE_NOEXCEPT
         {
             return *format_;
         }
 
+        const path& get_prefix() const STANDARDESE_NOEXCEPT
+        {
+            return prefix_;
+        }
+
     private:
-        output_stream_base* stream_;
+        path                prefix_;
         output_format_base* format_;
     };
 } // namespace standardese

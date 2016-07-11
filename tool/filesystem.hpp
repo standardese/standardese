@@ -19,20 +19,24 @@ namespace standardese_tool
 
     namespace detail
     {
-        inline bool is_valid(const fs::path& path, const fs::path& root,
+        inline fs::path get_relative_path(const fs::path& path, const fs::path& root)
+        {
+#if BOOST_VERSION / 100 % 1000 < 60
+            auto relative = path.c_str() + root.native().size();
+            if (*relative == '/' || *relative == '\\')
+                ++relative;
+            return relative;
+#else
+            return fs::relative(path, root);
+#endif
+        }
+
+        inline bool is_valid(const fs::path& path, const fs::path& relative,
                              const blacklist& extensions, const blacklist& files,
                              const blacklist& dirs, bool blacklist_dotfiles)
         {
             if (blacklist_dotfiles && path.filename().generic_string()[0] == '.')
                 return false;
-
-#if BOOST_VERSION / 100 % 1000 < 60
-            auto relative = path.c_str() + root.native().size();
-            if (*relative == '/' || *relative == '\\')
-                ++relative;
-#else
-            auto relative = fs::relative(path, root);
-#endif
 
             if (fs::is_directory(path))
             {
@@ -77,16 +81,19 @@ namespace standardese_tool
             auto end = fs::recursive_directory_iterator();
             for (auto iter = fs::recursive_directory_iterator(path); iter != end; ++iter)
             {
-                auto& cur = iter->path();
+                auto& cur      = iter->path();
+                auto  relative = detail::get_relative_path(cur, path);
 
                 if (fs::is_directory(cur))
                 {
-                    if (!detail::is_valid(cur, path, extensions, files, dirs, blacklist_dotfiles))
+                    if (!detail::is_valid(cur, relative, extensions, files, dirs,
+                                          blacklist_dotfiles))
                         iter.no_push();
                 }
-                else if (detail::is_valid(cur, path, extensions, files, dirs, blacklist_dotfiles))
+                else if (detail::is_valid(cur, relative, extensions, files, dirs,
+                                          blacklist_dotfiles))
                 {
-                    f(cur);
+                    f(cur, relative);
                 }
             }
         }
@@ -94,7 +101,7 @@ namespace standardese_tool
             throw std::runtime_error("file '" + path.generic_string() + "' does not exist");
         else if (detail::is_valid(path, "", extensions, files, dirs, blacklist_dotfiles))
         {
-            f(path);
+            f(path, path);
         }
         else
             return false;

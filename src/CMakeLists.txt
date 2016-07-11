@@ -59,6 +59,7 @@ set(src
         md_blocks.cpp
         md_entity.cpp
         md_inlines.cpp
+        output.cpp
         output_format.cpp
         output_stream.cpp
         parser.cpp
