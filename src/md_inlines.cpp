@@ -173,6 +173,12 @@ const char* md_link::get_destination() const STANDARDESE_NOEXCEPT
     return cmark_node_get_url(get_node());
 }
 
+void md_link::set_destination(const char* dest)
+{
+    auto result = cmark_node_set_url(get_node(), dest);
+    assert(result);
+}
+
 md_entity_ptr md_link::do_clone(const md_entity* parent) const
 {
     assert(parent);

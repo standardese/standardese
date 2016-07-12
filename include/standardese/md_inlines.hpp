@@ -174,6 +174,8 @@ namespace standardese
 
         const char* get_destination() const STANDARDESE_NOEXCEPT;
 
+        void set_destination(const char* dest);
+
     protected:
         md_entity_ptr do_clone(const md_entity* parent) const override;
 
