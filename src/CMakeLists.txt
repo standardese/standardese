@@ -27,6 +27,7 @@ set(header
         ../include/standardese/doc_entity.hpp
         ../include/standardese/error.hpp
         ../include/standardese/generator.hpp
+        ../include/standardese/index.hpp
         ../include/standardese/md_blocks.hpp
         ../include/standardese/md_entity.hpp
         ../include/standardese/md_inlines.hpp

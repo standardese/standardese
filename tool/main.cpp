@@ -15,6 +15,7 @@
 
 #include <standardese/error.hpp>
 #include <standardese/generator.hpp>
+#include <standardese/index.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/output.hpp>
 
@@ -202,6 +203,7 @@ int main(int argc, char* argv[])
             log->debug("Using cmark version: {}", CMARK_VERSION_STRING);
 
             standardese_tool::thread_pool                 pool(map.at("jobs").as<unsigned>());
+            standardese::index                            index;
             std::vector<std::future<md_ptr<md_document>>> futures;
             futures.reserve(input.size());
 
@@ -222,7 +224,7 @@ int main(int argc, char* argv[])
                         output_name += relative.stem().generic_string();
 
                         auto tu = parser.parse(p.generic_string().c_str(), compile_config);
-                        result  = generate_doc_file(parser, tu.get_file(), output_name);
+                        result  = generate_doc_file(parser, index, tu.get_file(), output_name);
                     }
                     catch (libclang_error& ex)
                     {
