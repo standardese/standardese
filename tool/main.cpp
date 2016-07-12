@@ -263,7 +263,7 @@ int main(int argc, char* argv[])
                     prefix += '/'; // hope that every platform handles it
                 }
 
-                output out(prefix, *format);
+                output out(index, prefix, *format);
                 for (auto& document : documents)
                     out.render(*document);
             }

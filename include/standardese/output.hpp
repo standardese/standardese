@@ -111,14 +111,15 @@ namespace standardese
     };
 
     class md_document;
+    class index;
 
     using path = std::string;
 
     class output
     {
     public:
-        output(path prefix, output_format_base& format)
-        : prefix_(std::move(prefix)), format_(&format)
+        output(const index& i, path prefix, output_format_base& format)
+        : prefix_(std::move(prefix)), format_(&format), index_(&i)
         {
         }
 
@@ -137,6 +138,7 @@ namespace standardese
     private:
         path                prefix_;
         output_format_base* format_;
+        const index*        index_;
     };
 } // namespace standardese
 
