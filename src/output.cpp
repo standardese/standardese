@@ -39,13 +39,15 @@ namespace
         return text.get_string();
     }
 
-    std::string get_destination(const md_comment& comment, const char* extension)
+    std::string get_destination(const md_comment& comment, const char* extension,
+                                const char* output_extension)
     {
-        return comment.get_output_name() + '.' + extension + '#' + comment.get_output_id();
+        return comment.get_output_name() + '.' + (output_extension ? output_extension : extension)
+               + '#' + comment.get_output_id();
     }
 }
 
-void output::render(const md_document& doc)
+void output::render(const md_document& doc, const char* output_extension)
 {
     auto document = md_ptr<md_document>(static_cast<md_document*>(doc.clone().release()));
 
@@ -59,7 +61,8 @@ void output::render(const md_document& doc)
             continue;
 
         auto& comment = index_->lookup(str);
-        link->set_destination(get_destination(comment, format_->extension()).c_str());
+        link->set_destination(
+            get_destination(comment, format_->extension(), output_extension).c_str());
     }
 
     file_output output(prefix_ + document->get_output_name() + '.' + format_->extension());

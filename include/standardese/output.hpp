@@ -123,7 +123,7 @@ namespace standardese
         {
         }
 
-        void render(const md_document& document);
+        void render(const md_document& document, const char* output_extension = nullptr);
 
         output_format_base& get_format() STANDARDESE_NOEXCEPT
         {
