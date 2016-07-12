@@ -50,6 +50,7 @@ namespace standardese
             emphasis_t,
             strong_t,
             link_t,
+            anchor_t,
 
             _end_inline,
             count = _end_inline,
@@ -135,7 +136,8 @@ namespace standardese
     {
         return t == md_entity::thematic_break_t || t == md_entity::code_block_t
                || t == md_entity::text_t || t == md_entity::soft_break_t
-               || t == md_entity::line_break_t || t == md_entity::code_t;
+               || t == md_entity::line_break_t || t == md_entity::code_t
+               || t == md_entity::anchor_t;
     }
 
     inline bool is_container(md_entity::type t) STANDARDESE_NOEXCEPT

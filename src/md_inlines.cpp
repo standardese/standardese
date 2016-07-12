@@ -7,6 +7,8 @@
 #include <cassert>
 #include <cmark.h>
 
+#include <spdlog/details/format.h>
+
 using namespace standardese;
 
 md_ptr<md_text> md_text::parse(cmark_node* cur, const md_entity& parent)
@@ -188,4 +190,35 @@ md_entity_ptr md_link::do_clone(const md_entity* parent) const
         result->add_entity(child.clone(*result));
 
     return std::move(result);
+}
+
+md_ptr<md_anchor> md_anchor::make(const md_entity& parent, const char* id)
+{
+    auto node = cmark_node_new(CMARK_NODE_HTML_INLINE);
+    cmark_node_set_literal(node, fmt::format("<a id=\"{}\"></a>", id).c_str());
+    return detail::make_md_ptr<md_anchor>(node, parent);
+}
+
+std::string md_anchor::get_id() const
+{
+    static const auto offset_beginning = std::strlen("<a id=\"");
+    static const auto offset_end       = std::strlen("\"></a>");
+
+    auto str = cmark_node_get_literal(get_node());
+
+    std::string result(str + offset_beginning);
+    result.erase(result.begin() + (result.size() - offset_end), result.end());
+
+    return result;
+}
+
+void md_anchor::set_id(const char* id)
+{
+    cmark_node_set_literal(get_node(), fmt::format("<a id=\"{}\"></a>", id).c_str());
+}
+
+md_entity_ptr md_anchor::do_clone(const md_entity* parent) const
+{
+    assert(parent);
+    return make(*parent, get_id().c_str());
 }
