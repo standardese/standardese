@@ -114,6 +114,8 @@ int main(int argc, char* argv[])
             ("output.format",
              po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"commonmark"}, "{commonmark}"),
              "the output format used (commonmark, latex, man, html, xml)")
+            ("output.link_extension", po::value<std::string>(),
+             "the file extension of the links to entities, useful if you convert standardese output to a different format and change the extension")
             ("output.section_name_", po::value<std::string>(),
              "override output name for the section following the name_ (e.g. output.section_name_requires=Require)")
             ("output.tab_width", po::value<unsigned>()->default_value(4),
@@ -124,6 +126,7 @@ int main(int argc, char* argv[])
 
     standardese_tool::configuration                               config;
     std::vector<std::unique_ptr<standardese::output_format_base>> formats;
+    const char*                                                   link_extension = nullptr;
     try
     {
         config = standardese_tool::get_configuration(argc, argv, generic, configuration);
@@ -147,6 +150,10 @@ int main(int argc, char* argv[])
             else
                 throw std::invalid_argument("unknown format '" + format_str + "'");
         }
+
+        auto iter = config.map.find("output.link_extension");
+        if (iter != config.map.end())
+            link_extension = iter->second.as<std::string>().c_str();
     }
     catch (std::exception& ex)
     {
@@ -265,7 +272,7 @@ int main(int argc, char* argv[])
 
                 output out(index, prefix, *format);
                 for (auto& document : documents)
-                    out.render(*document);
+                    out.render(*document, link_extension);
             }
         }
         catch (std::exception& ex)
