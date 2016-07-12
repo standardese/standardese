@@ -66,7 +66,7 @@ namespace standardese_tool
     // returns false if path was a normal file that was marked as invalid, true otherwise
     template <typename Fun>
     bool handle_path(const fs::path& path, const blacklist& extensions, const blacklist& files,
-                     blacklist dirs, bool blacklist_dotfiles, Fun f)
+                     blacklist dirs, bool blacklist_dotfiles, bool force_blacklist, Fun f)
     {
         // remove trailing slash if any
         // otherwise Boost.Filesystem can't handle it
@@ -99,9 +99,11 @@ namespace standardese_tool
         }
         else if (!fs::exists(path))
             throw std::runtime_error("file '" + path.generic_string() + "' does not exist");
-        else if (detail::is_valid(path, "", extensions, files, dirs, blacklist_dotfiles))
+        else if (!force_blacklist
+                 || detail::is_valid(path, "", extensions, files, dirs, blacklist_dotfiles))
         {
-            f(path, path);
+            // return only the filename of the path as relative path
+            f(path, path.filename());
         }
         else
             return false;

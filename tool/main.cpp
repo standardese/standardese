@@ -232,16 +232,13 @@ int main(int argc, char* argv[])
                     return result;
                 };
 
-                auto handle = [&](const fs::path& p, const fs::path& relative) {
-                    futures.push_back(standardese_tool::add_job(pool, generate, p, relative));
-                };
-
-                auto res = standardese_tool::handle_path(path, blacklist_ext, blacklist_file,
-                                                         blacklist_dir, blacklist_dotfiles, handle);
-                if (!res && !force_blacklist)
-                    // path is a normal file that is on the blacklist
-                    // blacklist isn't enforced however
-                    handle(path, path);
+                standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,
+                                              blacklist_dotfiles, force_blacklist,
+                                              [&](const fs::path& p, const fs::path& relative) {
+                                                  futures.push_back(
+                                                      standardese_tool::add_job(pool, generate, p,
+                                                                                relative));
+                                              });
             }
 
             std::vector<md_ptr<md_document>> documents;
