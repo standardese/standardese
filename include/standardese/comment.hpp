@@ -41,13 +41,19 @@ namespace standardese
 
         std::string get_output_name() const;
 
+        const std::string& get_output_id() const STANDARDESE_NOEXCEPT
+        {
+            return id_;
+        }
+
     protected:
         md_entity_ptr do_clone(const md_entity* parent) const override;
 
     private:
-        md_comment();
+        md_comment(std::string id);
 
-        bool excluded_;
+        std::string id_;
+        bool        excluded_;
 
         friend detail::md_ptr_access;
     };

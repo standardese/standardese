@@ -233,29 +233,48 @@ namespace
         for (auto& e : direct_children)
             comment.add_entity(std::move(e));
     }
+
+    std::string get_id(const string& name)
+    {
+        std::string result;
+
+        for (auto ptr = name.c_str(); *ptr; ++ptr)
+        {
+            if (*ptr == ':')
+                result += '_';
+            else if (*ptr == '_' || std::isalnum(*ptr))
+                result += *ptr;
+            else
+                assert(false);
+        }
+
+        return result;
+    }
 }
 
 md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const string& comment)
 {
-    auto result = detail::make_md_ptr<md_comment>();
+    auto result = detail::make_md_ptr<md_comment>(get_id(name));
 
     auto root = parse_document(p, comment);
     parse_children(*result, p, root, name);
     return result;
 }
 
-md_comment::md_comment()
-: md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK)), excluded_(false)
-{
-}
-
 md_entity_ptr md_comment::do_clone(const md_entity*) const
 {
-    auto result       = detail::make_md_ptr<md_comment>();
+    auto result       = detail::make_md_ptr<md_comment>(id_);
     result->excluded_ = excluded_;
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
     return std::move(result);
+}
+
+md_comment::md_comment(std::string id)
+: md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK)),
+  id_(std::move(id)),
+  excluded_(false)
+{
 }
 
 namespace

@@ -248,6 +248,11 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
     auto& e = doc.get_cpp_entity();
 
     auto heading = make_heading(e, document, level);
+    if (doc.has_comment())
+    {
+        auto anchor = md_anchor::make(*heading, doc.get_comment().get_output_id().c_str());
+        heading->add_entity(std::move(anchor));
+    }
     document.add_entity(std::move(heading));
 
     write_synopsis(p, document, doc);

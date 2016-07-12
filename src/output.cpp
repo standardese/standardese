@@ -38,6 +38,11 @@ namespace
         auto& text = static_cast<const md_text&>(*link.begin());
         return text.get_string();
     }
+
+    std::string get_destination(const md_comment& comment, const char* extension)
+    {
+        return comment.get_output_name() + '.' + extension + '#' + comment.get_output_id();
+    }
 }
 
 void output::render(const md_document& doc)
@@ -53,8 +58,8 @@ void output::render(const md_document& doc)
         if (!str)
             continue;
 
-        auto& commment = index_->lookup(str);
-        link->set_destination((commment.get_output_name() + '.' + format_->extension()).c_str());
+        auto& comment = index_->lookup(str);
+        link->set_destination(get_destination(comment, format_->extension()).c_str());
     }
 
     file_output output(prefix_ + document->get_output_name() + '.' + format_->extension());
