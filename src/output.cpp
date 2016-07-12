@@ -4,6 +4,8 @@
 
 #include <standardese/output.hpp>
 
+#include <spdlog/logger.h>
+
 #include <standardese/comment.hpp>
 #include <standardese/generator.hpp>
 #include <standardese/index.hpp>
@@ -47,7 +49,8 @@ namespace
     }
 }
 
-void output::render(const md_document& doc, const char* output_extension)
+void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_document& doc,
+                    const char* output_extension)
 {
     auto document = md_ptr<md_document>(static_cast<md_document*>(doc.clone().release()));
 
@@ -60,9 +63,14 @@ void output::render(const md_document& doc, const char* output_extension)
         if (!str)
             continue;
 
-        auto& comment = index_->lookup(str);
+        auto comment = index_->try_lookup(str);
+        if (!comment)
+        {
+            logger->warn("unable to resolve link to an entity named '{}'", str);
+            continue;
+        }
         link->set_destination(
-            get_destination(comment, format_->extension(), output_extension).c_str());
+            get_destination(*comment, format_->extension(), output_extension).c_str());
     }
 
     file_output output(prefix_ + document->get_output_name() + '.' + format_->extension());

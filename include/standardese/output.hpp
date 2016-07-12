@@ -15,6 +15,11 @@
 #include <standardese/output_stream.hpp>
 #include <standardese/string.hpp>
 
+namespace spdlog
+{
+    class logger;
+} // namespace spdlog
+
 namespace standardese
 {
     namespace detail
@@ -123,7 +128,8 @@ namespace standardese
         {
         }
 
-        void render(const md_document& document, const char* output_extension = nullptr);
+        void render(const std::shared_ptr<spdlog::logger>& logger, const md_document& document,
+                    const char* output_extension = nullptr);
 
         output_format_base& get_format() STANDARDESE_NOEXCEPT
         {

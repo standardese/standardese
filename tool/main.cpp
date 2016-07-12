@@ -272,7 +272,7 @@ int main(int argc, char* argv[])
 
                 output out(index, prefix, *format);
                 for (auto& document : documents)
-                    out.render(*document, link_extension);
+                    out.render(log, *document, link_extension);
             }
         }
         catch (std::exception& ex)
