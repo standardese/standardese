@@ -18,9 +18,7 @@ namespace standardese
         void register_comment(std::string full_name, const md_comment& comment) const
         {
             std::lock_guard<std::mutex> lock(mutex_);
-            auto first = comments_.emplace(std::move(full_name), &comment).second;
-            if (!first)
-                throw std::logic_error("multiple comments for one entity");
+            comments_.emplace(std::move(full_name), &comment);
         }
 
         const md_comment* try_lookup(const std::string& full_name) const
