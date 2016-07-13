@@ -234,18 +234,35 @@ namespace
             comment.add_entity(std::move(e));
     }
 
+    bool is_valid_fragment(char c)
+    {
+        // http://stackoverflow.com/a/2849800
+        // So you can use !, $, &, ', (, ), *, +, ,, ;, =,
+        // something matching %[0-9a-fA-F]{2},
+        // something matching [a-zA-Z0-9],
+        // -, ., _, ~, :, @, /, and ?
+        static constexpr char valid[] = "!$&'()*+,;="
+                                        "0123456789"
+                                        "abcdefghijklmnopqrstuvwxyz"
+                                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                        "-._~:@/?";
+        return std::strchr(valid, c) != nullptr;
+    }
+
     std::string get_id(const string& name)
     {
         std::string result;
 
         for (auto ptr = name.c_str(); *ptr; ++ptr)
         {
-            if (*ptr == ':')
-                result += '_';
-            else if (*ptr == '_' || std::isalnum(*ptr))
+            if (is_valid_fragment(*ptr))
                 result += *ptr;
             else
-                assert(false);
+            {
+                // escape character
+                result += '%';
+                result += fmt::format("{0:x}", int(*ptr));
+            }
         }
 
         return result;
