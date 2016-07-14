@@ -184,6 +184,13 @@ Because it is sometimes long and ugly, you can override the unique name via the 
 > But keep in mind that it must be unique with regard to all overloads etc.
 > Usually numbering would be a good choice, so `bar() (1)` or similar.
 
+You can also link to external documentations via the tool option `--comment.external_doc prefix=url`.
+All `unique-name`s starting with `prefix` will be linked to the `url`.
+If the `url` contains two dollar signs `$$`, they will be replaced by the `unique-name`.
+By default the tool supports http://en.cppreference.com/w/ with a prefix of `std::` by default.
+
+> You can override to a different URL by specifying `--comment.external_doc std::=new-url`.
+
 Special commands are introduced by the *command character* (a backslash by default) at the beginning of a new (Markdown) paragraph.
 There are the following commands:
 
