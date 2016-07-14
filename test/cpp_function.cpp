@@ -70,6 +70,7 @@ decltype(auto) i();)";
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 2u);
+                REQUIRE(func.get_signature() == "(int,const char *)");
             }
             else if (func.get_name() == "b")
             {
@@ -80,6 +81,7 @@ decltype(auto) i();)";
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 1u);
+                REQUIRE(func.get_signature() == "(int,...)");
             }
             else if (func.get_name() == "c")
             {
@@ -90,6 +92,7 @@ decltype(auto) i();)";
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 1u);
+                REQUIRE(func.get_signature() == "(int)");
             }
             else if (func.get_name() == "d")
             {
@@ -100,6 +103,7 @@ decltype(auto) i();)";
                 REQUIRE(func.get_noexcept() == "true");
                 REQUIRE(func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
             }
             else if (func.get_name() == "e")
             {
@@ -110,6 +114,7 @@ decltype(auto) i();)";
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
             }
             else if (func.get_name() == "f")
             {
@@ -120,6 +125,7 @@ decltype(auto) i();)";
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 1u);
+                REQUIRE(func.get_signature() == "(int)");
             }
             else if (func.get_name() == "g")
             {
@@ -130,6 +136,7 @@ decltype(auto) i();)";
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
             }
             else if (func.get_name() == "h")
             {
@@ -140,6 +147,7 @@ decltype(auto) i();)";
                 REQUIRE(func.get_noexcept() == "noexcept(e())");
                 REQUIRE(func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
             }
             else if (func.get_name() == "i")
             {
@@ -150,6 +158,7 @@ decltype(auto) i();)";
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
             }
             else
                 REQUIRE(false);
@@ -210,6 +219,7 @@ struct derived : base
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
                     REQUIRE(func.get_definition() == cpp_function_definition_normal);
                     REQUIRE(no_parameters(func) == 0u);
+                    REQUIRE(func.get_signature() == "()");
                 }
                 else if (func.get_name() == "k")
                 {
@@ -221,6 +231,7 @@ struct derived : base
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
                     REQUIRE(func.get_definition() == cpp_function_definition_normal);
                     REQUIRE(no_parameters(func) == 0u);
+                    REQUIRE(func.get_signature() == "() const");
                 }
                 else if (func.get_name() == "l")
                 {
@@ -232,6 +243,7 @@ struct derived : base
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_rvalue);
                     REQUIRE(func.get_definition() == cpp_function_definition_deleted);
                     REQUIRE(no_parameters(func) == 0u);
+                    REQUIRE(func.get_signature() == "() volatile &&");
                 }
                 else if (func.get_name() == "m")
                 {
@@ -243,6 +255,7 @@ struct derived : base
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
                     REQUIRE(func.get_definition() == cpp_function_definition_normal);
                     REQUIRE(no_parameters(func) == 1u);
+                    REQUIRE(func.get_signature() == "(int)");
                 }
                 else
                     REQUIRE(false);
@@ -272,6 +285,7 @@ struct derived : base
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
                     REQUIRE(func.get_definition() == cpp_function_definition_normal);
                     REQUIRE(no_parameters(func) == 0u);
+                    REQUIRE(func.get_signature() == "() const");
                 }
                 else if (func.get_name() == "m")
                 {
@@ -283,6 +297,7 @@ struct derived : base
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
                     REQUIRE(func.get_definition() == cpp_function_definition_normal);
                     REQUIRE(no_parameters(func) == 1u);
+                    REQUIRE(func.get_signature() == "(int)");
                 }
                 else if (func.get_name() == "operator=")
                 {
@@ -294,6 +309,7 @@ struct derived : base
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
                     REQUIRE(func.get_definition() == cpp_function_definition_defaulted);
                     REQUIRE(no_parameters(func) == 1u);
+                    REQUIRE(func.get_signature() == "(const derived &)");
                 }
                 else
                     REQUIRE(false);
@@ -340,6 +356,7 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 REQUIRE(op.get_ref_qualifier() == cpp_ref_none);
                 REQUIRE(op.get_noexcept() == "false");
                 REQUIRE(!op.explicit_noexcept());
+                REQUIRE(op.get_signature() == "()");
             }
             else if (op.get_name() == "operator const char &")
             {
@@ -352,6 +369,7 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 REQUIRE(op.get_ref_qualifier() == cpp_ref_none);
                 REQUIRE(op.get_noexcept() == "false");
                 REQUIRE(!op.explicit_noexcept());
+                REQUIRE(op.get_signature() == "()");
             }
             else if (op.get_name() == "operator char")
             {
@@ -364,6 +382,7 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 REQUIRE(op.get_ref_qualifier() == cpp_ref_rvalue);
                 REQUIRE(op.get_noexcept() == "true");
                 REQUIRE(op.explicit_noexcept());
+                REQUIRE(op.get_signature() == "() const volatile &&");
             }
             else
                 REQUIRE(false);
@@ -411,6 +430,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(ctor.get_noexcept() == "false");
                 REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_deleted);
+                REQUIRE(ctor.get_signature() == "()");
             }
             else if (ctor.get_raw_comment() == "/// b")
             {
@@ -421,6 +441,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(ctor.get_noexcept() == "false");
                 REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
+                REQUIRE(ctor.get_signature() == "(int)");
             }
             else if (ctor.get_raw_comment() == "/// c")
             {
@@ -431,6 +452,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(ctor.get_noexcept() == "true");
                 REQUIRE(ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
+                REQUIRE(ctor.get_signature() == "(char)");
             }
             else if (ctor.get_raw_comment() == "/// d")
             {
@@ -441,6 +463,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(ctor.get_noexcept() == "false");
                 REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_defaulted);
+                REQUIRE(ctor.get_signature() == "(const foo &)");
             }
             else
                 REQUIRE(false);
@@ -496,6 +519,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(dtor.get_virtual() == cpp_virtual_none);
                 REQUIRE(!dtor.explicit_noexcept());
                 REQUIRE(dtor.get_definition() == cpp_function_definition_defaulted);
+                REQUIRE(dtor.get_signature() == "()");
                 ++count;
             }
         }
@@ -510,6 +534,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(!dtor.explicit_noexcept());
                 REQUIRE(dtor.get_virtual() == cpp_virtual_none);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_deleted);
+                REQUIRE(dtor.get_signature() == "()");
                 ++count;
             }
         }
@@ -524,6 +549,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(dtor.explicit_noexcept());
                 REQUIRE(dtor.get_virtual() == cpp_virtual_none);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
+                REQUIRE(dtor.get_signature() == "()");
                 ++count;
             }
         }
@@ -538,6 +564,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(dtor.explicit_noexcept());
                 REQUIRE(dtor.get_virtual() == cpp_virtual_pure);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
+                REQUIRE(dtor.get_signature() == "()");
                 ++count;
             }
         }
@@ -555,6 +582,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(!dtor.explicit_noexcept());
                 REQUIRE(dtor.get_virtual() == cpp_virtual_overriden);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
+                REQUIRE(dtor.get_signature() == "()");
                 ++count;
             }
         }

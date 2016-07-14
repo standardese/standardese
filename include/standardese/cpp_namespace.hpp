@@ -33,7 +33,7 @@ namespace standardese
 
     private:
         cpp_language_linkage(cpp_cursor cur, const cpp_entity& parent, string name)
-        : cpp_entity(get_entity_type(), cur, nullptr, parent), name_(std::move(name))
+        : cpp_entity(get_entity_type(), cur, parent), name_(std::move(name))
         {
         }
 
@@ -64,9 +64,8 @@ namespace standardese
         }
 
     private:
-        cpp_namespace(cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent,
-                      bool is_inline)
-        : cpp_entity(get_entity_type(), cur, std::move(comment), parent), inline_(is_inline)
+        cpp_namespace(cpp_cursor cur, const cpp_entity& parent, bool is_inline)
+        : cpp_entity(get_entity_type(), cur, parent), inline_(is_inline)
         {
         }
 
@@ -94,9 +93,8 @@ namespace standardese
         }
 
     private:
-        cpp_namespace_alias(cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent,
-                            cpp_namespace_ref target)
-        : cpp_entity(get_entity_type(), cur, std::move(comment), parent), target_(target)
+        cpp_namespace_alias(cpp_cursor cur, const cpp_entity& parent, cpp_namespace_ref target)
+        : cpp_entity(get_entity_type(), cur, parent), target_(target)
         {
         }
 
@@ -128,7 +126,7 @@ namespace standardese
 
     private:
         cpp_using_directive(cpp_cursor cur, const cpp_entity& parent, cpp_namespace_ref target)
-        : cpp_entity(get_entity_type(), cur, nullptr, parent), target_(target)
+        : cpp_entity(get_entity_type(), cur, parent), target_(target)
         {
         }
 
@@ -160,7 +158,7 @@ namespace standardese
 
     private:
         cpp_using_declaration(cpp_cursor cur, const cpp_entity& parent, cpp_entity_ref target)
-        : cpp_entity(get_entity_type(), cur, nullptr, parent), target_(target)
+        : cpp_entity(get_entity_type(), cur, parent), target_(target)
         {
         }
 

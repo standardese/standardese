@@ -28,7 +28,7 @@ namespace standardese
     protected:
         cpp_template_parameter(cpp_entity::type t, cpp_cursor cur, const cpp_entity& e,
                                bool is_variadic)
-        : cpp_entity(t, cur, nullptr, e), variadic_(is_variadic)
+        : cpp_entity(t, cur, e), variadic_(is_variadic)
         {
         }
 
@@ -183,6 +183,8 @@ namespace standardese
 
         cpp_name get_name() const override;
 
+        cpp_name get_signature() const;
+
         bool has_comment() const STANDARDESE_NOEXCEPT override;
 
         const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
@@ -193,6 +195,8 @@ namespace standardese
         }
 
     private:
+        cpp_name do_get_unique_name() const override;
+
         cpp_function_template(cpp_cursor cur, const cpp_entity& parent);
 
         cpp_ptr<cpp_function_base> func_;
@@ -217,6 +221,8 @@ namespace standardese
             return name_;
         }
 
+        cpp_name get_signature() const;
+
         bool has_comment() const STANDARDESE_NOEXCEPT override;
 
         const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
@@ -232,6 +238,8 @@ namespace standardese
         }
 
     private:
+        cpp_name do_get_unique_name() const override;
+
         cpp_function_template_specialization(cpp_cursor cur, const cpp_entity& parent);
 
         cpp_template_ref           primary_;
@@ -288,7 +296,7 @@ namespace standardese
 
     private:
         cpp_class_template(cpp_cursor cur, const cpp_entity& parent)
-        : cpp_entity(get_entity_type(), cur, nullptr, parent)
+        : cpp_entity(get_entity_type(), cur, parent)
         {
         }
 
@@ -335,7 +343,7 @@ namespace standardese
 
     private:
         cpp_class_template_full_specialization(cpp_cursor cur, const cpp_entity& parent)
-        : cpp_entity(get_entity_type(), cur, nullptr, parent), name_("")
+        : cpp_entity(get_entity_type(), cur, parent), name_("")
         {
         }
 
@@ -398,7 +406,7 @@ namespace standardese
 
     private:
         cpp_class_template_partial_specialization(cpp_cursor cur, const cpp_entity& parent)
-        : cpp_entity(get_entity_type(), cur, nullptr, parent), name_("")
+        : cpp_entity(get_entity_type(), cur, parent), name_("")
         {
         }
 
@@ -453,7 +461,7 @@ namespace standardese
 
     private:
         cpp_alias_template(cpp_cursor cur, const cpp_entity& parent)
-        : cpp_entity(get_entity_type(), cur, nullptr, parent)
+        : cpp_entity(get_entity_type(), cur, parent)
         {
         }
 

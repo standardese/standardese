@@ -110,6 +110,12 @@ namespace standardese
                                    std::string(scope.c_str()) + "::" + get_name().c_str();
         }
 
+        /// \returns A unique name describing one entity.
+        cpp_name get_unique_name() const
+        {
+            return do_get_unique_name();
+        }
+
         /// \returns The raw comment.
         string get_raw_comment() const;
 
@@ -150,11 +156,18 @@ namespace standardese
         }
 
     protected:
-        cpp_entity(type t, cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent);
+        cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent);
 
-        cpp_entity(type t, cpp_cursor cur, md_ptr<md_comment> comment);
+        cpp_entity(type t, cpp_cursor cur);
+
+        void set_comment(const translation_unit& tu);
 
     private:
+        virtual cpp_name do_get_unique_name() const
+        {
+            return get_full_name();
+        }
+
         cpp_cursor         cursor_;
         md_ptr<md_comment> comment_;
         cpp_entity_ptr     next_;

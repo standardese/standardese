@@ -378,7 +378,7 @@ namespace
     bool is_function_ptr(const std::string& return_type)
     {
         if (return_type.empty())
-		    return false;
+            return false;
         auto iter = return_type.rbegin();
         while (std::isspace(*iter))
             ++iter;
@@ -436,6 +436,38 @@ namespace
             return CXChildVisit_Continue;
         });
     }
+
+    std::string calc_signature(const cpp_entity_container<cpp_function_parameter>& parameters,
+                               bool                                                variadic)
+    {
+        std::string result = "(";
+        for (auto& param : parameters)
+        {
+            result += param.get_type().get_full_name().c_str();
+            result += ',';
+        }
+        if (result.back() == ',')
+            result.pop_back();
+
+        if (variadic)
+            result += ",...";
+
+        result += ")";
+        return result;
+    }
+
+    void member_signature(std::string& signature, const cpp_member_function_info& info)
+    {
+        if (is_const(info.cv_qualifier))
+            signature += " const";
+        if (is_volatile(info.cv_qualifier))
+            signature += " volatile";
+
+        if (info.ref_qualifier == cpp_ref_rvalue)
+            signature += " &&";
+        else if (info.ref_qualifier == cpp_ref_lvalue)
+            signature += " &";
+    }
 }
 
 cpp_ptr<cpp_function> cpp_function::parse(translation_unit& tu, cpp_cursor cur,
@@ -460,15 +492,21 @@ cpp_ptr<cpp_function> cpp_function::parse(translation_unit& tu, cpp_cursor cur,
         throw parse_error(source_location(cur), "ref qualifier on normal function");
 
     auto result =
-        detail::make_cpp_ptr<cpp_function>(cur, md_comment::parse(tu.get_parser(), name,
-                                                                  detail::parse_comment(cur)),
-                                           parent, std::move(return_type), std::move(finfo));
+        detail::make_cpp_ptr<cpp_function>(cur, parent, std::move(return_type), std::move(finfo));
     parse_parameters(tu, result.get(), cur);
+    result->signature_ = calc_signature(result->get_parameters(), result->is_variadic());
 
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
 
+    result->set_comment(tu);
     return result;
+}
+
+cpp_function::cpp_function(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref ret,
+                           cpp_function_info info)
+: cpp_function_base(get_entity_type(), cur, parent, std::move(info)), return_(std::move(ret))
+{
 }
 
 namespace
@@ -502,13 +540,11 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit& tu, cp
     std::string              template_args;
     auto return_type = parse_member_function(stream, cur, name, template_args, finfo, minfo);
 
-    auto result =
-        detail::make_cpp_ptr<cpp_member_function>(cur,
-                                                  md_comment::parse(tu.get_parser(), name,
-                                                                    detail::parse_comment(cur)),
-                                                  parent, std::move(return_type), std::move(finfo),
-                                                  std::move(minfo));
+    auto result = detail::make_cpp_ptr<cpp_member_function>(cur, parent, std::move(return_type),
+                                                            std::move(finfo), std::move(minfo));
     parse_parameters(tu, result.get(), cur);
+    result->signature_ = calc_signature(result->get_parameters(), result->is_variadic());
+    member_signature(result->signature_, result->info_);
 
     if ((result->get_virtual() == cpp_virtual_none || result->get_virtual() == cpp_virtual_new)
         && is_implicit_virtual(cur))
@@ -518,7 +554,16 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit& tu, cp
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
 
+    result->set_comment(tu);
     return result;
+}
+
+cpp_member_function::cpp_member_function(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref ret,
+                                         cpp_function_info finfo, cpp_member_function_info minfo)
+: cpp_function_base(get_entity_type(), cur, parent, std::move(finfo)),
+  return_(std::move(ret)),
+  info_(std::move(minfo))
+{
 }
 
 namespace
@@ -612,10 +657,8 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
     if (finfo.noexcept_expression.empty())
         finfo.noexcept_expression = "false";
 
-    auto comment = md_comment::parse(tu.get_parser(), type.get_name(), detail::parse_comment(cur));
-    auto result =
-        detail::make_cpp_ptr<cpp_conversion_op>(cur, std::move(comment), parent, std::move(type),
-                                                std::move(finfo), std::move(minfo));
+    auto result = detail::make_cpp_ptr<cpp_conversion_op>(cur, parent, std::move(type),
+                                                          std::move(finfo), std::move(minfo));
 
     if ((result->get_virtual() == cpp_virtual_none || result->get_virtual() == cpp_virtual_new)
         && is_implicit_virtual(cur))
@@ -625,12 +668,20 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
 
+    result->set_comment(tu);
     return result;
 }
 
 cpp_name cpp_conversion_op::get_name() const
 {
     return std::string("operator ") + target_type_.get_name().c_str();
+}
+
+cpp_name cpp_conversion_op::get_signature() const
+{
+    std::string result = "()";
+    member_signature(result, info_);
+    return result;
 }
 
 cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit& tu, cpp_cursor cur,
@@ -710,15 +761,14 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit& tu, cpp_cursor
     if (!info.explicit_noexcept)
         info.noexcept_expression = "false";
 
-    auto result =
-        detail::make_cpp_ptr<cpp_constructor>(cur, md_comment::parse(tu.get_parser(), name,
-                                                                     detail::parse_comment(cur)),
-                                              parent, std::move(info));
+    auto result = detail::make_cpp_ptr<cpp_constructor>(cur, parent, std::move(info));
     parse_parameters(tu, result.get(), cur);
+    result->signature_ = calc_signature(result->get_parameters(), result->is_variadic());
 
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
 
+    result->set_comment(tu);
     return result;
 }
 
@@ -727,6 +777,11 @@ cpp_name cpp_constructor::get_name() const
     std::string str = cpp_entity::get_name().c_str();
     detail::erase_template_args(str);
     return str;
+}
+
+cpp_constructor::cpp_constructor(cpp_cursor cur, const cpp_entity& parent, cpp_function_info info)
+: cpp_function_base(get_entity_type(), cur, parent, std::move(info))
+{
 }
 
 cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor cur,
@@ -796,14 +851,12 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor c
     if (!info.explicit_noexcept)
         info.noexcept_expression = "true";
 
-    auto result =
-        detail::make_cpp_ptr<cpp_destructor>(cur, md_comment::parse(tu.get_parser(), name,
-                                                                    detail::parse_comment(cur)),
-                                             parent, std::move(info), virtual_flag);
+    auto result = detail::make_cpp_ptr<cpp_destructor>(cur, parent, std::move(info), virtual_flag);
     if ((result->get_virtual() == cpp_virtual_none || result->get_virtual() == cpp_virtual_new)
         && is_implicit_virtual(cur))
         // check for implicit virtual
         result->virtual_ = cpp_virtual_overriden;
+    result->set_comment(tu);
     return result;
 }
 
