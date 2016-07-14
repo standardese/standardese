@@ -34,7 +34,9 @@ namespace
 
     const char* get_entity_name(const md_link& link)
     {
-        if (link.begin()->get_entity_type() != md_entity::text_t)
+        if (*link.get_title())
+            return link.get_title();
+        else if (link.begin()->get_entity_type() != md_entity::text_t)
             // must be a text
             return nullptr;
         auto& text = static_cast<const md_text&>(*link.begin());
