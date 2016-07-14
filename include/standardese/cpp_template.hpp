@@ -185,10 +185,6 @@ namespace standardese
 
         cpp_name get_signature() const;
 
-        bool has_comment() const STANDARDESE_NOEXCEPT override;
-
-        const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
-
         const cpp_function_base& get_function() const STANDARDESE_NOEXCEPT
         {
             return *func_;
@@ -222,10 +218,6 @@ namespace standardese
         }
 
         cpp_name get_signature() const;
-
-        bool has_comment() const STANDARDESE_NOEXCEPT override;
-
-        const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
 
         const cpp_function_base& get_function() const STANDARDESE_NOEXCEPT
         {
@@ -279,10 +271,6 @@ namespace standardese
 
         cpp_name get_name() const override;
 
-        bool has_comment() const STANDARDESE_NOEXCEPT override;
-
-        const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
-
         const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const
             STANDARDESE_NOEXCEPT
         {
@@ -326,10 +314,6 @@ namespace standardese
         {
             return name_;
         }
-
-        bool has_comment() const STANDARDESE_NOEXCEPT override;
-
-        const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
 
         const cpp_class& get_class() const STANDARDESE_NOEXCEPT
         {
@@ -383,10 +367,6 @@ namespace standardese
         {
             return name_;
         }
-
-        bool has_comment() const STANDARDESE_NOEXCEPT override;
-
-        const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
 
         const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const
             STANDARDESE_NOEXCEPT
@@ -443,10 +423,6 @@ namespace standardese
         }
 
         cpp_name get_name() const override;
-
-        bool has_comment() const STANDARDESE_NOEXCEPT override;
-
-        const md_comment& get_comment() const STANDARDESE_NOEXCEPT override;
 
         const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const
             STANDARDESE_NOEXCEPT

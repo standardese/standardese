@@ -18,8 +18,8 @@ namespace standardese
         void register_comment(const std::string& unique_name, const md_comment& comment) const
         {
             std::lock_guard<std::mutex> lock(mutex_);
-            auto                        id    = get_id(std::move(unique_name));
-            auto                        first = comments_.emplace(id, &comment).second;
+            auto                        id    = get_id(unique_name);
+            auto                        first = comments_.emplace(std::move(id), &comment).second;
             if (!first)
                 throw std::logic_error("multiple comments for one entity");
         }

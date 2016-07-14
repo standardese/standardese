@@ -290,6 +290,7 @@ cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit& tu
     assert(func);
     result->func_ = std::move(func);
 
+    result->set_comment(tu);
     return result;
 }
 
@@ -303,19 +304,9 @@ cpp_name cpp_function_template::get_signature() const
     return func_->get_signature();
 }
 
-bool cpp_function_template::has_comment() const STANDARDESE_NOEXCEPT
-{
-    return func_->has_comment();
-}
-
-const md_comment& cpp_function_template::get_comment() const STANDARDESE_NOEXCEPT
-{
-    return func_->get_comment();
-}
-
 cpp_name cpp_function_template::do_get_unique_name() const
 {
-    return func_->get_unique_name();
+    return std::string(get_full_name().c_str()) + get_signature().c_str();
 }
 
 cpp_function_template::cpp_function_template(cpp_cursor cur, const cpp_entity& parent)
@@ -336,6 +327,7 @@ cpp_ptr<cpp_function_template_specialization> cpp_function_template_specializati
     assert(primary_cur != cpp_cursor());
     result->primary_ = cpp_template_ref(primary_cur, result->func_->get_name());
 
+    result->set_comment(tu);
     return result;
 }
 
@@ -344,19 +336,9 @@ cpp_name cpp_function_template_specialization::get_signature() const
     return func_->get_signature();
 }
 
-bool cpp_function_template_specialization::has_comment() const STANDARDESE_NOEXCEPT
-{
-    return func_->has_comment();
-}
-
-const md_comment& cpp_function_template_specialization::get_comment() const STANDARDESE_NOEXCEPT
-{
-    return func_->get_comment();
-}
-
 cpp_name cpp_function_template_specialization::do_get_unique_name() const
 {
-    return std::string(name_.c_str()) + get_signature().c_str();
+    return std::string(get_full_name().c_str()) + get_signature().c_str();
 }
 
 cpp_function_template_specialization::cpp_function_template_specialization(cpp_cursor        cur,
@@ -378,22 +360,13 @@ cpp_ptr<cpp_class_template> cpp_class_template::parse(translation_unit& tu, cpp_
         return nullptr;
     result->class_ = std::move(ptr);
 
+    result->set_comment(tu);
     return result;
 }
 
 cpp_name cpp_class_template::get_name() const
 {
     return get_template_name(class_->get_name().c_str(), *this);
-}
-
-bool cpp_class_template::has_comment() const STANDARDESE_NOEXCEPT
-{
-    return class_->has_comment();
-}
-
-const md_comment& cpp_class_template::get_comment() const STANDARDESE_NOEXCEPT
-{
-    return class_->get_comment();
 }
 
 cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_specialization::parse(
@@ -414,17 +387,10 @@ cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_speciali
     assert(primary_cur != cpp_cursor());
     result->primary_ = cpp_template_ref(primary_cur, result->class_->get_name());
 
+    result->set_comment(tu);
     return result;
 }
 
-bool cpp_class_template_full_specialization::has_comment() const STANDARDESE_NOEXCEPT
-{
-    return class_->has_comment();
-}
-const md_comment& cpp_class_template_full_specialization::get_comment() const STANDARDESE_NOEXCEPT
-{
-    return class_->get_comment();
-}
 cpp_ptr<cpp_class_template_partial_specialization> cpp_class_template_partial_specialization::parse(
     translation_unit& tu, cpp_cursor cur, const cpp_entity& parent)
 {
@@ -442,18 +408,8 @@ cpp_ptr<cpp_class_template_partial_specialization> cpp_class_template_partial_sp
     assert(primary_cur != cpp_cursor());
     result->primary_ = cpp_template_ref(primary_cur, result->class_->get_name());
 
+    result->set_comment(tu);
     return result;
-}
-
-bool cpp_class_template_partial_specialization::has_comment() const STANDARDESE_NOEXCEPT
-{
-    return class_->has_comment();
-}
-
-const md_comment& cpp_class_template_partial_specialization::get_comment() const
-    STANDARDESE_NOEXCEPT
-{
-    return class_->get_comment();
 }
 
 const cpp_class* standardese::get_class(const cpp_entity& e) STANDARDESE_NOEXCEPT
@@ -492,6 +448,7 @@ cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit& tu, cpp_
     result->type_ = cpp_type_alias::parse(tu, type, parent);
     assert(result->type_);
 
+    result->set_comment(tu);
     return result;
 }
 
@@ -500,14 +457,4 @@ cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit& tu, cpp_
 cpp_name cpp_alias_template::get_name() const
 {
     return get_template_name(type_->get_name().c_str(), *this);
-}
-
-bool cpp_alias_template::has_comment() const STANDARDESE_NOEXCEPT
-{
-    return type_->has_comment();
-}
-
-const md_comment& cpp_alias_template::get_comment() const STANDARDESE_NOEXCEPT
-{
-    return type_->get_comment();
 }
