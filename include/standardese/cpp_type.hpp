@@ -16,8 +16,7 @@ namespace standardese
         CXType get_type() const STANDARDESE_NOEXCEPT;
 
     protected:
-        cpp_type(type t, cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent)
-        : cpp_entity(t, cur, std::move(comment), parent)
+        cpp_type(type t, cpp_cursor cur, const cpp_entity& parent) : cpp_entity(t, cur, parent)
         {
         }
     };
@@ -72,15 +71,16 @@ namespace standardese
         static cpp_ptr<cpp_type_alias> parse(translation_unit& tu, cpp_cursor cur,
                                              const cpp_entity& parent);
 
+        cpp_name get_scope() const override;
+
         const cpp_type_ref& get_target() const STANDARDESE_NOEXCEPT
         {
             return target_;
         }
 
     private:
-        cpp_type_alias(cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent,
-                       cpp_type_ref target)
-        : cpp_type(get_entity_type(), cur, std::move(comment), parent), target_(target)
+        cpp_type_alias(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref target)
+        : cpp_type(get_entity_type(), cur, parent), target_(target)
         {
         }
 

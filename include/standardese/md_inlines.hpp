@@ -167,12 +167,14 @@ namespace standardese
 
         static md_ptr<md_link> parse(cmark_node* cur, const md_entity& parent);
 
-        static md_ptr<standardese::md_link> make(const md_entity& parent, const char* destination,
-                                                 const char* title);
+        static md_ptr<md_link> make(const md_entity& parent, const char* destination,
+                                    const char* title);
 
         const char* get_title() const STANDARDESE_NOEXCEPT;
 
         const char* get_destination() const STANDARDESE_NOEXCEPT;
+
+        void set_destination(const char* dest);
 
     protected:
         md_entity_ptr do_clone(const md_entity* parent) const override;
@@ -180,6 +182,32 @@ namespace standardese
     private:
         md_link(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
             : md_container(get_entity_type(), cur, parent)
+        {
+        }
+
+        friend detail::md_ptr_access;
+    };
+
+    class md_anchor final : public md_leave
+    {
+    public:
+        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return md_entity::anchor_t;
+        }
+
+        static md_ptr<md_anchor> make(const md_entity& parent, const char* id);
+
+        std::string get_id() const;
+
+        void set_id(const char* id);
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
+    private:
+        md_anchor(cmark_node* cur, const md_entity& parent) STANDARDESE_NOEXCEPT
+            : md_leave(get_entity_type(), cur, parent)
         {
         }
 

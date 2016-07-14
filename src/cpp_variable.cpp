@@ -68,11 +68,10 @@ cpp_ptr<cpp_variable> cpp_variable::parse(translation_unit& tu, cpp_cursor cur,
     if (is_mutable)
         throw parse_error(source_location(cur), "non-member variable is mutable");
 
-    return detail::make_cpp_ptr<cpp_variable>(cur, md_comment::parse(tu.get_parser(),
-                                                                     detail::parse_name(cur),
-                                                                     detail::parse_comment(cur)),
-                                              parent, std::move(type), std::move(initializer),
-                                              is_thread_local);
+    auto result = detail::make_cpp_ptr<cpp_variable>(cur, parent, std::move(type),
+                                                     std::move(initializer), is_thread_local);
+    result->set_comment(tu);
+    return result;
 }
 
 cpp_ptr<cpp_member_variable_base> cpp_member_variable_base::parse(translation_unit& tu,
@@ -88,20 +87,17 @@ cpp_ptr<cpp_member_variable_base> cpp_member_variable_base::parse(translation_un
     if (is_thread_local)
         throw parse_error(source_location(cur), "member variable is thread local");
 
-    auto comment =
-        md_comment::parse(tu.get_parser(), detail::parse_name(cur), detail::parse_comment(cur));
     cpp_ptr<cpp_member_variable_base> result;
     if (clang_Cursor_isBitField(cur))
     {
         auto no_bits = clang_getFieldDeclBitWidth(cur);
-        result =
-            detail::make_cpp_ptr<cpp_bitfield>(cur, std::move(comment), parent, std::move(type),
-                                               std::move(initializer), no_bits, is_mutable);
+        result       = detail::make_cpp_ptr<cpp_bitfield>(cur, parent, std::move(type),
+                                                    std::move(initializer), no_bits, is_mutable);
     }
     else
-        result = detail::make_cpp_ptr<cpp_member_variable>(cur, std::move(comment), parent,
-                                                           std::move(type), std::move(initializer),
-                                                           is_mutable);
+        result = detail::make_cpp_ptr<cpp_member_variable>(cur, parent, std::move(type),
+                                                           std::move(initializer), is_mutable);
 
+    result->set_comment(tu);
     return result;
 }

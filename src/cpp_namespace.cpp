@@ -47,10 +47,9 @@ cpp_ptr<cpp_namespace> cpp_namespace::parse(translation_unit& tu, cpp_cursor cur
     assert(clang_getCursorKind(cur) == CXCursor_Namespace);
 
     auto is_inline = is_inline_namespace(tu, cur);
-    return detail::make_cpp_ptr<cpp_namespace>(cur, md_comment::parse(tu.get_parser(),
-                                                                      detail::parse_name(cur),
-                                                                      detail::parse_comment(cur)),
-                                               parent, is_inline);
+    auto result    = detail::make_cpp_ptr<cpp_namespace>(cur, parent, is_inline);
+    result->set_comment(tu);
+    return result;
 }
 
 namespace
@@ -95,11 +94,11 @@ cpp_ptr<cpp_namespace_alias> cpp_namespace_alias::parse(translation_unit& tu, cp
     auto target        = parse_target(stream);
     auto target_cursor = parse_target_cursor(cur);
 
-    return detail::make_cpp_ptr<cpp_namespace_alias>(cur,
-                                                     md_comment::parse(tu.get_parser(), name,
-                                                                       detail::parse_comment(cur)),
-                                                     parent,
-                                                     cpp_namespace_ref(target_cursor, target));
+    auto result =
+        detail::make_cpp_ptr<cpp_namespace_alias>(cur, parent,
+                                                  cpp_namespace_ref(target_cursor, target));
+    result->set_comment(tu);
+    return result;
 }
 
 cpp_ptr<cpp_using_directive> cpp_using_directive::parse(translation_unit& tu, cpp_cursor cur,

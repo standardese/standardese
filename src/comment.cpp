@@ -9,6 +9,7 @@
 
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/error.hpp>
+#include <standardese/generator.hpp>
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
@@ -134,7 +135,7 @@ namespace
         return command;
     }
 
-    void remove_command_string(md_paragraph& paragraph, const std::string& command)
+    md_text& remove_command_string(md_paragraph& paragraph, const std::string& command)
     {
         // remove command + command character + whitespace
         auto& text    = static_cast<md_text&>(*paragraph.begin());
@@ -144,6 +145,8 @@ namespace
 
         // need a copy, cmark can't handle it otherwise, https://github.com/jgm/cmark/issues/139
         text.set_string(std::string(new_str).c_str());
+
+        return text;
     }
 
     void parse_command(const parser& p, md_comment& comment, md_paragraph& paragraph, bool& first)
@@ -157,13 +160,18 @@ namespace
         auto command = read_command(p, paragraph);
         if (command.empty())
             return;
-        remove_command_string(paragraph, command);
+        auto& text = remove_command_string(paragraph, command);
 
         auto section = p.get_comment_config().try_get_section(command);
         if (section != section_type::invalid)
             paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
         else if (command == p.get_comment_config().exclude_command())
             comment.set_excluded(true);
+        else if (command == p.get_comment_config().unique_name_command())
+        {
+            comment.set_unique_name(text.get_string());
+            text.set_string(""); // might need to actually delete the text node at some point
+        }
         else
             throw comment_parse_error("Unknown command '" + command + "'",
                                       cmark_node_get_start_line(paragraph.get_node()),
@@ -236,23 +244,47 @@ namespace
 
 md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const string& comment)
 {
-    auto result = detail::make_md_ptr<md_comment>();
+    auto result = detail::make_md_ptr<md_comment>(name.c_str());
 
     auto root = parse_document(p, comment);
     parse_children(*result, p, root, name);
-    return result;
-}
+    cmark_node_free(root);
 
-md_comment::md_comment()
-: md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK)), excluded_(false)
-{
+    return result;
 }
 
 md_entity_ptr md_comment::do_clone(const md_entity*) const
 {
-    auto result       = detail::make_md_ptr<md_comment>();
+    auto result       = detail::make_md_ptr<md_comment>(id_);
     result->excluded_ = excluded_;
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
     return std::move(result);
+}
+
+md_comment::md_comment(std::string id)
+: md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK)),
+  id_(std::move(id)),
+  excluded_(false)
+{
+}
+
+namespace
+{
+    const md_document& get_document(const md_entity* cur) STANDARDESE_NOEXCEPT
+    {
+        while (cur->get_entity_type() != md_entity::document_t)
+        {
+            assert(cur->has_parent());
+            cur = &cur->get_parent();
+        }
+
+        return static_cast<const md_document&>(*cur);
+    }
+}
+
+std::string md_comment::get_output_name() const
+{
+    auto& document = get_document(this);
+    return document.get_output_name();
 }

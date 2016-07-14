@@ -12,6 +12,7 @@
 #include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_template.hpp>
+#include <standardese/index.hpp>
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
@@ -61,16 +62,19 @@ namespace
         return false;
     }
 
-    void dispatch(const parser& p, md_document& output, unsigned level, const cpp_entity& e);
+    using standardese::index; // to force standardese::index instead of ::index
+
+    void dispatch(const parser& p, const index& i, md_document& output, unsigned level,
+                  const cpp_entity& e);
 
     template <class Entity, class Container>
-    void handle_container(const parser& p, md_document& out, unsigned level, const doc_entity& doc,
-                          const Container& container)
+    void handle_container(const parser& p, const index& i, md_document& out, unsigned level,
+                          const doc_entity& doc, const Container& container)
     {
         if (is_blacklisted(p, doc.get_cpp_entity()))
             return;
 
-        generate_doc_entity(p, out, level, doc);
+        generate_doc_entity(p, i, out, level, doc);
 
         auto  cur_access = get_default_access(static_cast<const Entity&>(doc.get_cpp_entity()));
         auto& blacklist  = p.get_output_config().get_blacklist();
@@ -82,13 +86,14 @@ namespace
                         .get_access();
             else if (blacklist.is_set(entity_blacklist::extract_private)
                      || cur_access != cpp_private || detail::is_virtual(child))
-                dispatch(p, out, level + 1, child);
+                dispatch(p, i, out, level + 1, child);
         }
 
         out.add_entity(md_thematic_break::make(doc.get_comment()));
     }
 
-    void dispatch(const parser& p, md_document& output, unsigned level, const cpp_entity& e)
+    void dispatch(const parser& p, const index& i, md_document& output, unsigned level,
+                  const cpp_entity& e)
     {
         if (is_blacklisted(p, e))
             return;
@@ -97,12 +102,12 @@ namespace
         {
         case cpp_entity::namespace_t:
             for (auto& child : static_cast<const cpp_namespace&>(e))
-                dispatch(p, output, level, child);
+                dispatch(p, i, output, level, child);
             break;
 
 #define STANDARDESE_DETAIL_HANDLE(name, ...)                                                       \
     case cpp_entity::name##_t:                                                                     \
-        handle_container<cpp_##name>(p, output, level, e,                                          \
+        handle_container<cpp_##name>(p, i, output, level, e,                                       \
                                      static_cast<const cpp_##name&>(e) __VA_ARGS__);               \
         break;
 
@@ -119,22 +124,22 @@ namespace
 #undef STANDARDESE_DETAIL_NOTHING
 
         default:
-            generate_doc_entity(p, output, level, e);
+            generate_doc_entity(p, i, output, level, e);
             break;
         }
     }
 }
 
-md_ptr<md_document> md_document::make()
+md_ptr<standardese::md_document> md_document::make(std::string name)
 {
-    return detail::make_md_ptr<md_document>(cmark_node_new(CMARK_NODE_DOCUMENT));
+    return detail::make_md_ptr<md_document>(cmark_node_new(CMARK_NODE_DOCUMENT), std::move(name));
 }
 
 md_entity_ptr md_document::do_clone(const md_entity* parent) const
 {
     assert(!parent);
 
-    auto result = make();
+    auto result = make(name_);
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
     return std::move(result);
@@ -237,28 +242,39 @@ namespace
     }
 }
 
-void standardese::generate_doc_entity(const parser& p, md_document& document, unsigned level,
-                                      const doc_entity& doc)
+void standardese::generate_doc_entity(const parser& p, const index& i, md_document& document,
+                                      unsigned level, const doc_entity& doc)
 {
     auto& e = doc.get_cpp_entity();
 
     auto heading = make_heading(e, document, level);
+    if (doc.has_comment())
+    {
+        auto anchor = md_anchor::make(*heading, doc.get_comment().get_unique_name().c_str());
+        heading->add_entity(std::move(anchor));
+    }
     document.add_entity(std::move(heading));
 
     write_synopsis(p, document, doc);
 
     if (doc.has_comment())
-        document.add_entity(doc.get_comment().clone());
+    {
+        auto comment =
+            md_ptr<md_comment>(static_cast<md_comment*>(doc.get_comment().clone().release()));
+        i.register_comment(*comment);
+        document.add_entity(std::move(comment));
+    }
 }
 
-md_ptr<md_document> standardese::generate_doc_file(const parser& p, const cpp_file& f)
+md_ptr<md_document> standardese::generate_doc_file(const parser& p, const index& i,
+                                                   const cpp_file& f, std::string name)
 {
-    auto doc = md_document::make();
+    auto doc = md_document::make(std::move(name));
 
-    generate_doc_entity(p, *doc, 1, f);
+    generate_doc_entity(p, i, *doc, 1, f);
 
     for (auto& e : f)
-        dispatch(p, *doc, 2, e);
+        dispatch(p, i, *doc, 2, e);
 
     return doc;
 }

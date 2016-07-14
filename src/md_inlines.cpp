@@ -7,6 +7,8 @@
 #include <cassert>
 #include <cmark.h>
 
+#include <spdlog/details/format.h>
+
 using namespace standardese;
 
 md_ptr<md_text> md_text::parse(cmark_node* cur, const md_entity& parent)
@@ -173,6 +175,12 @@ const char* md_link::get_destination() const STANDARDESE_NOEXCEPT
     return cmark_node_get_url(get_node());
 }
 
+void md_link::set_destination(const char* dest)
+{
+    auto result = cmark_node_set_url(get_node(), dest);
+    assert(result);
+}
+
 md_entity_ptr md_link::do_clone(const md_entity* parent) const
 {
     assert(parent);
@@ -182,4 +190,72 @@ md_entity_ptr md_link::do_clone(const md_entity* parent) const
         result->add_entity(child.clone(*result));
 
     return std::move(result);
+}
+
+namespace
+{
+    bool is_valid_fragment(char c)
+    {
+        // http://stackoverflow.com/a/2849800
+        // So you can use !, $, &, ', (, ), *, +, ,, ;, =,
+        // something matching %[0-9a-fA-F]{2},
+        // something matching [a-zA-Z0-9],
+        // -, ., _, ~, :, @, /, and ?
+        static constexpr char valid[] = "!$&'()*+,;="
+                                        "0123456789"
+                                        "abcdefghijklmnopqrstuvwxyz"
+                                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                        "-._~:@/?";
+        return std::strchr(valid, c) != nullptr;
+    }
+
+    std::string make_id(const char* id)
+    {
+        std::string result;
+
+        for (auto ptr = id; *ptr; ++ptr)
+        {
+            if (is_valid_fragment(*ptr))
+                result += *ptr;
+            else
+            {
+                // escape character
+                result += '%';
+                result += fmt::format("{0:x}", int(*ptr));
+            }
+        }
+
+        return fmt::format("<a id=\"{}\"></a>", result);
+    }
+}
+
+md_ptr<md_anchor> md_anchor::make(const md_entity& parent, const char* id)
+{
+    auto node = cmark_node_new(CMARK_NODE_HTML_INLINE);
+    cmark_node_set_literal(node, make_id(id).c_str());
+    return detail::make_md_ptr<md_anchor>(node, parent);
+}
+
+std::string md_anchor::get_id() const
+{
+    static const auto offset_beginning = std::strlen("<a id=\"");
+    static const auto offset_end       = std::strlen("\"></a>");
+
+    auto str = cmark_node_get_literal(get_node());
+
+    std::string result(str + offset_beginning);
+    result.erase(result.begin() + (result.size() - offset_end), result.end());
+
+    return result;
+}
+
+void md_anchor::set_id(const char* id)
+{
+    cmark_node_set_literal(get_node(), make_id(id).c_str());
+}
+
+md_entity_ptr md_anchor::do_clone(const md_entity* parent) const
+{
+    assert(parent);
+    return make(*parent, get_id().c_str());
 }

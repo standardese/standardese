@@ -44,9 +44,7 @@ namespace standardese
     private:
         cpp_inclusion_directive(cpp_cursor cur, const cpp_entity& parent, std::string file_name,
                                 kind k)
-        : cpp_entity(get_entity_type(), cur, nullptr, parent),
-          file_name_(std::move(file_name)),
-          kind_(k)
+        : cpp_entity(get_entity_type(), cur, parent), file_name_(std::move(file_name)), kind_(k)
         {
         }
 
@@ -86,7 +84,7 @@ namespace standardese
     private:
         cpp_macro_definition(cpp_cursor cur, const cpp_entity& parent, std::string args,
                              std::string replacement)
-        : cpp_entity(get_entity_type(), cur, nullptr, parent),
+        : cpp_entity(get_entity_type(), cur, parent),
           args_(std::move(args)),
           replacement_(std::move(replacement))
         {

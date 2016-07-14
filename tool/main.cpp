@@ -15,6 +15,7 @@
 
 #include <standardese/error.hpp>
 #include <standardese/generator.hpp>
+#include <standardese/index.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/output.hpp>
 
@@ -113,6 +114,8 @@ int main(int argc, char* argv[])
             ("output.format",
              po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"commonmark"}, "{commonmark}"),
              "the output format used (commonmark, latex, man, html, xml)")
+            ("output.link_extension", po::value<std::string>(),
+             "the file extension of the links to entities, useful if you convert standardese output to a different format and change the extension")
             ("output.section_name_", po::value<std::string>(),
              "override output name for the section following the name_ (e.g. output.section_name_requires=Require)")
             ("output.tab_width", po::value<unsigned>()->default_value(4),
@@ -123,6 +126,7 @@ int main(int argc, char* argv[])
 
     standardese_tool::configuration                               config;
     std::vector<std::unique_ptr<standardese::output_format_base>> formats;
+    const char*                                                   link_extension = nullptr;
     try
     {
         config = standardese_tool::get_configuration(argc, argv, generic, configuration);
@@ -146,6 +150,10 @@ int main(int argc, char* argv[])
             else
                 throw std::invalid_argument("unknown format '" + format_str + "'");
         }
+
+        auto iter = config.map.find("output.link_extension");
+        if (iter != config.map.end())
+            link_extension = iter->second.as<std::string>().c_str();
     }
     catch (std::exception& ex)
     {
@@ -201,58 +209,71 @@ int main(int argc, char* argv[])
             log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
             log->debug("Using cmark version: {}", CMARK_VERSION_STRING);
 
-            standardese_tool::thread_pool  pool(map.at("jobs").as<unsigned>());
-            std::vector<std::future<void>> futures;
+            standardese::index                            index;
+            standardese_tool::thread_pool                 pool(map.at("jobs").as<unsigned>());
+            std::vector<std::future<md_ptr<md_document>>> futures;
             futures.reserve(input.size());
-
-            if (formats.size() > 1u)
-            {
-                for (auto& format : formats)
-                    fs::create_directories(format->extension());
-            }
 
             assert(!input.empty());
             for (auto& path : input)
             {
-                auto generate = [&](const fs::path& p) {
-                    log->info() << "Generating documentation for " << p << "...";
+                auto generate = [&](const fs::path& p, const fs::path& relative) {
+                    log->info("Generating documentation for {}...", p);
 
+                    md_ptr<md_document> result;
                     try
                     {
+                        std::string output_name;
+                        // convert "detail/some_file.hpp" to "detail__some_file"
+                        for (auto iter = relative.begin(); iter != std::prev(relative.end());
+                             ++iter)
+                            output_name += iter->generic_string() + "__";
+                        output_name += relative.stem().generic_string();
+
                         auto tu = parser.parse(p.generic_string().c_str(), compile_config);
-
-                        auto doc = generate_doc_file(parser, tu.get_file());
-                        for (auto& format : formats)
-                        {
-                            fs::path folder = formats.size() > 1u ? format->extension() : "";
-                            fs::path file_name =
-                                (p.stem().generic_string() + '.' + format->extension()).c_str();
-
-                            file_output file((folder / file_name).string());
-                            output      out(file, *format);
-                            out.render(*doc);
-                        }
+                        result  = generate_doc_file(parser, index, tu.get_file(), output_name);
                     }
                     catch (libclang_error& ex)
                     {
                         log->error("libclang error on {}", ex.what());
                     }
+
+                    return result;
                 };
 
-                auto handle = [&](const fs::path& p) {
-                    futures.push_back(standardese_tool::add_job(pool, generate, p));
-                };
-
-                auto res = standardese_tool::handle_path(path, blacklist_ext, blacklist_file,
-                                                         blacklist_dir, blacklist_dotfiles, handle);
-                if (!res && !force_blacklist)
-                    // path is a normal file that is on the blacklist
-                    // blacklist isn't enforced however
-                    handle(path);
+                standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,
+                                              blacklist_dotfiles, force_blacklist,
+                                              [&](const fs::path& p, const fs::path& relative) {
+                                                  futures.push_back(
+                                                      standardese_tool::add_job(pool, generate, p,
+                                                                                relative));
+                                              });
             }
 
+            std::vector<md_ptr<md_document>> documents;
             for (auto& f : futures)
-                f.get();
+            {
+                auto doc = f.get();
+                if (doc)
+                    documents.push_back(std::move(doc));
+            }
+
+            for (auto& format : formats)
+            {
+                log->info("Writing files for output format {}...", format->extension());
+
+                path prefix;
+                if (formats.size() > 1u)
+                {
+                    fs::create_directories(format->extension());
+                    prefix = format->extension();
+                    prefix += '/'; // hope that every platform handles it
+                }
+
+                output out(index, prefix, *format);
+                for (auto& document : documents)
+                    out.render(log, *document, link_extension);
+            }
         }
         catch (std::exception& ex)
         {

@@ -9,11 +9,16 @@
 #include <string>
 #include <ostream>
 
+#include <standardese/md_blocks.hpp>
 #include <standardese/noexcept.hpp>
 #include <standardese/output_format.hpp>
 #include <standardese/output_stream.hpp>
 #include <standardese/string.hpp>
-#include "md_blocks.hpp"
+
+namespace spdlog
+{
+    class logger;
+} // namespace spdlog
 
 namespace standardese
 {
@@ -110,33 +115,36 @@ namespace standardese
         const md_entity* parent_;
     };
 
+    class md_document;
+    class index;
+
+    using path = std::string;
+
     class output
     {
     public:
-        output(output_stream_base& stream, output_format_base& format) STANDARDESE_NOEXCEPT
-            : stream_(&stream),
-              format_(&format)
+        output(const index& i, path prefix, output_format_base& format)
+        : prefix_(std::move(prefix)), format_(&format), index_(&i)
         {
         }
 
-        void render(const md_entity& entity)
-        {
-            format_->render(*stream_, entity);
-        }
-
-        output_stream_base& get_output() STANDARDESE_NOEXCEPT
-        {
-            return *stream_;
-        }
+        void render(const std::shared_ptr<spdlog::logger>& logger, const md_document& document,
+                    const char* output_extension = nullptr);
 
         output_format_base& get_format() STANDARDESE_NOEXCEPT
         {
             return *format_;
         }
 
+        const path& get_prefix() const STANDARDESE_NOEXCEPT
+        {
+            return prefix_;
+        }
+
     private:
-        output_stream_base* stream_;
+        path                prefix_;
         output_format_base* format_;
+        const index*        index_;
     };
 } // namespace standardese
 

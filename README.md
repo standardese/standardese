@@ -172,8 +172,26 @@ You can use arbitrary\* Markdown\* in the documentation comments and it will be 
 > The Markdown flavor used is [CommonMark](https://commonmark.org).
 > standardese does not support inline HTML (for obvious reasons) or images.
 
+To link to an entity, use the syntax `[link-text](<> "unique-name")`, i.e. a CommonMark link with empty URL and a title of `unique-name`. If you don't want a special `link-text`, this can be shortened to `[unique-name]()`, i.e. a CommonMark link with empty URL and the name of an entity as text.
+In either case `standardese` will insert the correct URL by searching for the entity with the given `unique-name`.
+The `unique-name` of an entity is the name with all scopes, i.e. `foo::bar::baz`.
+For templates you need to append all parameters, i.e. `foo<A, B, C>`.
+For functions you need to append the signature (parameter types and cv and ref qualifier), i.e. `func()`, `bar(int,char)` or `type::foo() const &&`.
+The `unique-name` doesn't care about whitespace, so `bar(const char*)`, `bar(const char *)` and `bar (constchar*)` are all the same.
+Because it is sometimes long and ugly, you can override the unique name via the `unique_name` command (see below).
+
+> For example you can override `bar(long, list, of, parameters)` to `bar()`.
+> But keep in mind that it must be unique with regard to all overloads etc.
+> Usually numbering would be a good choice, so `bar() (1)` or similar.
+
 Special commands are introduced by the *command character* (a backslash by default) at the beginning of a new (Markdown) paragraph.
-It currently only supports *sections*.
+There are the following commands:
+
+* `exclude` - Manually excludes an entity from the documentation.
+
+* `unique_name` (followed by an argument) - Overrides the unique name of an entity (for linking)
+
+* and a couple of *sections*.
 
 A section is the basic way of standardese documentation.
 It supports all the sections the C++ standard uses, as explained in the example.
@@ -198,5 +216,7 @@ Thanks a lot to:
 * Marek @mkurdej Kurdej, for (better) MSVC support
 
 * Victor @vitaut Zverovich, for bugfixes
+
+* John @johnmcfarlane McFarlane, for issue reporting
 
 And everyone else who shares and uses this project!

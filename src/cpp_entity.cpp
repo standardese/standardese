@@ -15,6 +15,7 @@
 #include <standardese/cpp_type.hpp>
 #include <standardese/cpp_variable.hpp>
 #include <standardese/error.hpp>
+#include <standardese/translation_unit.hpp>
 
 #include <spdlog/details/format.h>
 
@@ -114,8 +115,6 @@ cpp_name cpp_entity::get_scope() const
 {
     if (!parent_ || parent_->get_entity_type() == file_t)
         return "";
-    else if (is_template(parent_->get_entity_type()))
-        return parent_->get_scope();
     return parent_->get_full_name();
 }
 
@@ -124,12 +123,18 @@ string cpp_entity::get_raw_comment() const
     return detail::parse_comment(cursor_);
 }
 
-cpp_entity::cpp_entity(type t, cpp_cursor cur, md_ptr<md_comment> comment, const cpp_entity& parent)
-: cursor_(cur), comment_(std::move(comment)), next_(nullptr), parent_(&parent), t_(t)
+cpp_entity::cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent)
+: cursor_(cur), next_(nullptr), parent_(&parent), t_(t)
 {
 }
 
-cpp_entity::cpp_entity(type t, cpp_cursor cur, md_ptr<md_comment> comment)
-: cursor_(cur), comment_(std::move(comment)), next_(nullptr), parent_(nullptr), t_(t)
+cpp_entity::cpp_entity(type t, cpp_cursor cur)
+: cursor_(cur), next_(nullptr), parent_(nullptr), t_(t)
 {
+}
+
+void cpp_entity::set_comment(const translation_unit& tu)
+{
+    comment_ =
+        md_comment::parse(tu.get_parser(), get_unique_name(), detail::parse_comment(get_cursor()));
 }
