@@ -194,38 +194,9 @@ md_entity_ptr md_link::do_clone(const md_entity* parent) const
 
 namespace
 {
-    bool is_valid_fragment(char c)
-    {
-        // http://stackoverflow.com/a/2849800
-        // So you can use !, $, &, ', (, ), *, +, ,, ;, =,
-        // something matching %[0-9a-fA-F]{2},
-        // something matching [a-zA-Z0-9],
-        // -, ., _, ~, :, @, /, and ?
-        static constexpr char valid[] = "!$&'()*+,;="
-                                        "0123456789"
-                                        "abcdefghijklmnopqrstuvwxyz"
-                                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                        "-._~:@/?";
-        return std::strchr(valid, c) != nullptr;
-    }
-
     std::string make_id(const char* id)
     {
-        std::string result;
-
-        for (auto ptr = id; *ptr; ++ptr)
-        {
-            if (is_valid_fragment(*ptr))
-                result += *ptr;
-            else
-            {
-                // escape character
-                result += '%';
-                result += fmt::format("{0:x}", int(*ptr));
-            }
-        }
-
-        return fmt::format("<a id=\"{}\"></a>", result);
+        return fmt::format("<a id=\"{}\"></a>", id);
     }
 }
 
