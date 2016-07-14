@@ -8,7 +8,6 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 namespace standardese
 {
@@ -22,7 +21,11 @@ namespace standardese
         /// If `url` contains two dollar signs (`$$`), this will be replaced by the (url-encoded) `unique-name`.
         void register_external(std::string prefix, std::string url)
         {
-            external_.emplace_back(std::move(prefix), std::move(url));
+            auto iter = external_.find(prefix);
+            if (iter == external_.end())
+                external_.emplace(std::move(prefix), std::move(url));
+            else
+                iter->second = std::move(url);
         }
 
         void register_comment(const md_comment& comment) const;
@@ -36,7 +39,7 @@ namespace standardese
     private:
         mutable std::mutex mutex_;
         mutable std::unordered_map<std::string, const md_comment*> comments_;
-        std::vector<std::pair<std::string, std::string>>           external_;
+        std::unordered_map<std::string, std::string>               external_;
     };
 } // namespace standardese
 
