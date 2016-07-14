@@ -5,7 +5,6 @@
 #ifndef STANDARDESE_INDEX_HPP_INCLUDED
 #define STANDARDESE_INDEX_HPP_INCLUDED
 
-#include <cctype>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -17,42 +16,30 @@ namespace standardese
     class index
     {
     public:
-        void register_comment(const md_comment& comment) const
+        /// \effects Registers an external URL.
+        /// All unresolved `unique-name`s starting with `prefix` will be resolved to `url`.
+        /// If `url` contains two dollar signs (`$$`), this will be replaced by the (url-encoded) `unique-name`.
+        void register_external(std::string prefix, std::string url)
         {
-            std::lock_guard<std::mutex> lock(mutex_);
-            auto                        id    = get_id(comment.get_unique_name());
-            auto                        first = comments_.emplace(std::move(id), &comment).second;
-            if (!first)
-                throw std::logic_error("multiple comments for one entity");
+            auto iter = external_.find(prefix);
+            if (iter == external_.end())
+                external_.emplace(std::move(prefix), std::move(url));
+            else
+                iter->second = std::move(url);
         }
 
-        const md_comment* try_lookup(const std::string& unique_name) const
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            auto                        iter = comments_.find(get_id(unique_name));
-            return iter == comments_.end() ? nullptr : iter->second;
-        }
+        void register_comment(const md_comment& comment) const;
 
-        const md_comment& lookup(const std::string& unique_name) const
-        {
-            std::lock_guard<std::mutex> lock(mutex_);
-            return *comments_.at(get_id(unique_name));
-        }
+        const md_comment* try_lookup(const std::string& unique_name) const;
+
+        const md_comment& lookup(const std::string& unique_name) const;
+
+        std::string get_url(const std::string& unique_name, const char* extension) const;
 
     private:
-        std::string get_id(const std::string& unique_name) const
-        {
-            std::string result;
-            for (auto c : unique_name)
-                if (std::isspace(c))
-                    continue;
-                else
-                    result += c;
-            return result;
-        }
-
         mutable std::mutex mutex_;
         mutable std::unordered_map<std::string, const md_comment*> comments_;
+        std::unordered_map<std::string, std::string>               external_;
     };
 } // namespace standardese
 

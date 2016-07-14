@@ -57,6 +57,7 @@ set(src
         cpp_variable.cpp
         error.cpp
         generator.cpp
+        index.cpp
         md_blocks.cpp
         md_entity.cpp
         md_inlines.cpp
