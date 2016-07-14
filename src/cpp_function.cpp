@@ -70,6 +70,16 @@ cpp_ptr<cpp_function_base> cpp_function_base::try_parse(translation_unit& p, cpp
     return nullptr;
 }
 
+cpp_name cpp_function_base::get_scope() const
+{
+    assert(has_parent());
+    if (get_parent().get_entity_type() == cpp_entity::function_template_t
+        || get_parent().get_entity_type() == cpp_entity::function_template_specialization_t)
+        // function template doesn't add a new scope
+        return get_parent().get_scope();
+    return cpp_entity::get_scope();
+}
+
 void cpp_function_base::set_template_specialization_name(cpp_name name)
 {
     assert(get_parent().get_entity_type() == cpp_entity::function_template_specialization_t);

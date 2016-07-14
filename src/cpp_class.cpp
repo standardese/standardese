@@ -213,6 +213,17 @@ cpp_ptr<cpp_class> cpp_class::parse(translation_unit& tu, cpp_cursor cur, const 
     return result;
 }
 
+cpp_name cpp_class::get_scope() const
+{
+    assert(has_parent());
+    if (is_type_template(get_parent().get_entity_type())
+        && get_parent().get_cursor() == get_cursor())
+        // parent is a template and the same cursor
+        // so we are actually in a template and the parent doesn't add a new scope
+        return get_parent().get_scope();
+    return cpp_entity::get_scope();
+}
+
 bool standardese::is_base_of(const cpp_entity_registry& registry, const cpp_class& base,
                              const cpp_class& derived) STANDARDESE_NOEXCEPT
 {

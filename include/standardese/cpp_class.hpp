@@ -145,6 +145,8 @@ namespace standardese
             return cpp_entity_container<cpp_entity>::empty();
         }
 
+        cpp_name get_scope() const override;
+
         const cpp_entity_container<cpp_base_class>& get_bases() const STANDARDESE_NOEXCEPT
         {
             return *this;

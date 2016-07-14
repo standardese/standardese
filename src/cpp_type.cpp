@@ -93,3 +93,12 @@ cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit& tu, cpp_cursor c
     result->set_comment(tu);
     return result;
 }
+
+cpp_name cpp_type_alias::get_scope() const
+{
+    assert(has_parent());
+    if (get_parent().get_entity_type() == cpp_entity::alias_template_t)
+        // parent is an alias template, so it doesn't add a new scope
+        return get_parent().get_scope();
+    return cpp_entity::get_scope();
+}

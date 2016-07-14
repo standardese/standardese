@@ -115,17 +115,6 @@ cpp_name cpp_entity::get_scope() const
 {
     if (!parent_ || parent_->get_entity_type() == file_t)
         return "";
-    else if (is_function_template(parent_->get_entity_type()))
-        // function template cannot be a scope parent
-        return parent_->get_scope();
-    else if (parent_->get_entity_type() == cpp_entity::alias_template_t)
-        // alias template cannot be a scope parent
-        return parent_->get_scope();
-    else if (is_type_template(parent_->get_entity_type())
-             && get_entity_type() == cpp_entity::class_t && parent_->get_cursor() == get_cursor())
-        // parent is a class template (specialization), we are a class
-        // and identical cursor -> not a scope parent
-        return parent_->get_scope();
     return parent_->get_full_name();
 }
 

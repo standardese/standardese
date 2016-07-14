@@ -100,6 +100,8 @@ namespace standardese
             return *this;
         }
 
+        cpp_name get_scope() const override;
+
         bool is_variadic() const STANDARDESE_NOEXCEPT
         {
             return !!(info_.flags & cpp_variadic_fnc);
