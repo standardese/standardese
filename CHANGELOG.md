@@ -4,13 +4,28 @@
 
 * New method of handling external projects
 
-### Library
+### Documentation
 
-* Completely redone comment parsing, add ability to use almost arbitrary Markdown in the documentation comments
+* Add ability to use almost arbitrary Markdown in the documentation comments
 
-* More output formats
+* Link to other entities via `[link-text](<> "unique-name")`, where `unique-name` is the name of the entity with all scopes and (template) parameters, `link-text` is the arbitrary text of the link and the literal `<>` denotes an empty URL.
+ This can be abbreviated to `[unique-name]()` if you don't need a special text.
 
 * New commmand: `exclude` to exclude entites from the output via comment
+
+* New command: `unique_name` to override the unique name of an entity
+
+### Library
+
+* New `md_entity` hierachy
+
+* Redid comment parsing and sectioning
+
+* Redid outputting, new `output_format_base` hierachy, new `output` class merely acting as wrapper; `code_block_writer` now standalone class
+
+* New functions in `cpp_entity`
+
+* Internal changes
 
 ### Tool
 
