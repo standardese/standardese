@@ -148,7 +148,7 @@ namespace
                 // beginning of bases
                 break;
             else if (stream.peek().get_value() == "{"
-                     && (tokens.empty() || tokens.back()->get_value() == ">"))
+                     && (tokens.empty() || *(tokens.back()->get_value().rbegin()) == '>'))
                 // beginning of class definition
                 // just rudimentary check against uniform initialization inside the args
                 break;
@@ -164,7 +164,7 @@ namespace
 
             if (str == "final")
                 is_final = true;
-            else if (str == ">")
+            else if (str == ">" || str == ">>")
             {
                 // end of template arguments
                 // concatenate them all
@@ -191,16 +191,18 @@ cpp_ptr<cpp_class> cpp_class::parse(translation_unit& tu, cpp_cursor cur, const 
     if (!definition)
         return nullptr;
 
-    if (!args.empty()
-        && parent.get_entity_type() == cpp_entity::class_template_full_specialization_t)
+    if (parent.get_entity_type() == cpp_entity::class_template_full_specialization_t
+        && parent.get_cursor() == cur)
     {
+        assert(!args.empty());
         auto& non_const = const_cast<cpp_entity&>(parent); // save here
         auto& templ     = static_cast<cpp_class_template_full_specialization&>(non_const);
         templ.name_     = std::move(args);
     }
-    else if (!args.empty()
-             && parent.get_entity_type() == cpp_entity::class_template_partial_specialization_t)
+    else if (parent.get_entity_type() == cpp_entity::class_template_partial_specialization_t
+             && parent.get_cursor() == cur)
     {
+        assert(!args.empty());
         auto& non_const = const_cast<cpp_entity&>(parent); // save here
         auto& templ     = static_cast<cpp_class_template_partial_specialization&>(non_const);
         templ.name_     = std::move(args);
