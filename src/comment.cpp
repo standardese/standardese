@@ -135,7 +135,7 @@ namespace
         return command;
     }
 
-    void remove_command_string(md_paragraph& paragraph, const std::string& command)
+    md_text& remove_command_string(md_paragraph& paragraph, const std::string& command)
     {
         // remove command + command character + whitespace
         auto& text    = static_cast<md_text&>(*paragraph.begin());
@@ -145,6 +145,8 @@ namespace
 
         // need a copy, cmark can't handle it otherwise, https://github.com/jgm/cmark/issues/139
         text.set_string(std::string(new_str).c_str());
+
+        return text;
     }
 
     void parse_command(const parser& p, md_comment& comment, md_paragraph& paragraph, bool& first)
@@ -158,13 +160,18 @@ namespace
         auto command = read_command(p, paragraph);
         if (command.empty())
             return;
-        remove_command_string(paragraph, command);
+        auto& text = remove_command_string(paragraph, command);
 
         auto section = p.get_comment_config().try_get_section(command);
         if (section != section_type::invalid)
             paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
         else if (command == p.get_comment_config().exclude_command())
             comment.set_excluded(true);
+        else if (command == p.get_comment_config().unique_name_command())
+        {
+            comment.set_unique_name(text.get_string());
+            text.set_string(""); // might need to actually delete the text node at some point
+        }
         else
             throw comment_parse_error("Unknown command '" + command + "'",
                                       cmark_node_get_start_line(paragraph.get_node()),
@@ -233,49 +240,16 @@ namespace
         for (auto& e : direct_children)
             comment.add_entity(std::move(e));
     }
-
-    bool is_valid_fragment(char c)
-    {
-        // http://stackoverflow.com/a/2849800
-        // So you can use !, $, &, ', (, ), *, +, ,, ;, =,
-        // something matching %[0-9a-fA-F]{2},
-        // something matching [a-zA-Z0-9],
-        // -, ., _, ~, :, @, /, and ?
-        static constexpr char valid[] = "!$&'()*+,;="
-                                        "0123456789"
-                                        "abcdefghijklmnopqrstuvwxyz"
-                                        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                        "-._~:@/?";
-        return std::strchr(valid, c) != nullptr;
-    }
-
-    std::string get_id(const string& name)
-    {
-        std::string result;
-
-        for (auto ptr = name.c_str(); *ptr; ++ptr)
-        {
-            if (is_valid_fragment(*ptr))
-                result += *ptr;
-            else
-            {
-                // escape character
-                result += '%';
-                result += fmt::format("{0:x}", int(*ptr));
-            }
-        }
-
-        return result;
-    }
 }
 
 md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const string& comment)
 {
-    auto result = detail::make_md_ptr<md_comment>(get_id(name));
+    auto result = detail::make_md_ptr<md_comment>(name.c_str());
 
     auto root = parse_document(p, comment);
     parse_children(*result, p, root, name);
     cmark_node_free(root);
+
     return result;
 }
 

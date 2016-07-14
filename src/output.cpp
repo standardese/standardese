@@ -45,7 +45,7 @@ namespace
                                 const char* output_extension)
     {
         return comment.get_output_name() + '.' + (output_extension ? output_extension : extension)
-               + '#' + comment.get_output_id();
+               + '#' + comment.get_unique_name();
     }
 }
 

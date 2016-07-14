@@ -250,7 +250,7 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
     auto heading = make_heading(e, document, level);
     if (doc.has_comment())
     {
-        auto anchor = md_anchor::make(*heading, doc.get_comment().get_output_id().c_str());
+        auto anchor = md_anchor::make(*heading, doc.get_comment().get_unique_name().c_str());
         heading->add_entity(std::move(anchor));
     }
     document.add_entity(std::move(heading));
@@ -259,8 +259,9 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
 
     if (doc.has_comment())
     {
-        auto comment = doc.get_comment().clone();
-        i.register_comment(e.get_unique_name().c_str(), static_cast<const md_comment&>(*comment));
+        auto comment =
+            md_ptr<md_comment>(static_cast<md_comment*>(doc.get_comment().clone().release()));
+        i.register_comment(*comment);
         document.add_entity(std::move(comment));
     }
 }

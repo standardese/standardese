@@ -15,10 +15,10 @@ namespace standardese
     class index
     {
     public:
-        void register_comment(const std::string& unique_name, const md_comment& comment) const
+        void register_comment(const md_comment& comment) const
         {
             std::lock_guard<std::mutex> lock(mutex_);
-            auto                        id    = get_id(unique_name);
+            auto                        id    = get_id(comment.get_unique_name());
             auto                        first = comments_.emplace(std::move(id), &comment).second;
             if (!first)
                 throw std::logic_error("multiple comments for one entity");

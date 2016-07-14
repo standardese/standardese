@@ -41,9 +41,14 @@ namespace standardese
 
         std::string get_output_name() const;
 
-        const std::string& get_output_id() const STANDARDESE_NOEXCEPT
+        const std::string& get_unique_name() const STANDARDESE_NOEXCEPT
         {
             return id_;
+        }
+
+        void set_unique_name(std::string id)
+        {
+            id_ = std::move(id);
         }
 
     protected:

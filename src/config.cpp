@@ -244,6 +244,11 @@ const char* comment_config::exclude_command() const STANDARDESE_NOEXCEPT
     return "exclude";
 }
 
+const char* comment_config::unique_name_command() const STANDARDESE_NOEXCEPT
+{
+    return "unique_name";
+}
+
 output_config::output_config()
 : section_names_(std::size_t(section_type::count)),
   hidden_name_("implementation-defined"),
