@@ -42,13 +42,6 @@ namespace
         auto& text = static_cast<const md_text&>(*link.begin());
         return text.get_string();
     }
-
-    std::string get_destination(const md_comment& comment, const char* extension,
-                                const char* output_extension)
-    {
-        return comment.get_output_name() + '.' + (output_extension ? output_extension : extension)
-               + '#' + comment.get_unique_name();
-    }
 }
 
 void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_document& doc,
@@ -65,14 +58,14 @@ void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_docu
         if (!str)
             continue;
 
-        auto comment = index_->try_lookup(str);
-        if (!comment)
+        auto destination =
+            index_->get_url(str, output_extension ? output_extension : format_->extension());
+        if (destination.empty())
         {
             logger->warn("unable to resolve link to an entity named '{}'", str);
             continue;
         }
-        link->set_destination(
-            get_destination(*comment, format_->extension(), output_extension).c_str());
+        link->set_destination(destination.c_str());
     }
 
     file_output output(prefix_ + document->get_output_name() + '.' + format_->extension());

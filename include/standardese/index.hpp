@@ -10,10 +10,10 @@
 #include <string>
 #include <unordered_map>
 
+#include <standardese/comment.hpp>
+
 namespace standardese
 {
-    class md_comment;
-
     class index
     {
     public:
@@ -37,6 +37,14 @@ namespace standardese
         {
             std::lock_guard<std::mutex> lock(mutex_);
             return *comments_.at(get_id(unique_name));
+        }
+
+        std::string get_url(const std::string& unique_name, const char* extension) const
+        {
+            auto comment = try_lookup(unique_name);
+            if (!comment)
+                return "";
+            return comment->get_output_name() + '.' + extension + '#' + comment->get_unique_name();
         }
 
     private:
