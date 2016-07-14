@@ -5,7 +5,9 @@
 #ifndef STANDARDESE_INDEX_HPP_INCLUDED
 #define STANDARDESE_INDEX_HPP_INCLUDED
 
+#include <cctype>
 #include <mutex>
+#include <string>
 #include <unordered_map>
 
 namespace standardese
