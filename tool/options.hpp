@@ -10,6 +10,7 @@
 #include <spdlog/spdlog.h>
 
 #include <standardese/config.hpp>
+#include <standardese/output_format.hpp>
 #include <standardese/parser.hpp>
 
 namespace standardese_tool
@@ -117,9 +118,10 @@ namespace standardese_tool
 
     struct configuration
     {
-        std::unique_ptr<standardese::parser>  parser;
-        standardese::compile_config           compile_config;
-        boost::program_options::variables_map map;
+        std::vector<std::unique_ptr<standardese::output_format_base>> formats;
+        std::unique_ptr<standardese::parser>                          parser;
+        standardese::compile_config                                   compile_config;
+        boost::program_options::variables_map                         map;
 
         configuration() : compile_config(standardese::cpp_standard::cpp_14)
         {
@@ -129,6 +131,30 @@ namespace standardese_tool
                       boost::program_options::variables_map map)
         : parser(std::move(p)), compile_config(std::move(c)), map(std::move(map))
         {
+            auto width = this->map.at("output.width").as<unsigned>();
+            for (auto& format_str : this->map.at("output.format").as<std::vector<std::string>>())
+            {
+                if (format_str == "commonmark")
+                    formats.emplace_back(new standardese::output_format_markdown(width));
+                else if (format_str == "latex")
+                    formats.emplace_back(new standardese::output_format_latex(width));
+                else if (format_str == "man")
+                    formats.emplace_back(new standardese::output_format_man(width));
+                else if (format_str == "html")
+                    formats.emplace_back(new standardese::output_format_html);
+                else if (format_str == "xml")
+                    formats.emplace_back(new standardese::output_format_xml);
+                else
+                    throw std::invalid_argument("unknown format '" + format_str + "'");
+            }
+        }
+
+        const char* link_extension() const
+        {
+            auto iter = map.find("output.link_extension");
+            if (iter != map.end())
+                return iter->second.as<std::string>().c_str();
+            return nullptr;
         }
     };
 

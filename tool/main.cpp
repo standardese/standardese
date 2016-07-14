@@ -124,36 +124,13 @@ int main(int argc, char* argv[])
              "the width of the output (used in e.g. commonmark format)");
     // clang-format on
 
-    standardese_tool::configuration                               config;
-    std::vector<std::unique_ptr<standardese::output_format_base>> formats;
-    const char*                                                   link_extension = nullptr;
+    standardese_tool::configuration config;
     try
     {
         config = standardese_tool::get_configuration(argc, argv, generic, configuration);
 
         if (config.map.at("jobs").as<unsigned>() == 0)
             throw std::invalid_argument("number of threads must not be 0");
-
-        auto width = config.map.at("output.width").as<unsigned>();
-        for (auto& format_str : config.map.at("output.format").as<std::vector<std::string>>())
-        {
-            if (format_str == "commonmark")
-                formats.emplace_back(new standardese::output_format_markdown(width));
-            else if (format_str == "latex")
-                formats.emplace_back(new standardese::output_format_latex(width));
-            else if (format_str == "man")
-                formats.emplace_back(new standardese::output_format_man(width));
-            else if (format_str == "html")
-                formats.emplace_back(new standardese::output_format_html);
-            else if (format_str == "xml")
-                formats.emplace_back(new standardese::output_format_xml);
-            else
-                throw std::invalid_argument("unknown format '" + format_str + "'");
-        }
-
-        auto iter = config.map.find("output.link_extension");
-        if (iter != config.map.end())
-            link_extension = iter->second.as<std::string>().c_str();
     }
     catch (std::exception& ex)
     {
@@ -166,6 +143,7 @@ int main(int argc, char* argv[])
     auto& parser         = *config.parser;
     auto& compile_config = config.compile_config;
     auto& log            = parser.get_logger();
+    auto& formats        = config.formats;
 
     if (map.count("help"))
         print_usage(argv[0], generic, configuration);
@@ -214,33 +192,31 @@ int main(int argc, char* argv[])
             std::vector<std::future<md_ptr<md_document>>> futures;
             futures.reserve(input.size());
 
+            auto generate = [&](const fs::path& p, const fs::path& relative) {
+                log->info("Generating documentation for {}...", p);
+
+                md_ptr<md_document> result;
+                try
+                {
+                    std::string output_name;
+                    // convert "detail/some_file.hpp" to "detail__some_file"
+                    for (auto iter = relative.begin(); iter != std::prev(relative.end()); ++iter)
+                        output_name += iter->generic_string() + "__";
+                    output_name += relative.stem().generic_string();
+
+                    auto tu = parser.parse(p.generic_string().c_str(), compile_config);
+                    result  = generate_doc_file(parser, index, tu.get_file(), output_name);
+                }
+                catch (libclang_error& ex)
+                {
+                    log->error("libclang error on {}", ex.what());
+                }
+
+                return result;
+            };
+
             assert(!input.empty());
             for (auto& path : input)
-            {
-                auto generate = [&](const fs::path& p, const fs::path& relative) {
-                    log->info("Generating documentation for {}...", p);
-
-                    md_ptr<md_document> result;
-                    try
-                    {
-                        std::string output_name;
-                        // convert "detail/some_file.hpp" to "detail__some_file"
-                        for (auto iter = relative.begin(); iter != std::prev(relative.end());
-                             ++iter)
-                            output_name += iter->generic_string() + "__";
-                        output_name += relative.stem().generic_string();
-
-                        auto tu = parser.parse(p.generic_string().c_str(), compile_config);
-                        result  = generate_doc_file(parser, index, tu.get_file(), output_name);
-                    }
-                    catch (libclang_error& ex)
-                    {
-                        log->error("libclang error on {}", ex.what());
-                    }
-
-                    return result;
-                };
-
                 standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,
                                               blacklist_dotfiles, force_blacklist,
                                               [&](const fs::path& p, const fs::path& relative) {
@@ -248,7 +224,6 @@ int main(int argc, char* argv[])
                                                       standardese_tool::add_job(pool, generate, p,
                                                                                 relative));
                                               });
-            }
 
             std::vector<md_ptr<md_document>> documents;
             for (auto& f : futures)
@@ -270,9 +245,20 @@ int main(int argc, char* argv[])
                     prefix += '/'; // hope that every platform handles it
                 }
 
+                std::vector<std::future<void>> futures;
+                futures.reserve(documents.size());
+
                 output out(index, prefix, *format);
                 for (auto& document : documents)
-                    out.render(log, *document, link_extension);
+                    futures.push_back(
+                        standardese_tool::add_job(pool,
+                                                  [&](const md_document& doc) {
+                                                      out.render(log, doc, config.link_extension());
+                                                  },
+                                                  std::ref(*document)));
+
+                for (auto& f : futures)
+                    f.wait();
             }
         }
         catch (std::exception& ex)
