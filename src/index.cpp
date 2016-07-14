@@ -21,30 +21,91 @@ namespace
                 continue;
             else
                 result += c;
+
+        if (result.end()[-1] == ')' && result.end()[-2] == '(')
+        {
+            // ends with ()
+            result.pop_back();
+            result.pop_back();
+        }
+
         return result;
+    }
+
+    std::string until_function_params(const std::string& id)
+    {
+        for (auto index = 0u; index != id.size(); ++index)
+            if (id[index] == '(')
+                return id.substr(0, index);
+        return id;
+    }
+
+    // returns the short id
+    // it doesn't require parameters
+    std::string get_short_id(const std::string& id)
+    {
+        auto wo_params = until_function_params(id);
+        if (wo_params.back() == '>')
+        {
+            // I don't care about partial specializations with less than operator inside
+            // so just do bracket count
+            auto index = wo_params.size() - 2;
+            for (auto bracket_count = 1; bracket_count != 0; --index)
+            {
+                if (wo_params[index] == '>')
+                    ++bracket_count;
+                else if (wo_params[index] == '<')
+                    --bracket_count;
+            }
+
+            wo_params.erase(wo_params.begin() + index + 1, wo_params.end());
+        }
+
+        return wo_params;
     }
 }
 
 void index::register_comment(const md_comment& comment) const
 {
+    auto id       = get_id(comment.get_unique_name());
+    auto short_id = get_short_id(id);
+
     std::lock_guard<std::mutex> lock(mutex_);
-    auto                        id    = get_id(comment.get_unique_name());
-    auto                        first = comments_.emplace(std::move(id), &comment).second;
+
+    // insert short id if it doesn't exist
+    // otherwise erase
+    if (short_id != id)
+    {
+        auto iter = comments_.find(short_id);
+        if (iter == comments_.end())
+        {
+            auto res =
+                comments_.emplace(std::move(short_id), std::make_pair(true, &comment)).second;
+            assert(res);
+        }
+        else if (iter->second.first)
+            // it was a short name
+            comments_.erase(iter);
+    }
+
+    // insert long id
+    auto first = comments_.emplace(std::move(id), std::make_pair(false, &comment)).second;
     if (!first)
-        throw std::logic_error("multiple comments for one entity");
+        throw std::logic_error(
+            fmt::format("multiple comments for an entity named '{}'", comment.get_unique_name()));
 }
 
 const md_comment* index::try_lookup(const std::string& unique_name) const
 {
     std::lock_guard<std::mutex> lock(mutex_);
     auto                        iter = comments_.find(get_id(unique_name));
-    return iter == comments_.end() ? nullptr : iter->second;
+    return iter == comments_.end() ? nullptr : iter->second.second;
 }
 
 const md_comment& index::lookup(const std::string& unique_name) const
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    return *comments_.at(get_id(unique_name));
+    return *comments_.at(get_id(unique_name)).second;
 }
 
 namespace

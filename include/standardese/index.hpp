@@ -38,8 +38,8 @@ namespace standardese
 
     private:
         mutable std::mutex mutex_;
-        mutable std::unordered_map<std::string, const md_comment*> comments_;
-        std::unordered_map<std::string, std::string>               external_;
+        mutable std::unordered_map<std::string, std::pair<bool, const md_comment*>> comments_;
+        std::unordered_map<std::string, std::string> external_;
     };
 } // namespace standardese
 

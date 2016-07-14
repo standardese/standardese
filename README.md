@@ -172,17 +172,24 @@ You can use arbitrary\* Markdown\* in the documentation comments and it will be 
 > The Markdown flavor used is [CommonMark](https://commonmark.org).
 > standardese does not support inline HTML (for obvious reasons) or images.
 
-To link to an entity, use the syntax `[link-text](<> "unique-name")`, i.e. a CommonMark link with empty URL and a title of `unique-name`. If you don't want a special `link-text`, this can be shortened to `[unique-name]()`, i.e. a CommonMark link with empty URL and the name of an entity as text.
+To link to an entity, use the syntax `[link-text](<> "unique-name")` (a CommonMark link with empty URL and a title of `unique-name`). If you don't want a special `link-text`, this can be shortened to `[unique-name]()` (a CommonMark link with empty URL and the name of an entity as text).
 In either case `standardese` will insert the correct URL by searching for the entity with the given `unique-name`.
+
 The `unique-name` of an entity is the name with all scopes, i.e. `foo::bar::baz`.
-For templates you need to append all parameters, i.e. `foo<A, B, C>`.
-For functions you need to append the signature (parameter types and cv and ref qualifier), i.e. `func()`, `bar(int,char)` or `type::foo() const &&`.
+
+* For templates you need to append all parameters, i.e. `foo<A, B, C>`.
+
+* For functions you need to append the signature (parameter types and cv and ref qualifier), i.e. `func()`, `bar(int,char)` or `type::foo() const &&`. If the signature is `()`, you can omit it.
+
 The `unique-name` doesn't care about whitespace, so `bar(const char*)`, `bar(const char *)` and `bar (constchar*)` are all the same.
 Because it is sometimes long and ugly, you can override the unique name via the `unique_name` command (see below).
 
 > For example you can override `bar(long, list, of, parameters)` to `bar()`.
 > But keep in mind that it must be unique with regard to all overloads etc.
 > Usually numbering would be a good choice, so `bar() (1)` or similar.
+
+You can also use a short `unique-name` if there aren't multiple entities resolved to the same short name.
+The short name is the `unique-name` but without a signature or trailing template arguments, i.e. for `foo<T>::func<U>(int) const`, the short name is `foo<T>::func`.
 
 You can also link to external documentations via the tool option `--comment.external_doc prefix=url`.
 All `unique-name`s starting with `prefix` will be linked to the `url`.
