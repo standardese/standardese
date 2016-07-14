@@ -260,8 +260,7 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
     if (doc.has_comment())
     {
         auto comment = doc.get_comment().clone();
-        auto str     = e.get_unique_name().c_str();
-        i.register_comment(str, static_cast<const md_comment&>(*comment));
+        i.register_comment(e.get_unique_name().c_str(), static_cast<const md_comment&>(*comment));
         document.add_entity(std::move(comment));
     }
 }

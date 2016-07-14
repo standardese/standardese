@@ -209,8 +209,8 @@ int main(int argc, char* argv[])
             log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
             log->debug("Using cmark version: {}", CMARK_VERSION_STRING);
 
-            standardese_tool::thread_pool                 pool(map.at("jobs").as<unsigned>());
             standardese::index                            index;
+            standardese_tool::thread_pool                 pool(map.at("jobs").as<unsigned>());
             std::vector<std::future<md_ptr<md_document>>> futures;
             futures.reserve(input.size());
 

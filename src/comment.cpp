@@ -275,6 +275,7 @@ md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const 
 
     auto root = parse_document(p, comment);
     parse_children(*result, p, root, name);
+    cmark_node_free(root);
     return result;
 }
 
