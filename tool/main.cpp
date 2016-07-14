@@ -110,6 +110,8 @@ int main(int argc, char* argv[])
              "override name for the command following the name_ (e.g. comment.cmd_name_requires=require)")
             ("comment.implicit_paragraph", po::value<bool>()->implicit_value(true)->default_value(false),
              "whether or not each line in the documentation comment is one paragraph")
+            ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""),
+             "syntax is prefix=url, supports linking to a different URL for entities starting with prefix")
 
             ("output.format",
              po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"commonmark"}, "{commonmark}"),
@@ -233,6 +235,7 @@ int main(int argc, char* argv[])
                     documents.push_back(std::move(doc));
             }
 
+            config.set_external(index);
             for (auto& format : formats)
             {
                 log->info("Writing files for output format {}...", format->extension());
