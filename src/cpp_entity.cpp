@@ -136,5 +136,5 @@ cpp_entity::cpp_entity(type t, cpp_cursor cur)
 void cpp_entity::set_comment(const translation_unit& tu)
 {
     comment_ =
-        md_comment::parse(tu.get_parser(), get_unique_name(), detail::parse_comment(get_cursor()));
+        md_comment::parse(tu.get_parser(), get_full_name(), detail::parse_comment(get_cursor()));
 }

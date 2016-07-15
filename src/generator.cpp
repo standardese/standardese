@@ -130,7 +130,7 @@ namespace
     }
 }
 
-md_ptr<standardese::md_document> md_document::make(std::string name)
+md_ptr<md_document> md_document::make(std::string name)
 {
     return detail::make_md_ptr<md_document>(cmark_node_new(CMARK_NODE_DOCUMENT), std::move(name));
 }
@@ -245,12 +245,10 @@ namespace
 void standardese::generate_doc_entity(const parser& p, const index& i, md_document& document,
                                       unsigned level, const doc_entity& doc)
 {
-    auto& e = doc.get_cpp_entity();
-
-    auto heading = make_heading(e, document, level);
+    auto heading = make_heading(doc.get_cpp_entity(), document, level);
     if (doc.has_comment())
     {
-        auto anchor = md_anchor::make(*heading, doc.get_comment().get_unique_name().c_str());
+        auto anchor = md_anchor::make(*heading, doc.get_unique_name().c_str());
         heading->add_entity(std::move(anchor));
     }
     document.add_entity(std::move(heading));
@@ -259,10 +257,9 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
 
     if (doc.has_comment())
     {
-        auto comment =
-            md_ptr<md_comment>(static_cast<md_comment*>(doc.get_comment().clone().release()));
-        i.register_comment(*comment);
-        document.add_entity(std::move(comment));
+        auto& comment = static_cast<md_comment&>(document.add_entity(doc.get_comment().clone()));
+        // need to register the comment that is part of the document
+        i.register_entity(doc_entity(doc.get_cpp_entity(), comment));
     }
 }
 

@@ -244,7 +244,7 @@ namespace
 
 md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const string& comment)
 {
-    auto result = detail::make_md_ptr<md_comment>(name.c_str());
+    auto result = detail::make_md_ptr<md_comment>();
 
     auto root = parse_document(p, comment);
     parse_children(*result, p, root, name);
@@ -255,17 +255,16 @@ md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const 
 
 md_entity_ptr md_comment::do_clone(const md_entity*) const
 {
-    auto result       = detail::make_md_ptr<md_comment>(id_);
+    auto result       = detail::make_md_ptr<md_comment>();
     result->excluded_ = excluded_;
+    result->id_       = id_;
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
     return std::move(result);
 }
 
-md_comment::md_comment(std::string id)
-: md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK)),
-  id_(std::move(id)),
-  excluded_(false)
+md_comment::md_comment()
+: md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK)), excluded_(false)
 {
 }
 

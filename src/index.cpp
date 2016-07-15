@@ -65,9 +65,9 @@ namespace
     }
 }
 
-void index::register_comment(const md_comment& comment) const
+void index::register_entity(doc_entity entity) const
 {
-    auto id       = get_id(comment.get_unique_name());
+    auto id       = get_id(entity.get_unique_name().c_str());
     auto short_id = get_short_id(id);
 
     std::lock_guard<std::mutex> lock(mutex_);
@@ -76,36 +76,35 @@ void index::register_comment(const md_comment& comment) const
     // otherwise erase
     if (short_id != id)
     {
-        auto iter = comments_.find(short_id);
-        if (iter == comments_.end())
+        auto iter = entities_.find(short_id);
+        if (iter == entities_.end())
         {
-            auto res =
-                comments_.emplace(std::move(short_id), std::make_pair(true, &comment)).second;
+            auto res = entities_.emplace(std::move(short_id), std::make_pair(true, entity)).second;
             assert(res);
         }
         else if (iter->second.first)
             // it was a short name
-            comments_.erase(iter);
+            entities_.erase(iter);
     }
 
     // insert long id
-    auto first = comments_.emplace(std::move(id), std::make_pair(false, &comment)).second;
+    auto first = entities_.emplace(std::move(id), std::make_pair(false, entity)).second;
     if (!first)
-        throw std::logic_error(
-            fmt::format("multiple comments for an entity named '{}'", comment.get_unique_name()));
+        throw std::logic_error(fmt::format("multiple comments for an entity named '{}'",
+                                           entity.get_unique_name().c_str()));
 }
 
-const md_comment* index::try_lookup(const std::string& unique_name) const
+const doc_entity* index::try_lookup(const std::string& unique_name) const
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    auto                        iter = comments_.find(get_id(unique_name));
-    return iter == comments_.end() ? nullptr : iter->second.second;
+    auto                        iter = entities_.find(get_id(unique_name));
+    return iter == entities_.end() ? nullptr : &iter->second.second;
 }
 
-const md_comment& index::lookup(const std::string& unique_name) const
+const doc_entity& index::lookup(const std::string& unique_name) const
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    return *comments_.at(get_id(unique_name)).second;
+    return entities_.at(get_id(unique_name)).second;
 }
 
 namespace
@@ -157,13 +156,15 @@ namespace
 
 std::string index::get_url(const std::string& unique_name, const char* extension) const
 {
-    auto comment = try_lookup(unique_name);
-    if (!comment)
+    auto entity = try_lookup(unique_name);
+    if (!entity)
     {
         for (auto& pair : external_)
             if (matches(pair.first, unique_name))
                 return generate(pair.second, unique_name);
         return "";
     }
-    return comment->get_output_name() + '.' + extension + '#' + comment->get_unique_name();
+
+    return fmt::format("{}.{}#{}", entity->get_output_name().c_str(), extension,
+                       entity->get_unique_name().c_str());
 }

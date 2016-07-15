@@ -9,10 +9,10 @@
 #include <string>
 #include <unordered_map>
 
+#include <standardese/doc_entity.hpp>
+
 namespace standardese
 {
-    class md_comment;
-
     class index
     {
     public:
@@ -28,17 +28,17 @@ namespace standardese
                 iter->second = std::move(url);
         }
 
-        void register_comment(const md_comment& comment) const;
+        void register_entity(doc_entity entity) const;
 
-        const md_comment* try_lookup(const std::string& unique_name) const;
+        const doc_entity* try_lookup(const std::string& unique_name) const;
 
-        const md_comment& lookup(const std::string& unique_name) const;
+        const doc_entity& lookup(const std::string& unique_name) const;
 
         std::string get_url(const std::string& unique_name, const char* extension) const;
 
     private:
         mutable std::mutex mutex_;
-        mutable std::unordered_map<std::string, std::pair<bool, const md_comment*>> comments_;
+        mutable std::unordered_map<std::string, std::pair<bool, doc_entity>> entities_;
         std::unordered_map<std::string, std::string> external_;
     };
 } // namespace standardese

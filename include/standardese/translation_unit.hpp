@@ -5,6 +5,7 @@
 #ifndef STANDARDESE_TRANSLATION_UNIT_HPP_INCLUDED
 #define STANDARDESE_TRANSLATION_UNIT_HPP_INCLUDED
 
+#include <standardese/detail/wrapper.hpp>
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_entity_registry.hpp>
 
@@ -18,6 +19,16 @@ namespace standardese
         struct context;
 
         context& get_preprocessing_context(translation_unit& tu);
+
+        struct tu_deleter
+        {
+            void operator()(CXTranslationUnit tu) const STANDARDESE_NOEXCEPT
+            {
+                clang_disposeTranslationUnit(tu);
+            }
+        };
+
+        using tu_wrapper = detail::wrapper<CXTranslationUnit, tu_deleter>;
     } // namespace detail
 
     class cpp_file : public cpp_entity, public cpp_entity_container<cpp_entity>
@@ -38,13 +49,19 @@ namespace standardese
             return path_;
         }
 
+        CXTranslationUnit get_cxunit() STANDARDESE_NOEXCEPT
+        {
+            return wrapper_.get();
+        }
+
     private:
-        cpp_file(cpp_cursor cur, cpp_name path)
-        : cpp_entity(get_entity_type(), cur), path_(std::move(path))
+        cpp_file(cpp_cursor cur, CXTranslationUnit tu, cpp_name path)
+        : cpp_entity(get_entity_type(), cur), path_(std::move(path)), wrapper_(tu)
         {
         }
 
-        cpp_name path_;
+        cpp_name           path_;
+        detail::tu_wrapper wrapper_;
 
         friend parser;
     };
@@ -71,7 +88,7 @@ namespace standardese
         const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT;
 
     private:
-        translation_unit(const parser& par, CXTranslationUnit tu, const char* path, cpp_file* file,
+        translation_unit(const parser& par, const char* path, cpp_file* file,
                          const compile_config& config);
 
         struct impl;

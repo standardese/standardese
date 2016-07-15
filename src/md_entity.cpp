@@ -87,7 +87,7 @@ md_container::md_container(md_entity::type t, cmark_node* node) STANDARDESE_NOEX
     assert(is_container(t));
 }
 
-void md_container::add_entity(md_entity_ptr entity)
+md_entity& md_container::add_entity(md_entity_ptr entity)
 {
     entity->parent_ = this;
     if (cmark_node_parent(entity->get_node()) != get_node())
@@ -98,5 +98,7 @@ void md_container::add_entity(md_entity_ptr entity)
         assert(res);
     }
 
+    auto& ref = *entity;
     md_entity_container::add_entity(std::move(entity));
+    return ref;
 }
