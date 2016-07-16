@@ -168,8 +168,11 @@ std::string index::get_url(const std::string& unique_name, const char* extension
         return "";
     }
 
-    return fmt::format("{}.{}#{}", entity->get_output_name().c_str(), extension,
-                       entity->get_unique_name().c_str());
+    if (entity->get_entity_type() == cpp_entity::file_t)
+        return fmt::format("{}.{}", entity->get_output_name().c_str(), extension);
+    else
+        return fmt::format("{}.{}#{}", entity->get_output_name().c_str(), extension,
+                           entity->get_unique_name().c_str());
 }
 
 void index::namespace_member_impl(ns_member_cb cb, void* data)

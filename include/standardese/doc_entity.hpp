@@ -5,7 +5,6 @@
 #ifndef STANDARDESE_DOC_ENTITY_HPP_INCLUDED
 #define STANDARDESE_DOC_ENTITY_HPP_INCLUDED
 
-#include <standardese/comment.hpp>
 #include <standardese/cpp_entity.hpp>
 
 namespace standardese
@@ -13,17 +12,9 @@ namespace standardese
     class doc_entity
     {
     public:
-        doc_entity(const cpp_entity& entity) STANDARDESE_NOEXCEPT
-            : entity_(&entity),
-              comment_(entity.has_comment() ? &entity.get_comment() : nullptr)
-        {
-        }
+        doc_entity(const cpp_entity& entity);
 
-        doc_entity(const cpp_entity& entity, const md_comment& comment) STANDARDESE_NOEXCEPT
-            : entity_(&entity),
-              comment_(&comment)
-        {
-        }
+        doc_entity(const cpp_entity& entity, const md_comment& comment);
 
         bool has_comment() const STANDARDESE_NOEXCEPT
         {
@@ -40,23 +31,11 @@ namespace standardese
             return *entity_;
         }
 
-        cpp_entity::type get_entity_type() const STANDARDESE_NOEXCEPT
-        {
-            return get_cpp_entity().get_entity_type();
-        }
+        cpp_entity::type get_entity_type() const;
 
-        cpp_name get_unique_name() const STANDARDESE_NOEXCEPT
-        {
-            if (has_comment() && get_comment().has_unique_name())
-                return get_comment().get_unique_name();
-            return entity_->get_unique_name();
-        }
+        cpp_name get_unique_name() const;
 
-        cpp_name get_output_name() const STANDARDESE_NOEXCEPT
-        {
-            assert(has_comment());
-            return get_comment().get_output_name();
-        }
+        cpp_name get_output_name() const;
 
     private:
         const cpp_entity* entity_;
