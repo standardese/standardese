@@ -8,6 +8,7 @@
 #include <spdlog/details/format.h>
 
 #include <standardese/comment.hpp>
+#include <standardese/cpp_namespace.hpp>
 
 using namespace standardese;
 
@@ -88,10 +89,12 @@ void index::register_entity(doc_entity entity) const
     }
 
     // insert long id
-    auto first = entities_.emplace(std::move(id), std::make_pair(false, entity)).second;
-    if (!first)
+    auto pair = entities_.emplace(std::move(id), std::make_pair(false, entity));
+    if (!pair.second)
         throw std::logic_error(fmt::format("multiple comments for an entity named '{}'",
                                            entity.get_unique_name().c_str()));
+    else if (pair.first->second.second.get_entity_type() == cpp_entity::file_t)
+        files_.push_back(pair.first);
 }
 
 const doc_entity* index::try_lookup(const std::string& unique_name) const
@@ -167,4 +170,23 @@ std::string index::get_url(const std::string& unique_name, const char* extension
 
     return fmt::format("{}.{}#{}", entity->get_output_name().c_str(), extension,
                        entity->get_unique_name().c_str());
+}
+
+void index::namespace_member_impl(ns_member_cb cb, void* data)
+{
+    for (auto& pair : entities_)
+    {
+        auto& entity = pair.second.second.get_cpp_entity();
+        if (entity.get_entity_type() == cpp_entity::namespace_t
+            || entity.get_entity_type() == cpp_entity::file_t)
+            continue;
+
+        assert(entity.has_parent());
+        auto& parent      = entity.get_parent();
+        auto  parent_type = parent.get_entity_type();
+        if (parent_type == cpp_entity::namespace_t)
+            cb(static_cast<const cpp_namespace*>(&parent), entity, data);
+        else if (parent_type == cpp_entity::file_t)
+            cb(nullptr, entity, data);
+    }
 }

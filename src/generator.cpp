@@ -261,6 +261,9 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
         // need to register the comment that is part of the document
         i.register_entity(doc_entity(doc.get_cpp_entity(), comment));
     }
+    else
+        // can keep doc as it, doesn't have a comment anyway
+        i.register_entity(doc);
 }
 
 md_ptr<md_document> standardese::generate_doc_file(const parser& p, const index& i,

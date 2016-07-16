@@ -40,6 +40,11 @@ namespace standardese
             return *entity_;
         }
 
+        cpp_entity::type get_entity_type() const STANDARDESE_NOEXCEPT
+        {
+            return get_cpp_entity().get_entity_type();
+        }
+
         cpp_name get_unique_name() const STANDARDESE_NOEXCEPT
         {
             if (has_comment() && get_comment().has_unique_name())
