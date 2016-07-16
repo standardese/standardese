@@ -34,6 +34,7 @@ cpp_name doc_entity::get_output_name() const
 {
     if (get_entity_type() == cpp_entity::file_t)
         return static_cast<const cpp_file&>(get_cpp_entity()).get_output_name();
-    assert(has_comment());
-    return get_comment().get_output_name();
+    else if (has_comment())
+        return get_comment().get_output_name();
+    return "";
 }

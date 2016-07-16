@@ -270,20 +270,20 @@ md_comment::md_comment()
 
 namespace
 {
-    const md_document& get_document(const md_entity* cur) STANDARDESE_NOEXCEPT
+    const md_document* get_document(const md_entity* cur) STANDARDESE_NOEXCEPT
     {
-        while (cur->get_entity_type() != md_entity::document_t)
-        {
-            assert(cur->has_parent());
+        while (cur->has_parent() && cur->get_entity_type() != md_entity::document_t)
             cur = &cur->get_parent();
-        }
 
-        return static_cast<const md_document&>(*cur);
+        if (cur->get_entity_type() == md_entity::document_t)
+            return static_cast<const md_document*>(cur);
+        else
+            return nullptr;
     }
 }
 
 std::string md_comment::get_output_name() const
 {
-    auto& document = get_document(this);
-    return document.get_output_name();
+    auto document = get_document(this);
+    return document ? document->get_output_name() : "";
 }
