@@ -5,9 +5,9 @@
 #ifndef STANDARDESE_INDEX_HPP_INCLUDED
 #define STANDARDESE_INDEX_HPP_INCLUDED
 
+#include <map>
 #include <mutex>
 #include <string>
-#include <unordered_map>
 #include <vector>
 
 #include <standardese/doc_entity.hpp>
@@ -65,7 +65,7 @@ namespace standardese
         void namespace_member_impl(ns_member_cb cb, void* data);
 
         mutable std::mutex mutex_;
-        mutable std::unordered_map<std::string, std::pair<bool, doc_entity>> entities_;
+        mutable std::map<std::string, std::pair<bool, doc_entity>> entities_;
         mutable std::vector<decltype(entities_)::const_iterator> files_;
 
         std::unordered_map<std::string, std::string> external_;

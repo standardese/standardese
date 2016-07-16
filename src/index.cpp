@@ -4,6 +4,7 @@
 
 #include <standardese/index.hpp>
 
+#include <algorithm>
 #include <cctype>
 #include <spdlog/details/format.h>
 
@@ -94,7 +95,12 @@ void index::register_entity(doc_entity entity) const
         throw std::logic_error(fmt::format("multiple comments for an entity named '{}'",
                                            entity.get_unique_name().c_str()));
     else if (pair.first->second.second.get_entity_type() == cpp_entity::file_t)
-        files_.push_back(pair.first);
+    {
+        using value_type = decltype(files_)::value_type;
+        auto pos         = std::lower_bound(files_.begin(), files_.end(), pair.first,
+                                    [](value_type a, value_type b) { return a->first < b->first; });
+        files_.insert(pos, pair.first);
+    }
 }
 
 const doc_entity* index::try_lookup(const std::string& unique_name) const
