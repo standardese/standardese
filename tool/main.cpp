@@ -235,6 +235,7 @@ int main(int argc, char* argv[])
                 if (doc)
                     documents.push_back(std::move(doc));
             }
+            documents.push_back(generate_file_index(index));
 
             config.set_external(index);
             for (auto& format : formats)

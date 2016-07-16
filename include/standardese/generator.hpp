@@ -54,6 +54,8 @@ namespace standardese
 
     md_ptr<md_document> generate_doc_file(const parser& p, const index& i, cpp_file& f,
                                           std::string name);
+
+    md_ptr<md_document> generate_file_index(index& i, std::string name = "files");
 } // namespace standardese
 
 #endif // STANDARDESE_GENERATOR_HPP_INCLUDED

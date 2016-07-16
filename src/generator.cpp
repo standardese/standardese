@@ -279,3 +279,21 @@ md_ptr<md_document> standardese::generate_doc_file(const parser& p, const index&
 
     return doc;
 }
+
+md_ptr<md_document> standardese::generate_file_index(index& i, std::string name)
+{
+    auto doc = md_document::make(std::move(name));
+
+    auto list = md_list::make(*doc, md_list_type::bullet, md_list_delimiter::none, 0, false);
+    i.for_each_file([&](const cpp_file& f) {
+        auto& paragraph = make_list_item_paragraph(*list);
+
+        auto link = md_link::make(paragraph, "", f.get_unique_name().c_str());
+        link->add_entity(md_text::make(*link, f.get_name().c_str()));
+        paragraph.add_entity(std::move(link));
+
+    });
+    doc->add_entity(std::move(list));
+
+    return doc;
+}

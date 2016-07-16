@@ -10,6 +10,64 @@
 
 namespace standardese
 {
+    class md_code_block final : public md_leave
+    {
+    public:
+        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return md_entity::code_block_t;
+        }
+
+        static md_ptr<md_code_block> parse(cmark_node* cur, const md_entity& parent);
+
+        static md_ptr<md_code_block> make(const md_entity& parent, const char* code,
+                                          const char* fence);
+
+        const char* get_fence_info() const STANDARDESE_NOEXCEPT;
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
+    private:
+        md_code_block(cmark_node* node, const md_entity& parent) STANDARDESE_NOEXCEPT
+            : md_leave(get_entity_type(), node, parent)
+        {
+        }
+
+        friend detail::md_ptr_access;
+    };
+
+    class md_paragraph final : public md_container
+    {
+    public:
+        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return md_entity::paragraph_t;
+        }
+
+        static md_ptr<md_paragraph> parse(cmark_node* cur, const md_entity& parent);
+
+        static md_ptr<md_paragraph> make(const md_entity& parent);
+
+        section_type get_section_type() const STANDARDESE_NOEXCEPT
+        {
+            return section_type_;
+        }
+
+        void set_section_type(section_type t, const std::string& name);
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
+    private:
+        md_paragraph(cmark_node* node, const md_entity& parent);
+
+        md_entity_ptr section_node_;
+        section_type  section_type_;
+
+        friend detail::md_ptr_access;
+    };
+
     class md_block_quote final : public md_container
     {
     public:
@@ -108,63 +166,7 @@ namespace standardese
         friend detail::md_ptr_access;
     };
 
-    class md_code_block final : public md_leave
-    {
-    public:
-        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
-        {
-            return md_entity::code_block_t;
-        }
-
-        static md_ptr<md_code_block> parse(cmark_node* cur, const md_entity& parent);
-
-        static md_ptr<md_code_block> make(const md_entity& parent, const char* code,
-                                          const char* fence);
-
-        const char* get_fence_info() const STANDARDESE_NOEXCEPT;
-
-    protected:
-        md_entity_ptr do_clone(const md_entity* parent) const override;
-
-    private:
-        md_code_block(cmark_node* node, const md_entity& parent) STANDARDESE_NOEXCEPT
-            : md_leave(get_entity_type(), node, parent)
-        {
-        }
-
-        friend detail::md_ptr_access;
-    };
-
-    class md_paragraph final : public md_container
-    {
-    public:
-        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
-        {
-            return md_entity::paragraph_t;
-        }
-
-        static md_ptr<md_paragraph> parse(cmark_node* cur, const md_entity& parent);
-
-        static md_ptr<md_paragraph> make(const md_entity& parent);
-
-        section_type get_section_type() const STANDARDESE_NOEXCEPT
-        {
-            return section_type_;
-        }
-
-        void set_section_type(section_type t, const std::string& name);
-
-    protected:
-        md_entity_ptr do_clone(const md_entity* parent) const override;
-
-    private:
-        md_paragraph(cmark_node* node, const md_entity& parent);
-
-        md_entity_ptr section_node_;
-        section_type  section_type_;
-
-        friend detail::md_ptr_access;
-    };
+    md_paragraph& make_list_item_paragraph(md_list& list);
 
     class md_heading final : public md_container
     {
