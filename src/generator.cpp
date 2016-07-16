@@ -16,6 +16,7 @@
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
+#include <boost/concept_check.hpp>
 
 using namespace standardese;
 
@@ -292,6 +293,23 @@ md_ptr<md_document> standardese::generate_file_index(index& i, std::string name)
         link->add_entity(md_text::make(*link, f.get_name().c_str()));
         paragraph.add_entity(std::move(link));
 
+    });
+    doc->add_entity(std::move(list));
+
+    return doc;
+}
+
+md_ptr<md_document> standardese::generate_entity_index(index& i, std::string name)
+{
+    auto doc = md_document::make(std::move(name));
+
+    auto list = md_list::make(*doc, md_list_type::bullet, md_list_delimiter::none, 0, false);
+    i.for_each_namespace_member([&](const cpp_namespace*, const cpp_entity& e) {
+        auto& paragraph = make_list_item_paragraph(*list);
+
+        auto link = md_link::make(paragraph, "", e.get_unique_name().c_str());
+        link->add_entity(md_text::make(*link, e.get_unique_name().c_str()));
+        paragraph.add_entity(std::move(link));
     });
     doc->add_entity(std::move(list));
 

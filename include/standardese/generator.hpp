@@ -56,6 +56,8 @@ namespace standardese
                                           std::string name);
 
     md_ptr<md_document> generate_file_index(index& i, std::string name = "files");
+
+    md_ptr<md_document> generate_entity_index(index& i, std::string name = "entities");
 } // namespace standardese
 
 #endif // STANDARDESE_GENERATOR_HPP_INCLUDED
