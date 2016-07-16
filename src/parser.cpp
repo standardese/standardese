@@ -11,24 +11,26 @@
 
 using namespace standardese;
 
-translation_unit parser::parse(const char* path, const compile_config& c) const
+translation_unit parser::parse(const char* full_path, const compile_config& c,
+                               const char* file_name) const
 {
     auto args = c.get_flags();
 
     CXTranslationUnit tu;
-    auto              error =
-        clang_parseTranslationUnit2(index_.get(), path, args.data(), static_cast<int>(args.size()),
-                                    nullptr, 0, CXTranslationUnit_Incomplete
-                                                    | CXTranslationUnit_DetailedPreprocessingRecord,
-                                    &tu);
+    auto              error = clang_parseTranslationUnit2(index_.get(), full_path, args.data(),
+                                             static_cast<int>(args.size()), nullptr, 0,
+                                             CXTranslationUnit_Incomplete
+                                                 | CXTranslationUnit_DetailedPreprocessingRecord,
+                                             &tu);
     if (error != CXError_Success)
-        throw libclang_error(error, "CXTranslationUnit (" + std::string(path) + ")");
+        throw libclang_error(error, "CXTranslationUnit (" + std::string(full_path) + ")");
 
-    cpp_ptr<cpp_file> file(new cpp_file(clang_getTranslationUnitCursor(tu), tu, path));
-    auto              file_ptr = file.get();
+    cpp_ptr<cpp_file> file(
+        new cpp_file(clang_getTranslationUnitCursor(tu), tu, file_name ? file_name : full_path));
+    auto file_ptr = file.get();
     files_.add_file(std::move(file));
 
-    return translation_unit(*this, path, file_ptr, c);
+    return translation_unit(*this, full_path, file_ptr, c);
 }
 
 parser::parser()

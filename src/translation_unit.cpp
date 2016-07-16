@@ -15,12 +15,13 @@ using namespace standardese;
 struct translation_unit::impl
 {
     detail::context            context;
+    cpp_name                   full_path;
     cpp_file*                  file;
     const standardese::parser* parser;
 
     impl(const standardese::parser& p, const char* path, cpp_file* file,
          const compile_config& config)
-    : context(path), file(file), parser(&p)
+    : context(path), full_path(path), file(file), parser(&p)
     {
         using namespace boost::wave;
 
@@ -58,9 +59,9 @@ const parser& translation_unit::get_parser() const STANDARDESE_NOEXCEPT
     return *pimpl_->parser;
 }
 
-cpp_name translation_unit::get_path() const STANDARDESE_NOEXCEPT
+const cpp_name& translation_unit::get_path() const STANDARDESE_NOEXCEPT
 {
-    return pimpl_->file->get_name();
+    return pimpl_->full_path;
 }
 
 CXFile translation_unit::get_cxfile() const STANDARDESE_NOEXCEPT

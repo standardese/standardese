@@ -46,7 +46,7 @@ namespace standardese
 
         cpp_name get_name() const override
         {
-            return path_;
+            return path_.c_str();
         }
 
         const cpp_name& get_output_name() const STANDARDESE_NOEXCEPT
@@ -87,7 +87,7 @@ namespace standardese
 
         const parser& get_parser() const STANDARDESE_NOEXCEPT;
 
-        cpp_name get_path() const STANDARDESE_NOEXCEPT;
+        const cpp_name& get_path() const STANDARDESE_NOEXCEPT;
 
         CXFile get_cxfile() const STANDARDESE_NOEXCEPT;
 

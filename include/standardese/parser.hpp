@@ -76,7 +76,8 @@ namespace standardese
         parser& operator=(const parser&) = delete;
 
         /// Parses a translation unit.
-        translation_unit parse(const char* path, const compile_config& c) const;
+        translation_unit parse(const char* full_path, const compile_config& c,
+                               const char* file_name = nullptr) const;
 
         const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT
         {

@@ -206,8 +206,9 @@ int main(int argc, char* argv[])
                         output_name += iter->generic_string() + "__";
                     output_name += relative.stem().generic_string();
 
-                    auto tu = parser.parse(p.generic_string().c_str(), compile_config);
-                    result  = generate_doc_file(parser, index, tu.get_file(), output_name);
+                    auto tu = parser.parse(p.generic_string().c_str(), compile_config,
+                                           relative.generic_string().c_str());
+                    result = generate_doc_file(parser, index, tu.get_file(), output_name);
                 }
                 catch (libclang_error& ex)
                 {
