@@ -70,6 +70,11 @@ CXFile translation_unit::get_cxfile() const STANDARDESE_NOEXCEPT
     return file;
 }
 
+cpp_file& translation_unit::get_file() STANDARDESE_NOEXCEPT
+{
+    return *pimpl_->file;
+}
+
 const cpp_file& translation_unit::get_file() const STANDARDESE_NOEXCEPT
 {
     return *pimpl_->file;

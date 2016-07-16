@@ -266,10 +266,11 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
         i.register_entity(doc);
 }
 
-md_ptr<md_document> standardese::generate_doc_file(const parser& p, const index& i,
-                                                   const cpp_file& f, std::string name)
+md_ptr<md_document> standardese::generate_doc_file(const parser& p, const index& i, cpp_file& f,
+                                                   std::string name)
 {
     auto doc = md_document::make(std::move(name));
+    f.set_output_name(doc->get_output_name());
 
     generate_doc_entity(p, i, *doc, 1, f);
 

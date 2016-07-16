@@ -49,6 +49,16 @@ namespace standardese
             return path_;
         }
 
+        const cpp_name& get_output_name() const STANDARDESE_NOEXCEPT
+        {
+            return output_name_;
+        }
+
+        void set_output_name(cpp_name name)
+        {
+            output_name_ = std::move(name);
+        }
+
         CXTranslationUnit get_cxunit() STANDARDESE_NOEXCEPT
         {
             return wrapper_.get();
@@ -56,11 +66,11 @@ namespace standardese
 
     private:
         cpp_file(cpp_cursor cur, CXTranslationUnit tu, cpp_name path)
-        : cpp_entity(get_entity_type(), cur), path_(std::move(path)), wrapper_(tu)
+        : cpp_entity(get_entity_type(), cur), path_(std::move(path)), output_name_(""), wrapper_(tu)
         {
         }
 
-        cpp_name           path_;
+        cpp_name           path_, output_name_;
         detail::tu_wrapper wrapper_;
 
         friend parser;
@@ -80,6 +90,8 @@ namespace standardese
         cpp_name get_path() const STANDARDESE_NOEXCEPT;
 
         CXFile get_cxfile() const STANDARDESE_NOEXCEPT;
+
+        cpp_file& get_file() STANDARDESE_NOEXCEPT;
 
         const cpp_file& get_file() const STANDARDESE_NOEXCEPT;
 

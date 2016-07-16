@@ -52,7 +52,7 @@ namespace standardese
     void generate_doc_entity(const parser& p, const index& i, md_document& document, unsigned level,
                              const doc_entity& e);
 
-    md_ptr<md_document> generate_doc_file(const parser& p, const index& i, const cpp_file& f,
+    md_ptr<md_document> generate_doc_file(const parser& p, const index& i, cpp_file& f,
                                           std::string name);
 } // namespace standardese
 
