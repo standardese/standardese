@@ -5,7 +5,6 @@
 #ifndef STANDARDESE_DOC_ENTITY_HPP_INCLUDED
 #define STANDARDESE_DOC_ENTITY_HPP_INCLUDED
 
-#include <standardese/comment.hpp>
 #include <standardese/cpp_entity.hpp>
 
 namespace standardese
@@ -13,18 +12,18 @@ namespace standardese
     class doc_entity
     {
     public:
-        doc_entity(const cpp_entity& entity) STANDARDESE_NOEXCEPT : entity_(&entity)
-        {
-        }
+        doc_entity(const cpp_entity& entity);
+
+        doc_entity(const cpp_entity& entity, const md_comment& comment);
 
         bool has_comment() const STANDARDESE_NOEXCEPT
         {
-            return entity_->has_comment();
+            return comment_ != nullptr;
         }
 
         const md_comment& get_comment() const STANDARDESE_NOEXCEPT
         {
-            return entity_->get_comment();
+            return *comment_;
         }
 
         const cpp_entity& get_cpp_entity() const STANDARDESE_NOEXCEPT
@@ -32,8 +31,15 @@ namespace standardese
             return *entity_;
         }
 
+        cpp_entity::type get_entity_type() const;
+
+        cpp_name get_unique_name() const;
+
+        cpp_name get_output_name() const;
+
     private:
         const cpp_entity* entity_;
+        const md_comment* comment_;
     };
 } // namespace standardese
 

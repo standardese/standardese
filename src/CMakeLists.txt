@@ -55,6 +55,7 @@ set(src
         cpp_template.cpp
         cpp_type.cpp
         cpp_variable.cpp
+        doc_entity.cpp
         error.cpp
         generator.cpp
         index.cpp

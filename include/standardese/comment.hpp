@@ -41,6 +41,11 @@ namespace standardese
 
         std::string get_output_name() const;
 
+        bool has_unique_name() const STANDARDESE_NOEXCEPT
+        {
+            return !id_.empty();
+        }
+
         const std::string& get_unique_name() const STANDARDESE_NOEXCEPT
         {
             return id_;
@@ -55,7 +60,7 @@ namespace standardese
         md_entity_ptr do_clone(const md_entity* parent) const override;
 
     private:
-        md_comment(std::string id);
+        md_comment();
 
         std::string id_;
         bool        excluded_;

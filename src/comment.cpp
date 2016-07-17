@@ -244,7 +244,7 @@ namespace
 
 md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const string& comment)
 {
-    auto result = detail::make_md_ptr<md_comment>(name.c_str());
+    auto result = detail::make_md_ptr<md_comment>();
 
     auto root = parse_document(p, comment);
     parse_children(*result, p, root, name);
@@ -255,36 +255,35 @@ md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const 
 
 md_entity_ptr md_comment::do_clone(const md_entity*) const
 {
-    auto result       = detail::make_md_ptr<md_comment>(id_);
+    auto result       = detail::make_md_ptr<md_comment>();
     result->excluded_ = excluded_;
+    result->id_       = id_;
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
     return std::move(result);
 }
 
-md_comment::md_comment(std::string id)
-: md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK)),
-  id_(std::move(id)),
-  excluded_(false)
+md_comment::md_comment()
+: md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK)), excluded_(false)
 {
 }
 
 namespace
 {
-    const md_document& get_document(const md_entity* cur) STANDARDESE_NOEXCEPT
+    const md_document* get_document(const md_entity* cur) STANDARDESE_NOEXCEPT
     {
-        while (cur->get_entity_type() != md_entity::document_t)
-        {
-            assert(cur->has_parent());
+        while (cur->has_parent() && cur->get_entity_type() != md_entity::document_t)
             cur = &cur->get_parent();
-        }
 
-        return static_cast<const md_document&>(*cur);
+        if (cur->get_entity_type() == md_entity::document_t)
+            return static_cast<const md_document*>(cur);
+        else
+            return nullptr;
     }
 }
 
 std::string md_comment::get_output_name() const
 {
-    auto& document = get_document(this);
-    return document.get_output_name();
+    auto document = get_document(this);
+    return document ? document->get_output_name() : "";
 }

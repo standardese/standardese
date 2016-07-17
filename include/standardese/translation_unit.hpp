@@ -5,6 +5,7 @@
 #ifndef STANDARDESE_TRANSLATION_UNIT_HPP_INCLUDED
 #define STANDARDESE_TRANSLATION_UNIT_HPP_INCLUDED
 
+#include <standardese/detail/wrapper.hpp>
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_entity_registry.hpp>
 
@@ -18,6 +19,16 @@ namespace standardese
         struct context;
 
         context& get_preprocessing_context(translation_unit& tu);
+
+        struct tu_deleter
+        {
+            void operator()(CXTranslationUnit tu) const STANDARDESE_NOEXCEPT
+            {
+                clang_disposeTranslationUnit(tu);
+            }
+        };
+
+        using tu_wrapper = detail::wrapper<CXTranslationUnit, tu_deleter>;
     } // namespace detail
 
     class cpp_file : public cpp_entity, public cpp_entity_container<cpp_entity>
@@ -35,16 +46,32 @@ namespace standardese
 
         cpp_name get_name() const override
         {
-            return path_;
+            return path_.c_str();
+        }
+
+        const cpp_name& get_output_name() const STANDARDESE_NOEXCEPT
+        {
+            return output_name_;
+        }
+
+        void set_output_name(cpp_name name)
+        {
+            output_name_ = std::move(name);
+        }
+
+        CXTranslationUnit get_cxunit() STANDARDESE_NOEXCEPT
+        {
+            return wrapper_.get();
         }
 
     private:
-        cpp_file(cpp_cursor cur, cpp_name path)
-        : cpp_entity(get_entity_type(), cur), path_(std::move(path))
+        cpp_file(cpp_cursor cur, CXTranslationUnit tu, cpp_name path)
+        : cpp_entity(get_entity_type(), cur), path_(std::move(path)), output_name_(""), wrapper_(tu)
         {
         }
 
-        cpp_name path_;
+        cpp_name           path_, output_name_;
+        detail::tu_wrapper wrapper_;
 
         friend parser;
     };
@@ -60,9 +87,11 @@ namespace standardese
 
         const parser& get_parser() const STANDARDESE_NOEXCEPT;
 
-        cpp_name get_path() const STANDARDESE_NOEXCEPT;
+        const cpp_name& get_path() const STANDARDESE_NOEXCEPT;
 
         CXFile get_cxfile() const STANDARDESE_NOEXCEPT;
+
+        cpp_file& get_file() STANDARDESE_NOEXCEPT;
 
         const cpp_file& get_file() const STANDARDESE_NOEXCEPT;
 
@@ -71,7 +100,7 @@ namespace standardese
         const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT;
 
     private:
-        translation_unit(const parser& par, CXTranslationUnit tu, const char* path, cpp_file* file,
+        translation_unit(const parser& par, const char* path, cpp_file* file,
                          const compile_config& config);
 
         struct impl;

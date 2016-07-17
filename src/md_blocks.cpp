@@ -148,6 +148,18 @@ md_entity_ptr md_list_item::do_clone(const md_entity* parent) const
     return std::move(result);
 }
 
+md_paragraph& standardese::make_list_item_paragraph(md_list& list)
+{
+    auto item = md_list_item::make(list);
+
+    auto  par       = md_paragraph::make(*item);
+    auto& paragraph = *par;
+    item->add_entity(std::move(par));
+    list.add_entity(std::move(item));
+
+    return paragraph;
+}
+
 md_ptr<md_code_block> md_code_block::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_CODE_BLOCK);

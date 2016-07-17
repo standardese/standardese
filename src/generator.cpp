@@ -130,7 +130,7 @@ namespace
     }
 }
 
-md_ptr<standardese::md_document> md_document::make(std::string name)
+md_ptr<md_document> md_document::make(std::string name)
 {
     return detail::make_md_ptr<md_document>(cmark_node_new(CMARK_NODE_DOCUMENT), std::move(name));
 }
@@ -226,9 +226,9 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
 
 namespace
 {
-    md_ptr<md_heading> make_heading(const cpp_entity& e, const md_document& doc, unsigned level)
+    md_ptr<md_heading> make_heading(const cpp_entity& e, const md_entity& parent, unsigned level)
     {
-        auto heading = md_heading::make(doc, level);
+        auto heading = md_heading::make(parent, level);
 
         auto type     = get_entity_type_spelling(e.get_entity_type());
         auto text_str = fmt::format("{}{} ", char(std::toupper(type[0])), &type[1]);
@@ -245,12 +245,10 @@ namespace
 void standardese::generate_doc_entity(const parser& p, const index& i, md_document& document,
                                       unsigned level, const doc_entity& doc)
 {
-    auto& e = doc.get_cpp_entity();
-
-    auto heading = make_heading(e, document, level);
+    auto heading = make_heading(doc.get_cpp_entity(), document, level);
     if (doc.has_comment())
     {
-        auto anchor = md_anchor::make(*heading, doc.get_comment().get_unique_name().c_str());
+        auto anchor = md_anchor::make(*heading, doc.get_unique_name().c_str());
         heading->add_entity(std::move(anchor));
     }
     document.add_entity(std::move(heading));
@@ -259,22 +257,129 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
 
     if (doc.has_comment())
     {
-        auto comment =
-            md_ptr<md_comment>(static_cast<md_comment*>(doc.get_comment().clone().release()));
-        i.register_comment(*comment);
-        document.add_entity(std::move(comment));
+        auto& comment = static_cast<md_comment&>(document.add_entity(doc.get_comment().clone()));
+        // need to register the comment that is part of the document
+        i.register_entity(doc_entity(doc.get_cpp_entity(), comment));
     }
+    else
+        // can keep doc as it, doesn't have a comment anyway
+        i.register_entity(doc);
 }
 
-md_ptr<md_document> standardese::generate_doc_file(const parser& p, const index& i,
-                                                   const cpp_file& f, std::string name)
+md_ptr<md_document> standardese::generate_doc_file(const parser& p, const index& i, cpp_file& f,
+                                                   std::string name)
 {
     auto doc = md_document::make(std::move(name));
+    f.set_output_name(doc->get_output_name());
 
     generate_doc_entity(p, i, *doc, 1, f);
 
     for (auto& e : f)
         dispatch(p, i, *doc, 2, e);
+
+    return doc;
+}
+
+md_ptr<md_document> standardese::generate_file_index(index& i, std::string name)
+{
+    auto doc = md_document::make(std::move(name));
+
+    auto list = md_list::make(*doc, md_list_type::bullet, md_list_delimiter::none, 0, false);
+    i.for_each_file([&](const cpp_file& f) {
+        auto& paragraph = make_list_item_paragraph(*list);
+
+        auto link = md_link::make(paragraph, "", f.get_unique_name().c_str());
+        link->add_entity(md_text::make(*link, f.get_name().c_str()));
+        paragraph.add_entity(std::move(link));
+
+    });
+    doc->add_entity(std::move(list));
+
+    return doc;
+}
+
+namespace
+{
+    std::string get_name_signature(const cpp_entity& e)
+    {
+        auto result = std::string(e.get_name().c_str());
+        if (auto base = get_function(e))
+            result += base->get_signature().c_str();
+        return result;
+    }
+
+    void add_brief_comment(md_paragraph& parent, const cpp_entity& entity)
+    {
+        if (!entity.has_comment())
+            return;
+
+        for (auto& e : entity.get_comment())
+        {
+            if (e.get_entity_type() != md_entity::paragraph_t)
+                continue;
+
+            auto& paragraph = static_cast<const md_paragraph&>(e);
+            if (paragraph.get_section_type() == section_type::brief)
+            {
+                parent.add_entity(md_text::make(parent, " - "));
+                for (auto& child : paragraph)
+                    parent.add_entity(child.clone(parent));
+            }
+        }
+    }
+
+    void make_index_item(md_list& list, const cpp_entity& e)
+    {
+        auto& paragraph = make_list_item_paragraph(list);
+
+        auto link = md_link::make(paragraph, "", e.get_unique_name().c_str());
+        link->add_entity(md_text::make(*link, get_name_signature(e).c_str()));
+        paragraph.add_entity(std::move(link));
+
+        add_brief_comment(paragraph, e);
+    }
+
+    md_ptr<md_list_item> make_namespace_item(const md_list& list, const cpp_name& ns_name)
+    {
+        auto item = md_list_item::make(list);
+
+        auto paragraph = md_paragraph::make(*item);
+        paragraph->add_entity(md_code::make(*item, ns_name.c_str()));
+        item->add_entity(std::move(paragraph));
+        item->add_entity(md_list::make_bullet(*paragraph));
+
+        return item;
+    }
+}
+
+md_ptr<md_document> standardese::generate_entity_index(index& i, std::string name)
+{
+    auto doc  = md_document::make(std::move(name));
+    auto list = md_list::make_bullet(*doc);
+
+    std::map<std::string, md_ptr<md_list_item>> ns_lists;
+    i.for_each_namespace_member([&](const cpp_namespace* ns, const cpp_entity& e) {
+        if (!ns)
+            make_index_item(*list, e);
+        else
+        {
+            auto ns_name = ns->get_full_name();
+            auto iter    = ns_lists.find(ns_name.c_str());
+            if (iter == ns_lists.end())
+            {
+                auto item = make_namespace_item(*list, ns_name);
+                iter      = ns_lists.emplace(ns_name.c_str(), std::move(item)).first;
+            }
+
+            auto& item = *iter->second;
+            assert(std::next(item.begin())->get_entity_type() == md_entity::list_t);
+            make_index_item(static_cast<md_list&>(*std::next(item.begin())), e);
+        }
+    });
+
+    for (auto& p : ns_lists)
+        list->add_entity(std::move(p.second));
+    doc->add_entity(std::move(list));
 
     return doc;
 }

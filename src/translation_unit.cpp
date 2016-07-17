@@ -12,31 +12,16 @@
 
 using namespace standardese;
 
-namespace
-{
-    struct tu_deleter
-    {
-        void operator()(CXTranslationUnit tu) const STANDARDESE_NOEXCEPT
-        {
-            clang_disposeTranslationUnit(tu);
-        }
-    };
-
-    using tu_wrapper = detail::wrapper<CXTranslationUnit, tu_deleter>;
-}
-
 struct translation_unit::impl
 {
-    detail::context context;
-
-    tu_wrapper tu;
-    cpp_file*  file;
-
+    detail::context            context;
+    cpp_name                   full_path;
+    cpp_file*                  file;
     const standardese::parser* parser;
 
-    impl(const standardese::parser& p, CXTranslationUnit tunit, const char* path, cpp_file* file,
+    impl(const standardese::parser& p, const char* path, cpp_file* file,
          const compile_config& config)
-    : context(path), tu(tunit), file(file), parser(&p)
+    : context(path), full_path(path), file(file), parser(&p)
     {
         using namespace boost::wave;
 
@@ -74,16 +59,21 @@ const parser& translation_unit::get_parser() const STANDARDESE_NOEXCEPT
     return *pimpl_->parser;
 }
 
-cpp_name translation_unit::get_path() const STANDARDESE_NOEXCEPT
+const cpp_name& translation_unit::get_path() const STANDARDESE_NOEXCEPT
 {
-    return pimpl_->file->get_name();
+    return pimpl_->full_path;
 }
 
 CXFile translation_unit::get_cxfile() const STANDARDESE_NOEXCEPT
 {
-    auto file = clang_getFile(pimpl_->tu.get(), get_path().c_str());
+    auto file = clang_getFile(get_cxunit(), get_path().c_str());
     detail::validate(file);
     return file;
+}
+
+cpp_file& translation_unit::get_file() STANDARDESE_NOEXCEPT
+{
+    return *pimpl_->file;
 }
 
 const cpp_file& translation_unit::get_file() const STANDARDESE_NOEXCEPT
@@ -93,7 +83,7 @@ const cpp_file& translation_unit::get_file() const STANDARDESE_NOEXCEPT
 
 CXTranslationUnit translation_unit::get_cxunit() const STANDARDESE_NOEXCEPT
 {
-    return pimpl_->tu.get();
+    return pimpl_->file->get_cxunit();
 }
 
 const cpp_entity_registry& translation_unit::get_registry() const STANDARDESE_NOEXCEPT
@@ -101,13 +91,13 @@ const cpp_entity_registry& translation_unit::get_registry() const STANDARDESE_NO
     return pimpl_->parser->get_registry();
 }
 
-translation_unit::translation_unit(const parser& par, CXTranslationUnit tu, const char* path,
-                                   cpp_file* file, const compile_config& config)
-: pimpl_(new impl(par, tu, path, file, config))
+translation_unit::translation_unit(const parser& par, const char* path, cpp_file* file,
+                                   const compile_config& config)
+: pimpl_(new impl(par, path, file, config))
 {
     detail::scope_stack stack(pimpl_->file);
 
-    detail::visit_tu(pimpl_->tu.get(), get_cxfile(), [&](cpp_cursor cur, cpp_cursor parent) {
+    detail::visit_tu(get_cxunit(), get_cxfile(), [&](cpp_cursor cur, cpp_cursor parent) {
         stack.pop_if_needed(parent);
 
         if (clang_getCursorSemanticParent(cur) != parent
@@ -123,8 +113,8 @@ translation_unit::translation_unit(const parser& par, CXTranslationUnit tu, cons
                 get_parser()
                     .get_logger()
                     ->debug("parsing entity '{}' ({}:{}) of type '{}'",
-                            string(clang_getCursorDisplayName(cur)).c_str(),
-                            location.file_name, location.line,
+                            string(clang_getCursorDisplayName(cur)).c_str(), location.file_name,
+                            location.line,
                             string(clang_getCursorKindSpelling(clang_getCursorKind(cur))).c_str());
             }
 
@@ -159,7 +149,7 @@ translation_unit::translation_unit(const parser& par, CXTranslationUnit tu, cons
                                                  ex.get_location().line, ex.what());
             return CXChildVisit_Continue;
         }
-        catch (boost::wave::cpp_exception &ex)
+        catch (boost::wave::cpp_exception& ex)
         {
             using namespace boost::wave;
             if (ex.get_errorcode() == preprocess_exception::alreadydefined_name
@@ -171,12 +161,14 @@ translation_unit::translation_unit(const parser& par, CXTranslationUnit tu, cons
                 throw;
             else if (ex.get_severity() >= util::severity_error)
                 get_parser().get_logger()->error("when parsing '{}' ({}:{}): {} (Boost.Wave)",
-                                                 ex.get_related_name(), ex.file_name(), ex.line_no(),
-                                                 preprocess_exception::error_text(ex.get_errorcode()));
+                                                 ex.get_related_name(), ex.file_name(),
+                                                 ex.line_no(), preprocess_exception::error_text(
+                                                                   ex.get_errorcode()));
             else
                 get_parser().get_logger()->warn("when parsing '{}' ({}:{}): {} (Boost.Wave)",
                                                 ex.get_related_name(), ex.file_name(), ex.line_no(),
-                                                preprocess_exception::error_text(ex.get_errorcode()));
+                                                preprocess_exception::error_text(
+                                                    ex.get_errorcode()));
             return CXChildVisit_Continue;
         }
     });
