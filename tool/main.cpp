@@ -235,6 +235,8 @@ int main(int argc, char* argv[])
                 if (doc)
                     documents.push_back(std::move(doc));
             }
+
+            log->info("Generating indices...");
             documents.push_back(generate_file_index(index));
             documents.push_back(generate_entity_index(index));
 
