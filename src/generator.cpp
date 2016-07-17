@@ -16,7 +16,6 @@
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
-#include <boost/concept_check.hpp>
 
 using namespace standardese;
 
@@ -227,9 +226,9 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
 
 namespace
 {
-    md_ptr<md_heading> make_heading(const cpp_entity& e, const md_document& doc, unsigned level)
+    md_ptr<md_heading> make_heading(const cpp_entity& e, const md_entity& parent, unsigned level)
     {
-        auto heading = md_heading::make(doc, level);
+        auto heading = md_heading::make(parent, level);
 
         auto type     = get_entity_type_spelling(e.get_entity_type());
         auto text_str = fmt::format("{}{} ", char(std::toupper(type[0])), &type[1]);
@@ -299,18 +298,65 @@ md_ptr<md_document> standardese::generate_file_index(index& i, std::string name)
     return doc;
 }
 
-md_ptr<md_document> standardese::generate_entity_index(index& i, std::string name)
+namespace
 {
-    auto doc = md_document::make(std::move(name));
+    std::string get_name_signature(const cpp_entity& e)
+    {
+        auto result = std::string(e.get_name().c_str());
+        if (auto base = get_function(e))
+            result += base->get_signature().c_str();
+        return result;
+    }
 
-    auto list = md_list::make(*doc, md_list_type::bullet, md_list_delimiter::none, 0, false);
-    i.for_each_namespace_member([&](const cpp_namespace*, const cpp_entity& e) {
-        auto& paragraph = make_list_item_paragraph(*list);
+    void make_index_item(md_list& list, const cpp_entity& e)
+    {
+        auto& paragraph = make_list_item_paragraph(list);
 
         auto link = md_link::make(paragraph, "", e.get_unique_name().c_str());
-        link->add_entity(md_text::make(*link, e.get_unique_name().c_str()));
+        link->add_entity(md_text::make(*link, get_name_signature(e).c_str()));
         paragraph.add_entity(std::move(link));
+    }
+
+    md_ptr<md_list_item> make_namespace_item(const md_list& list, const cpp_name& ns_name)
+    {
+        auto item = md_list_item::make(list);
+
+        auto paragraph = md_paragraph::make(*item);
+        paragraph->add_entity(md_code::make(*item, ns_name.c_str()));
+        item->add_entity(std::move(paragraph));
+        item->add_entity(md_list::make_bullet(*paragraph));
+
+        return item;
+    }
+}
+
+md_ptr<md_document> standardese::generate_entity_index(index& i, std::string name)
+{
+    auto doc  = md_document::make(std::move(name));
+    auto list = md_list::make_bullet(*doc);
+
+    std::map<std::string, md_ptr<md_list_item>> ns_lists;
+    i.for_each_namespace_member([&](const cpp_namespace* ns, const cpp_entity& e) {
+        if (!ns)
+            make_index_item(*list, e);
+        else
+        {
+            auto ns_name = ns->get_full_name();
+            auto iter    = ns_lists.find(ns_name.c_str());
+            if (iter == ns_lists.end())
+            {
+                auto item = make_namespace_item(*list, ns_name);
+                iter      = ns_lists.emplace(ns_name.c_str(), std::move(item)).first;
+            }
+
+            auto& item = *iter->second;
+            assert(std::next(item.begin())->get_entity_type() == md_entity::list_t);
+            make_index_item(static_cast<md_list&>(*std::next(item.begin())), e);
+        }
     });
+
+    for (auto& p : ns_lists)
+        list->add_entity(std::move(p.second));
     doc->add_entity(std::move(list));
 
     return doc;

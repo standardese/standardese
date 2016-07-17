@@ -119,6 +119,18 @@ namespace standardese
         static md_ptr<md_list> make(const md_entity& parent, md_list_type type,
                                     md_list_delimiter delim, int start, bool is_tight);
 
+        static md_ptr<md_list> make_bullet(const md_entity& parent, bool is_tight = false)
+        {
+            return make(parent, md_list_type::bullet, md_list_delimiter::none, 0, is_tight);
+        }
+
+        static md_ptr<md_list> make_ordered(const md_entity& parent, int start,
+                                            md_list_delimiter delim    = md_list_delimiter::period,
+                                            bool              is_tight = false)
+        {
+            return make(parent, md_list_type::ordered, delim, start, is_tight);
+        }
+
         md_list_type get_list_type() const STANDARDESE_NOEXCEPT;
 
         md_list_delimiter get_delimiter() const STANDARDESE_NOEXCEPT;
