@@ -30,6 +30,14 @@ namespace standardese
         CXErrorCode error_;
     };
 
+    class cmark_error : public std::runtime_error
+    {
+    public:
+        cmark_error(std::string message) : runtime_error(std::move(message))
+        {
+        }
+    };
+
     struct source_location
     {
         std::string entity_name, file_name;

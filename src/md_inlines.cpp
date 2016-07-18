@@ -9,6 +9,8 @@
 
 #include <spdlog/details/format.h>
 
+#include <standardese/error.hpp>
+
 using namespace standardese;
 
 md_ptr<md_text> md_text::parse(cmark_node* cur, const md_entity& parent)
@@ -20,7 +22,10 @@ md_ptr<md_text> md_text::parse(cmark_node* cur, const md_entity& parent)
 md_ptr<md_text> md_text::make(const md_entity& parent, const char* text)
 {
     auto node = cmark_node_new(CMARK_NODE_TEXT);
-    cmark_node_set_literal(node, text);
+    if (!node)
+        throw cmark_error("md_text::make");
+    if (!cmark_node_set_literal(node, text))
+        throw cmark_error("md_text::make: cmark_node_set_literal");
     return detail::make_md_ptr<md_text>(node, parent);
 }
 
@@ -39,6 +44,8 @@ md_ptr<md_soft_break> md_soft_break::parse(cmark_node* cur, const md_entity& par
 md_ptr<md_soft_break> md_soft_break::make(const md_entity& parent)
 {
     auto node = cmark_node_new(CMARK_NODE_SOFTBREAK);
+    if (!node)
+        throw cmark_error("md_soft_break::make");
     return detail::make_md_ptr<md_soft_break>(node, parent);
 }
 
@@ -57,6 +64,8 @@ md_ptr<md_line_break> md_line_break::parse(cmark_node* cur, const md_entity& par
 md_ptr<md_line_break> md_line_break::make(const md_entity& parent)
 {
     auto node = cmark_node_new(CMARK_NODE_LINEBREAK);
+    if (!node)
+        throw cmark_error("md_line_break::make");
     return detail::make_md_ptr<md_line_break>(node, parent);
 }
 
@@ -75,7 +84,10 @@ md_ptr<md_code> md_code::parse(cmark_node* cur, const md_entity& parent)
 md_ptr<md_code> md_code::make(const md_entity& parent, const char* code)
 {
     auto node = cmark_node_new(CMARK_NODE_CODE);
-    cmark_node_set_literal(node, code);
+    if (!node)
+        throw cmark_error("md_code::make");
+    if (!cmark_node_set_literal(node, code))
+        throw cmark_error("md_code::make: cmark_node_set_literal");
     return detail::make_md_ptr<md_code>(node, parent);
 }
 
@@ -94,6 +106,8 @@ md_ptr<md_emphasis> md_emphasis::parse(cmark_node* cur, const md_entity& parent)
 md_ptr<md_emphasis> md_emphasis::make(const md_entity& parent)
 {
     auto node = cmark_node_new(CMARK_NODE_EMPH);
+    if (!node)
+        throw cmark_error("md_emphasis::make");
     return detail::make_md_ptr<md_emphasis>(node, parent);
 }
 
@@ -127,6 +141,8 @@ md_ptr<md_strong> md_strong::parse(cmark_node* cur, const md_entity& parent)
 md_ptr<md_strong> md_strong::make(const md_entity& parent)
 {
     auto node = cmark_node_new(CMARK_NODE_STRONG);
+    if (!node)
+        throw cmark_error("md_strong::make");
     return detail::make_md_ptr<md_strong>(node, parent);
 }
 
@@ -160,8 +176,12 @@ md_ptr<md_link> md_link::parse(cmark_node* cur, const md_entity& parent)
 md_ptr<md_link> md_link::make(const md_entity& parent, const char* destination, const char* title)
 {
     auto node = cmark_node_new(CMARK_NODE_LINK);
-    cmark_node_set_url(node, destination);
-    cmark_node_set_title(node, title);
+    if (!node)
+        throw cmark_error("md_link::make");
+    if (!cmark_node_set_url(node, destination))
+        throw cmark_error("md_link::make: cmark_node_set_url");
+    if (!cmark_node_set_title(node, title))
+        throw cmark_error("md_link::make: cmark_node_set_title");
     return detail::make_md_ptr<md_link>(node, parent);
 }
 
@@ -178,7 +198,8 @@ const char* md_link::get_destination() const STANDARDESE_NOEXCEPT
 void md_link::set_destination(const char* dest)
 {
     auto result = cmark_node_set_url(get_node(), dest);
-    assert(result);
+    if (!result)
+        throw cmark_error("md_link::set_destination");
 }
 
 md_entity_ptr md_link::do_clone(const md_entity* parent) const
@@ -203,7 +224,10 @@ namespace
 md_ptr<md_anchor> md_anchor::make(const md_entity& parent, const char* id)
 {
     auto node = cmark_node_new(CMARK_NODE_HTML_INLINE);
-    cmark_node_set_literal(node, make_id(id).c_str());
+    if (!node)
+        throw cmark_error("md_anchor::make");
+    if (!cmark_node_set_literal(node, make_id(id).c_str()))
+        throw cmark_error("md_anchor::make: cmark_node_set_literal");
     return detail::make_md_ptr<md_anchor>(node, parent);
 }
 
@@ -222,7 +246,8 @@ std::string md_anchor::get_id() const
 
 void md_anchor::set_id(const char* id)
 {
-    cmark_node_set_literal(get_node(), make_id(id).c_str());
+    if (!cmark_node_set_literal(get_node(), make_id(id).c_str()))
+        throw cmark_error("md_anchor::set_literal");
 }
 
 md_entity_ptr md_anchor::do_clone(const md_entity* parent) const

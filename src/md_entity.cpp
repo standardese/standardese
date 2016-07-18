@@ -71,7 +71,9 @@ md_leave::md_leave(md_entity::type t, cmark_node* node,
 
 void md_leave::set_string(const char* str)
 {
-    cmark_node_set_literal(get_node(), str);
+    auto res = cmark_node_set_literal(get_node(), str);
+    if (!res)
+        throw cmark_error("md_leave::set_string()");
 }
 
 md_container::md_container(md_entity::type t, cmark_node* node,
@@ -95,7 +97,8 @@ md_entity& md_container::add_entity(md_entity_ptr entity)
         // synthesized node, need to add
         cmark_node_unlink(entity->get_node());
         auto res = cmark_node_append_child(get_node(), entity->get_node());
-        assert(res);
+        if (!res)
+            throw cmark_error("md_container::add_entity");
     }
 
     auto& ref = *entity;

@@ -214,6 +214,10 @@ int main(int argc, char* argv[])
                 {
                     log->error("libclang error on {}", ex.what());
                 }
+                catch (cmark_error& ex)
+                {
+                    log->error("cmark error in '{}'", ex.what());
+                }
 
                 return result;
             };

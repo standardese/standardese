@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cmark.h>
 
+#include <standardese/error.hpp>
 #include <standardese/md_inlines.hpp>
 
 using namespace standardese;
@@ -20,6 +21,8 @@ md_ptr<md_block_quote> md_block_quote::parse(cmark_node* cur, const md_entity& p
 md_ptr<md_block_quote> md_block_quote::make(const md_entity& parent)
 {
     auto node = cmark_node_new(CMARK_NODE_BLOCK_QUOTE);
+    if (!node)
+        throw cmark_error("md_block_quote::make");
     return detail::make_md_ptr<md_block_quote>(node, parent);
 }
 
@@ -44,32 +47,41 @@ md_ptr<md_list> md_list::make(const md_entity& parent, md_list_type type, md_lis
                               int start, bool is_tight)
 {
     auto node = cmark_node_new(CMARK_NODE_LIST);
+    if (!node)
+        throw cmark_error("md_list::make");
 
+    auto res = true;
     switch (type)
     {
     case md_list_type::bullet:
-        cmark_node_set_list_type(node, CMARK_BULLET_LIST);
+        res = cmark_node_set_list_type(node, CMARK_BULLET_LIST);
         break;
     case md_list_type::ordered:
-        cmark_node_set_list_type(node, CMARK_ORDERED_LIST);
+        res = cmark_node_set_list_type(node, CMARK_ORDERED_LIST);
         break;
     }
+    if (!res)
+        throw cmark_error("md_list::make: cmark_node_set_list_type");
 
     switch (delim)
     {
     case md_list_delimiter::none:
-        cmark_node_set_list_delim(node, CMARK_NO_DELIM);
+        res = cmark_node_set_list_delim(node, CMARK_NO_DELIM);
         break;
     case md_list_delimiter::parenthesis:
-        cmark_node_set_list_delim(node, CMARK_PAREN_DELIM);
+        res = cmark_node_set_list_delim(node, CMARK_PAREN_DELIM);
         break;
     case md_list_delimiter::period:
-        cmark_node_set_list_delim(node, CMARK_PERIOD_DELIM);
+        res = cmark_node_set_list_delim(node, CMARK_PERIOD_DELIM);
         break;
     }
+    if (!res)
+        throw cmark_error("md_list::make: cmark_node_set_list_delim");
 
-    cmark_node_set_list_start(node, start);
-    cmark_node_set_list_tight(node, is_tight);
+    if (!cmark_node_set_list_start(node, start))
+        throw cmark_error("md_list::make: cmark_node_set_list_start");
+    if (!cmark_node_set_list_tight(node, is_tight))
+        throw cmark_error("md_list::make: cmark_node_set_list_tight");
 
     return detail::make_md_ptr<md_list>(node, parent);
 }
@@ -134,6 +146,8 @@ md_ptr<md_list_item> md_list_item::parse(cmark_node* cur, const md_entity& paren
 md_ptr<md_list_item> md_list_item::make(const md_entity& parent)
 {
     auto node = cmark_node_new(CMARK_NODE_ITEM);
+    if (!node)
+        throw cmark_error("md_list_item::make");
     return detail::make_md_ptr<md_list_item>(node, parent);
 }
 
@@ -170,8 +184,12 @@ md_ptr<standardese::md_code_block> md_code_block::make(const md_entity& parent, 
                                                        const char* fence)
 {
     auto node = cmark_node_new(CMARK_NODE_CODE_BLOCK);
-    cmark_node_set_literal(node, code);
-    cmark_node_set_fence_info(node, fence);
+    if (!node)
+        throw cmark_error("md_code_block::make");
+    if (!cmark_node_set_literal(node, code))
+        throw cmark_error("md_code_block::make: cmark_node_set_literal");
+    if (!cmark_node_set_fence_info(node, fence))
+        throw cmark_error("md_code_block::make: cmark_node_set_fence_info");
     return detail::make_md_ptr<md_code_block>(node, parent);
 }
 
@@ -195,6 +213,8 @@ md_ptr<md_paragraph> md_paragraph::parse(cmark_node* cur, const md_entity& paren
 md_ptr<md_paragraph> md_paragraph::make(const md_entity& parent)
 {
     auto node = cmark_node_new(CMARK_NODE_PARAGRAPH);
+    if (!node)
+        throw cmark_error("md_paragraph::make");
     return detail::make_md_ptr<md_paragraph>(node, parent);
 }
 
@@ -225,7 +245,8 @@ void md_paragraph::set_section_type(section_type t, const std::string& name)
 
         // add the section node as child on the cmark api
         auto res = cmark_node_prepend_child(get_node(), section_node_->get_node());
-        assert(res);
+        if (!res)
+            throw cmark_error("md_paragraph::set_section_type");
     }
 }
 
@@ -264,7 +285,10 @@ md_ptr<md_heading> md_heading::parse(cmark_node* cur, const md_entity& parent)
 md_ptr<md_heading> md_heading::make(const md_entity& parent, int level)
 {
     auto node = cmark_node_new(CMARK_NODE_HEADING);
-    cmark_node_set_heading_level(node, level);
+    if (!node)
+        throw cmark_error("md_heading::make");
+    if (!cmark_node_set_heading_level(node, level))
+        throw cmark_error("md_heading::make: cmark_node_set_heading_level");
     return detail::make_md_ptr<md_heading>(node, parent);
 }
 
@@ -293,6 +317,8 @@ md_ptr<md_thematic_break> md_thematic_break::parse(cmark_node* cur, const md_ent
 md_ptr<md_thematic_break> md_thematic_break::make(const md_entity& parent)
 {
     auto node = cmark_node_new(CMARK_NODE_THEMATIC_BREAK);
+    if (!node)
+        throw cmark_error("md_thematic_break::make");
     return detail::make_md_ptr<md_thematic_break>(node, parent);
 }
 
