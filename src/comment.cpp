@@ -29,18 +29,54 @@ namespace
 
     using md_parser = detail::wrapper<cmark_parser*, parser_deleter>;
 
-    void skip_comment(const char*& ptr)
+    bool is_whitespace(char c)
     {
-        while (*ptr == ' ' || *ptr == '\t')
+        return c == ' ' || c == '\t';
+    }
+
+    void skip_comment_prefix(const char*& ptr, bool& is_multiline)
+    {
+        while (is_whitespace(*ptr))
             ++ptr;
 
-        if (*ptr == '/')
+        if (is_multiline)
         {
-            while (*ptr == '/')
+            // skip continuation star
+            if (*ptr == '*' && ptr[1] != '/')
                 ++ptr;
+        }
+        else if (std::strncmp(ptr, "///", 3) == 0 || std::strncmp(ptr, "//!", 3) == 0)
+        {
+            // skip C++ style documentation comment
+            ptr += 3;
+        }
+        else if (std::strncmp(ptr, "/**", 3) == 0 || std::strncmp(ptr, "/*!", 3) == 0)
+        {
+            // skip C style documentation comment
+            is_multiline = true;
+            ptr += 3;
+        }
 
-            while (*ptr == ' ' || *ptr == '\t')
-                ++ptr;
+        while (is_whitespace(*ptr))
+            ++ptr;
+    }
+
+    void skip_comment_suffix(const char* cur, std::size_t& cur_length, bool& is_multiline)
+    {
+        assert(*cur == '\n');
+        if (!is_multiline)
+            return;
+
+        // parse multiline seperator
+        if (cur_length >= 3 && std::strncmp(cur - 3, "**/", 3) == 0)
+        {
+            cur_length -= 3;
+            is_multiline = false;
+        }
+        else if (cur_length >= 2 && std::strncmp(cur - 2, "*/", 2) == 0)
+        {
+            cur_length -= 2;
+            is_multiline = false;
         }
     }
 
@@ -50,17 +86,22 @@ namespace
 
         auto        cur_start  = raw_comment.c_str();
         std::size_t cur_length = 0u;
+        auto        is_multiline = false;
 
         // skip leading comment
-        skip_comment(cur_start);
+        skip_comment_prefix(cur_start, is_multiline);
         for (auto cur = cur_start; *cur;)
         {
             if (*cur == '\n')
             {
                 // finished with one line
+                // skip suffix of a comment
+                skip_comment_suffix(cur, cur_length, is_multiline);
                 // +1 to include newline
                 cmark_parser_feed(parser.get(), cur_start, cur_length + 1);
-                skip_comment(++cur);
+                // skip prefix of next comment
+                skip_comment_prefix(++cur, is_multiline);
+                // reset to first non-comment character
                 cur_start  = cur;
                 cur_length = 0u;
 
@@ -80,6 +121,7 @@ namespace
         }
 
         // final line
+        skip_comment_suffix(cur_start + cur_length, cur_length, is_multiline);
         cmark_parser_feed(parser.get(), cur_start, cur_length);
 
         return cmark_parser_finish(parser.get());
