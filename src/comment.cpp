@@ -13,6 +13,7 @@
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
+#include <standardese/section.hpp>
 
 using namespace standardese;
 
@@ -162,12 +163,13 @@ namespace
             return;
         auto& text = remove_command_string(paragraph, command);
 
-        auto section = p.get_comment_config().try_get_section(command);
-        if (section != section_type::invalid)
-            paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
-        else if (command == p.get_comment_config().exclude_command())
+        auto c = p.get_comment_config().try_get_command(command);
+        if (is_section(c))
+            paragraph.set_section_type(make_section(c),
+                                       p.get_output_config().get_section_name(make_section(c)));
+        else if (make_command(c) == command_type::exclude)
             comment.set_excluded(true);
-        else if (command == p.get_comment_config().unique_name_command())
+        else if (make_command(c) == command_type::unique_name)
         {
             comment.set_unique_name(text.get_string());
             text.set_string(""); // might need to actually delete the text node at some point

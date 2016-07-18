@@ -189,7 +189,7 @@ void compile_config::setup_context(detail::context& context) const
 
 comment_config::comment_config() : cmd_char_('\\'), implicit_par_(false)
 {
-#define STANDARDESE_DETAIL_SET(type) set_section_command(section_type::type, #type);
+#define STANDARDESE_DETAIL_SET(type) set_command(unsigned(section_type::type), #type);
 
     STANDARDESE_DETAIL_SET(brief)
     STANDARDESE_DETAIL_SET(details)
@@ -206,47 +206,42 @@ comment_config::comment_config() : cmd_char_('\\'), implicit_par_(false)
     STANDARDESE_DETAIL_SET(notes)
 
 #undef STANDARDESE_DETAIL_SET
+#define STANDARDESE_DETAIL_SET(type) set_command(unsigned(command_type::type), #type);
+
+    STANDARDESE_DETAIL_SET(exclude)
+    STANDARDESE_DETAIL_SET(unique_name)
+
+#undef STANDARDESE_DETAIL_SET
 }
 
-section_type comment_config::try_get_section(const std::string& command) const STANDARDESE_NOEXCEPT
+unsigned comment_config::try_get_command(const std::string& command) const STANDARDESE_NOEXCEPT
 {
-    auto iter = section_commands_.find(command);
-    return iter == section_commands_.end() ? section_type::invalid : section_type(iter->second);
+    auto iter = commands_.find(command);
+    return iter == commands_.end() ? unsigned(command_type::invalid) : iter->second;
 }
 
-section_type comment_config::get_section(const std::string& command) const
+unsigned comment_config::get_command(const std::string& command) const
 {
-    auto iter = section_commands_.find(command);
-    if (iter == section_commands_.end())
-        throw std::invalid_argument(fmt::format("Invalid section command name '{}'", command));
-    return section_type(iter->second);
+    auto iter = commands_.find(command);
+    if (iter == commands_.end())
+        throw std::invalid_argument(fmt::format("Invalid command name '{}'", command));
+    return iter->second;
 }
 
-void comment_config::set_section_command(section_type t, std::string command)
+void comment_config::set_command(unsigned t, std::string command)
 {
     // erase old command name
-    for (auto iter = section_commands_.begin(); iter != section_commands_.end(); ++iter)
-        if (iter->second == unsigned(t))
+    for (auto iter = commands_.begin(); iter != commands_.end(); ++iter)
+        if (iter->second == t)
         {
-            section_commands_.erase(iter);
+            commands_.erase(iter);
             break;
         }
 
     // insert new name
-    auto res = section_commands_.emplace(std::move(command), unsigned(t));
+    auto res = commands_.emplace(std::move(command), unsigned(t));
     if (!res.second)
-        throw std::invalid_argument(
-            fmt::format("Section command name '{}' already in use", command));
-}
-
-const char* comment_config::exclude_command() const STANDARDESE_NOEXCEPT
-{
-    return "exclude";
-}
-
-const char* comment_config::unique_name_command() const STANDARDESE_NOEXCEPT
-{
-    return "unique_name";
+        throw std::invalid_argument(fmt::format("Command name '{}' already in use", command));
 }
 
 output_config::output_config()

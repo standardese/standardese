@@ -5,6 +5,8 @@
 #ifndef STANDARDESE_SECTION_HPP_INCLUDED
 #define STANDARDESE_SECTION_HPP_INCLUDED
 
+#include <cassert>
+
 #include <standardese/string.hpp>
 
 namespace standardese
@@ -29,6 +31,31 @@ namespace standardese
         count,
         invalid = count
     };
+
+    enum class command_type : unsigned
+    {
+        invalid = unsigned(section_type::count),
+        exclude,
+        unique_name,
+        count,
+    };
+
+    inline bool is_section(unsigned c) STANDARDESE_NOEXCEPT
+    {
+        return c < unsigned(section_type::count);
+    }
+
+    inline section_type make_section(unsigned c) STANDARDESE_NOEXCEPT
+    {
+        assert(is_section(c));
+        return section_type(c);
+    }
+
+    inline command_type make_command(unsigned c) STANDARDESE_NOEXCEPT
+    {
+        assert(!is_section(c));
+        return command_type(c);
+    }
 } // namespace standardese
 
 #endif // STANDARDESE_SECTION_HPP_INCLUDED

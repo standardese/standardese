@@ -52,6 +52,7 @@ namespace standardese
         friend class parser;
     };
 
+    enum class command_type : unsigned;
     enum class section_type : unsigned;
 
     class comment_config
@@ -79,18 +80,14 @@ namespace standardese
             implicit_par_ = v;
         }
 
-        void set_section_command(section_type t, std::string command);
+        void set_command(unsigned c, std::string command);
 
-        section_type get_section(const std::string& command) const;
+        unsigned get_command(const std::string& command) const;
 
-        section_type try_get_section(const std::string& command) const STANDARDESE_NOEXCEPT;
-
-        const char* exclude_command() const STANDARDESE_NOEXCEPT;
-
-        const char* unique_name_command() const STANDARDESE_NOEXCEPT;
+        unsigned try_get_command(const std::string& command) const STANDARDESE_NOEXCEPT;
 
     private:
-        std::map<std::string, unsigned> section_commands_;
+        std::map<std::string, unsigned> commands_;
         char cmd_char_;
         bool implicit_par_;
     };

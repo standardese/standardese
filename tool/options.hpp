@@ -86,13 +86,16 @@ namespace standardese_tool
 
                     if (erase_prefix(name, "comment.cmd_name_"))
                     {
-                        auto section = p.get_comment_config().get_section(name);
-                        p.get_comment_config().set_section_command(section, opt.value[0]);
+                        auto section = p.get_comment_config().get_command(name);
+                        p.get_comment_config().set_command(section, opt.value[0]);
                     }
                     else if (erase_prefix(name, "output.section_name_"))
                     {
-                        auto section = p.get_comment_config().get_section(name);
-                        p.get_output_config().set_section_name(section, opt.value[0]);
+                        auto section = p.get_comment_config().get_command(name);
+                        if (!standardese::is_section(section))
+                            throw std::invalid_argument(name + " is not a section");
+                        p.get_output_config().set_section_name(standardese::make_section(section),
+                                                               opt.value[0]);
                     }
                     else
                         throw std::invalid_argument("unrecognized option '" + opt.string_key + "'");
