@@ -75,7 +75,7 @@ md_ptr<md_list> md_list::make(const md_entity& parent, md_list_type type, md_lis
         res = cmark_node_set_list_delim(node, CMARK_PERIOD_DELIM);
         break;
     }
-    if (!res)
+    if (type == md_list_type::ordered && !res)
         throw cmark_error("md_list::make: cmark_node_set_list_delim");
 
     if (!cmark_node_set_list_start(node, start))
