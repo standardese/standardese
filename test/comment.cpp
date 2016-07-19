@@ -23,39 +23,73 @@ std::string get_text(const md_paragraph& paragraph)
     return result;
 }
 
-std::string get_text(const md_comment& comment)
-{
-    REQUIRE(comment.begin()->get_entity_type() == md_entity::paragraph_t);
-    return get_text(dynamic_cast<const md_paragraph&>(*comment.begin()));
-}
-
 TEST_CASE("md_comment", "[doc]")
 {
     parser p;
 
     SECTION("comment styles")
     {
-        auto comment = md_comment::parse(p, "", "/// C++ style.");
-        REQUIRE(get_text(*comment) == "C++ style.");
+        auto source = R"(
+            /// C++ style.
+            
+            //! C++ exclamation.
+            
+            /** C style. */
+            
+            // ignored
+            /* ignored as well */
+            
+            /*! C exclamation.
+            */
+            
+            /** C style
+              * multiline.
+              */
+              
+            /** C style
+            /// C++ multiline. */
+            
+            /// Multiple
+            /// C++
+            /** and C
+            */
+            /// style.
+        )";
 
-        comment = md_comment::parse(p, "", "//! C++ exclamation.");
-        REQUIRE(get_text(*comment) == "C++ exclamation.");
+        auto comments = detail::read_comments(source);
+        REQUIRE(comments.size() == 7);
 
-        comment = md_comment::parse(p, "", "/** C style.*/");
-        REQUIRE(get_text(*comment) == "C style.");
+        REQUIRE(comments[0].content == "C++ style.");
+        REQUIRE(comments[0].count_lines == 1u);
+        REQUIRE(comments[0].end_line == 1u);
 
-        comment = md_comment::parse(p, "", "/*! C exclamation.*/");
-        REQUIRE(get_text(*comment) == "C exclamation.");
+        REQUIRE(comments[1].content == "C++ exclamation.");
+        REQUIRE(comments[1].count_lines == 1u);
+        REQUIRE(comments[1].end_line == 3u);
 
-        comment = md_comment::parse(p, "", "/** C style\n * multiline.\n*/");
-        REQUIRE(get_text(*comment) == "C style\nmultiline.");
+        REQUIRE(comments[2].content == "C style.");
+        REQUIRE(comments[2].count_lines == 1u);
+        REQUIRE(comments[2].end_line == 5u);
 
-        comment = md_comment::parse(p, "", "/** C style\n/// C++ multiline.*/");
-        REQUIRE(get_text(*comment) == "C style\n/// C++ multiline.");
+        REQUIRE(comments[3].content == "C exclamation.");
+        REQUIRE(comments[3].count_lines == 2u);
+        REQUIRE(comments[3].end_line == 11u);
+
+        REQUIRE(comments[4].content == "C style\nmultiline.");
+        REQUIRE(comments[4].count_lines == 3u);
+        REQUIRE(comments[4].end_line == 15u);
+
+        REQUIRE(comments[5].content == "C style\n/// C++ multiline.");
+        REQUIRE(comments[5].count_lines == 2u);
+        REQUIRE(comments[5].end_line == 18u);
+
+        REQUIRE(comments[6].content == "Multiple\nC++\nand C\nstyle.");
+        REQUIRE(comments[6].count_lines == 5u);
+        REQUIRE(comments[6].end_line == 24u);
     }
     SECTION("simple parsing")
     {
-        auto comment = md_comment::parse(p, "", R"(/// Hello World.)");
+        auto comment = md_comment::parse(p, "", R"(Hello World.)");
         auto count   = 0u;
         for (auto& child : *comment)
         {
@@ -70,11 +104,12 @@ TEST_CASE("md_comment", "[doc]")
     }
     SECTION("multiple sections explicit")
     {
-        auto comment = md_comment::parse(p, "", R"(/// \brief A
-                                                 ///
-                                                 /// \details B
-                                                 /// C
-                                               )");
+        auto comment = md_comment::parse(p, "", R"(
+\brief A
+
+\details B
+C
+)");
 
         auto count = 0u;
         for (auto& child : *comment)
@@ -99,11 +134,12 @@ TEST_CASE("md_comment", "[doc]")
     }
     SECTION("multiple sections implicit")
     {
-        auto comment = md_comment::parse(p, "", R"(///  A
-                                                ///
-                                                /// B
-                                                /// C /// C
-                                               )");
+        auto comment = md_comment::parse(p, "", R"(
+A
+ 
+B
+C /// C
+)");
 
         auto count = 0u;
         for (auto& child : *comment)
@@ -128,12 +164,14 @@ TEST_CASE("md_comment", "[doc]")
     }
     SECTION("cherry pick other commands")
     {
-        auto comment = md_comment::parse(p, "", R"(/// \effects A A
-                                                /// A A
-                                                ///
-                                                /// \returns B B
-                                                ///
-                                                /// \error_conditions C C)");
+        auto comment = md_comment::parse(p, "", R"(
+\effects A A
+A A
+
+\returns B B
+
+\error_conditions C C
+)");
 
         auto count = 0u;
         for (auto& child : *comment)

@@ -19,6 +19,162 @@ using namespace standardese;
 
 namespace
 {
+    bool is_whitespace(char c)
+    {
+        return c == ' ' || c == '\t';
+    }
+
+    bool is_cpp_doc_comment(const char*& ptr)
+    {
+        auto is = std::strncmp(ptr, "///", 3) == 0 || std::strncmp(ptr, "//!", 3) == 0;
+        if (is)
+            ptr += 3;
+        return is;
+    }
+
+    detail::raw_comment parse_cpp_comment(const char*& ptr, unsigned& cur_line)
+    {
+        while (is_whitespace(*ptr))
+            ++ptr;
+
+        std::string content;
+        for (; *ptr != '\n'; ++ptr)
+            content += *ptr;
+
+        assert(*ptr == '\n');
+        ++cur_line;
+        return {std::move(content), 1, cur_line - 1};
+    }
+
+    bool is_c_doc_comment_begin(const char*& ptr)
+    {
+        auto is = std::strncmp(ptr, "/**", 3) == 0 || std::strncmp(ptr, "/*!", 3) == 0;
+        if (is)
+            ptr += 3;
+        return is;
+    }
+
+    void skip_c_doc_comment_continuation(const char*& ptr)
+    {
+        assert(ptr[-1] == '\n');
+        while (is_whitespace(*ptr))
+            ++ptr;
+
+        if (*ptr == '*' && ptr[1] != '/')
+        {
+            ++ptr;
+            while (is_whitespace(*ptr))
+                ++ptr;
+        }
+    }
+
+    bool is_c_doc_comment_end(const char*& ptr)
+    {
+        if (std::strncmp(ptr, "**/", 3) == 0)
+        {
+            ptr += 3;
+            return true;
+        }
+        else if (std::strncmp(ptr, "*/", 2) == 0)
+        {
+            ptr += 2;
+            return true;
+        }
+
+        return false;
+    }
+
+    detail::raw_comment parse_c_comment(const char*& ptr, unsigned& cur_line)
+    {
+        while (is_whitespace(*ptr))
+            ++ptr;
+
+        std::string content;
+        auto        lines         = 1u;
+        auto        needs_newline = false;
+        while (true)
+        {
+            if (*ptr == '\n')
+            {
+                while (is_whitespace(content.back()))
+                    content.pop_back();
+                needs_newline = true;
+
+                ++ptr;
+                ++cur_line;
+                ++lines;
+
+                skip_c_doc_comment_continuation(ptr);
+            }
+            else if (is_c_doc_comment_end(ptr))
+                break;
+            else
+            {
+                if (needs_newline)
+                {
+                    content += '\n';
+                    needs_newline = false;
+                }
+                content += *ptr++;
+            }
+        }
+        assert(ptr[-1] == '/');
+        --ptr;
+
+        assert(content.back() != '\n');
+        while (is_whitespace(content.back()))
+            content.pop_back();
+
+        return {std::move(content), lines, cur_line};
+    }
+
+    std::vector<detail::raw_comment> normalize(const std::vector<detail::raw_comment>& comments)
+    {
+        std::vector<detail::raw_comment> results;
+
+        for (auto iter = comments.begin(); iter != comments.end(); ++iter)
+        {
+            auto cur_content = iter->content;
+            auto cur_count   = iter->count_lines;
+            auto cur_end     = iter->end_line;
+            while (std::next(iter) != comments.end()
+                   && std::next(iter)->end_line == cur_end + std::next(iter)->count_lines)
+            {
+                ++iter;
+                cur_end = iter->end_line;
+                cur_count += iter->count_lines;
+                cur_content += '\n';
+                cur_content += iter->content;
+            }
+
+            results.emplace_back(std::move(cur_content), cur_count, cur_end);
+        }
+
+        return results;
+    }
+}
+
+std::vector<detail::raw_comment> detail::read_comments(const std::string& source)
+{
+    assert(source.back() == '\n');
+    std::vector<detail::raw_comment> comments;
+
+    auto cur_line = 0u;
+    for (auto ptr = source.c_str(); *ptr; ++ptr)
+    {
+        if (is_cpp_doc_comment(ptr))
+            comments.push_back(parse_cpp_comment(ptr, cur_line));
+        else if (is_c_doc_comment_begin(ptr))
+            comments.push_back(parse_c_comment(ptr, cur_line));
+        else if (*ptr == '\n')
+            ++cur_line;
+    }
+
+    return normalize(comments);
+}
+
+namespace
+{
     struct parser_deleter
     {
         void operator()(cmark_parser* parser) const STANDARDESE_NOEXCEPT
@@ -29,101 +185,10 @@ namespace
 
     using md_parser = detail::wrapper<cmark_parser*, parser_deleter>;
 
-    bool is_whitespace(char c)
-    {
-        return c == ' ' || c == '\t';
-    }
-
-    void skip_comment_prefix(const char*& ptr, bool& is_multiline)
-    {
-        while (is_whitespace(*ptr))
-            ++ptr;
-
-        if (is_multiline)
-        {
-            // skip continuation star
-            if (*ptr == '*' && ptr[1] != '/')
-                ++ptr;
-        }
-        else if (std::strncmp(ptr, "///", 3) == 0 || std::strncmp(ptr, "//!", 3) == 0)
-        {
-            // skip C++ style documentation comment
-            ptr += 3;
-        }
-        else if (std::strncmp(ptr, "/**", 3) == 0 || std::strncmp(ptr, "/*!", 3) == 0)
-        {
-            // skip C style documentation comment
-            is_multiline = true;
-            ptr += 3;
-        }
-
-        while (is_whitespace(*ptr))
-            ++ptr;
-    }
-
-    void skip_comment_suffix(const char* cur, std::size_t& cur_length, bool& is_multiline)
-    {
-        assert(*cur == '\n');
-        if (!is_multiline)
-            return;
-
-        // parse multiline seperator
-        if (cur_length >= 3 && std::strncmp(cur - 3, "**/", 3) == 0)
-        {
-            cur_length -= 3;
-            is_multiline = false;
-        }
-        else if (cur_length >= 2 && std::strncmp(cur - 2, "*/", 2) == 0)
-        {
-            cur_length -= 2;
-            is_multiline = false;
-        }
-    }
-
     cmark_node* parse_document(const parser& p, const string& raw_comment)
     {
         md_parser parser(cmark_parser_new(CMARK_OPT_NORMALIZE));
-
-        auto        cur_start  = raw_comment.c_str();
-        std::size_t cur_length = 0u;
-        auto        is_multiline = false;
-
-        // skip leading comment
-        skip_comment_prefix(cur_start, is_multiline);
-        for (auto cur = cur_start; *cur;)
-        {
-            if (*cur == '\n')
-            {
-                // finished with one line
-                // skip suffix of a comment
-                skip_comment_suffix(cur, cur_length, is_multiline);
-                // +1 to include newline
-                cmark_parser_feed(parser.get(), cur_start, cur_length + 1);
-                // skip prefix of next comment
-                skip_comment_prefix(++cur, is_multiline);
-                // reset to first non-comment character
-                cur_start  = cur;
-                cur_length = 0u;
-
-                if (p.get_comment_config().get_implicit_paragraph())
-                {
-                    // add empty line to finish paragraph
-                    char newline = '\n';
-                    cmark_parser_feed(parser.get(), &newline, 1);
-                }
-            }
-            else
-            {
-                // part of the same line
-                cur++;
-                cur_length++;
-            }
-        }
-
-        // final line
-        skip_comment_suffix(cur_start + cur_length, cur_length, is_multiline);
-        cmark_parser_feed(parser.get(), cur_start, cur_length);
-
+        cmark_parser_feed(parser.get(), raw_comment.c_str(), raw_comment.length());
         return cmark_parser_finish(parser.get());
     }
 

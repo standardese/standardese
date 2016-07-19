@@ -14,6 +14,22 @@ namespace standardese
 {
     class parser;
 
+    namespace detail
+    {
+        struct raw_comment
+        {
+            std::string content;
+            unsigned    count_lines, end_line;
+
+            raw_comment(std::string content, unsigned count_lines, unsigned end_line)
+            : content(std::move(content)), count_lines(count_lines), end_line(end_line)
+            {
+            }
+        };
+
+        std::vector<raw_comment> read_comments(const std::string& source);
+    } // namespace detail
+
     class md_comment final : public md_container
     {
     public:
