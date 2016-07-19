@@ -5,7 +5,6 @@
 #include <standardese/detail/tokenizer.hpp>
 
 #include <cassert>
-#include <fstream>
 #include <string>
 
 #include <boost/version.hpp>
@@ -91,7 +90,7 @@ namespace
         return file;
     }
 
-    std::string fixup(cpp_cursor cur, std::filebuf& buf, std::string result, unsigned begin_offset)
+    std::string fixup(cpp_cursor cur, const char* ptr, std::string result, unsigned begin_offset)
     {
         auto is_templ_param = clang_getCursorKind(cur) == CXCursor_TemplateTypeParameter
                               || clang_getCursorKind(cur) == CXCursor_NonTypeTemplateParameter
@@ -132,10 +131,10 @@ namespace
         // if that isn't the case, maximal munch has consumed the seperating '>' as well
         if (is_templ_param)
         {
-            while (std::isspace(buf.sgetc()))
-                buf.sbumpc();
+            while (std::isspace(*ptr))
+                ++ptr;
 
-            if (buf.sgetc() != '>' && buf.sgetc() != ',' && result.back() == '>')
+            if (*ptr != '>' && *ptr != ',' && result.back() == '>')
                 result.pop_back();
         }
         // awesome libclang bug:
@@ -160,10 +159,10 @@ namespace
         // so append all further characters until a ';' is reached
         else if (is_function && result.back() != ';')
         {
-            while (buf.sgetc() != ';')
+            while (*ptr != ';')
             {
-                result += buf.sgetc();
-                buf.sbumpc();
+                result += *ptr;
+                ++ptr;
             }
             result += ';';
         }
@@ -172,10 +171,10 @@ namespace
         // needs to be extended until the semicolon
         else if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl && result.back() != ';')
         {
-            while (buf.sgetc() != ';')
+            while (*ptr != ';')
             {
-                result += buf.sgetc();
-                buf.sbumpc();
+                result += *ptr;
+                ++ptr;
             }
             result += ';';
         }
@@ -187,62 +186,44 @@ namespace
                  && clang_getCursorKind(cur) != CXCursor_NonTypeTemplateParameter
                  && clang_getCursorKind(cur) != CXCursor_TemplateTemplateParameter
                  && clang_getCursorKind(cur) != CXCursor_CXXBaseSpecifier)
-            while (buf.sgetc() != '\n' && buf.sgetc() != std::char_traits<char>::eof())
+            while (*ptr != '\n' && *ptr)
             {
-                result += buf.sgetc();
-                buf.sbumpc();
+                result += *ptr;
+                ++ptr;
             }
 
         return result;
     }
 }
 
-std::string detail::tokenizer::read_source(cpp_cursor cur)
+std::string detail::tokenizer::read_source(translation_unit& tu, cpp_cursor cur)
 {
     unsigned begin_offset, end_offset;
     auto     file = get_range(cur, begin_offset, end_offset);
     if (!file)
         return "";
+    assert(clang_File_isEqual(file, tu.get_file()));
     assert(end_offset > begin_offset);
 
-    // open file buffer
-    std::filebuf buf;
+    auto source = tokenizer_access::get_source(tu).c_str();
 
-    string filename(clang_getFileName(file));
-    buf.open(filename.c_str(), std::ios_base::in | std::ios_base::binary);
-    assert(buf.is_open());
-
-    // seek to beginning
-    buf.pubseekpos(begin_offset);
-
-    // read bytes
-    std::string result(end_offset - begin_offset, '\0');
-    buf.sgetn(&result[0], result.size());
-
-    return fixup(cur, buf, result, begin_offset);
+    std::string result(source + begin_offset, source + end_offset);
+    return fixup(cur, source + end_offset, result, begin_offset);
 }
 
-CXFile detail::tokenizer::read_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset)
+CXFile detail::tokenizer::read_range(translation_unit& tu, cpp_cursor cur, unsigned& begin_offset,
+                                     unsigned& end_offset)
 {
     auto file = get_range(cur, begin_offset, end_offset);
 
     // we need to handle the fixup, so change end_offset
-    end_offset = static_cast<unsigned>(begin_offset + read_source(cur).size());
+    end_offset = static_cast<unsigned>(begin_offset + read_source(tu, cur).size());
 
     return file;
 }
 
-namespace standardese
-{
-    namespace detail
-    {
-        context& get_preprocessing_context(translation_unit& tu);
-    }
-
-} // namespace standardese::detail
-
 detail::tokenizer::tokenizer(translation_unit& tu, cpp_cursor cur)
-: source_(read_source(cur)), impl_(&get_preprocessing_context(tu))
+: source_(read_source(tu, cur)), impl_(&tokenizer_access::get_context(tu))
 {
     // append trailing newline
     // required for parsing code

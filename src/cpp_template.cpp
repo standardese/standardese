@@ -228,7 +228,7 @@ namespace
 
         // determine template offset
         unsigned begin, end;
-        detail::tokenizer::read_range(last, begin, end);
+        detail::tokenizer::read_range(tu, last, begin, end);
         return end;
     }
 
@@ -258,13 +258,13 @@ namespace
         return name;
     }
 
-    unsigned get_template_offset(cpp_cursor cur, unsigned last_offset)
+    unsigned get_template_offset(translation_unit& tu, cpp_cursor cur, unsigned last_offset)
     {
         assert(last_offset);
-        auto source = detail::tokenizer::read_source(cur);
+        auto source = detail::tokenizer::read_source(tu, cur);
 
         unsigned begin, end;
-        detail::tokenizer::read_range(cur, begin, end);
+        detail::tokenizer::read_range(tu, cur, begin, end);
 
         // make relative
         last_offset -= begin;
@@ -286,7 +286,7 @@ cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit& tu
     auto last_offset = parse_parameters(tu, *result, cur);
 
     auto func =
-        cpp_function_base::try_parse(tu, cur, *result, get_template_offset(cur, last_offset));
+        cpp_function_base::try_parse(tu, cur, *result, get_template_offset(tu, cur, last_offset));
     assert(func);
     result->func_ = std::move(func);
 

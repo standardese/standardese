@@ -16,9 +16,7 @@ namespace standardese
 
     namespace detail
     {
-        struct context;
-
-        context& get_preprocessing_context(translation_unit& tu);
+        struct tokenizer_access;
 
         struct tu_deleter
         {
@@ -106,7 +104,7 @@ namespace standardese
         struct impl;
         std::unique_ptr<impl> pimpl_;
 
-        friend detail::context& detail::get_preprocessing_context(translation_unit&);
+        friend detail::tokenizer_access;
         friend parser;
     };
 
