@@ -201,13 +201,15 @@ private:
     }
     SECTION("enum")
     {
-        auto code     = R"(enum foo: unsigned int
+        auto code = R"(enum foo: unsigned int
 {
     a,
     b = 4,
     c,
     d,
-    e,
+    
+    /// \exclude
+    e
 };)";
         auto synopsis = R"(enum foo
 : unsigned int
@@ -216,7 +218,6 @@ private:
     b = 4,
     c,
     d,
-    e,
 };)";
 
         auto tu = parse(p, "synopsis_enum", code);
