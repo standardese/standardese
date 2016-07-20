@@ -26,7 +26,8 @@ namespace
 
     bool is_cpp_doc_comment(const char*& ptr)
     {
-        auto is = std::strncmp(ptr, "///", 3) == 0 || std::strncmp(ptr, "//!", 3) == 0;
+        auto is = std::strncmp(ptr, "///", 3) == 0 || std::strncmp(ptr, "//!", 3) == 0
+        || std::strncmp(ptr, "//<", 3) == 0;
         if (is)
             ptr += 3;
         return is;

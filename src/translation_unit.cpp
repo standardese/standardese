@@ -126,7 +126,7 @@ const std::string& translation_unit::get_raw_comment(cpp_cursor cur) const
                                  [](const detail::raw_comment& comment, unsigned line) {
                                      return comment.end_line + 1 < line;
                                  });
-    if (iter != pimpl_->comments.end() && iter->end_line + 1 == line)
+    if (iter != pimpl_->comments.end() && line - iter->end_line <= 1)
         return iter->content;
 
     static std::string empty;

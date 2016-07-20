@@ -53,10 +53,12 @@ TEST_CASE("md_comment", "[doc]")
             /** and C
             */
             /// style.
+            
+            //< End line style.
         )";
 
         auto comments = detail::read_comments(source);
-        REQUIRE(comments.size() == 7);
+        REQUIRE(comments.size() == 8);
 
         REQUIRE(comments[0].content == "C++ style.");
         REQUIRE(comments[0].count_lines == 1u);
@@ -85,6 +87,10 @@ TEST_CASE("md_comment", "[doc]")
         REQUIRE(comments[6].content == "Multiple\nC++\nand C\nstyle.");
         REQUIRE(comments[6].count_lines == 5u);
         REQUIRE(comments[6].end_line == 24u);
+        
+        REQUIRE(comments[6].content == "End line style.");
+        REQUIRE(comments[6].count_lines == 1u);
+        REQUIRE(comments[6].end_line == 26u);
     }
     SECTION("simple parsing")
     {
