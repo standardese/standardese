@@ -29,8 +29,7 @@ TEST_CASE("md_comment", "[doc]")
 
     SECTION("comment styles")
     {
-        auto source = R"(
-            /// C++ style.
+        auto source = R"(/// C++ style.
             
             //! C++ exclamation.
             

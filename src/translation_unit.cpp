@@ -11,6 +11,7 @@
 #include <standardese/detail/scope_stack.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/detail/wrapper.hpp>
+#include <standardese/comment.hpp>
 #include <standardese/cpp_preprocessor.hpp>
 #include <standardese/parser.hpp>
 
@@ -21,6 +22,7 @@ struct translation_unit::impl
     detail::context            context;
     cpp_name                   full_path;
     std::string                source;
+    std::vector<detail::raw_comment> comments;
     cpp_file*                  file;
     const standardese::parser* parser;
 
@@ -44,6 +46,8 @@ struct translation_unit::impl
             std::string(std::istreambuf_iterator<char>(&filebuf), std::istreambuf_iterator<char>());
         if (source.back() != '\n')
             source.push_back('\n');
+
+        comments = detail::read_comments(source);
     }
 };
 
@@ -107,6 +111,26 @@ CXTranslationUnit translation_unit::get_cxunit() const STANDARDESE_NOEXCEPT
 const cpp_entity_registry& translation_unit::get_registry() const STANDARDESE_NOEXCEPT
 {
     return pimpl_->parser->get_registry();
+}
+
+const std::string& translation_unit::get_raw_comment(cpp_cursor cur) const
+{
+    auto location = clang_getCursorLocation(cur);
+
+    CXFile   file;
+    unsigned line;
+    clang_getSpellingLocation(location, &file, &line, nullptr, nullptr);
+    assert(clang_File_isEqual(file, get_cxfile()));
+
+    auto iter = std::lower_bound(pimpl_->comments.begin(), pimpl_->comments.end(), line,
+                                 [](const detail::raw_comment& comment, unsigned line) {
+                                     return comment.end_line + 1 < line;
+                                 });
+    if (iter != pimpl_->comments.end() && iter->end_line + 1 == line)
+        return iter->content;
+
+    static std::string empty;
+    return empty;
 }
 
 translation_unit::translation_unit(const parser& par, const char* path, cpp_file* file,

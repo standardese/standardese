@@ -13,6 +13,7 @@ namespace standardese
 {
     class parser;
     class compile_config;
+    struct cpp_cursor;
 
     namespace detail
     {
@@ -96,6 +97,8 @@ namespace standardese
         CXTranslationUnit get_cxunit() const STANDARDESE_NOEXCEPT;
 
         const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT;
+
+        const std::string& get_raw_comment(cpp_cursor cur) const;
 
     private:
         translation_unit(const parser& par, const char* path, cpp_file* file,

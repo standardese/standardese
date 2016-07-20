@@ -51,8 +51,9 @@ namespace
     {
         auto& blacklist = p.get_output_config().get_blacklist();
         if (e.get_entity_type() != cpp_entity::namespace_t
-            && blacklist.is_set(entity_blacklist::require_comment) && e.get_raw_comment().empty()
-            && e.has_comment()) // only valid for entities which can have comments except namespaces
+            && blacklist.is_set(entity_blacklist::require_comment) && e.has_comment()
+            && e.get_comment()
+                   .empty()) // only valid for entities which can have comments except namespaces
             return true;
         else if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
             return true;

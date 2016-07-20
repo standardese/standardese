@@ -159,7 +159,7 @@ std::vector<detail::raw_comment> detail::read_comments(const std::string& source
     assert(source.back() == '\n');
     std::vector<detail::raw_comment> comments;
 
-    auto cur_line = 0u;
+    auto cur_line = 1u;
     for (auto ptr = source.c_str(); *ptr; ++ptr)
     {
         if (is_cpp_doc_comment(ptr))
@@ -185,7 +185,7 @@ namespace
 
     using md_parser = detail::wrapper<cmark_parser*, parser_deleter>;
 
-    cmark_node* parse_document(const parser& p, const string& raw_comment)
+    cmark_node* parse_document(const string& raw_comment)
     {
         md_parser parser(cmark_parser_new(CMARK_OPT_NORMALIZE));
         cmark_parser_feed(parser.get(), raw_comment.c_str(), raw_comment.length());
@@ -355,7 +355,7 @@ md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const 
 {
     auto result = detail::make_md_ptr<md_comment>();
 
-    auto root = parse_document(p, comment);
+    auto root = parse_document(comment);
     parse_children(*result, p, root, name);
     cmark_node_free(root);
 

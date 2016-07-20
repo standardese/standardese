@@ -116,9 +116,6 @@ namespace standardese
             return do_get_unique_name();
         }
 
-        /// \returns The raw comment.
-        string get_raw_comment() const;
-
         virtual bool has_comment() const STANDARDESE_NOEXCEPT
         {
             return comment_ != nullptr;
