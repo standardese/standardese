@@ -24,7 +24,9 @@ cpp_ptr<cpp_language_linkage> cpp_language_linkage::parse(translation_unit& tu, 
     auto   str = stream.get().get_value();
     string name(str.c_str() + 1, str.size() - 2); // cut quotes
 
-    return detail::make_cpp_ptr<cpp_language_linkage>(cur, parent, std::move(name));
+    auto result = detail::make_cpp_ptr<cpp_language_linkage>(cur, parent, std::move(name));
+    result->set_comment(tu);
+    return result;
 }
 
 namespace
@@ -114,8 +116,11 @@ cpp_ptr<cpp_using_directive> cpp_using_directive::parse(translation_unit& tu, cp
     auto target        = parse_target(stream);
     auto target_cursor = parse_target_cursor(cur);
 
-    return detail::make_cpp_ptr<cpp_using_directive>(cur, parent,
-                                                     cpp_namespace_ref(target_cursor, target));
+    auto result =
+        detail::make_cpp_ptr<cpp_using_directive>(cur, parent,
+                                                  cpp_namespace_ref(target_cursor, target));
+    result->set_comment(tu);
+    return result;
 }
 
 cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(translation_unit& tu, cpp_cursor cur,
@@ -131,6 +136,9 @@ cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(translation_unit& tu
     auto target        = parse_target(stream);
     auto target_cursor = parse_target_cursor(cur);
 
-    return detail::make_cpp_ptr<cpp_using_declaration>(cur, parent,
-                                                       cpp_entity_ref(target_cursor, target));
+    auto result =
+        detail::make_cpp_ptr<cpp_using_declaration>(cur, parent,
+                                                    cpp_entity_ref(target_cursor, target));
+    result->set_comment(tu);
+    return result;
 }
