@@ -185,10 +185,26 @@ namespace
 
     using md_parser = detail::wrapper<cmark_parser*, parser_deleter>;
 
-    cmark_node* parse_document(const string& raw_comment)
+    cmark_node* parse_document(const parser& p, const string& raw_comment)
     {
         md_parser parser(cmark_parser_new(CMARK_OPT_NORMALIZE));
-        cmark_parser_feed(parser.get(), raw_comment.c_str(), raw_comment.length());
+
+        std::string cur;
+        for (auto c : raw_comment)
+        {
+            if (c == '\n')
+            {
+                cur += '\n';
+                if (p.get_comment_config().get_implicit_paragraph())
+                    cur += '\n'; // add empty newline
+                cmark_parser_feed(parser.get(), cur.c_str(), cur.length());
+                cur.clear();
+            }
+            else
+                cur += c;
+        }
+        cmark_parser_feed(parser.get(), cur.c_str(), cur.length());
+
         return cmark_parser_finish(parser.get());
     }
 
@@ -287,6 +303,35 @@ namespace
                                       cmark_node_get_start_column(paragraph.get_node()));
     }
 
+    void add_direct_children(md_comment& comment, std::vector<md_entity_ptr>& direct_children)
+    {
+        if (!direct_children.empty())
+        {
+            auto          last_section   = section_type::brief;
+            md_paragraph* last_paragraph = nullptr;
+            for (auto& e : direct_children)
+            {
+                if (e->get_entity_type() == md_entity::paragraph_t)
+                {
+                    auto& par = static_cast<md_paragraph&>(*e);
+                    if (last_paragraph && par.get_section_type() == last_section)
+                    {
+                        for (auto& child : par)
+                            last_paragraph->add_entity(child.clone(*last_paragraph));
+                    }
+                    else
+                    {
+                        last_paragraph = &par;
+                        last_section   = par.get_section_type();
+                        comment.add_entity(std::move(e));
+                    }
+                }
+                else
+                    comment.add_entity(std::move(e));
+            }
+        }
+    }
+
     void parse_children(md_comment& comment, const parser& p, cmark_node* root,
                         const cpp_name& name)
     {
@@ -346,8 +391,7 @@ namespace
             }
         }
 
-        for (auto& e : direct_children)
-            comment.add_entity(std::move(e));
+        add_direct_children(comment, direct_children);
     }
 }
 
@@ -355,7 +399,7 @@ md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const 
 {
     auto result = detail::make_md_ptr<md_comment>();
 
-    auto root = parse_document(comment);
+    auto root = parse_document(p, comment);
     parse_children(*result, p, root, name);
     cmark_node_free(root);
 

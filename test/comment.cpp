@@ -199,4 +199,67 @@ A A
         }
         REQUIRE(count == 3u);
     }
+    SECTION("merging")
+    {
+        auto comment = md_comment::parse(p, "", R"(
+\effects A
+
+\effects A
+
+\requires B
+)");
+
+        auto count = 0u;
+        for (auto& child : *comment)
+        {
+            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
+            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
+            INFO('"' + get_text(paragraph) + '"');
+
+            if (get_text(paragraph) == " A A")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::effects);
+            }
+            else if (get_text(paragraph) == " B")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::requires);
+            }
+            else
+                REQUIRE(false);
+        }
+        REQUIRE(count == 2u);
+    }
+    SECTION("implicit paragraph")
+    {
+        p.get_comment_config().set_implicit_paragraph(true);
+
+        auto comment = md_comment::parse(p, "", R"(
+\effects A
+\effects A
+\requires B
+)");
+
+        auto count = 0u;
+        for (auto& child : *comment)
+        {
+            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
+            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
+
+            if (get_text(paragraph) == " A A")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::effects);
+            }
+            else if (get_text(paragraph) == " B")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::requires);
+            }
+            else
+                REQUIRE(false);
+        }
+        REQUIRE(count == 2u);
+    }
 }
