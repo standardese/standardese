@@ -315,8 +315,12 @@ namespace
                 if (e->get_entity_type() == md_entity::paragraph_t)
                 {
                     auto& par = static_cast<md_paragraph&>(*e);
-                    if (last_paragraph && par.get_section_type() == last_section)
+                    if (par.get_section_type() != section_type::details
+                        && par.get_section_type() != section_type::brief
+                             && last_paragraph && par.get_section_type() == last_section)
                     {
+                        // merge with the last paragraph of the same section type
+                        // never merge details or brief
                         for (auto& child : par)
                             last_paragraph->add_entity(child.clone(*last_paragraph));
                     }

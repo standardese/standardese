@@ -88,9 +88,9 @@ TEST_CASE("md_comment", "[doc]")
         REQUIRE(comments[6].count_lines == 5u);
         REQUIRE(comments[6].end_line == 24u);
         
-        REQUIRE(comments[6].content == "End line style.");
-        REQUIRE(comments[6].count_lines == 1u);
-        REQUIRE(comments[6].end_line == 26u);
+        REQUIRE(comments[7].content == "End line style.");
+        REQUIRE(comments[7].count_lines == 1u);
+        REQUIRE(comments[7].end_line == 26u);
     }
     SECTION("simple parsing")
     {
@@ -213,6 +213,10 @@ A A
 \effects A
 
 \requires B
+
+C
+
+\details D
 )");
 
         auto count = 0u;
@@ -232,10 +236,20 @@ A A
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::requires);
             }
+            else if (get_text(paragraph) == "C")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::details);
+            }
+            else if (get_text(paragraph) == "D")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::details);
+            }
             else
                 REQUIRE(false);
         }
-        REQUIRE(count == 2u);
+        REQUIRE(count == 4u);
     }
     SECTION("implicit paragraph")
     {
