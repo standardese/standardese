@@ -49,16 +49,17 @@ TEST_CASE("md_comment", "[doc]")
             /// C++ multiline. */
             
             /// Multiple
-            /// C++
-            /** and C
+            //! C++
+            /** and C style.
             */
-            /// style.
             
-            //< End line style.
+            foo, //< End line style.
+            bar, //< End line style.
+            /// Continued.
         )";
 
         auto comments = detail::read_comments(source);
-        REQUIRE(comments.size() == 8);
+        REQUIRE(comments.size() == 10);
 
         REQUIRE(comments[0].content == "C++ style.");
         REQUIRE(comments[0].count_lines == 1u);
@@ -84,13 +85,21 @@ TEST_CASE("md_comment", "[doc]")
         REQUIRE(comments[5].count_lines == 2u);
         REQUIRE(comments[5].end_line == 18u);
 
-        REQUIRE(comments[6].content == "Multiple\nC++\nand C\nstyle.");
-        REQUIRE(comments[6].count_lines == 5u);
-        REQUIRE(comments[6].end_line == 24u);
+        REQUIRE(comments[6].content == "Multiple\nC++");
+        REQUIRE(comments[6].count_lines == 2u);
+        REQUIRE(comments[6].end_line == 21u);
         
-        REQUIRE(comments[7].content == "End line style.");
-        REQUIRE(comments[7].count_lines == 1u);
-        REQUIRE(comments[7].end_line == 26u);
+        REQUIRE(comments[7].content == "and C style.");
+        REQUIRE(comments[7].count_lines == 2u);
+        REQUIRE(comments[7].end_line == 23u);
+        
+        REQUIRE(comments[8].content == "End line style.");
+        REQUIRE(comments[8].count_lines == 1u);
+        REQUIRE(comments[8].end_line == 25u);
+        
+        REQUIRE(comments[9].content == "End line style.\nContinued.");
+        REQUIRE(comments[9].count_lines == 2u);
+        REQUIRE(comments[9].end_line == 27u);
     }
     SECTION("simple parsing")
     {

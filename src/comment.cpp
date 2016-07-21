@@ -23,14 +23,36 @@ namespace
     {
         return c == ' ' || c == '\t';
     }
-
-    bool is_cpp_doc_comment(const char*& ptr)
+    
+    enum class comment_style
     {
-        auto is = std::strncmp(ptr, "///", 3) == 0 || std::strncmp(ptr, "//!", 3) == 0
-        || std::strncmp(ptr, "//<", 3) == 0;
-        if (is)
+        none,
+        cpp,
+        c,
+        end_of_line,
+    };
+
+    comment_style get_comment_style(const char* &ptr)
+    {
+        if (std::strncmp(ptr, "///", 3) == 0
+        || std::strncmp(ptr, "//!", 3) == 0)
+        {
             ptr += 3;
-        return is;
+            return comment_style::cpp;
+        }
+        else if (std::strncmp(ptr, "/**", 3) == 0
+                 || std::strncmp(ptr, "/*!", 3) == 0)
+        {
+            ptr += 3;
+            return comment_style::c;
+        }
+        else if (std::strncmp(ptr, "//<", 3) == 0)
+        {
+            ptr += 3;
+            return comment_style::end_of_line;
+        }
+        
+        return comment_style::none;
     }
 
     detail::raw_comment parse_cpp_comment(const char*& ptr, unsigned& cur_line)
@@ -45,14 +67,6 @@ namespace
         assert(*ptr == '\n');
         ++cur_line;
         return {std::move(content), 1, cur_line - 1};
-    }
-
-    bool is_c_doc_comment_begin(const char*& ptr)
-    {
-        auto is = std::strncmp(ptr, "/**", 3) == 0 || std::strncmp(ptr, "/*!", 3) == 0;
-        if (is)
-            ptr += 3;
-        return is;
     }
 
     void skip_c_doc_comment_continuation(const char*& ptr)
@@ -129,23 +143,33 @@ namespace
         return {std::move(content), lines, cur_line};
     }
 
-    std::vector<detail::raw_comment> normalize(const std::vector<detail::raw_comment>& comments)
+    bool can_merge(comment_style a, comment_style b)
+    {
+        if (a == comment_style::end_of_line)
+            // end of line can only merge with a following cpp
+            return b == comment_style::cpp;
+        // otherwise require same style
+        return a == b;
+    }
+
+    std::vector<detail::raw_comment> normalize(const std::vector<std::pair<detail::raw_comment, comment_style>>& comments)
     {
         std::vector<detail::raw_comment> results;
 
         for (auto iter = comments.begin(); iter != comments.end(); ++iter)
         {
-            auto cur_content = iter->content;
-            auto cur_count   = iter->count_lines;
-            auto cur_end     = iter->end_line;
+            auto cur_content = iter->first.content;
+            auto cur_count   = iter->first.count_lines;
+            auto cur_end     = iter->first.end_line;
             while (std::next(iter) != comments.end()
-                   && std::next(iter)->end_line == cur_end + std::next(iter)->count_lines)
+                   && can_merge(iter->second, std::next(iter)->second) 
+                   && std::next(iter)->first.end_line == cur_end + std::next(iter)->first.count_lines)
             {
                 ++iter;
-                cur_end = iter->end_line;
-                cur_count += iter->count_lines;
+                cur_end = iter->first.end_line;
+                cur_count += iter->first.count_lines;
                 cur_content += '\n';
-                cur_content += iter->content;
+                cur_content += iter->first.content;
             }
 
             results.emplace_back(std::move(cur_content), cur_count, cur_end);
@@ -158,15 +182,19 @@ namespace
 std::vector<detail::raw_comment> detail::read_comments(const std::string& source)
 {
     assert(source.back() == '\n');
-    std::vector<detail::raw_comment> comments;
+    std::vector<std::pair<detail::raw_comment, comment_style>> comments;
 
     auto cur_line = 1u;
     for (auto ptr = source.c_str(); *ptr; ++ptr)
     {
-        if (is_cpp_doc_comment(ptr))
-            comments.push_back(parse_cpp_comment(ptr, cur_line));
-        else if (is_c_doc_comment_begin(ptr))
-            comments.push_back(parse_c_comment(ptr, cur_line));
+        auto style = get_comment_style(ptr);
+        if (style != comment_style::none)
+        {
+            if (style == comment_style::c)
+                comments.emplace_back(parse_c_comment(ptr, cur_line), style);
+            else
+                comments.emplace_back(parse_cpp_comment(ptr, cur_line), style);
+        }
         else if (*ptr == '\n')
             ++cur_line;
     }
