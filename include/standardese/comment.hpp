@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <standardese/md_entity.hpp>
+#include <standardese/md_blocks.hpp>
 
 namespace standardese
 {
@@ -39,6 +40,24 @@ namespace standardese
         }
 
         static md_ptr<md_comment> parse(const parser& p, const string& name, const string& comment);
+
+        md_entity& add_entity(md_entity_ptr ptr) override;
+
+        md_paragraph& get_brief() STANDARDESE_NOEXCEPT
+        {
+            assert(begin()->get_entity_type() == md_entity::paragraph_t);
+            auto& brief = static_cast<md_paragraph&>(*begin());
+            assert(brief.get_section_type() == section_type::brief);
+            return brief;
+        }
+
+        const md_paragraph& get_brief() const STANDARDESE_NOEXCEPT
+        {
+            assert(begin()->get_entity_type() == md_entity::paragraph_t);
+            auto& brief = static_cast<const md_paragraph&>(*begin());
+            assert(brief.get_section_type() == section_type::brief);
+            return brief;
+        }
 
         bool is_excluded() const STANDARDESE_NOEXCEPT
         {

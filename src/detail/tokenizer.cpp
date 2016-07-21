@@ -202,7 +202,7 @@ std::string detail::tokenizer::read_source(translation_unit& tu, cpp_cursor cur)
     auto     file = get_range(cur, begin_offset, end_offset);
     if (!file)
         return "";
-    assert(clang_File_isEqual(file, tu.get_file()));
+    assert(clang_File_isEqual(file, tu.get_cxfile()));
     assert(end_offset > begin_offset);
 
     auto source = tokenizer_access::get_source(tu).c_str();

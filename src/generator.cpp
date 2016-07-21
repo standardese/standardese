@@ -246,6 +246,7 @@ namespace
 void standardese::generate_doc_entity(const parser& p, const index& i, md_document& document,
                                       unsigned level, const doc_entity& doc)
 {
+    // write heading + anchor
     auto heading = make_heading(doc.get_cpp_entity(), document, level);
     if (doc.has_comment())
     {
@@ -254,8 +255,10 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
     }
     document.add_entity(std::move(heading));
 
+    // write synopsis
     write_synopsis(p, document, doc);
 
+    // write comment + register
     if (doc.has_comment())
     {
         auto& comment = static_cast<md_comment&>(document.add_entity(doc.get_comment().clone()));
@@ -309,35 +312,22 @@ namespace
         return result;
     }
 
-    void add_brief_comment(md_paragraph& parent, const cpp_entity& entity)
-    {
-        if (!entity.has_comment())
-            return;
-
-        for (auto& e : entity.get_comment())
-        {
-            if (e.get_entity_type() != md_entity::paragraph_t)
-                continue;
-
-            auto& paragraph = static_cast<const md_paragraph&>(e);
-            if (paragraph.get_section_type() == section_type::brief)
-            {
-                parent.add_entity(md_text::make(parent, " - "));
-                for (auto& child : paragraph)
-                    parent.add_entity(child.clone(parent));
-            }
-        }
-    }
-
     void make_index_item(md_list& list, const cpp_entity& e)
     {
         auto& paragraph = make_list_item_paragraph(list);
 
+        // add link to entity
         auto link = md_link::make(paragraph, "", e.get_unique_name().c_str());
         link->add_entity(md_text::make(*link, get_name_signature(e).c_str()));
         paragraph.add_entity(std::move(link));
 
-        add_brief_comment(paragraph, e);
+        // add brief comment to it
+        if (e.has_comment() && !e.get_comment().get_brief().empty())
+        {
+            paragraph.add_entity(md_text::make(paragraph, " - "));
+            for (auto& child : e.get_comment().get_brief())
+                paragraph.add_entity(child.clone(paragraph));
+        }
     }
 
     md_ptr<md_list_item> make_namespace_item(const md_list& list, const cpp_name& ns_name)

@@ -161,7 +161,7 @@ namespace standardese
     class md_container : public md_entity, public md_entity_container
     {
     public:
-        md_entity& add_entity(md_entity_ptr entity);
+        virtual md_entity& add_entity(md_entity_ptr entity);
 
     protected:
         md_container(md_entity::type t, cmark_node* node,

@@ -439,6 +439,23 @@ md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const 
     return result;
 }
 
+md_entity& md_comment::add_entity(md_entity_ptr ptr)
+{
+    if (ptr->get_entity_type() == md_entity::paragraph_t)
+    {
+        auto& par = static_cast<md_paragraph&>(*ptr);
+        if (par.get_section_type() == section_type::brief)
+        {
+            // add all children to brief
+            for (auto& child : par)
+                get_brief().add_entity(child.clone(get_brief()));
+            return get_brief();
+        }
+    }
+
+    return md_container::add_entity(std::move(ptr));
+}
+
 md_entity_ptr md_comment::do_clone(const md_entity*) const
 {
     auto result       = detail::make_md_ptr<md_comment>();
@@ -452,6 +469,10 @@ md_entity_ptr md_comment::do_clone(const md_entity*) const
 md_comment::md_comment()
 : md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK)), excluded_(false)
 {
+    auto brief = md_paragraph::make(*this);
+    brief->set_section_type(section_type::brief, "");
+
+    md_container::add_entity(std::move(brief));
 }
 
 namespace

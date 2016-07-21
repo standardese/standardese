@@ -56,7 +56,7 @@ TEST_CASE("md_comment", "[doc]")
             foo, //< End line style.
             bar, //< End line style.
             /// Continued.
-        )";
+)";
 
         auto comments = detail::read_comments(source);
         REQUIRE(comments.size() == 10);
@@ -210,7 +210,7 @@ A A
                 REQUIRE(paragraph.get_section_type() == section_type::error_conditions);
             }
             else
-                REQUIRE(false);
+                REQUIRE(paragraph.get_section_type() == section_type::brief);
         }
         REQUIRE(count == 3u);
     }
@@ -256,7 +256,7 @@ C
                 REQUIRE(paragraph.get_section_type() == section_type::details);
             }
             else
-                REQUIRE(false);
+                REQUIRE(paragraph.get_section_type() == section_type::brief);
         }
         REQUIRE(count == 4u);
     }
@@ -287,7 +287,7 @@ C
                 REQUIRE(paragraph.get_section_type() == section_type::requires);
             }
             else
-                REQUIRE(false);
+                REQUIRE(paragraph.get_section_type() == section_type::brief);
         }
         REQUIRE(count == 2u);
     }
