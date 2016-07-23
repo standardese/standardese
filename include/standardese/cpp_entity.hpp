@@ -12,7 +12,6 @@
 #include <type_traits>
 
 #include <standardese/detail/entity_container.hpp>
-#include <standardese/comment.hpp>
 #include <standardese/cpp_cursor.hpp>
 #include <standardese/noexcept.hpp>
 #include <standardese/string.hpp>
@@ -116,17 +115,6 @@ namespace standardese
             return do_get_unique_name();
         }
 
-        virtual bool has_comment() const STANDARDESE_NOEXCEPT
-        {
-            return comment_ != nullptr;
-        }
-
-        /// \returns The comment.
-        virtual const md_comment& get_comment() const STANDARDESE_NOEXCEPT
-        {
-            return *comment_;
-        }
-
         /// \returns The type of the entity.
         type get_entity_type() const STANDARDESE_NOEXCEPT
         {
@@ -157,8 +145,6 @@ namespace standardese
 
         cpp_entity(type t, cpp_cursor cur);
 
-        void set_comment(const translation_unit& tu);
-
     private:
         virtual cpp_name do_get_unique_name() const
         {
@@ -166,7 +152,6 @@ namespace standardese
         }
 
         cpp_cursor         cursor_;
-        md_ptr<md_comment> comment_;
         cpp_entity_ptr     next_;
         const cpp_entity*  parent_;
         type               t_;

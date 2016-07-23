@@ -97,12 +97,7 @@ namespace standardese
     public:
         output_config();
 
-        void set_section_name(section_type t, std::string name)
-        {
-            if (t == section_type::brief || t == section_type::details)
-                throw std::logic_error("Cannot override section name for brief or details");
-            section_names_[unsigned(t)] = std::move(name);
-        }
+        void set_section_name(section_type t, std::string name);
 
         const std::string& get_section_name(section_type t) const STANDARDESE_NOEXCEPT
         {

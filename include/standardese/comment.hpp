@@ -5,32 +5,14 @@
 #ifndef STANDARDESE_COMMENT_HPP_INCLUDED
 #define STANDARDESE_COMMENT_HPP_INCLUDED
 
-#include <string>
-#include <vector>
+#include <map>
+#include <mutex>
 
 #include <standardese/md_entity.hpp>
 #include <standardese/md_blocks.hpp>
 
 namespace standardese
 {
-    class parser;
-
-    namespace detail
-    {
-        struct raw_comment
-        {
-            std::string content;
-            unsigned    count_lines, end_line;
-
-            raw_comment(std::string content, unsigned count_lines, unsigned end_line)
-            : content(std::move(content)), count_lines(count_lines), end_line(end_line)
-            {
-            }
-        };
-
-        std::vector<raw_comment> read_comments(const std::string& source);
-    } // namespace detail
-
     class md_comment final : public md_container
     {
     public:
@@ -39,7 +21,7 @@ namespace standardese
             return md_entity::comment_t;
         }
 
-        static md_ptr<md_comment> parse(const parser& p, const string& name, const string& comment);
+        static md_ptr<md_comment> make();
 
         md_entity& add_entity(md_entity_ptr ptr) override;
 
@@ -59,6 +41,109 @@ namespace standardese
             return brief;
         }
 
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
+    private:
+        md_comment();
+
+        friend detail::md_ptr_access;
+    };
+
+    class comment_id;
+
+    namespace detail
+    {
+        struct comment_compare
+        {
+            bool operator()(const comment_id& id_a,
+                            const comment_id& id_b) const STANDARDESE_NOEXCEPT;
+        };
+    } // namespace detail
+
+    /// The identifier of a comment.
+    /// Used to specify the entity it refers to.
+    class comment_id
+    {
+    public:
+        comment_id(string file_name, unsigned line)
+        : file_name_or_name_(std::move(file_name)), line_(line)
+        {
+            assert(line != 0u);
+        }
+
+        explicit comment_id(string name) : file_name_or_name_(std::move(name)), line_(0u)
+        {
+        }
+
+        bool is_name() const STANDARDESE_NOEXCEPT
+        {
+            return line_ == 0u;
+        }
+
+        bool is_location() const STANDARDESE_NOEXCEPT
+        {
+            return !is_name();
+        }
+
+        const string& file_name() const STANDARDESE_NOEXCEPT
+        {
+            assert(is_location());
+            return file_name_or_name_;
+        }
+
+        unsigned line() const STANDARDESE_NOEXCEPT
+        {
+            assert(is_location());
+            return line_;
+        }
+
+        const string& unique_name() const STANDARDESE_NOEXCEPT
+        {
+            assert(is_name());
+            return file_name_or_name_;
+        }
+
+    private:
+        string   file_name_or_name_;
+        unsigned line_;
+
+        friend detail::comment_compare;
+    };
+
+    class comment
+    {
+    public:
+        comment() : content_(md_comment::make()), excluded_(false)
+        {
+            assert(content_);
+        }
+
+        bool has_unique_name_override() const STANDARDESE_NOEXCEPT
+        {
+            return !get_unique_name_override().empty();
+        }
+
+        const std::string& get_unique_name_override() const STANDARDESE_NOEXCEPT
+        {
+            return unique_name_override_;
+        }
+
+        void set_unique_name_override(std::string name)
+        {
+            unique_name_override_ = std::move(name);
+        }
+
+        const md_comment& get_content() const STANDARDESE_NOEXCEPT
+        {
+            return *content_;
+        }
+
+        md_comment& get_content() STANDARDESE_NOEXCEPT
+        {
+            return *content_;
+        }
+
         bool is_excluded() const STANDARDESE_NOEXCEPT
         {
             return excluded_;
@@ -69,39 +154,29 @@ namespace standardese
             excluded_ = b;
         }
 
-        md_entity_ptr clone() const
-        {
-            return do_clone(nullptr);
-        }
+    private:
+        std::string        unique_name_override_;
+        md_ptr<md_comment> content_;
+        bool               excluded_;
+    };
 
-        std::string get_output_name() const;
+    class cpp_entity;
 
-        bool has_unique_name() const STANDARDESE_NOEXCEPT
-        {
-            return !id_.empty();
-        }
+    class comment_registry
+    {
+    public:
+        bool register_comment(comment_id id, comment c) const;
 
-        const std::string& get_unique_name() const STANDARDESE_NOEXCEPT
-        {
-            return id_;
-        }
-
-        void set_unique_name(std::string id)
-        {
-            id_ = std::move(id);
-        }
-
-    protected:
-        md_entity_ptr do_clone(const md_entity* parent) const override;
+        const comment* lookup_comment(const cpp_entity& e) const;
 
     private:
-        md_comment();
-
-        std::string id_;
-        bool        excluded_;
-
-        friend detail::md_ptr_access;
+        mutable std::mutex mutex_;
+        mutable std::map<comment_id, comment, detail::comment_compare> comments_;
     };
+
+    class parser;
+
+    void parse_comments(const parser& p, const string& file_name, const std::string& source);
 } // namespace standardese
 
 #endif // STANDARDESE_COMMENT_HPP_INCLUDED

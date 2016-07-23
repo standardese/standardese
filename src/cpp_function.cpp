@@ -508,8 +508,6 @@ cpp_ptr<cpp_function> cpp_function::parse(translation_unit& tu, cpp_cursor cur,
 
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -563,8 +561,6 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit& tu, cp
 
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -677,8 +673,6 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
 
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -777,8 +771,6 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit& tu, cpp_cursor
 
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -866,7 +858,6 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor c
         && is_implicit_virtual(cur))
         // check for implicit virtual
         result->virtual_ = cpp_virtual_overriden;
-    result->set_comment(tu);
     return result;
 }
 

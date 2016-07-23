@@ -267,3 +267,10 @@ output_config::output_config()
 
 #undef STANDARDESE_DETAIL_SET
 }
+
+void output_config::set_section_name(section_type t, std::string name)
+{
+    if (t == section_type::brief || t == section_type::details)
+        throw std::logic_error("Cannot override section name for brief or details");
+    section_names_[unsigned(t)] = std::move(name);
+}

@@ -289,8 +289,6 @@ cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit& tu
         cpp_function_base::try_parse(tu, cur, *result, get_template_offset(tu, cur, last_offset));
     assert(func);
     result->func_ = std::move(func);
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -326,8 +324,6 @@ cpp_ptr<cpp_function_template_specialization> cpp_function_template_specializati
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
     assert(primary_cur != cpp_cursor());
     result->primary_ = cpp_template_ref(primary_cur, result->func_->get_name());
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -359,8 +355,6 @@ cpp_ptr<cpp_class_template> cpp_class_template::parse(translation_unit& tu, cpp_
     if (!ptr)
         return nullptr;
     result->class_ = std::move(ptr);
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -386,8 +380,6 @@ cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_speciali
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
     assert(primary_cur != cpp_cursor());
     result->primary_ = cpp_template_ref(primary_cur, result->class_->get_name());
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -407,8 +399,6 @@ cpp_ptr<cpp_class_template_partial_specialization> cpp_class_template_partial_sp
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
     assert(primary_cur != cpp_cursor());
     result->primary_ = cpp_template_ref(primary_cur, result->class_->get_name());
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -447,8 +437,6 @@ cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit& tu, cpp_
 
     result->type_ = cpp_type_alias::parse(tu, type, parent);
     assert(result->type_);
-
-    result->set_comment(tu);
     return result;
 }
 

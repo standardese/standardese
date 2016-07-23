@@ -127,10 +127,3 @@ cpp_entity::cpp_entity(type t, cpp_cursor cur)
 : cursor_(cur), next_(nullptr), parent_(nullptr), t_(t)
 {
 }
-
-void cpp_entity::set_comment(const translation_unit& tu)
-{
-    auto content = tu.get_raw_comment(get_cursor());
-
-    comment_ = md_comment::parse(tu.get_parser(), get_full_name(), std::move(content));
-}

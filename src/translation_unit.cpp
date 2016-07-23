@@ -22,7 +22,6 @@ struct translation_unit::impl
     detail::context            context;
     cpp_name                   full_path;
     std::string                source;
-    std::vector<detail::raw_comment> comments;
     cpp_file*                  file;
     const standardese::parser* parser;
 
@@ -47,7 +46,7 @@ struct translation_unit::impl
         if (source.back() != '\n')
             source.push_back('\n');
 
-        comments = detail::read_comments(source);
+        parse_comments(p, full_path, source);
     }
 };
 
@@ -110,27 +109,7 @@ CXTranslationUnit translation_unit::get_cxunit() const STANDARDESE_NOEXCEPT
 
 const cpp_entity_registry& translation_unit::get_registry() const STANDARDESE_NOEXCEPT
 {
-    return pimpl_->parser->get_registry();
-}
-
-const std::string& translation_unit::get_raw_comment(cpp_cursor cur) const
-{
-    auto location = clang_getCursorLocation(cur);
-
-    CXFile   file;
-    unsigned line;
-    clang_getSpellingLocation(location, &file, &line, nullptr, nullptr);
-    assert(clang_File_isEqual(file, get_cxfile()));
-
-    auto iter = std::lower_bound(pimpl_->comments.begin(), pimpl_->comments.end(), line,
-                                 [](const detail::raw_comment& comment, unsigned line) {
-                                     return comment.end_line + 1 < line;
-                                 });
-    if (iter != pimpl_->comments.end() && line - iter->end_line <= 1)
-        return iter->content;
-
-    static std::string empty;
-    return empty;
+    return pimpl_->parser->get_entity_registry();
 }
 
 translation_unit::translation_unit(const parser& par, const char* path, cpp_file* file,
@@ -168,7 +147,7 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
                 if (!entity)
                     return CXChildVisit_Continue;
 
-                get_parser().get_registry().register_entity(*entity);
+                get_parser().get_entity_registry().register_entity(*entity);
 
                 auto container = stack.add_entity(std::move(entity), parent);
                 if (container)

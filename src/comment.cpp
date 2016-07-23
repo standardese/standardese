@@ -7,6 +7,7 @@
 #include <cmark.h>
 #include <stack>
 
+#include <standardese/detail/raw_comment.hpp>
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/error.hpp>
 #include <standardese/generator.hpp>
@@ -17,205 +18,123 @@
 
 using namespace standardese;
 
-namespace
+md_ptr<md_comment> md_comment::make()
 {
-    bool is_whitespace(char c)
-    {
-        return c == ' ' || c == '\t';
-    }
-    
-    enum class comment_style
-    {
-        none,
-        cpp,
-        c,
-        end_of_line,
-    };
-
-    comment_style get_comment_style(const char* &ptr)
-    {
-        if (std::strncmp(ptr, "///", 3) == 0
-        || std::strncmp(ptr, "//!", 3) == 0)
-        {
-            ptr += 3;
-            return comment_style::cpp;
-        }
-        else if (std::strncmp(ptr, "/**", 3) == 0
-                 || std::strncmp(ptr, "/*!", 3) == 0)
-        {
-            ptr += 3;
-            return comment_style::c;
-        }
-        else if (std::strncmp(ptr, "//<", 3) == 0)
-        {
-            ptr += 3;
-            return comment_style::end_of_line;
-        }
-        
-        return comment_style::none;
-    }
-
-    detail::raw_comment parse_cpp_comment(const char*& ptr, unsigned& cur_line)
-    {
-        while (is_whitespace(*ptr))
-            ++ptr;
-
-        std::string content;
-        for (; *ptr != '\n'; ++ptr)
-            content += *ptr;
-
-        assert(*ptr == '\n');
-        ++cur_line;
-        return {std::move(content), 1, cur_line - 1};
-    }
-
-    void skip_c_doc_comment_continuation(const char*& ptr)
-    {
-        assert(ptr[-1] == '\n');
-        while (is_whitespace(*ptr))
-            ++ptr;
-
-        if (*ptr == '*' && ptr[1] != '/')
-        {
-            ++ptr;
-            while (is_whitespace(*ptr))
-                ++ptr;
-        }
-    }
-
-    bool is_c_doc_comment_end(const char*& ptr)
-    {
-        if (std::strncmp(ptr, "**/", 3) == 0)
-        {
-            ptr += 3;
-            return true;
-        }
-        else if (std::strncmp(ptr, "*/", 2) == 0)
-        {
-            ptr += 2;
-            return true;
-        }
-
-        return false;
-    }
-
-    detail::raw_comment parse_c_comment(const char*& ptr, unsigned& cur_line)
-    {
-        while (is_whitespace(*ptr))
-            ++ptr;
-
-        std::string content;
-        auto        lines         = 1u;
-        auto        needs_newline = false;
-        while (true)
-        {
-            if (*ptr == '\n')
-            {
-                while (is_whitespace(content.back()))
-                    content.pop_back();
-                needs_newline = true;
-
-                ++ptr;
-                ++cur_line;
-                ++lines;
-
-                skip_c_doc_comment_continuation(ptr);
-            }
-            else if (is_c_doc_comment_end(ptr))
-                break;
-            else
-            {
-                if (needs_newline)
-                {
-                    content += '\n';
-                    needs_newline = false;
-                }
-                content += *ptr++;
-            }
-        }
-        assert(ptr[-1] == '/');
-        --ptr;
-
-        assert(content.back() != '\n');
-        while (is_whitespace(content.back()))
-            content.pop_back();
-
-        return {std::move(content), lines, cur_line};
-    }
-
-    bool can_merge(comment_style a, comment_style b)
-    {
-        if (a == comment_style::end_of_line)
-            // end of line can only merge with a following cpp
-            return b == comment_style::cpp;
-        // otherwise require same style
-        return a == b;
-    }
-
-    std::vector<detail::raw_comment> normalize(const std::vector<std::pair<detail::raw_comment, comment_style>>& comments)
-    {
-        std::vector<detail::raw_comment> results;
-
-        for (auto iter = comments.begin(); iter != comments.end(); ++iter)
-        {
-            auto cur_content = iter->first.content;
-            auto cur_count   = iter->first.count_lines;
-            auto cur_end     = iter->first.end_line;
-            while (std::next(iter) != comments.end()
-                   && can_merge(iter->second, std::next(iter)->second) 
-                   && std::next(iter)->first.end_line == cur_end + std::next(iter)->first.count_lines)
-            {
-                ++iter;
-                cur_end = iter->first.end_line;
-                cur_count += iter->first.count_lines;
-                cur_content += '\n';
-                cur_content += iter->first.content;
-            }
-
-            results.emplace_back(std::move(cur_content), cur_count, cur_end);
-        }
-
-        return results;
-    }
+    return detail::make_md_ptr<md_comment>();
 }
 
-std::vector<detail::raw_comment> detail::read_comments(const std::string& source)
+md_entity& md_comment::add_entity(md_entity_ptr ptr)
 {
-    assert(source.back() == '\n');
-    std::vector<std::pair<detail::raw_comment, comment_style>> comments;
-
-    auto cur_line = 1u;
-    for (auto ptr = source.c_str(); *ptr; ++ptr)
+    if (ptr->get_entity_type() == md_entity::paragraph_t)
     {
-        auto style = get_comment_style(ptr);
-        if (style != comment_style::none)
+        auto& par = static_cast<md_paragraph&>(*ptr);
+        if (par.get_section_type() == section_type::brief)
         {
-            if (style == comment_style::c)
-                comments.emplace_back(parse_c_comment(ptr, cur_line), style);
-            else
-                comments.emplace_back(parse_cpp_comment(ptr, cur_line), style);
+            // add all children to brief
+            for (auto& child : par)
+                get_brief().add_entity(child.clone(get_brief()));
+            return get_brief();
         }
-        else if (*ptr == '\n')
-            ++cur_line;
     }
 
-    return normalize(comments);
+    return md_container::add_entity(std::move(ptr));
+}
+
+md_entity_ptr md_comment::do_clone(const md_entity*) const
+{
+    auto result = md_comment::make();
+    for (auto& child : *this)
+        result->add_entity(child.clone(*result));
+    return std::move(result);
+}
+
+md_comment::md_comment() : md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK))
+{
+    auto brief = md_paragraph::make(*this);
+    brief->set_section_type(section_type::brief, "");
+
+    md_container::add_entity(std::move(brief));
+}
+
+bool detail::comment_compare::operator()(const comment_id& id_a,
+                                         const comment_id& id_b) const STANDARDESE_NOEXCEPT
+{
+    if (id_a.file_name_or_name_ != id_b.file_name_or_name_)
+        return id_a.file_name_or_name_ < id_b.file_name_or_name_;
+    return id_a.line_ < id_b.line_;
+}
+
+bool comment_registry::register_comment(comment_id id, comment c) const
+{
+    std::unique_lock<std::mutex> lock(mutex_);
+    auto result = comments_.insert(std::make_pair(std::move(id), std::move(c)));
+    return result.second;
 }
 
 namespace
 {
-    struct parser_deleter
+    comment_id create_location_id(const cpp_entity& e)
     {
-        void operator()(cmark_parser* parser) const STANDARDESE_NOEXCEPT
+        if (e.get_entity_type() == cpp_entity::file_t)
+            return comment_id(e.get_full_name());
+
+        auto location = clang_getCursorLocation(e.get_cursor());
+
+        CXFile   file;
+        unsigned line;
+        clang_getSpellingLocation(location, &file, &line, nullptr, nullptr);
+        assert(file);
+
+        return line == 1 ? comment_id("", 1) : comment_id(clang_getFileName(file), line - 1);
+    }
+
+    comment_id create_name_id(const cpp_entity& e)
+    {
+        return comment_id(e.get_unique_name());
+    }
+}
+
+const comment* comment_registry::lookup_comment(const cpp_entity& e) const
+{
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    auto location = create_location_id(e);
+    auto iter     = comments_.lower_bound(location);
+    if (iter != comments_.end()
+        && (location.is_name() || location.line() + 1 - iter->first.line() <= 1))
+        return &iter->second;
+
+    iter = comments_.find(create_name_id(e));
+    if (iter != comments_.end())
+        return &iter->second;
+
+    return nullptr;
+}
+
+namespace
+{
+    struct node_deleter
+    {
+        void operator()(cmark_node* node) const STANDARDESE_NOEXCEPT
         {
-            cmark_parser_free(parser);
+            cmark_node_free(node);
         }
     };
 
-    using md_parser = detail::wrapper<cmark_parser*, parser_deleter>;
+    using md_node = detail::wrapper<cmark_node*, node_deleter>;
 
-    cmark_node* parse_document(const parser& p, const string& raw_comment)
+    md_node parse_document(const parser& p, const string& raw_comment)
     {
+        struct parser_deleter
+        {
+            void operator()(cmark_parser* parser) const STANDARDESE_NOEXCEPT
+            {
+                cmark_parser_free(parser);
+            }
+        };
+
+        using md_parser = detail::wrapper<cmark_parser*, parser_deleter>;
+
         md_parser parser(cmark_parser_new(CMARK_OPT_NORMALIZE));
 
         std::string cur;
@@ -237,34 +156,54 @@ namespace
         return cmark_parser_finish(parser.get());
     }
 
-    struct iter_deleter
+    std::vector<md_entity_ptr> parse_children(comment& comment, const md_node& root)
     {
-        void operator()(cmark_iter* iter) const STANDARDESE_NOEXCEPT
+        struct iter_deleter
         {
-            cmark_iter_free(iter);
+            void operator()(cmark_iter* iter) const STANDARDESE_NOEXCEPT
+            {
+                cmark_iter_free(iter);
+            }
+        };
+
+        using md_iter = detail::wrapper<cmark_iter*, iter_deleter>;
+
+        std::vector<md_entity_ptr> direct_children;
+        std::stack<md_container*>  stack;
+        stack.push(&comment.get_content());
+
+        md_iter iter(cmark_iter_new(root.get()));
+        for (auto ev = CMARK_EVENT_NONE; (ev = cmark_iter_next(iter.get())) != CMARK_EVENT_DONE;)
+        {
+            auto node = cmark_iter_get_node(iter.get());
+            if (node == root.get())
+                continue;
+
+            if (ev == CMARK_EVENT_ENTER)
+            {
+                auto entity = md_entity::try_parse(node, *stack.top());
+                auto parent = stack.top();
+
+                // push new scope
+                if (is_container(entity->get_entity_type()))
+                    stack.push(static_cast<md_container*>(entity.get()));
+
+                // add entity to parent
+                if (cmark_node_parent(node) == root.get())
+                {
+                    assert(parent == &comment.get_content());
+                    direct_children.push_back(std::move(entity));
+                }
+                else
+                    parent->add_entity(std::move(entity));
+            }
+            else if (ev == CMARK_EVENT_EXIT)
+            {
+                stack.pop();
+            }
         }
-    };
 
-    using md_iter = detail::wrapper<cmark_iter*, iter_deleter>;
-
-    void remove_node(cmark_node* node, cmark_iter* iter)
-    {
-        // reset iterator
-        auto previous = cmark_node_previous(node);
-        auto parent   = cmark_node_parent(node);
-
-        cmark_node_unlink(node);
-        if (previous)
-            // we are exiting the previous node
-            cmark_iter_reset(iter, previous, CMARK_EVENT_EXIT);
-        else
-            // there is no previous node on this level
-            // so were have just entered the parent node
-            cmark_iter_reset(iter, parent, CMARK_EVENT_ENTER);
-
-        // now remove the node from the tree
-        // iteration will go to the next node in order
-        cmark_node_free(node);
+        return direct_children;
     }
 
     std::string read_command(const parser& p, md_paragraph& paragraph)
@@ -288,8 +227,9 @@ namespace
         return command;
     }
 
-    md_text& remove_command_string(md_paragraph& paragraph, const std::string& command)
+    void remove_command_string(md_paragraph& paragraph, const std::string& command)
     {
+        assert(paragraph.begin()->get_entity_type() == md_entity::text_t);
         // remove command + command character + whitespace
         auto& text    = static_cast<md_text&>(*paragraph.begin());
         auto  new_str = text.get_string() + command.size() + 1;
@@ -298,199 +238,139 @@ namespace
 
         // need a copy, cmark can't handle it otherwise, https://github.com/jgm/cmark/issues/139
         text.set_string(std::string(new_str).c_str());
-
-        return text;
     }
 
-    void parse_command(const parser& p, md_comment& comment, md_paragraph& paragraph, bool& first)
+    const char* read_argument(md_paragraph& paragraph, const std::string& command)
     {
-        // set implicit section type
-        auto def_section = first ? section_type::brief : section_type::details;
-        paragraph.set_section_type(def_section,
-                                   p.get_output_config().get_section_name(def_section));
-        first = false;
+        assert(paragraph.begin()->get_entity_type() == md_entity::text_t);
+        auto& text = static_cast<md_text&>(*paragraph.begin());
 
-        auto command = read_command(p, paragraph);
-        if (command.empty())
-            return;
-        auto& text = remove_command_string(paragraph, command);
+        auto string = text.get_string() + command.size();
+        while (std::isspace(*string))
+            ++string;
 
-        auto c = p.get_comment_config().try_get_command(command);
-        if (is_section(c))
-            paragraph.set_section_type(make_section(c),
-                                       p.get_output_config().get_section_name(make_section(c)));
-        else if (make_command(c) == command_type::exclude)
-            comment.set_excluded(true);
-        else if (make_command(c) == command_type::unique_name)
+        return string;
+    }
+
+    bool parse_command(const parser& p, comment& c, md_paragraph& paragraph)
+    {
+        auto command_str = read_command(p, paragraph);
+        if (command_str.empty())
+            // no command string, return as-is
+            return true;
+
+        auto command = p.get_comment_config().try_get_command(command_str);
+        if (is_section(command))
         {
-            comment.set_unique_name(text.get_string());
-            text.set_string(""); // might need to actually delete the text node at some point
+            // remove text string
+            remove_command_string(paragraph, command_str);
+            // set section
+            auto section = make_section(command);
+            paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
         }
         else
-            throw comment_parse_error("Unknown command '" + command + "'",
-                                      cmark_node_get_start_line(paragraph.get_node()),
-                                      cmark_node_get_start_column(paragraph.get_node()));
-    }
-
-    void add_direct_children(md_comment& comment, std::vector<md_entity_ptr>& direct_children)
-    {
-        if (!direct_children.empty())
-        {
-            auto          last_section   = section_type::brief;
-            md_paragraph* last_paragraph = nullptr;
-            for (auto& e : direct_children)
+            // for the regular command, the rest of the paragraph is discarded
+            switch (make_command(command))
             {
-                if (e->get_entity_type() == md_entity::paragraph_t)
-                {
-                    auto& par = static_cast<md_paragraph&>(*e);
-                    if (par.get_section_type() != section_type::details
-                        && par.get_section_type() != section_type::brief
-                             && last_paragraph && par.get_section_type() == last_section)
-                    {
-                        // merge with the last paragraph of the same section type
-                        // never merge details or brief
-                        for (auto& child : par)
-                            last_paragraph->add_entity(child.clone(*last_paragraph));
-                    }
-                    else
-                    {
-                        last_paragraph = &par;
-                        last_section   = par.get_section_type();
-                        comment.add_entity(std::move(e));
-                    }
-                }
-                else
-                    comment.add_entity(std::move(e));
+            case command_type::exclude:
+                c.set_excluded(true);
+                return false;
+            case command_type::unique_name:
+                c.set_unique_name_override(read_argument(paragraph, command_str));
+                return false;
+            case command_type::count:
+            case command_type::invalid:
+                throw comment_parse_error("Unknown command '" + command_str + "'",
+                                          cmark_node_get_start_line(paragraph.get_node()),
+                                          cmark_node_get_start_column(paragraph.get_node()));
             }
-        }
+
+        // keep paragraph otherwise
+        return true;
     }
 
-    void parse_children(md_comment& comment, const parser& p, cmark_node* root,
-                        const cpp_name& name)
+    bool should_merge(md_paragraph* last_paragraph, section_type last_section,
+                      section_type cur_section)
     {
-        std::stack<md_container*> containers;
-        containers.push(&comment);
+        if (cur_section == section_type::details || cur_section == section_type::brief)
+            return false;
+        return last_paragraph && last_section == cur_section;
+    }
 
-        std::vector<md_entity_ptr> direct_children;
+    void merge(md_paragraph& last_paragraph, const md_paragraph& cur_paragraph)
+    {
+        for (auto& child : cur_paragraph)
+            last_paragraph.add_entity(child.clone(last_paragraph));
+    }
 
-        auto    ev              = CMARK_EVENT_NONE;
-        auto    first_paragraph = true;
-        md_iter iter(cmark_iter_new(root));
-        while ((ev = cmark_iter_next(iter.get())) != CMARK_EVENT_DONE)
-        {
-            auto node = cmark_iter_get_node(iter.get());
-            if (cmark_node_get_type(node) == CMARK_NODE_DOCUMENT)
-                // skip document, already parsed
-                continue;
-
+    void add_children(const parser& p, unsigned start_line, comment& comment,
+                      std::vector<md_entity_ptr>& children)
+    {
+        auto last_section   = section_type::brief;
+        auto last_paragraph = static_cast<md_paragraph*>(nullptr);
+        auto first          = true;
+        for (auto& child : children)
             try
             {
-                if (ev == CMARK_EVENT_ENTER)
+                assert(child);
+                if (child->get_entity_type() != md_entity::paragraph_t)
+                    comment.get_content().add_entity(std::move(child));
+                else
                 {
-                    auto entity = md_entity::try_parse(node, *containers.top());
-                    auto parent = containers.top();
-
-                    if (is_container(entity->get_entity_type()))
-                        containers.push(static_cast<md_container*>(entity.get()));
-
-                    if (cmark_node_parent(node) == root)
-                        direct_children.push_back(std::move(entity));
+                    auto& paragraph = static_cast<md_paragraph&>(*child);
+                    if (first)
+                    {
+                        paragraph.set_section_type(section_type::brief, "");
+                        first = false;
+                    }
                     else
-                        parent->add_entity(std::move(entity));
-                }
-                else if (ev == CMARK_EVENT_EXIT)
-                {
-                    // pop scope
-                    auto top = containers.top();
-                    containers.pop();
+                        paragraph.set_section_type(section_type::details, "");
 
-                    if (top->get_entity_type() == md_entity::paragraph_t)
-                        parse_command(p, comment, *static_cast<md_paragraph*>(top),
-                                      first_paragraph);
+                    auto keep = parse_command(p, comment, paragraph);
+                    if (!keep)
+                    {
+                        if (std::next(paragraph.begin()) != paragraph.end())
+                            throw comment_parse_error("Paragraph with command contains other text "
+                                                      "besides the command which will be ignored",
+                                                      cmark_node_get_start_line(
+                                                          paragraph.get_node()),
+                                                      cmark_node_get_start_column(
+                                                          paragraph.get_node()));
+                        continue;
+                    }
+
+                    if (should_merge(last_paragraph, last_section, paragraph.get_section_type()))
+                        merge(*last_paragraph, paragraph);
+                    else
+                    {
+                        last_paragraph = &paragraph;
+                        last_section   = paragraph.get_section_type();
+                        comment.get_content().add_entity(std::move(child));
+                    }
                 }
             }
             catch (comment_parse_error& error)
             {
-                p.get_logger()->warn("when parsing comments of '{}' ({}:{}): {}", name.c_str(),
-                                     error.get_line(), error.get_column(), error.what());
-
-                if (cmark_node_parent(node) == root)
-                {
-                    // if the parant is root, remove from direct_children as well
-                    assert(direct_children.back()->get_node() == node);
-                    direct_children.pop_back();
-                }
-                remove_node(node, iter.get());
+                p.get_logger()->warn("when parsing comments ({}:{}): {}",
+                                     start_line + error.get_line(), error.get_column(),
+                                     error.what());
             }
-        }
-
-        add_direct_children(comment, direct_children);
     }
 }
 
-md_ptr<md_comment> md_comment::parse(const parser& p, const string& name, const string& comment)
+void standardese::parse_comments(const parser& p, const string& file_name,
+                                 const std::string& source)
 {
-    auto result = detail::make_md_ptr<md_comment>();
-
-    auto root = parse_document(p, comment);
-    parse_children(*result, p, root, name);
-    cmark_node_free(root);
-
-    return result;
-}
-
-md_entity& md_comment::add_entity(md_entity_ptr ptr)
-{
-    if (ptr->get_entity_type() == md_entity::paragraph_t)
+    auto raw_comments = detail::read_comments(source);
+    for (auto& raw_comment : raw_comments)
     {
-        auto& par = static_cast<md_paragraph&>(*ptr);
-        if (par.get_section_type() == section_type::brief)
-        {
-            // add all children to brief
-            for (auto& child : par)
-                get_brief().add_entity(child.clone(get_brief()));
-            return get_brief();
-        }
+        comment c;
+
+        auto document = parse_document(p, raw_comment.content);
+        auto children = parse_children(c, document);
+        add_children(p, raw_comment.end_line - raw_comment.count_lines + 1, c, children);
+
+        p.get_comment_registry().register_comment(comment_id(file_name, raw_comment.end_line),
+                                                  std::move(c));
     }
-
-    return md_container::add_entity(std::move(ptr));
-}
-
-md_entity_ptr md_comment::do_clone(const md_entity*) const
-{
-    auto result       = detail::make_md_ptr<md_comment>();
-    result->excluded_ = excluded_;
-    result->id_       = id_;
-    for (auto& child : *this)
-        result->add_entity(child.clone(*result));
-    return std::move(result);
-}
-
-md_comment::md_comment()
-: md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK)), excluded_(false)
-{
-    auto brief = md_paragraph::make(*this);
-    brief->set_section_type(section_type::brief, "");
-
-    md_container::add_entity(std::move(brief));
-}
-
-namespace
-{
-    const md_document* get_document(const md_entity* cur) STANDARDESE_NOEXCEPT
-    {
-        while (cur->has_parent() && cur->get_entity_type() != md_entity::document_t)
-            cur = &cur->get_parent();
-
-        if (cur->get_entity_type() == md_entity::document_t)
-            return static_cast<const md_document*>(cur);
-        else
-            return nullptr;
-    }
-}
-
-std::string md_comment::get_output_name() const
-{
-    auto document = get_document(this);
-    return document ? document->get_output_name() : "";
 }

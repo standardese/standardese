@@ -210,9 +210,7 @@ cpp_ptr<cpp_class> cpp_class::parse(translation_unit& tu, cpp_cursor cur, const 
     else
         assert(args.empty());
 
-    auto result = detail::make_cpp_ptr<cpp_class>(cur, parent, ctype, is_final);
-    result->set_comment(tu);
-    return result;
+    return detail::make_cpp_ptr<cpp_class>(cur, parent, ctype, is_final);
 }
 
 cpp_name cpp_class::get_scope() const

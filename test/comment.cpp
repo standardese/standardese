@@ -6,9 +6,12 @@
 
 #include <catch.hpp>
 
+#include <standardese/detail/raw_comment.hpp>
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
+
+#include "test_parser.hpp"
 
 using namespace standardese;
 
@@ -21,6 +24,16 @@ std::string get_text(const md_paragraph& paragraph)
         else if (child.get_entity_type() == md_entity::soft_break_t)
             result += '\n';
     return result;
+}
+
+const comment& parse_comment(parser& p, std::string source)
+{
+    auto  tu     = parse(p, "md_comment", (source + "\nint a;").c_str());
+    auto& entity = *tu.get_file().begin();
+
+    auto res = p.get_comment_registry().lookup_comment(entity);
+    REQUIRE(res);
+    return *res;
 }
 
 TEST_CASE("md_comment", "[doc]")
@@ -42,6 +55,7 @@ TEST_CASE("md_comment", "[doc]")
             */
             
             /** C style
+              *
               * multiline.
               */
               
@@ -77,35 +91,35 @@ TEST_CASE("md_comment", "[doc]")
         REQUIRE(comments[3].count_lines == 2u);
         REQUIRE(comments[3].end_line == 11u);
 
-        REQUIRE(comments[4].content == "C style\nmultiline.");
-        REQUIRE(comments[4].count_lines == 3u);
-        REQUIRE(comments[4].end_line == 15u);
+        REQUIRE(comments[4].content == "C style\n\nmultiline.");
+        REQUIRE(comments[4].count_lines == 4u);
+        REQUIRE(comments[4].end_line == 16u);
 
         REQUIRE(comments[5].content == "C style\n/// C++ multiline.");
         REQUIRE(comments[5].count_lines == 2u);
-        REQUIRE(comments[5].end_line == 18u);
+        REQUIRE(comments[5].end_line == 19u);
 
         REQUIRE(comments[6].content == "Multiple\nC++");
         REQUIRE(comments[6].count_lines == 2u);
-        REQUIRE(comments[6].end_line == 21u);
-        
+        REQUIRE(comments[6].end_line == 22u);
+
         REQUIRE(comments[7].content == "and C style.");
         REQUIRE(comments[7].count_lines == 2u);
-        REQUIRE(comments[7].end_line == 23u);
-        
+        REQUIRE(comments[7].end_line == 24u);
+
         REQUIRE(comments[8].content == "End line style.");
         REQUIRE(comments[8].count_lines == 1u);
-        REQUIRE(comments[8].end_line == 25u);
-        
+        REQUIRE(comments[8].end_line == 26u);
+
         REQUIRE(comments[9].content == "End line style.\nContinued.");
         REQUIRE(comments[9].count_lines == 2u);
-        REQUIRE(comments[9].end_line == 27u);
+        REQUIRE(comments[9].end_line == 28u);
     }
     SECTION("simple parsing")
     {
-        auto comment = md_comment::parse(p, "", R"(Hello World.)");
+        auto& comment = parse_comment(p, R"(/// Hello World.)");
         auto count   = 0u;
-        for (auto& child : *comment)
+        for (auto& child : comment.get_content())
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
 
@@ -118,18 +132,19 @@ TEST_CASE("md_comment", "[doc]")
     }
     SECTION("multiple sections explicit")
     {
-        auto comment = md_comment::parse(p, "", R"(
+        auto& comment = parse_comment(p, R"(/**
 \brief A
 
 \details B
 C
-)");
+*/)");
 
         auto count = 0u;
-        for (auto& child : *comment)
+        for (auto& child : comment.get_content())
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
+            INFO(get_text(paragraph));
 
             if (get_text(paragraph) == "A")
             {
@@ -148,15 +163,15 @@ C
     }
     SECTION("multiple sections implicit")
     {
-        auto comment = md_comment::parse(p, "", R"(
-A
- 
-B
-C /// C
-)");
+        auto& comment = parse_comment(p, R"(/**
+* A
+* 
+* B
+* C /// C
+*/)");
 
         auto count = 0u;
-        for (auto& child : *comment)
+        for (auto& child : comment.get_content())
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
@@ -178,17 +193,16 @@ C /// C
     }
     SECTION("cherry pick other commands")
     {
-        auto comment = md_comment::parse(p, "", R"(
-\effects A A
-A A
-
-\returns B B
-
-\error_conditions C C
-)");
+        auto& comment = parse_comment(p, R"(
+/// \effects A A
+/// A A
+///
+/// \returns B B
+///
+/// \error_conditions C C)");
 
         auto count = 0u;
-        for (auto& child : *comment)
+        for (auto& child : comment.get_content())
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
@@ -216,7 +230,7 @@ A A
     }
     SECTION("merging")
     {
-        auto comment = md_comment::parse(p, "", R"(
+        auto& comment = parse_comment(p, R"(/**
 \effects A
 
 \effects A
@@ -226,10 +240,10 @@ A A
 C
 
 \details D
-)");
+*/)");
 
         auto count = 0u;
-        for (auto& child : *comment)
+        for (auto& child : comment.get_content())
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
@@ -264,14 +278,13 @@ C
     {
         p.get_comment_config().set_implicit_paragraph(true);
 
-        auto comment = md_comment::parse(p, "", R"(
-\effects A
-\effects A
-\requires B
-)");
+        auto& comment = parse_comment(p, R"(
+/// \effects A
+/// \effects A
+/// \requires B)");
 
         auto count = 0u;
-        for (auto& child : *comment)
+        for (auto& child : comment.get_content())
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);

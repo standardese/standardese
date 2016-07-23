@@ -185,10 +185,10 @@ void index::namespace_member_impl(ns_member_cb cb, void* data)
 {
     for (auto& pair : entities_)
     {
-        auto& key = pair.second;
-        if (key.first)
+        auto& value = pair.second;
+        if (value.first)
             continue; // ignore short names
-        auto& entity = key.second.get_cpp_entity();
+        auto& entity = value.second.get_cpp_entity();
         if (entity.get_entity_type() == cpp_entity::namespace_t
             || entity.get_entity_type() == cpp_entity::file_t)
             continue;
@@ -197,8 +197,8 @@ void index::namespace_member_impl(ns_member_cb cb, void* data)
         auto& parent      = entity.get_parent();
         auto  parent_type = parent.get_entity_type();
         if (parent_type == cpp_entity::namespace_t)
-            cb(static_cast<const cpp_namespace*>(&parent), entity, data);
+            cb(static_cast<const cpp_namespace*>(&parent), value.second, data);
         else if (parent_type == cpp_entity::file_t)
-            cb(nullptr, entity, data);
+            cb(nullptr, value.second, data);
     }
 }
