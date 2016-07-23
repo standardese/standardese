@@ -142,8 +142,11 @@ namespace
         if (a == comment_style::end_of_line)
             // end of line can only merge with a following cpp
             return b == comment_style::cpp;
-        // otherwise require same style
-        return a == b;
+        else if (a == comment_style::cpp)
+            // C++ style can only merge with other C++ styles
+            return b == comment_style::cpp;
+        // otherwise cannot merge
+        return false;
     }
 
     std::vector<detail::raw_comment> normalize(
