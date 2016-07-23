@@ -38,6 +38,7 @@ namespace standardese
         exclude,
         unique_name,
         entity,
+        file,
         count,
     };
 

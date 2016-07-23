@@ -291,6 +291,8 @@ namespace
             break;
         case command_type::entity:
             return read_argument(text, command_str);
+        case command_type::file:
+            return "__standardese_file";
         case command_type::count:
         case command_type::invalid:
             throw comment_parse_error("Unknown command '" + command_str + "'",
@@ -426,6 +428,8 @@ void standardese::parse_comments(const parser& p, const string& file_name,
         if (entity_name.empty())
             p.get_comment_registry().register_comment(comment_id(file_name, raw_comment.end_line),
                                                       std::move(c));
+        else if (entity_name == "__standardese_file")
+            p.get_comment_registry().register_comment(comment_id(file_name), std::move(c));
         else
             p.get_comment_registry().register_comment(comment_id(entity_name), std::move(c));
     }
