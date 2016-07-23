@@ -210,6 +210,7 @@ comment_config::comment_config() : cmd_char_('\\'), implicit_par_(false)
 
     STANDARDESE_DETAIL_SET(exclude)
     STANDARDESE_DETAIL_SET(unique_name)
+    STANDARDESE_DETAIL_SET(entity)
 
 #undef STANDARDESE_DETAIL_SET
 }
