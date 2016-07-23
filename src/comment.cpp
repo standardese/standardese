@@ -64,6 +64,17 @@ bool detail::comment_compare::operator()(const comment_id& id_a,
     return id_a.line_ < id_b.line_;
 }
 
+bool comment::empty() const STANDARDESE_NOEXCEPT
+{
+    if (get_content().empty())
+        return true;
+    else if (std::next(get_content().begin()) != get_content().end())
+        return false;
+    else if (get_content().get_brief().empty())
+        return true;
+    return false;
+}
+
 bool comment_registry::register_comment(comment_id id, comment c) const
 {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -102,7 +113,22 @@ const comment* comment_registry::lookup_comment(const cpp_entity& e) const
     auto iter     = comments_.lower_bound(location);
     if (iter != comments_.end()
         && (location.is_name() || location.line() + 1 - iter->first.line() <= 1))
-        return &iter->second;
+    {
+        if (!iter->second.empty())
+            return &iter->second;
+        // this command is only used for commands, look for a remote comment
+        auto& comment = iter->second;
+
+        iter = comments_.find(comment_id(comment.has_unique_name_override() ?
+                                             comment.get_unique_name_override() :
+                                             e.get_unique_name()));
+        if (iter != comments_.end())
+            // merge remote contents
+            for (auto& child : iter->second.get_content())
+                comment.get_content().add_entity(child.clone(comment.get_content()));
+
+        return &comment;
+    }
 
     iter = comments_.find(create_name_id(e));
     if (iter != comments_.end())

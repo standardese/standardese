@@ -119,6 +119,8 @@ namespace standardese
             assert(content_);
         }
 
+        bool empty() const STANDARDESE_NOEXCEPT;
+
         bool has_unique_name_override() const STANDARDESE_NOEXCEPT
         {
             return !get_unique_name_override().empty();
