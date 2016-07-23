@@ -36,9 +36,13 @@ const comment& parse_comment(parser& p, std::string source)
     return *res;
 }
 
+#include <spdlog/spdlog.h>
+
+auto logger = spdlog::stdout_logger_mt("foo");
+
 TEST_CASE("md_comment", "[doc]")
 {
-    parser p;
+    parser p(logger);
 
     SECTION("comment styles")
     {
@@ -273,6 +277,27 @@ C
                 REQUIRE(paragraph.get_section_type() == section_type::brief);
         }
         REQUIRE(count == 4u);
+    }
+    SECTION("commands")
+    {
+        auto& comment = parse_comment(p, R"(
+                                      /// Normal markup.
+                                      ///
+                                      /// \exclude
+                                      /// \unique_name foo)");
+        REQUIRE(comment.is_excluded());
+        REQUIRE(comment.get_unique_name_override() == "foo");
+
+        auto count = 0u;
+        for (auto& child : comment.get_content())
+        {
+            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
+            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
+            REQUIRE(paragraph.get_section_type() == section_type::brief);
+            REQUIRE(get_text(paragraph) == "Normal markup.");
+            ++count;
+        }
+        REQUIRE(count == 1u);
     }
     SECTION("implicit paragraph")
     {

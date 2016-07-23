@@ -206,14 +206,14 @@ namespace
         return direct_children;
     }
 
-    std::string read_command(const parser& p, md_paragraph& paragraph)
+    std::string read_command(const parser& p, const md_entity& e)
     {
-        if (paragraph.begin()->get_entity_type() != md_entity::text_t)
-            // a raw text as first child for section is required
-            // i.e. not emphasis or similar
+        if (e.get_entity_type() != md_entity::text_t)
+            // must be a text
             return "";
 
-        auto str = static_cast<md_text&>(*paragraph.begin()).get_string();
+        auto& text = static_cast<const md_text&>(e);
+        auto  str  = text.get_string();
         if (*str != p.get_comment_config().get_command_character())
             // require command at first place
             return "";
@@ -227,11 +227,9 @@ namespace
         return command;
     }
 
-    void remove_command_string(md_paragraph& paragraph, const std::string& command)
+    void remove_command_string(md_text& text, const std::string& command)
     {
-        assert(paragraph.begin()->get_entity_type() == md_entity::text_t);
         // remove command + command character + whitespace
-        auto& text    = static_cast<md_text&>(*paragraph.begin());
         auto  new_str = text.get_string() + command.size() + 1;
         while (std::isspace(*new_str))
             ++new_str;
@@ -240,21 +238,45 @@ namespace
         text.set_string(std::string(new_str).c_str());
     }
 
-    const char* read_argument(md_paragraph& paragraph, const std::string& command)
+    const char* read_argument(const md_text& text, const std::string& command)
     {
-        assert(paragraph.begin()->get_entity_type() == md_entity::text_t);
-        auto& text = static_cast<md_text&>(*paragraph.begin());
-
-        auto string = text.get_string() + command.size();
+        auto string = text.get_string() + command.size() + 1;
         while (std::isspace(*string))
             ++string;
 
         return string;
     }
 
+    void handle_command(comment& c, md_text& text, const std::string& command_str, unsigned command)
+    {
+        if (is_section(command))
+            throw comment_parse_error("Section type cannot appear in command-only paragraph",
+                                      cmark_node_get_start_line(text.get_node()),
+                                      cmark_node_get_start_column(text.get_node()));
+
+        switch (make_command(command))
+        {
+        case command_type::exclude:
+            c.set_excluded(true);
+            break;
+        case command_type::unique_name:
+            c.set_unique_name_override(read_argument(text, command_str));
+            break;
+        case command_type::count:
+        case command_type::invalid:
+            throw comment_parse_error("Unknown command '" + command_str + "'",
+                                      cmark_node_get_start_line(text.get_node()),
+                                      cmark_node_get_start_column(text.get_node()));
+        }
+    }
+
     bool parse_command(const parser& p, comment& c, md_paragraph& paragraph)
     {
-        auto command_str = read_command(p, paragraph);
+        if (paragraph.begin()->get_entity_type() != md_entity::text_t)
+            return true;
+
+        auto& text        = static_cast<md_text&>(*paragraph.begin());
+        auto  command_str = read_command(p, text);
         if (command_str.empty())
             // no command string, return as-is
             return true;
@@ -263,30 +285,32 @@ namespace
         if (is_section(command))
         {
             // remove text string
-            remove_command_string(paragraph, command_str);
+            remove_command_string(text, command_str);
             // set section
             auto section = make_section(command);
             paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
+            return true;
         }
-        else
-            // for the regular command, the rest of the paragraph is discarded
-            switch (make_command(command))
-            {
-            case command_type::exclude:
-                c.set_excluded(true);
-                return false;
-            case command_type::unique_name:
-                c.set_unique_name_override(read_argument(paragraph, command_str));
-                return false;
-            case command_type::count:
-            case command_type::invalid:
-                throw comment_parse_error("Unknown command '" + command_str + "'",
-                                          cmark_node_get_start_line(paragraph.get_node()),
-                                          cmark_node_get_start_column(paragraph.get_node()));
-            }
 
-        // keep paragraph otherwise
-        return true;
+        handle_command(c, text, command_str, command);
+
+        for (auto iter = std::next(paragraph.begin()); iter != paragraph.end(); ++iter)
+        {
+            if (iter->get_entity_type() == md_entity::soft_break_t)
+                // allow and skip soft breaks
+                continue;
+
+            command_str = read_command(p, *iter);
+            if (command_str.empty())
+                throw comment_parse_error("Normal markup will be ignored in command-only paragraph",
+                                          cmark_node_get_start_line(text.get_node()),
+                                          cmark_node_get_start_column(text.get_node()));
+            command = p.get_comment_config().try_get_command(command_str);
+            handle_command(c, static_cast<md_text&>(*iter), command_str, command);
+        }
+
+        // don't keep paragraph
+        return false;
     }
 
     bool should_merge(md_paragraph* last_paragraph, section_type last_section,
@@ -328,16 +352,7 @@ namespace
 
                     auto keep = parse_command(p, comment, paragraph);
                     if (!keep)
-                    {
-                        if (std::next(paragraph.begin()) != paragraph.end())
-                            throw comment_parse_error("Paragraph with command contains other text "
-                                                      "besides the command which will be ignored",
-                                                      cmark_node_get_start_line(
-                                                          paragraph.get_node()),
-                                                      cmark_node_get_start_column(
-                                                          paragraph.get_node()));
                         continue;
-                    }
 
                     if (should_merge(last_paragraph, last_section, paragraph.get_section_type()))
                         merge(*last_paragraph, paragraph);
