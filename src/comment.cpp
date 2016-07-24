@@ -103,6 +103,15 @@ namespace
     {
         return comment_id(e.get_unique_name());
     }
+
+    bool matches(const comment_id& a, const comment_id& b)
+    {
+        if (a.is_name() && b.is_name())
+            return a.unique_name() == b.unique_name();
+        else if (a.is_location() && b.is_location())
+            return std::abs(a.line() + 1 - b.line()) <= 1 && a.file_name() == b.file_name();
+        return false;
+    }
 }
 
 const comment* comment_registry::lookup_comment(const cpp_entity& e) const
@@ -111,8 +120,7 @@ const comment* comment_registry::lookup_comment(const cpp_entity& e) const
 
     auto location = create_location_id(e);
     auto iter     = comments_.lower_bound(location);
-    if (iter != comments_.end()
-        && (location.is_name() || location.line() + 1 - iter->first.line() <= 1))
+    if (iter != comments_.end() && matches(location, iter->first))
     {
         if (!iter->second.empty())
             return &iter->second;
