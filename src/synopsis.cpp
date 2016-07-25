@@ -342,6 +342,13 @@ namespace
     }
 
     //=== functions ===//
+    void do_write_synopsis(const parser& par, code_block_writer& out,
+                           const cpp_function_parameter& p)
+    {
+        detail::write_type_value_default(par, out, p.get_type(), p.get_name(),
+                                         p.get_default_value());
+    }
+
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_function& f, bool,
                            const cpp_name& override_name)
     {
@@ -562,6 +569,8 @@ namespace
             STANDARDESE_DETAIL_HANDLE(constructor)
             STANDARDESE_DETAIL_HANDLE(destructor)
 
+            STANDARDESE_DETAIL_HANDLE(function_parameter)
+
             STANDARDESE_DETAIL_HANDLE(template_type_parameter)
             STANDARDESE_DETAIL_HANDLE(non_type_template_parameter)
             STANDARDESE_DETAIL_HANDLE(template_template_parameter)
@@ -576,7 +585,6 @@ namespace
 #undef STANDARDESE_DETAIL_HANDLE
 
         // ignored
-        case cpp_entity::function_parameter_t:
         case cpp_entity::base_class_t:
         case cpp_entity::access_specifier_t:
         case cpp_entity::invalid_t:

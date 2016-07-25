@@ -72,6 +72,13 @@ namespace standardese
             assert(line != 0u);
         }
 
+        comment_id(const string& file_name, unsigned line, const string& entity_name)
+        : file_name_or_name_('$' + std::string(file_name.c_str()) + '$' + entity_name.c_str()),
+          line_(line)
+        {
+            assert(line != 0u);
+        }
+
         explicit comment_id(string name) : file_name_or_name_(std::move(name)), line_(0u)
         {
         }
@@ -83,19 +90,42 @@ namespace standardese
 
         bool is_location() const STANDARDESE_NOEXCEPT
         {
-            return !is_name();
+            return !is_name() && file_name_or_name_.c_str()[0] != '$';
         }
 
-        const string& file_name() const STANDARDESE_NOEXCEPT
+        bool is_inline_location() const STANDARDESE_NOEXCEPT
         {
-            assert(is_location());
-            return file_name_or_name_;
+            return !is_name() && !is_location();
+        }
+
+        string file_name() const STANDARDESE_NOEXCEPT
+        {
+            assert(!is_name());
+            if (is_location())
+                return file_name_or_name_;
+
+            assert(is_inline_location());
+            std::string result;
+            for (auto ptr = file_name_or_name_.c_str() + 1; *ptr != '$'; ++ptr)
+                result += *ptr;
+
+            return result;
         }
 
         unsigned line() const STANDARDESE_NOEXCEPT
         {
-            assert(is_location());
+            assert(is_location() || is_inline_location());
             return line_;
+        }
+
+        string inline_entity_name() const STANDARDESE_NOEXCEPT
+        {
+            assert(is_inline_location());
+            auto ptr = file_name_or_name_.c_str() + 1;
+            while (*ptr != '$')
+                ++ptr;
+            ++ptr;
+            return ptr;
         }
 
         const string& unique_name() const STANDARDESE_NOEXCEPT

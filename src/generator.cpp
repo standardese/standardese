@@ -51,9 +51,10 @@ namespace
     {
         auto& blacklist = p.get_output_config().get_blacklist();
         if (e.get_entity_type() != cpp_entity::namespace_t
-            && blacklist.is_set(entity_blacklist::require_comment) && e.has_comment()
-            && e.get_comment()
-                   .empty()) // only valid for entities which can have comments except namespaces
+            && blacklist.is_set(entity_blacklist::require_comment)
+            && (!e.has_comment()
+                || e.get_comment()
+                       .empty())) // only valid for entities which can have comments except namespaces
             return true;
         else if (blacklist.is_blacklisted(entity_blacklist::documentation, e.get_cpp_entity()))
             return true;
@@ -98,6 +99,11 @@ namespace
     {
         if (is_blacklisted(p, e))
             return;
+        else if (auto function = get_function(e.get_cpp_entity()))
+        {
+            handle_container<cpp_function_base>(p, i, output, level, e, function->get_parameters());
+            return;
+        }
 
         switch (e.get_entity_type())
         {

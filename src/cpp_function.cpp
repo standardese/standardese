@@ -43,6 +43,11 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(translation_unit& 
                                                         std::move(default_value));
 }
 
+cpp_name cpp_function_parameter::do_get_unique_name() const
+{
+    return get_parent().get_unique_name().c_str() + std::string("::") + get_name().c_str();
+}
+
 cpp_ptr<cpp_function_base> cpp_function_base::try_parse(translation_unit& p, cpp_cursor cur,
                                                         const cpp_entity& parent,
                                                         unsigned          template_offset)

@@ -7,6 +7,7 @@
 #include <catch.hpp>
 
 #include <standardese/detail/raw_comment.hpp>
+#include <standardese/cpp_function.hpp>
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
@@ -36,13 +37,9 @@ const comment& parse_comment(parser& p, std::string source)
     return *res;
 }
 
-#include <spdlog/spdlog.h>
-
-auto logger = spdlog::stdout_logger_mt("foo");
-
 TEST_CASE("md_comment", "[doc]")
 {
-    parser p(logger);
+    parser p;
 
     SECTION("comment styles")
     {
@@ -328,5 +325,77 @@ C
                 REQUIRE(paragraph.get_section_type() == section_type::brief);
         }
         REQUIRE(count == 2u);
+    }
+}
+
+std::string get_text(const md_comment& comment)
+{
+    std::string result;
+    for (auto& child : comment)
+    {
+        if (child.get_entity_type() != md_entity::paragraph_t)
+            continue;
+        auto& par = static_cast<const md_paragraph&>(child);
+        result += get_text(par);
+    }
+    return result;
+}
+
+std::string get_text(const doc_entity& e)
+{
+    REQUIRE(e.has_comment());
+    auto& content = e.get_comment().get_content();
+    return get_text(content);
+}
+
+TEST_CASE("comment-matching", "[doc]")
+{
+    parser p;
+
+    auto source = R"(
+        /// a
+        #define a
+        
+        /// \file
+        ///
+        /// file
+        
+        void b();
+        
+        /// \entity b()
+        ///
+        /// b
+        
+        /// \entity f
+        ///
+        /// e
+        
+        /// c
+        ///
+        /// \param d d
+        ///
+        /// \param e
+        /// \unique_name f
+        void c(int d, int e);
+      )";
+
+    auto tu = parse(p, "comment-matching", source);
+
+    REQUIRE(get_text(doc_entity(p, tu.get_file(), "")) == "file");
+    for (auto& entity : tu.get_file())
+    {
+        INFO(entity.get_name().c_str());
+        REQUIRE(get_text(doc_entity(p, entity, "")) == entity.get_name().c_str());
+
+        if (entity.get_name() == "c")
+        {
+            REQUIRE(is_function_like(entity.get_entity_type()));
+            auto& func = static_cast<const cpp_function_base&>(entity);
+            for (auto& param : func.get_parameters())
+            {
+                INFO(param.get_name().c_str());
+                REQUIRE(get_text(doc_entity(p, param, "")) == param.get_name().c_str());
+            }
+        }
     }
 }

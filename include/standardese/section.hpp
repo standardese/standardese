@@ -39,6 +39,7 @@ namespace standardese
         unique_name,
         entity,
         file,
+        param,
         count,
     };
 

@@ -84,19 +84,51 @@ bool comment_registry::register_comment(comment_id id, comment c) const
 
 namespace
 {
-    comment_id create_location_id(const cpp_entity& e)
+    std::pair<string, unsigned> get_location(const cpp_cursor& cur)
     {
-        if (e.get_entity_type() == cpp_entity::file_t)
-            return comment_id(e.get_full_name());
-
-        auto location = clang_getCursorLocation(e.get_cursor());
+        assert(!clang_isTranslationUnit(clang_getCursorKind(cur)));
+        auto location = clang_getCursorLocation(cur);
 
         CXFile   file;
         unsigned line;
         clang_getSpellingLocation(location, &file, &line, nullptr, nullptr);
         assert(file);
 
-        return line == 1 ? comment_id("", 1) : comment_id(clang_getFileName(file), line - 1);
+        return std::make_pair(clang_getFileName(file), line);
+    }
+
+    const cpp_entity& get_inline_parent(const cpp_entity& e)
+    {
+        if (e.get_entity_type() == cpp_entity::function_parameter_t)
+        {
+            assert(e.has_parent());
+
+            auto& func = e.get_parent();
+            assert(is_function_like(func.get_entity_type()) && func.has_parent());
+            if (is_function_template(func.get_parent().get_entity_type()))
+                return func.get_parent();
+            return func;
+        }
+
+        return e;
+    }
+
+    comment_id create_location_id(const cpp_entity& e)
+    {
+        if (e.get_entity_type() == cpp_entity::file_t)
+            return comment_id(e.get_full_name());
+
+        auto& parent   = get_inline_parent(e);
+        auto  location = get_location(parent.get_cursor());
+        if (location.second == 1u)
+            // entity is located at the first line of the file
+            // no comment possible
+            return comment_id("", 1u);
+
+        auto is_inline = &parent != &e;
+        if (is_inline)
+            return comment_id(location.first, location.second - 1, e.get_name());
+        return comment_id(location.first, location.second - 1);
     }
 
     comment_id create_name_id(const cpp_entity& e)
@@ -104,13 +136,54 @@ namespace
         return comment_id(e.get_unique_name());
     }
 
-    bool matches(const comment_id& a, const comment_id& b)
+    bool matches(const cpp_entity& e, const comment_id& id)
     {
-        if (a.is_name() && b.is_name())
-            return a.unique_name() == b.unique_name();
-        else if (a.is_location() && b.is_location())
-            return std::abs(a.line() + 1 - b.line()) <= 1 && a.file_name() == b.file_name();
+        if (id.is_name())
+            return e.get_unique_name() == id.unique_name();
+        else if (id.is_location() && e.get_entity_type() != cpp_entity::file_t)
+        {
+            auto location = get_location(e.get_cursor());
+            return location.second - id.line() <= 1u && location.first == id.file_name();
+        }
+        else if (id.is_inline_location())
+        {
+            auto& inline_parent = get_inline_parent(e);
+            if (&inline_parent == &e)
+                // not an entity where an inline location makes sense
+                return false;
+
+            auto location = get_location(inline_parent.get_cursor());
+            return location.second - id.line() <= 1u && location.first == id.file_name()
+                   && e.get_name() == id.inline_entity_name();
+        }
+
+        assert(e.get_entity_type() == cpp_entity::file_t);
         return false;
+    }
+
+    template <class Map>
+    const comment* lookup_comment_location(Map& comments, const comment_id& id, const cpp_entity& e)
+    {
+        auto iter = comments.lower_bound(id);
+        if (iter != comments.end() && matches(e, iter->first))
+        {
+            if (!iter->second.empty())
+                return &iter->second;
+            // this command is only used for commands, look for a remote comment
+            auto& comment = iter->second;
+
+            iter = comments.find(comment_id(comment.has_unique_name_override() ?
+                                                comment.get_unique_name_override() :
+                                                e.get_unique_name()));
+            if (iter != comments.end())
+                // merge remote contents
+                for (auto& child : iter->second.get_content())
+                    comment.get_content().add_entity(child.clone(comment.get_content()));
+
+            return &comment;
+        }
+
+        return nullptr;
     }
 }
 
@@ -118,27 +191,13 @@ const comment* comment_registry::lookup_comment(const cpp_entity& e) const
 {
     std::unique_lock<std::mutex> lock(mutex_);
 
+    // first look for comments at the location
     auto location = create_location_id(e);
-    auto iter     = comments_.lower_bound(location);
-    if (iter != comments_.end() && matches(location, iter->first))
-    {
-        if (!iter->second.empty())
-            return &iter->second;
-        // this command is only used for commands, look for a remote comment
-        auto& comment = iter->second;
+    if (auto c = lookup_comment_location(comments_, location, e))
+        return c;
 
-        iter = comments_.find(comment_id(comment.has_unique_name_override() ?
-                                             comment.get_unique_name_override() :
-                                             e.get_unique_name()));
-        if (iter != comments_.end())
-            // merge remote contents
-            for (auto& child : iter->second.get_content())
-                comment.get_content().add_entity(child.clone(comment.get_content()));
-
-        return &comment;
-    }
-
-    iter = comments_.find(create_name_id(e));
+    // then for comments with the unique name
+    auto iter = comments_.find(create_name_id(e));
     if (iter != comments_.end())
         return &iter->second;
 
@@ -261,15 +320,20 @@ namespace
         return command;
     }
 
-    void remove_command_string(md_text& text, const std::string& command)
+    void remove_argument_string(md_text& text, const std::string& arg, unsigned offset = 0u)
     {
-        // remove command + command character + whitespace
-        auto  new_str = text.get_string() + command.size() + 1;
+        // remove arg + offset + whitespace
+        auto new_str = text.get_string() + arg.size() + offset;
         while (std::isspace(*new_str))
             ++new_str;
 
         // need a copy, cmark can't handle it otherwise, https://github.com/jgm/cmark/issues/139
         text.set_string(std::string(new_str).c_str());
+    }
+
+    void remove_command_string(md_text& text, const std::string& command)
+    {
+        remove_argument_string(text, command, 1u);
     }
 
     const char* read_argument(const md_text& text, const std::string& command)
@@ -281,8 +345,38 @@ namespace
         return string;
     }
 
-    const char* handle_command(comment& c, md_text& text, const std::string& command_str,
-                               unsigned command)
+    struct comment_info
+    {
+        string               file_name, entity_name;
+        standardese::comment comment;
+        unsigned             begin_line, end_line;
+
+        comment_info(string file_name, unsigned begin_line, unsigned end_line)
+        : file_name(std::move(file_name)),
+          entity_name(""),
+          begin_line(begin_line),
+          end_line(end_line)
+        {
+        }
+    };
+
+    void register_comment(const parser& p, comment_info& info, bool is_inline = false)
+    {
+        auto& registry = p.get_comment_registry();
+        if (is_inline)
+            registry.register_comment(comment_id(info.file_name, info.end_line, info.entity_name),
+                                      std::move(info.comment));
+        else if (!info.entity_name.empty())
+            registry.register_comment(comment_id(info.entity_name), std::move(info.comment));
+        else
+            registry.register_comment(comment_id(info.file_name, info.end_line),
+                                      std::move(info.comment));
+    }
+
+    bool parse_command(const parser& p, comment_info& info, md_paragraph& paragraph);
+
+    bool handle_command(const parser& p, comment_info& info, md_paragraph& paragraph, md_text& text,
+                        const std::string& command_str, unsigned command)
     {
         if (is_section(command))
             throw comment_parse_error("Section type cannot appear in command-only paragraph",
@@ -292,48 +386,62 @@ namespace
         switch (make_command(command))
         {
         case command_type::exclude:
-            c.set_excluded(true);
+            info.comment.set_excluded(true);
             break;
         case command_type::unique_name:
-            c.set_unique_name_override(read_argument(text, command_str));
+            info.comment.set_unique_name_override(read_argument(text, command_str));
             break;
         case command_type::entity:
-            return read_argument(text, command_str);
+            if (!info.entity_name.empty())
+                throw comment_parse_error(fmt::format("Comment target already set to {}",
+                                                      info.entity_name.c_str()),
+                                          cmark_node_get_start_line(text.get_node()),
+                                          cmark_node_get_start_column(text.get_node()));
+            info.entity_name = read_argument(text, command_str);
+            break;
         case command_type::file:
-            return "__standardese_file";
+            if (!info.entity_name.empty())
+                throw comment_parse_error(fmt::format("Comment target already set to {}",
+                                                      info.entity_name.c_str()),
+                                          cmark_node_get_start_line(text.get_node()),
+                                          cmark_node_get_start_column(text.get_node()));
+            info.entity_name = info.file_name;
+            break;
+        case command_type::param:
+        {
+            // remove command
+            remove_command_string(text, command_str);
+
+            // read + remove param
+            std::string param_name;
+            for (auto ptr = text.get_string(); *ptr && !std::isspace(*ptr); ++ptr)
+                param_name += *ptr;
+            remove_argument_string(text, param_name);
+
+            comment_info inline_info(info.file_name, info.begin_line, info.end_line);
+            inline_info.entity_name = std::move(param_name);
+            auto keep               = parse_command(p, inline_info, paragraph);
+            if (keep)
+                inline_info.comment.get_content().add_entity(
+                    paragraph.clone(inline_info.comment.get_content()));
+            register_comment(p, inline_info, true);
+        }
+            return false;
         case command_type::count:
         case command_type::invalid:
             throw comment_parse_error("Unknown command '" + command_str + "'",
-                                      cmark_node_get_start_line(text.get_node()),
+                                      info.begin_line + cmark_node_get_start_line(text.get_node()),
                                       cmark_node_get_start_column(text.get_node()));
         }
 
-        return nullptr;
+        return true;
     }
 
-    bool parse_command(const parser& p, comment& c, md_paragraph& paragraph, string& entity)
+    void handle_commands(const parser& p, comment_info& info, md_paragraph& paragraph,
+                         md_text& text, std::string command_str, unsigned command)
     {
-        if (paragraph.begin()->get_entity_type() != md_entity::text_t)
-            return true;
-
-        auto& text        = static_cast<md_text&>(*paragraph.begin());
-        auto  command_str = read_command(p, text);
-        if (command_str.empty())
-            // no command string, return as-is
-            return true;
-
-        auto command = p.get_comment_config().try_get_command(command_str);
-        if (is_section(command))
-        {
-            // remove text string
-            remove_command_string(text, command_str);
-            // set section
-            auto section = make_section(command);
-            paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
-            return true;
-        }
-
-        auto entity_name = handle_command(c, text, command_str, command);
+        if (!handle_command(p, info, paragraph, text, command_str, command))
+            return;
         for (auto iter = std::next(paragraph.begin()); iter != paragraph.end(); ++iter)
         {
             if (iter->get_entity_type() == md_entity::soft_break_t)
@@ -346,12 +454,54 @@ namespace
                                           cmark_node_get_start_line(text.get_node()),
                                           cmark_node_get_start_column(text.get_node()));
             command = p.get_comment_config().try_get_command(command_str);
-            entity_name = handle_command(c, static_cast<md_text&>(*iter), command_str, command);
+            if (!handle_command(p, info, paragraph, static_cast<md_text&>(*iter), command_str,
+                                command))
+                return;
+        }
+    }
+
+    md_text* get_text(md_paragraph& paragraph)
+    {
+        for (auto iter = paragraph.begin(); iter != paragraph.end(); ++iter)
+        {
+            if (iter->get_entity_type() == md_entity::soft_break_t)
+                // skip softbreaks
+                continue;
+            else if (iter->get_entity_type() != md_entity::text_t)
+                return nullptr;
+            auto& text = static_cast<md_text&>(*iter);
+            if (!*text.get_string())
+                // empty text
+                continue;
+            return &text;
         }
 
-        if (entity_name)
-            entity = entity_name;
+        return nullptr;
+    }
 
+    bool parse_command(const parser& p, comment_info& info, md_paragraph& paragraph)
+    {
+        auto text = get_text(paragraph);
+        if (!text)
+            return true;
+
+        auto command_str = read_command(p, *text);
+        if (command_str.empty())
+            // no command string, return as-is
+            return true;
+
+        auto command = p.get_comment_config().try_get_command(command_str);
+        if (is_section(command))
+        {
+            // remove text string
+            remove_command_string(*text, command_str);
+            // set section
+            auto section = make_section(command);
+            paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
+            return true;
+        }
+
+        handle_commands(p, info, paragraph, *text, command_str, command);
         // don't keep paragraph
         return false;
     }
@@ -370,11 +520,8 @@ namespace
             last_paragraph.add_entity(child.clone(last_paragraph));
     }
 
-    string add_children(const parser& p, unsigned start_line, comment& comment,
-                        std::vector<md_entity_ptr>& children)
+    void finish_parsing(const parser& p, comment_info& info, std::vector<md_entity_ptr>& children)
     {
-        string entity_name("");
-
         auto last_section   = section_type::brief;
         auto last_paragraph = static_cast<md_paragraph*>(nullptr);
         auto first          = true;
@@ -383,7 +530,7 @@ namespace
             {
                 assert(child);
                 if (child->get_entity_type() != md_entity::paragraph_t)
-                    comment.get_content().add_entity(std::move(child));
+                    info.comment.get_content().add_entity(std::move(child));
                 else
                 {
                     auto& paragraph = static_cast<md_paragraph&>(*child);
@@ -395,7 +542,7 @@ namespace
                     else
                         paragraph.set_section_type(section_type::details, "");
 
-                    auto keep = parse_command(p, comment, paragraph, entity_name);
+                    auto keep = parse_command(p, info, paragraph);
                     if (!keep)
                         continue;
 
@@ -405,18 +552,17 @@ namespace
                     {
                         last_paragraph = &paragraph;
                         last_section   = paragraph.get_section_type();
-                        comment.get_content().add_entity(std::move(child));
+                        info.comment.get_content().add_entity(std::move(child));
                     }
                 }
             }
             catch (comment_parse_error& error)
             {
-                p.get_logger()->warn("when parsing comments ({}:{}): {}",
-                                     start_line + error.get_line(), error.get_column(),
-                                     error.what());
+                p.get_logger()->warn("when parsing comments ({}:{}): {}", error.get_line(),
+                                     error.get_column(), error.what());
             }
 
-        return entity_name;
+        register_comment(p, info);
     }
 }
 
@@ -426,19 +572,11 @@ void standardese::parse_comments(const parser& p, const string& file_name,
     auto raw_comments = detail::read_comments(source);
     for (auto& raw_comment : raw_comments)
     {
-        comment c;
+        comment_info info(file_name, raw_comment.end_line - raw_comment.count_lines + 1,
+                          raw_comment.end_line);
 
         auto document = parse_document(p, raw_comment.content);
-        auto children = parse_children(c, document);
-        auto entity_name =
-            add_children(p, raw_comment.end_line - raw_comment.count_lines + 1, c, children);
-
-        if (entity_name.empty())
-            p.get_comment_registry().register_comment(comment_id(file_name, raw_comment.end_line),
-                                                      std::move(c));
-        else if (entity_name == "__standardese_file")
-            p.get_comment_registry().register_comment(comment_id(file_name), std::move(c));
-        else
-            p.get_comment_registry().register_comment(comment_id(entity_name), std::move(c));
+        auto children = parse_children(info.comment, document);
+        finish_parsing(p, info, children);
     }
 }

@@ -212,6 +212,7 @@ comment_config::comment_config() : cmd_char_('\\'), implicit_par_(false)
     STANDARDESE_DETAIL_SET(unique_name)
     STANDARDESE_DETAIL_SET(entity)
     STANDARDESE_DETAIL_SET(file)
+    STANDARDESE_DETAIL_SET(param)
 
 #undef STANDARDESE_DETAIL_SET
 }
