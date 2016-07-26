@@ -15,25 +15,6 @@ using namespace standardese;
 
 namespace
 {
-    std::string get_id(const std::string& unique_name)
-    {
-        std::string result;
-        for (auto c : unique_name)
-            if (std::isspace(c))
-                continue;
-            else
-                result += c;
-
-        if (result.end()[-1] == ')' && result.end()[-2] == '(')
-        {
-            // ends with ()
-            result.pop_back();
-            result.pop_back();
-        }
-
-        return result;
-    }
-
     std::string until_function_params(const std::string& id)
     {
         for (auto index = 0u; index != id.size(); ++index)
@@ -41,36 +22,53 @@ namespace
                 return id.substr(0, index);
         return id;
     }
+}
 
-    // returns the short id
-    // it doesn't require parameters
-    std::string get_short_id(const std::string& id)
+std::string detail::get_id(const std::string& unique_name)
+{
+    std::string result;
+    for (auto c : unique_name)
+        if (std::isspace(c))
+            continue;
+        else
+            result += c;
+
+    if (result.end()[-1] == ')' && result.end()[-2] == '(')
     {
-        auto wo_params = until_function_params(id);
-        if (wo_params.back() == '>')
-        {
-            // I don't care about partial specializations with less than operator inside
-            // so just do bracket count
-            auto index = wo_params.size() - 2;
-            for (auto bracket_count = 1; bracket_count != 0; --index)
-            {
-                if (wo_params[index] == '>')
-                    ++bracket_count;
-                else if (wo_params[index] == '<')
-                    --bracket_count;
-            }
+        // ends with ()
+        result.pop_back();
+        result.pop_back();
+    }
 
-            wo_params.erase(wo_params.begin() + index + 1, wo_params.end());
+    return result;
+}
+
+std::string detail::get_short_id(const std::string& id)
+{
+    auto wo_params = id.back() == ')' ? until_function_params(id) : id;
+    if (wo_params.back() == '>')
+    {
+        // I don't care about partial specializations with less than operator inside
+        // so just do bracket count
+        auto index = wo_params.size() - 2;
+        for (auto bracket_count = 1; bracket_count != 0; --index)
+        {
+            if (wo_params[index] == '>')
+                ++bracket_count;
+            else if (wo_params[index] == '<')
+                --bracket_count;
         }
 
-        return wo_params;
+        wo_params.erase(wo_params.begin() + index + 1, wo_params.end());
     }
+
+    return wo_params;
 }
 
 void index::register_entity(doc_entity entity) const
 {
-    auto id       = get_id(entity.get_unique_name().c_str());
-    auto short_id = get_short_id(id);
+    auto id       = detail::get_id(entity.get_unique_name().c_str());
+    auto short_id = detail::get_short_id(id);
 
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -106,14 +104,14 @@ void index::register_entity(doc_entity entity) const
 const doc_entity* index::try_lookup(const std::string& unique_name) const
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    auto                        iter = entities_.find(get_id(unique_name));
+    auto                        iter = entities_.find(detail::get_id(unique_name));
     return iter == entities_.end() ? nullptr : &iter->second.second;
 }
 
 const doc_entity& index::lookup(const std::string& unique_name) const
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    return entities_.at(get_id(unique_name)).second;
+    return entities_.at(detail::get_id(unique_name)).second;
 }
 
 namespace

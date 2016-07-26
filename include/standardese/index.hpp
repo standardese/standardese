@@ -15,6 +15,15 @@
 
 namespace standardese
 {
+    namespace detail
+    {
+        std::string get_id(const std::string& unique_name);
+
+        // returns the short id
+        // it doesn't require parameters
+        std::string get_short_id(const std::string& id);
+    } // namespace detail
+
     class cpp_namespace;
 
     class index

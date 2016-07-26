@@ -362,7 +362,7 @@ TEST_CASE("comment-matching", "[doc]")
         
         void b();
         
-        /// \entity b()
+        /// \entity b
         ///
         /// b
         

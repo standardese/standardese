@@ -11,6 +11,7 @@
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/error.hpp>
 #include <standardese/generator.hpp>
+#include <standardese/index.hpp>
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
@@ -131,11 +132,6 @@ namespace
         return comment_id(location.first, location.second - 1);
     }
 
-    comment_id create_name_id(const cpp_entity& e)
-    {
-        return comment_id(e.get_unique_name());
-    }
-
     bool matches(const cpp_entity& e, const comment_id& id)
     {
         if (id.is_name())
@@ -197,7 +193,13 @@ const comment* comment_registry::lookup_comment(const cpp_entity& e) const
         return c;
 
     // then for comments with the unique name
-    auto iter = comments_.find(create_name_id(e));
+    auto id   = detail::get_id(e.get_unique_name().c_str());
+    auto iter = comments_.find(comment_id(id));
+    if (iter != comments_.end())
+        return &iter->second;
+
+    auto short_id = detail::get_short_id(id);
+    iter          = comments_.find(comment_id(short_id));
     if (iter != comments_.end())
         return &iter->second;
 
@@ -364,10 +366,12 @@ namespace
     {
         auto& registry = p.get_comment_registry();
         if (is_inline)
-            registry.register_comment(comment_id(info.file_name, info.end_line, info.entity_name),
+            registry.register_comment(comment_id(info.file_name, info.end_line,
+                                                 detail::get_id(info.entity_name.c_str())),
                                       std::move(info.comment));
         else if (!info.entity_name.empty())
-            registry.register_comment(comment_id(info.entity_name), std::move(info.comment));
+            registry.register_comment(comment_id(detail::get_id(info.entity_name.c_str())),
+                                      std::move(info.comment));
         else
             registry.register_comment(comment_id(info.file_name, info.end_line),
                                       std::move(info.comment));
