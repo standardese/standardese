@@ -130,6 +130,9 @@ void detail::write_parameters(const parser& par, code_block_writer& out, const c
 
     write_range(out, f.get_parameters(), ", ",
                 [&](code_block_writer& out, const cpp_function_parameter& p) {
+                    if (is_blacklisted(par, p))
+                        return false;
+
                     detail::write_type_value_default(par, out, p.get_type(), p.get_name(),
                                                      p.get_default_value());
                     return true;
