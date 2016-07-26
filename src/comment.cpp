@@ -251,7 +251,28 @@ namespace
         return cmark_parser_finish(parser.get());
     }
 
-    std::vector<md_entity_ptr> parse_children(comment& comment, const md_node& root)
+    void remove_node(cmark_node* node, cmark_iter* iter)
+    {
+        // reset iterator
+        auto previous = cmark_node_previous(node);
+        auto parent   = cmark_node_parent(node);
+
+        cmark_node_unlink(node);
+        if (previous)
+            // we are exiting the previous node
+            cmark_iter_reset(iter, previous, CMARK_EVENT_EXIT);
+        else
+            // there is no previous node on this level
+            // so were have just entered the parent node
+            cmark_iter_reset(iter, parent, CMARK_EVENT_ENTER);
+
+        // now remove the node from the tree
+        // iteration will go to the next node in order
+        cmark_node_free(node);
+    }
+
+    std::vector<md_entity_ptr> parse_children(const parser& p, comment& comment,
+                                              const md_node& root)
     {
         struct iter_deleter
         {
@@ -274,28 +295,44 @@ namespace
             if (node == root.get())
                 continue;
 
-            if (ev == CMARK_EVENT_ENTER)
+            try
             {
-                auto entity = md_entity::try_parse(node, *stack.top());
-                auto parent = stack.top();
-
-                // push new scope
-                if (is_container(entity->get_entity_type()))
-                    stack.push(static_cast<md_container*>(entity.get()));
-
-                // add entity to parent
-                if (cmark_node_parent(node) == root.get())
+                if (ev == CMARK_EVENT_ENTER)
                 {
-                    assert(parent == &comment.get_content());
-                    direct_children.push_back(std::move(entity));
+                    auto entity = md_entity::try_parse(node, *stack.top());
+                    auto parent = stack.top();
+
+                    // push new scope
+                    if (is_container(entity->get_entity_type()))
+                        stack.push(static_cast<md_container*>(entity.get()));
+
+                    // add entity to parent
+                    if (cmark_node_parent(node) == root.get())
+                    {
+                        assert(parent == &comment.get_content());
+                        direct_children.push_back(std::move(entity));
+                    }
+                    else
+                        parent->add_entity(std::move(entity));
                 }
-                else
-                    parent->add_entity(std::move(entity));
-            }
-            else if (ev == CMARK_EVENT_EXIT)
+                else if (ev == CMARK_EVENT_EXIT)
+                {
+                    stack.pop();
+                }
+        }
+        catch (comment_parse_error& error)
+        {
+            p.get_logger()->warn("when parsing comments ({}:{}): {}", error.get_line(),
+                                 error.get_column(), error.what());
+
+            if (cmark_node_parent(node) == root.get())
             {
-                stack.pop();
+                // if the parant is root, remove from direct_children as well
+                assert(direct_children.back()->get_node() == node);
+                direct_children.pop_back();
             }
+            remove_node(node, iter.get());
+        }
         }
 
         return direct_children;
@@ -594,7 +631,7 @@ void standardese::parse_comments(const parser& p, const string& file_name,
                           raw_comment.end_line);
 
         auto document = parse_document(p, raw_comment.content);
-        auto children = parse_children(info.comment, document);
+        auto children = parse_children(p, info.comment, document);
         finish_parsing(p, info, children);
     }
 }
