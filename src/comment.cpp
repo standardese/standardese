@@ -423,12 +423,26 @@ namespace
             remove_argument_string(text, param_name);
 
             comment_info inline_info(info.file_name, info.begin_line, info.end_line);
-            inline_info.entity_name = std::move(param_name);
+
             auto keep               = parse_command(p, inline_info, paragraph);
             if (keep)
                 inline_info.comment.get_content().add_entity(
                     paragraph.clone(inline_info.comment.get_content()));
-            register_comment(p, inline_info, true);
+
+            if (!info.entity_name.empty())
+            {
+                // we already have a remote comment
+                // need to construct unique name, and register as name
+                inline_info.entity_name =
+                    std::string(info.entity_name.c_str()) + "::" + std::move(param_name);
+                register_comment(p, inline_info);
+            }
+            else
+            {
+                // regular inline comment
+                inline_info.entity_name = std::move(param_name);
+                register_comment(p, inline_info, true);
+            }
         }
             return false;
         case command_type::count:

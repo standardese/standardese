@@ -360,11 +360,13 @@ TEST_CASE("comment-matching", "[doc]")
         ///
         /// file
         
-        void b();
+        void b(int g);
         
         /// \entity b
         ///
         /// b
+        ///
+        /// \param g g
         
         /// \entity f
         ///
@@ -388,9 +390,8 @@ TEST_CASE("comment-matching", "[doc]")
         INFO(entity.get_name().c_str());
         REQUIRE(get_text(doc_entity(p, entity, "")) == entity.get_name().c_str());
 
-        if (entity.get_name() == "c")
+        if (is_function_like(entity.get_entity_type()))
         {
-            REQUIRE(is_function_like(entity.get_entity_type()));
             auto& func = static_cast<const cpp_function_base&>(entity);
             for (auto& param : func.get_parameters())
             {

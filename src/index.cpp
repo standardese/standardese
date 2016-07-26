@@ -13,17 +13,6 @@
 
 using namespace standardese;
 
-namespace
-{
-    std::string until_function_params(const std::string& id)
-    {
-        for (auto index = 0u; index != id.size(); ++index)
-            if (id[index] == '(')
-                return id.substr(0, index);
-        return id;
-    }
-}
-
 std::string detail::get_id(const std::string& unique_name)
 {
     std::string result;
@@ -45,24 +34,13 @@ std::string detail::get_id(const std::string& unique_name)
 
 std::string detail::get_short_id(const std::string& id)
 {
-    auto wo_params = id.back() == ')' ? until_function_params(id) : id;
-    if (wo_params.back() == '>')
-    {
-        // I don't care about partial specializations with less than operator inside
-        // so just do bracket count
-        auto index = wo_params.size() - 2;
-        for (auto bracket_count = 1; bracket_count != 0; --index)
-        {
-            if (wo_params[index] == '>')
-                ++bracket_count;
-            else if (wo_params[index] == '<')
-                --bracket_count;
-        }
+    auto open_paren = id.find('(');
+    if (open_paren == std::string::npos)
+        return id;
+    auto close_paren = id.rfind(')');
+    assert(id.at(close_paren) == ')');
 
-        wo_params.erase(wo_params.begin() + index + 1, wo_params.end());
-    }
-
-    return wo_params;
+    return id.substr(0, open_paren) + id.substr(close_paren + 1);
 }
 
 void index::register_entity(doc_entity entity) const
