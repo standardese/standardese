@@ -263,9 +263,24 @@ md_entity_ptr md_paragraph::do_clone(const md_entity* parent) const
         result->set_section_type(section_type_, text.get_string());
     }
 
+    auto skip_soft_break = false;
     for (auto& child : *this)
-        result->add_entity(child.clone(*result));
+    {
+        if (child.get_entity_type() == md_entity::text_t)
+        {
+            auto& text = static_cast<const md_text&>(child);
+            if (!*text.get_string())
+            {
+                skip_soft_break = true;
+                continue;
+            }
+        }
+        else if (skip_soft_break && child.get_entity_type() == md_entity::soft_break_t)
+            continue;
 
+        skip_soft_break = false;
+        result->add_entity(child.clone(*result));
+    }
     return std::move(result);
 }
 

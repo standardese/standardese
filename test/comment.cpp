@@ -372,7 +372,8 @@ TEST_CASE("comment-matching", "[doc]")
         
         /// c
         ///
-        /// \param d d
+        /// \param d
+        /// d
         ///
         /// \param e
         /// \unique_name f
