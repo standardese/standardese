@@ -43,9 +43,22 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(translation_unit& 
                                                         std::move(default_value));
 }
 
+namespace
+{
+    std::string get_unique_name(const cpp_function_base& base)
+    {
+        assert(base.has_parent());
+        if (is_function_template(base.get_parent().get_entity_type()))
+            return base.get_parent().get_unique_name().c_str();
+        return base.get_unique_name().c_str();
+    }
+}
+
 cpp_name cpp_function_parameter::do_get_unique_name() const
 {
-    return get_parent().get_unique_name().c_str() + std::string("::") + get_name().c_str();
+    assert(has_parent() && is_function_like(get_parent().get_entity_type()));
+    return ::get_unique_name(static_cast<const cpp_function_base&>(get_parent())) + "::"
+           + get_name().c_str();
 }
 
 cpp_ptr<cpp_function_base> cpp_function_base::try_parse(translation_unit& p, cpp_cursor cur,
