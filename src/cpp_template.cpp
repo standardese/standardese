@@ -32,6 +32,12 @@ cpp_ptr<cpp_template_parameter> cpp_template_parameter::try_parse(translation_un
     return nullptr;
 }
 
+cpp_name cpp_template_parameter::do_get_unique_name() const
+{
+    assert(has_parent());
+    return std::string(get_parent().get_unique_name().c_str()) + "::" + get_name().c_str();
+}
+
 cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translation_unit& tu,
                                                                         cpp_cursor        cur,
                                                                         const cpp_entity& parent)
@@ -445,4 +451,29 @@ cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit& tu, cpp_
 cpp_name cpp_alias_template::get_name() const
 {
     return get_template_name(type_->get_name().c_str(), *this);
+}
+
+const cpp_entity_container<cpp_template_parameter>* standardese::get_template_parameters(
+    const cpp_entity& e)
+{
+    switch (e.get_entity_type())
+    {
+#define STANDARDESE_DETAIL_HANDLE(name)                                                            \
+    case cpp_entity::name##_t:                                                                     \
+        return &static_cast<const cpp_##name&>(e).get_template_parameters();
+
+        STANDARDESE_DETAIL_HANDLE(function_template)
+
+        STANDARDESE_DETAIL_HANDLE(class_template)
+        STANDARDESE_DETAIL_HANDLE(class_template_partial_specialization)
+
+        STANDARDESE_DETAIL_HANDLE(alias_template)
+
+#undef STANDARDESE_DETAIL_HANDLE
+
+    default:
+        break;
+    }
+
+    return nullptr;
 }

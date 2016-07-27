@@ -80,6 +80,12 @@ namespace
 
         auto  cur_access = get_default_access(static_cast<const Entity&>(doc.get_cpp_entity()));
         auto& blacklist  = p.get_output_config().get_blacklist();
+        if (auto templ_params = get_template_parameters(doc.get_cpp_entity()))
+        {
+            for (auto& param : *templ_params)
+                dispatch(p, i, out, level + 1, doc_entity(p, param, doc.get_output_name()));
+        }
+
         for (auto& child : container)
         {
             if (child.get_entity_type() == cpp_entity::access_specifier_t)
@@ -256,7 +262,7 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
     auto heading = make_heading(doc, document, level);
     if (doc.has_comment())
     {
-        auto anchor = md_anchor::make(*heading, doc.get_unique_name().c_str());
+        auto anchor = md_anchor::make(*heading, doc.get_full_name().c_str());
         heading->add_entity(std::move(anchor));
     }
     document.add_entity(std::move(heading));

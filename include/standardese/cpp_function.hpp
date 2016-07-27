@@ -151,10 +151,7 @@ namespace standardese
         void set_template_specialization_name(cpp_name name);
 
     private:
-        cpp_name do_get_unique_name() const override
-        {
-            return std::string(get_full_name().c_str()) + get_signature().c_str();
-        }
+        cpp_name do_get_unique_name() const override;
 
         cpp_function_info info_;
     };

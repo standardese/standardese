@@ -88,7 +88,10 @@ namespace
     std::pair<string, unsigned> get_location(const cpp_cursor& cur)
     {
         assert(!clang_isTranslationUnit(clang_getCursorKind(cur)));
-        auto location = clang_getCursorLocation(cur);
+
+        // we need the extent because we need the very first character of the cursor
+        auto range    = clang_getCursorExtent(cur);
+        auto location = clang_getRangeStart(range);
 
         CXFile   file;
         unsigned line;
@@ -109,6 +112,16 @@ namespace
             if (is_function_template(func.get_parent().get_entity_type()))
                 return func.get_parent();
             return func;
+        }
+        else if (e.get_entity_type() == cpp_entity::template_type_parameter_t
+                 || e.get_entity_type() == cpp_entity::non_type_template_parameter_t
+                 || e.get_entity_type() == cpp_entity::template_template_parameter_t)
+        {
+            assert(e.has_parent());
+
+            auto& templ = e.get_parent();
+            assert(is_template(templ.get_entity_type()));
+            return templ;
         }
 
         return e;
@@ -134,16 +147,21 @@ namespace
 
     bool matches(const cpp_entity& e, const comment_id& id)
     {
+        auto& inline_parent = get_inline_parent(e);
+
         if (id.is_name())
             return e.get_unique_name() == id.unique_name();
         else if (id.is_location() && e.get_entity_type() != cpp_entity::file_t)
         {
+            if (&inline_parent != &e)
+                // an entity that must have an inline location
+                return false;
+
             auto location = get_location(e.get_cursor());
             return location.second - id.line() <= 1u && location.first == id.file_name();
         }
         else if (id.is_inline_location())
         {
-            auto& inline_parent = get_inline_parent(e);
             if (&inline_parent == &e)
                 // not an entity where an inline location makes sense
                 return false;
@@ -449,6 +467,7 @@ namespace
             info.entity_name = info.file_name;
             break;
         case command_type::param:
+        case command_type::tparam:
         {
             // remove command
             remove_command_string(text, command_str);

@@ -33,6 +33,8 @@ namespace standardese
         }
 
     private:
+        cpp_name do_get_unique_name() const override;
+
         bool variadic_;
     };
 
@@ -445,6 +447,9 @@ namespace standardese
 
         friend detail::cpp_ptr_access;
     };
+
+    const cpp_entity_container<cpp_template_parameter>* get_template_parameters(
+        const cpp_entity& e);
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_TEMPLATE_HPP_INCLUDED
