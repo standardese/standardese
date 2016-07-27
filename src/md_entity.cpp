@@ -40,6 +40,13 @@ md_entity_ptr md_entity::try_parse(cmark_node* cur, const md_entity& parent)
 
 #undef STANDARDESE_DETAIL_HANDLE
 
+    case CMARK_NODE_HTML_INLINE:
+    {
+        // return text node instead
+        auto text = cmark_node_get_literal(cur);
+        return md_text::make(parent, text);
+    }
+
     default:
         break;
     }
@@ -91,6 +98,19 @@ md_container::md_container(md_entity::type t, cmark_node* node) STANDARDESE_NOEX
 
 md_entity& md_container::add_entity(md_entity_ptr entity)
 {
+    auto back = get_last();
+    if (back && back->get_entity_type() == md_entity::text_t
+        && entity->get_entity_type() == md_entity::text_t)
+    {
+        // need to merge adjacent text nodes
+        // can happen because inline HTML is converted to text
+        auto& old_text = static_cast<md_text&>(*back);
+        auto& new_text = static_cast<md_text&>(*entity);
+        old_text.set_string((std::string(old_text.get_string()) + new_text.get_string()).c_str());
+        return old_text;
+    }
+
+    // just add normal
     entity->parent_ = this;
     if (cmark_node_parent(entity->get_node()) != get_node())
     {
