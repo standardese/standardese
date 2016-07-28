@@ -123,6 +123,14 @@ namespace
             assert(is_template(templ.get_entity_type()));
             return templ;
         }
+        else if (e.get_entity_type() == cpp_entity::base_class_t)
+        {
+            assert(e.has_parent());
+
+            auto& c = e.get_parent();
+            assert(c.get_entity_type() == cpp_entity::class_t);
+            return c;
+        }
 
         return e;
     }
@@ -468,6 +476,7 @@ namespace
             break;
         case command_type::param:
         case command_type::tparam:
+        case command_type::base:
         {
             // remove command
             remove_command_string(text, command_str);

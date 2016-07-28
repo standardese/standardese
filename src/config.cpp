@@ -214,6 +214,7 @@ comment_config::comment_config() : cmd_char_('\\'), implicit_par_(false)
     STANDARDESE_DETAIL_SET(file)
     STANDARDESE_DETAIL_SET(param)
     STANDARDESE_DETAIL_SET(tparam)
+    STANDARDESE_DETAIL_SET(base)
 
 #undef STANDARDESE_DETAIL_SET
 }

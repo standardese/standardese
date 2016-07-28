@@ -28,7 +28,6 @@ entity_blacklist::entity_blacklist()
 {
     type_blacklist_.set(cpp_entity::inclusion_directive_t);
     type_blacklist_.set(cpp_entity::language_linkage_t);
-    type_blacklist_.set(cpp_entity::base_class_t);
     type_blacklist_.set(cpp_entity::using_declaration_t);
     type_blacklist_.set(cpp_entity::using_directive_t);
     type_blacklist_.set(cpp_entity::access_specifier_t);
@@ -232,6 +231,12 @@ namespace
         out.unindent(par.get_output_config().get_tab_width());
         out << to_string(access) << ':' << newl;
         out.indent(par.get_output_config().get_tab_width());
+    }
+
+    void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_base_class& base)
+    {
+        out << to_string(base.get_access()) << ' ' << detail::get_ref_name(par, base.get_type())
+            << newl;
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_class& c,
@@ -557,6 +562,7 @@ namespace
             STANDARDESE_DETAIL_HANDLE(unsigned_enum_value)
             STANDARDESE_DETAIL_HANDLE(enum)
 
+            STANDARDESE_DETAIL_HANDLE(base_class)
             STANDARDESE_DETAIL_HANDLE(class)
 
             STANDARDESE_DETAIL_HANDLE(variable)
@@ -585,7 +591,6 @@ namespace
 #undef STANDARDESE_DETAIL_HANDLE
 
         // ignored
-        case cpp_entity::base_class_t:
         case cpp_entity::access_specifier_t:
         case cpp_entity::invalid_t:
             break;

@@ -44,6 +44,7 @@ namespace standardese
         file,
         param,
         tparam,
+        base,
 
         count,
     };

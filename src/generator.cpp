@@ -86,6 +86,12 @@ namespace
                 dispatch(p, i, out, level + 1, doc_entity(p, param, doc.get_output_name()));
         }
 
+        if (auto c = get_class(doc.get_cpp_entity()))
+        {
+            for (auto& base : c->get_bases())
+                dispatch(p, i, out, level + 1, doc_entity(p, base, doc.get_output_name()));
+        }
+
         for (auto& child : container)
         {
             if (child.get_entity_type() == cpp_entity::access_specifier_t)
