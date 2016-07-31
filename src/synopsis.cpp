@@ -27,8 +27,6 @@ const entity_blacklist::documentation_t entity_blacklist::documentation;
 entity_blacklist::entity_blacklist()
 {
     type_blacklist_.set(cpp_entity::inclusion_directive_t);
-    type_blacklist_.set(cpp_entity::language_linkage_t);
-    type_blacklist_.set(cpp_entity::base_class_t);
     type_blacklist_.set(cpp_entity::using_declaration_t);
     type_blacklist_.set(cpp_entity::using_directive_t);
     type_blacklist_.set(cpp_entity::access_specifier_t);
@@ -234,6 +232,12 @@ namespace
         out.indent(par.get_output_config().get_tab_width());
     }
 
+    void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_base_class& base)
+    {
+        out << to_string(base.get_access()) << ' ' << detail::get_ref_name(par, base.get_type())
+            << newl;
+    }
+
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_class& c,
                            bool top_level, const cpp_name& override_name)
     {
@@ -342,6 +346,13 @@ namespace
     }
 
     //=== functions ===//
+    void do_write_synopsis(const parser& par, code_block_writer& out,
+                           const cpp_function_parameter& p)
+    {
+        detail::write_type_value_default(par, out, p.get_type(), p.get_name(),
+                                         p.get_default_value());
+    }
+
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_function& f, bool,
                            const cpp_name& override_name)
     {
@@ -550,6 +561,7 @@ namespace
             STANDARDESE_DETAIL_HANDLE(unsigned_enum_value)
             STANDARDESE_DETAIL_HANDLE(enum)
 
+            STANDARDESE_DETAIL_HANDLE(base_class)
             STANDARDESE_DETAIL_HANDLE(class)
 
             STANDARDESE_DETAIL_HANDLE(variable)
@@ -561,6 +573,8 @@ namespace
             STANDARDESE_DETAIL_HANDLE(conversion_op)
             STANDARDESE_DETAIL_HANDLE(constructor)
             STANDARDESE_DETAIL_HANDLE(destructor)
+
+            STANDARDESE_DETAIL_HANDLE(function_parameter)
 
             STANDARDESE_DETAIL_HANDLE(template_type_parameter)
             STANDARDESE_DETAIL_HANDLE(non_type_template_parameter)
@@ -576,8 +590,6 @@ namespace
 #undef STANDARDESE_DETAIL_HANDLE
 
         // ignored
-        case cpp_entity::function_parameter_t:
-        case cpp_entity::base_class_t:
         case cpp_entity::access_specifier_t:
         case cpp_entity::invalid_t:
             break;

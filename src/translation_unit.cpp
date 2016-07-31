@@ -4,9 +4,14 @@
 
 #include <standardese/translation_unit.hpp>
 
+#include <fstream>
+#include <iterator>
+#include <string>
+
 #include <standardese/detail/scope_stack.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/detail/wrapper.hpp>
+#include <standardese/comment.hpp>
 #include <standardese/cpp_preprocessor.hpp>
 #include <standardese/parser.hpp>
 
@@ -16,6 +21,7 @@ struct translation_unit::impl
 {
     detail::context            context;
     cpp_name                   full_path;
+    std::string                source;
     cpp_file*                  file;
     const standardese::parser* parser;
 
@@ -30,13 +36,28 @@ struct translation_unit::impl
         context.set_language(language_support(lang));
 
         config.setup_context(context);
+
+        std::filebuf filebuf;
+        filebuf.open(path, std::ios_base::in);
+        assert(filebuf.is_open());
+
+        source =
+            std::string(std::istreambuf_iterator<char>(&filebuf), std::istreambuf_iterator<char>());
+        if (source.back() != '\n')
+            source.push_back('\n');
+
+        parse_comments(p, full_path, source);
     }
 };
 
-// hidden function to get context from translation unit
-detail::context& standardese::detail::get_preprocessing_context(translation_unit& tu)
+detail::context& detail::tokenizer_access::get_context(translation_unit& tu)
 {
     return tu.pimpl_->context;
+}
+
+const std::string& detail::tokenizer_access::get_source(translation_unit& tu)
+{
+    return tu.pimpl_->source;
 }
 
 translation_unit::translation_unit(translation_unit&& other) STANDARDESE_NOEXCEPT
@@ -88,7 +109,7 @@ CXTranslationUnit translation_unit::get_cxunit() const STANDARDESE_NOEXCEPT
 
 const cpp_entity_registry& translation_unit::get_registry() const STANDARDESE_NOEXCEPT
 {
-    return pimpl_->parser->get_registry();
+    return pimpl_->parser->get_entity_registry();
 }
 
 translation_unit::translation_unit(const parser& par, const char* path, cpp_file* file,
@@ -119,14 +140,14 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
             }
 
             if (clang_getCursorKind(cur) == CXCursor_MacroExpansion)
-                pimpl_->context.add_macro_definition(detail::get_cmd_definition(cur));
+                pimpl_->context.add_macro_definition(detail::get_cmd_definition(*this, cur));
             else
             {
                 auto entity = cpp_entity::try_parse(*this, cur, stack.cur_parent());
                 if (!entity)
                     return CXChildVisit_Continue;
 
-                get_parser().get_registry().register_entity(*entity);
+                get_parser().get_entity_registry().register_entity(*entity);
 
                 auto container = stack.add_entity(std::move(entity), parent);
                 if (container)

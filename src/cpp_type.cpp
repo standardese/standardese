@@ -89,9 +89,7 @@ cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit& tu, cpp_cursor c
     auto name = parse_alias_target(tu, cur);
     auto type = clang_getTypedefDeclUnderlyingType(cur);
 
-    auto result = detail::make_cpp_ptr<cpp_type_alias>(cur, parent, cpp_type_ref(name, type));
-    result->set_comment(tu);
-    return result;
+    return detail::make_cpp_ptr<cpp_type_alias>(cur, parent, cpp_type_ref(name, type));
 }
 
 cpp_name cpp_type_alias::get_scope() const

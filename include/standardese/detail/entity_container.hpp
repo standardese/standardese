@@ -185,6 +185,16 @@ namespace standardese
                 }
             }
 
+            Base* get_last() STANDARDESE_NOEXCEPT
+            {
+                return last_;
+            }
+
+            const Base* get_last() const STANDARDESE_NOEXCEPT
+            {
+                return last_;
+            }
+
         private:
             Ptr<Base> first_;
             Base*     last_;

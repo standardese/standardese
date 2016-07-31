@@ -115,12 +115,9 @@ cpp_name cpp_entity::get_scope() const
 {
     if (!parent_ || parent_->get_entity_type() == file_t)
         return "";
+    else if (parent_->get_entity_type() == language_linkage_t)
+        return parent_->get_scope();
     return parent_->get_full_name();
-}
-
-string cpp_entity::get_raw_comment() const
-{
-    return detail::parse_comment(cursor_);
 }
 
 cpp_entity::cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent)
@@ -131,10 +128,4 @@ cpp_entity::cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent)
 cpp_entity::cpp_entity(type t, cpp_cursor cur)
 : cursor_(cur), next_(nullptr), parent_(nullptr), t_(t)
 {
-}
-
-void cpp_entity::set_comment(const translation_unit& tu)
-{
-    comment_ =
-        md_comment::parse(tu.get_parser(), get_full_name(), detail::parse_comment(get_cursor()));
 }

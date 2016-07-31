@@ -43,6 +43,12 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(translation_unit& 
                                                         std::move(default_value));
 }
 
+cpp_name cpp_function_parameter::do_get_unique_name() const
+{
+    assert(has_parent() && is_function_like(get_parent().get_entity_type()));
+    return std::string(get_parent().get_unique_name().c_str()) + "::" + get_name().c_str();
+}
+
 cpp_ptr<cpp_function_base> cpp_function_base::try_parse(translation_unit& p, cpp_cursor cur,
                                                         const cpp_entity& parent,
                                                         unsigned          template_offset)
@@ -86,6 +92,14 @@ void cpp_function_base::set_template_specialization_name(cpp_name name)
     auto& non_const      = const_cast<cpp_entity&>(get_parent()); // save here
     auto& specialization = static_cast<cpp_function_template_specialization&>(non_const);
     specialization.name_ = std::string(detail::parse_name(get_cursor()).c_str()) + name.c_str();
+}
+
+cpp_name cpp_function_base::do_get_unique_name() const
+{
+    assert(has_parent());
+    if (is_function_template(get_parent().get_entity_type()))
+        return std::string(get_parent().get_unique_name().c_str()) + get_signature().c_str();
+    return std::string(get_full_name().c_str()) + get_signature().c_str();
 }
 
 namespace
@@ -508,8 +522,6 @@ cpp_ptr<cpp_function> cpp_function::parse(translation_unit& tu, cpp_cursor cur,
 
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -563,8 +575,6 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit& tu, cp
 
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -677,8 +687,6 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
 
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -777,8 +785,6 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit& tu, cpp_cursor
 
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -866,7 +872,6 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor c
         && is_implicit_virtual(cur))
         // check for implicit virtual
         result->virtual_ = cpp_virtual_overriden;
-    result->set_comment(tu);
     return result;
 }
 

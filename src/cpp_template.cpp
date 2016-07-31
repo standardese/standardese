@@ -32,6 +32,12 @@ cpp_ptr<cpp_template_parameter> cpp_template_parameter::try_parse(translation_un
     return nullptr;
 }
 
+cpp_name cpp_template_parameter::do_get_unique_name() const
+{
+    assert(has_parent());
+    return std::string(get_parent().get_unique_name().c_str()) + "::" + get_name().c_str();
+}
+
 cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translation_unit& tu,
                                                                         cpp_cursor        cur,
                                                                         const cpp_entity& parent)
@@ -228,7 +234,7 @@ namespace
 
         // determine template offset
         unsigned begin, end;
-        detail::tokenizer::read_range(last, begin, end);
+        detail::tokenizer::read_range(tu, last, begin, end);
         return end;
     }
 
@@ -258,13 +264,13 @@ namespace
         return name;
     }
 
-    unsigned get_template_offset(cpp_cursor cur, unsigned last_offset)
+    unsigned get_template_offset(translation_unit& tu, cpp_cursor cur, unsigned last_offset)
     {
         assert(last_offset);
-        auto source = detail::tokenizer::read_source(cur);
+        auto source = detail::tokenizer::read_source(tu, cur);
 
         unsigned begin, end;
-        detail::tokenizer::read_range(cur, begin, end);
+        detail::tokenizer::read_range(tu, cur, begin, end);
 
         // make relative
         last_offset -= begin;
@@ -286,11 +292,9 @@ cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit& tu
     auto last_offset = parse_parameters(tu, *result, cur);
 
     auto func =
-        cpp_function_base::try_parse(tu, cur, *result, get_template_offset(cur, last_offset));
+        cpp_function_base::try_parse(tu, cur, *result, get_template_offset(tu, cur, last_offset));
     assert(func);
     result->func_ = std::move(func);
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -326,8 +330,6 @@ cpp_ptr<cpp_function_template_specialization> cpp_function_template_specializati
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
     assert(primary_cur != cpp_cursor());
     result->primary_ = cpp_template_ref(primary_cur, result->func_->get_name());
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -359,8 +361,6 @@ cpp_ptr<cpp_class_template> cpp_class_template::parse(translation_unit& tu, cpp_
     if (!ptr)
         return nullptr;
     result->class_ = std::move(ptr);
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -386,8 +386,6 @@ cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_speciali
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
     assert(primary_cur != cpp_cursor());
     result->primary_ = cpp_template_ref(primary_cur, result->class_->get_name());
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -407,8 +405,6 @@ cpp_ptr<cpp_class_template_partial_specialization> cpp_class_template_partial_sp
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
     assert(primary_cur != cpp_cursor());
     result->primary_ = cpp_template_ref(primary_cur, result->class_->get_name());
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -447,8 +443,6 @@ cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit& tu, cpp_
 
     result->type_ = cpp_type_alias::parse(tu, type, parent);
     assert(result->type_);
-
-    result->set_comment(tu);
     return result;
 }
 
@@ -457,4 +451,29 @@ cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit& tu, cpp_
 cpp_name cpp_alias_template::get_name() const
 {
     return get_template_name(type_->get_name().c_str(), *this);
+}
+
+const cpp_entity_container<cpp_template_parameter>* standardese::get_template_parameters(
+    const cpp_entity& e)
+{
+    switch (e.get_entity_type())
+    {
+#define STANDARDESE_DETAIL_HANDLE(name)                                                            \
+    case cpp_entity::name##_t:                                                                     \
+        return &static_cast<const cpp_##name&>(e).get_template_parameters();
+
+        STANDARDESE_DETAIL_HANDLE(function_template)
+
+        STANDARDESE_DETAIL_HANDLE(class_template)
+        STANDARDESE_DETAIL_HANDLE(class_template_partial_specialization)
+
+        STANDARDESE_DETAIL_HANDLE(alias_template)
+
+#undef STANDARDESE_DETAIL_HANDLE
+
+    default:
+        break;
+    }
+
+    return nullptr;
 }

@@ -35,8 +35,17 @@ namespace standardese
     enum class command_type : unsigned
     {
         invalid = unsigned(section_type::count),
+
         exclude,
+
         unique_name,
+
+        entity,
+        file,
+        param,
+        tparam,
+        base,
+
         count,
     };
 

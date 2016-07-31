@@ -210,6 +210,11 @@ comment_config::comment_config() : cmd_char_('\\'), implicit_par_(false)
 
     STANDARDESE_DETAIL_SET(exclude)
     STANDARDESE_DETAIL_SET(unique_name)
+    STANDARDESE_DETAIL_SET(entity)
+    STANDARDESE_DETAIL_SET(file)
+    STANDARDESE_DETAIL_SET(param)
+    STANDARDESE_DETAIL_SET(tparam)
+    STANDARDESE_DETAIL_SET(base)
 
 #undef STANDARDESE_DETAIL_SET
 }
@@ -249,7 +254,7 @@ output_config::output_config()
   hidden_name_("implementation-defined"),
   tab_width_(4u)
 {
-#define STANDARDESE_DETAIL_SET(type, name) set_section_name(section_type::type, name);
+#define STANDARDESE_DETAIL_SET(type, name) section_names_[unsigned(section_type::type)] = name;
 
     STANDARDESE_DETAIL_SET(brief, "")
     STANDARDESE_DETAIL_SET(details, "")
@@ -266,4 +271,11 @@ output_config::output_config()
     STANDARDESE_DETAIL_SET(notes, "Notes")
 
 #undef STANDARDESE_DETAIL_SET
+}
+
+void output_config::set_section_name(section_type t, std::string name)
+{
+    if (t == section_type::brief || t == section_type::details)
+        throw std::logic_error("Cannot override section name for brief or details");
+    section_names_[unsigned(t)] = std::move(name);
 }

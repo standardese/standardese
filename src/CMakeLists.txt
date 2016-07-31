@@ -5,6 +5,7 @@
 set(detail_header
         ../include/standardese/detail/entity_container.hpp
         ../include/standardese/detail/parse_utils.hpp
+        ../include/standardese/detail/raw_comment.hpp
         ../include/standardese/detail/scope_stack.hpp
         ../include/standardese/detail/sequence_stream.hpp
         ../include/standardese/detail/synopsis_utils.hpp
@@ -41,6 +42,7 @@ set(header
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
+        detail/raw_comment.cpp
         detail/scope_stack.cpp
         detail/synopsis_utils.cpp
         detail/tokenizer.cpp

@@ -131,9 +131,7 @@ cpp_ptr<cpp_enum> cpp_enum::parse(translation_unit& tu, cpp_cursor cur, const cp
         return nullptr;
 
     auto underlying_type = clang_getEnumDeclIntegerType(cur);
-    auto result =
-        detail::make_cpp_ptr<cpp_enum>(cur, parent, cpp_type_ref(underlying_name, underlying_type),
-                                       is_scoped);
-    result->set_comment(tu);
-    return result;
+    return detail::make_cpp_ptr<cpp_enum>(cur, parent,
+                                          cpp_type_ref(underlying_name, underlying_type),
+                                          is_scoped);
 }

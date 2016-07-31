@@ -128,10 +128,10 @@ standardese will pass *all* the flags of all files to libclang.
 > This has technical reasons because you give header files whereas the compile commands use only source files.
 
 * The `comment.*` options are related to the syntax of the documentation markup.
-You can set both the leading character and the name for each command.
+You can set both the leading character and the name for each command, for example.
 
 * The `output.*` options are related to the output generation.
-Currently you can only set the name printed for a section.
+It contains an option to set the human readable name of a section, for example.
 
 The configuration file you can pass with `--config` uses an INI style syntax, e.g:
 
@@ -166,11 +166,39 @@ See `standardese-config.cmake` for a documentation of `standardese_generate()`.
 
 ### Documentation syntax overview
 
-standardese currently requires comments with triple slashes `///` for documentation.
-You can use arbitrary\* Markdown\* in the documentation comments and it will be rendered appropriately.
+standardese looks for documentation comments as shown in the following example:
+
+```cpp
+/// A regular C++ style documentation comment.
+/// Multiple C++ style comments are merged automatically.
+
+//! A C++ style comment using an exclamation mark.
+/// It will also merge with other C++ style comments.
+//! But don't worry, also with the exclamation mark styles.
+
+/** A C style documentation commment. */
+/** This is a different comment, they aren't merged.
+ * But you can be fancy with the star at the beginning of the line.
+ * It will ignore all whitespace, the star and any following whitespace.
+ */
+ 
+/*! You can also use an exclamation mark. */
+/// But neither will merge with any other comment.
+
+int x; //< An end-of-line comment.
+/// It will merge with C++ style comments.
+int y; //< But this is a different end-of-line comment.
+```
+
+A comment corresponds to the entity on the line directly below or on the same line.
+Inside the comment you can use arbitrary\* Markdown\* in the documentation comments and it will be rendered appropriately.
 
 > The Markdown flavor used is [CommonMark](https://commonmark.org).
 > standardese does not support inline HTML (for obvious reasons) or images.
+> Inline HTML that isn't a raw HTML block will be treated as literal text.
+> This allows writing `vector<T>` without markup or escaping in the comment, for example.
+
+#### Linking
 
 To link to an entity, use the syntax `[link-text](<> "unique-name")` (a CommonMark link with empty URL and a title of `unique-name`). If you don't want a special `link-text`, this can be shortened to `[unique-name]()` (a CommonMark link with empty URL and the name of an entity as text).
 In either case `standardese` will insert the correct URL by searching for the entity with the given `unique-name`.
@@ -181,6 +209,10 @@ The `unique-name` of an entity is the name with all scopes, i.e. `foo::bar::baz`
 
 * For functions you need to append the signature (parameter types and cv and ref qualifier), i.e. `func()`, `bar(int,char)` or `type::foo() const &&`. If the signature is `()`, you can omit it.
 
+* For (template) parameters it is of the form `function-unique-name::parameter-name`
+
+* For base classes it is of the form `derived-class::base-class`
+
 The `unique-name` doesn't care about whitespace, so `bar(const char*)`, `bar(const char *)` and `bar (constchar*)` are all the same.
 Because it is sometimes long and ugly, you can override the unique name via the `unique_name` command (see below).
 
@@ -189,7 +221,7 @@ Because it is sometimes long and ugly, you can override the unique name via the 
 > Usually numbering would be a good choice, so `bar() (1)` or similar.
 
 You can also use a short `unique-name` if there aren't multiple entities resolved to the same short name.
-The short name is the `unique-name` but without a signature or trailing template arguments, i.e. for `foo<T>::func<U>(int) const`, the short name is `foo<T>::func`.
+The short name is the `unique-name` but without a signature, i.e. for `foo<T>::func<U>(int) const`, the short name is `foo<T>::func<U>`.
 
 You can also link to external documentations via the tool option `--comment.external_doc prefix=url`.
 All `unique-name`s starting with `prefix` will be linked to the `url`.
@@ -198,22 +230,129 @@ By default the tool supports http://en.cppreference.com/w/ with a prefix of `std
 
 > You can override to a different URL by specifying `--comment.external_doc std::=new-url`.
 
-Special commands are introduced by the *command character* (a backslash by default) at the beginning of a new (Markdown) paragraph.
-There are the following commands:
+#### Special commands
 
-* `exclude` - Manually excludes an entity from the documentation.
+standardese adds its own sets of special commands.
+A command is introduced by the *command character* (a backslash by default) at the beginning of a new (Markdown) paragraph.
 
-* `unique_name` (followed by an argument) - Overrides the unique name of an entity (for linking)
+> Because a Markdown paragraph is seperated by blank lines, this necessarily leads to many blank lines in the comment.
+> If you don't like that, you can pass the option `--comment.implicit_paragraph`, this will start a new paragraph
+> for each line of the comment.
+> Thanks to smart paragraph merging this works the same in most cases.
 
-* and a couple of *sections*.
+There are three kinds of special commands: *commands*, *sections* and *hybrids*.
 
-A section is the basic way of standardese documentation.
+---
+
+A *command* is used to control the documentation generation in some way.
+Thus a paragraph that begins with a *command* doesn't appear in the output documentation.
+For that reason, you can use a new *command* on each line of the paragraph without starting a new one.
+This allows writing:
+
+```cpp
+/// \command
+/// \some_other_command
+///
+/// Normal documentation paragraph.
+/// \command that won't be parsed.
+```
+
+instead of the more verbose:
+```cpp
+/// \command
+///
+/// \some_other_command
+///
+/// Normal documentation paragraph.
+/// \command that won't be parsed.
+```
+
+There are the following *commands*:
+
+* `exclude` - Manually excludes an entity from the documentation. It won't appear at all, not even in the synopsis.
+It is as if the entity never existed in the first place.
+
+* `unique_name {name}` - Overrides the unique name of an entity (e.g. for linking):
+```cpp
+/// Some documentation.
+/// I can now link to `bar()` by writing [foo]().
+///
+/// \unique_name foo
+void bar(int a, int c);
+```
+
+* `entity {unique-name}` - In a comment without a corresponding entity, names the entity to document:
+```cpp
+void foo();
+
+/// This comment has no corresponding entity.
+/// But the command specifies the entity it will belong to.
+///
+/// \entity foo
+```
+It also mixes with `unique_name` as you might expect.
+
+* `file` - A shorthand for `\entity current-file-name`.
+
+---
+
+A *section* is the basic way of standardese documentation.
 It supports all the sections the C++ standard uses, as explained in the example.
 Those sections will create a paragraph in the output prefixed with a human readable name.
-
 There are two special sections, `brief` and `details`.
-They are not labeled in the output and will be used in future versions.
-If you do not specify any sections the first line of the comment will be `brief` and all other lines `details`.
+They are not labeled in the output.
+
+Unlike for a *command* a *section* paragraph is included in the output.
+As such the rest of the paragraph won't be parsed for further sections.
+Any `brief` paragraphs will be merged together,
+as do two adjacent paragraphs using the same *section*, unless that section is `details`:
+
+```cpp
+/// \brief This is a brief paragraph.
+///
+/// \effects This is an effects paragraph.
+///
+/// \effects This is the same effects paragraph.
+///
+/// \brief And this is still the same brief paragraph.
+///
+/// \details But this is one details paragraph.
+///
+/// \details And this is a different details paragraph.
+```
+
+If you don't specify a section for a paragraph, the first paragraph will be implictly `brief`, all others implictly `details`.
+
+---
+
+A *hybrid* is a special kind of command.
+They are `param`, `tparam` and `base` and used to document (template) parameters and base classes,
+because you cannot put a corresponding comment there.
+As such they are shorthands for the `\entity unique-name` command.
+They are followed by the name of entity they refer to.
+
+> Technically, they are all aliases for each other, so it doesn't matter which one you use for which entity,
+> e.g. `\base` for parameters or `\param` for base classes.
+
+The *hybrid* and argument is stripped from the paragraph and the rest is parsed.
+If the rest starts with a *command* it will be parsed by the normal rules of commands.
+Otherwise the text is treated as documentation.
+
+> Note: You cannot use *sections* in *hybrids*.
+
+For example:
+
+```cpp
+/// Normal documentation for the function.
+///
+/// \param foo Normal documentation for the parameter `foo`.
+/// It continues here.
+///
+/// \param bar
+/// \exclude
+/// Error: normal markup cannot appear here anymore.
+void func(int foo, int bar);
+```
 
 ## Acknowledgements
 

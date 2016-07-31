@@ -87,7 +87,7 @@ TEST_CASE("entity_blacklist")
 std::string get_synopsis(const parser& p, const cpp_entity& e)
 {
     auto doc = md_document::make("");
-    write_synopsis(p, *doc, e);
+    write_synopsis(p, *doc, doc_entity(p, e, ""));
 
     REQUIRE(doc->begin()->get_entity_type() == md_entity::code_block_t);
     auto& code_block = dynamic_cast<md_code_block&>(*doc->begin());
@@ -201,13 +201,15 @@ private:
     }
     SECTION("enum")
     {
-        auto code     = R"(enum foo: unsigned int
+        auto code = R"(enum foo: unsigned int
 {
     a,
     b = 4,
     c,
     d,
-    e,
+    
+    /// \exclude
+    e
 };)";
         auto synopsis = R"(enum foo
 : unsigned int
@@ -216,11 +218,22 @@ private:
     b = 4,
     c,
     d,
-    e,
 };)";
 
         auto tu = parse(p, "synopsis_enum", code);
         REQUIRE(get_synopsis(tu) == "enum foo;");
+        REQUIRE(get_synopsis(p, *tu.get_file().begin()) == synopsis);
+    }
+    SECTION("function")
+    {
+        auto code = R"(
+/// \param c \exclude
+void func(int a, char* b, float c = .3);
+)";
+
+        auto synopsis = R"(void func(int a, char* b);)";
+
+        auto tu = parse(p, "synopsis_function", code);
         REQUIRE(get_synopsis(p, *tu.get_file().begin()) == synopsis);
     }
 }

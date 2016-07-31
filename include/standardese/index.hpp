@@ -15,6 +15,15 @@
 
 namespace standardese
 {
+    namespace detail
+    {
+        std::string get_id(const std::string& unique_name);
+
+        // returns the short id
+        // it doesn't require parameters
+        std::string get_short_id(const std::string& id);
+    } // namespace detail
+
     class cpp_namespace;
 
     class index
@@ -40,19 +49,19 @@ namespace standardese
 
         std::string get_url(const std::string& unique_name, const char* extension) const;
 
-        // void(const cpp_file&)
+        // void(const doc_entity&)
         template <typename Func>
         void for_each_file(Func f)
         {
             for (auto iter : files_)
-                f(static_cast<const cpp_file&>(iter->second.second.get_cpp_entity()));
+                f(iter->second.second);
         }
 
-        // void(const cpp_namespace* ns, const cpp_entity& member)
+        // void(const cpp_namespace* ns, const doc_entity& member)
         template <typename Func>
         void for_each_namespace_member(Func f)
         {
-            auto cb = [](const cpp_namespace* ns, const cpp_entity& e, void* data) {
+            auto cb = [](const cpp_namespace* ns, const doc_entity& e, void* data) {
                 auto& func = *static_cast<Func*>(data);
                 func(ns, e);
             };
@@ -60,7 +69,7 @@ namespace standardese
         }
 
     private:
-        using ns_member_cb = void(const cpp_namespace*, const cpp_entity&, void*);
+        using ns_member_cb = void(const cpp_namespace*, const doc_entity&, void*);
 
         void namespace_member_impl(ns_member_cb cb, void* data);
 

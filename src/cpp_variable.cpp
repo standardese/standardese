@@ -68,10 +68,8 @@ cpp_ptr<cpp_variable> cpp_variable::parse(translation_unit& tu, cpp_cursor cur,
     if (is_mutable)
         throw parse_error(source_location(cur), "non-member variable is mutable");
 
-    auto result = detail::make_cpp_ptr<cpp_variable>(cur, parent, std::move(type),
-                                                     std::move(initializer), is_thread_local);
-    result->set_comment(tu);
-    return result;
+    return detail::make_cpp_ptr<cpp_variable>(cur, parent, std::move(type), std::move(initializer),
+                                              is_thread_local);
 }
 
 cpp_ptr<cpp_member_variable_base> cpp_member_variable_base::parse(translation_unit& tu,
@@ -97,7 +95,5 @@ cpp_ptr<cpp_member_variable_base> cpp_member_variable_base::parse(translation_un
     else
         result = detail::make_cpp_ptr<cpp_member_variable>(cur, parent, std::move(type),
                                                            std::move(initializer), is_mutable);
-
-    result->set_comment(tu);
     return result;
 }

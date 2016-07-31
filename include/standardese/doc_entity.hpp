@@ -9,19 +9,19 @@
 
 namespace standardese
 {
+    class comment;
+
     class doc_entity
     {
     public:
-        doc_entity(const cpp_entity& entity);
-
-        doc_entity(const cpp_entity& entity, const md_comment& comment);
+        doc_entity(const parser& p, const cpp_entity& entity, cpp_name output_name);
 
         bool has_comment() const STANDARDESE_NOEXCEPT
         {
             return comment_ != nullptr;
         }
 
-        const md_comment& get_comment() const STANDARDESE_NOEXCEPT
+        const comment& get_comment() const STANDARDESE_NOEXCEPT
         {
             return *comment_;
         }
@@ -33,13 +33,27 @@ namespace standardese
 
         cpp_entity::type get_entity_type() const;
 
+        cpp_name get_name() const
+        {
+            return get_cpp_entity().get_name();
+        }
+
+        cpp_name get_full_name() const
+        {
+            return get_cpp_entity().get_full_name();
+        }
+
         cpp_name get_unique_name() const;
 
-        cpp_name get_output_name() const;
+        cpp_name get_output_name() const
+        {
+            return output_name_;
+        }
 
     private:
+        cpp_name          output_name_;
         const cpp_entity* entity_;
-        const md_comment* comment_;
+        const comment*    comment_;
     };
 } // namespace standardese
 

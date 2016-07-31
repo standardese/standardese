@@ -13,64 +13,40 @@
 
 using namespace standardese;
 
-namespace
+std::string detail::get_id(const std::string& unique_name)
 {
-    std::string get_id(const std::string& unique_name)
+    std::string result;
+    for (auto c : unique_name)
+        if (std::isspace(c))
+            continue;
+        else
+            result += c;
+
+    if (result.end()[-1] == ')' && result.end()[-2] == '(')
     {
-        std::string result;
-        for (auto c : unique_name)
-            if (std::isspace(c))
-                continue;
-            else
-                result += c;
-
-        if (result.end()[-1] == ')' && result.end()[-2] == '(')
-        {
-            // ends with ()
-            result.pop_back();
-            result.pop_back();
-        }
-
-        return result;
+        // ends with ()
+        result.pop_back();
+        result.pop_back();
     }
 
-    std::string until_function_params(const std::string& id)
-    {
-        for (auto index = 0u; index != id.size(); ++index)
-            if (id[index] == '(')
-                return id.substr(0, index);
+    return result;
+}
+
+std::string detail::get_short_id(const std::string& id)
+{
+    auto open_paren = id.find('(');
+    if (open_paren == std::string::npos)
         return id;
-    }
+    auto close_paren = id.rfind(')');
+    assert(id.at(close_paren) == ')');
 
-    // returns the short id
-    // it doesn't require parameters
-    std::string get_short_id(const std::string& id)
-    {
-        auto wo_params = until_function_params(id);
-        if (wo_params.back() == '>')
-        {
-            // I don't care about partial specializations with less than operator inside
-            // so just do bracket count
-            auto index = wo_params.size() - 2;
-            for (auto bracket_count = 1; bracket_count != 0; --index)
-            {
-                if (wo_params[index] == '>')
-                    ++bracket_count;
-                else if (wo_params[index] == '<')
-                    --bracket_count;
-            }
-
-            wo_params.erase(wo_params.begin() + index + 1, wo_params.end());
-        }
-
-        return wo_params;
-    }
+    return id.substr(0, open_paren) + id.substr(close_paren + 1);
 }
 
 void index::register_entity(doc_entity entity) const
 {
-    auto id       = get_id(entity.get_unique_name().c_str());
-    auto short_id = get_short_id(id);
+    auto id       = detail::get_id(entity.get_unique_name().c_str());
+    auto short_id = detail::get_short_id(id);
 
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -106,14 +82,14 @@ void index::register_entity(doc_entity entity) const
 const doc_entity* index::try_lookup(const std::string& unique_name) const
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    auto                        iter = entities_.find(get_id(unique_name));
+    auto                        iter = entities_.find(detail::get_id(unique_name));
     return iter == entities_.end() ? nullptr : &iter->second.second;
 }
 
 const doc_entity& index::lookup(const std::string& unique_name) const
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    return entities_.at(get_id(unique_name)).second;
+    return entities_.at(detail::get_id(unique_name)).second;
 }
 
 namespace
@@ -185,10 +161,10 @@ void index::namespace_member_impl(ns_member_cb cb, void* data)
 {
     for (auto& pair : entities_)
     {
-        auto& key = pair.second;
-        if (key.first)
+        auto& value = pair.second;
+        if (value.first)
             continue; // ignore short names
-        auto& entity = key.second.get_cpp_entity();
+        auto& entity = value.second.get_cpp_entity();
         if (entity.get_entity_type() == cpp_entity::namespace_t
             || entity.get_entity_type() == cpp_entity::file_t)
             continue;
@@ -197,8 +173,8 @@ void index::namespace_member_impl(ns_member_cb cb, void* data)
         auto& parent      = entity.get_parent();
         auto  parent_type = parent.get_entity_type();
         if (parent_type == cpp_entity::namespace_t)
-            cb(static_cast<const cpp_namespace*>(&parent), entity, data);
+            cb(static_cast<const cpp_namespace*>(&parent), value.second, data);
         else if (parent_type == cpp_entity::file_t)
-            cb(nullptr, entity, data);
+            cb(nullptr, value.second, data);
     }
 }

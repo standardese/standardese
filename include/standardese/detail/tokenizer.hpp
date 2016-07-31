@@ -101,12 +101,20 @@ namespace standardese
         // skips an attribute if any
         void skip_attribute(detail::token_stream& stream, const cpp_cursor& cur);
 
+        struct tokenizer_access
+        {
+            static context& get_context(translation_unit& tu);
+
+            static const std::string& get_source(translation_unit& tu);
+        };
+
         class tokenizer
         {
         public:
-            static std::string read_source(cpp_cursor cur);
+            static std::string read_source(translation_unit& tu, cpp_cursor cur);
 
-            static CXFile read_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset);
+            static CXFile read_range(translation_unit& tu, cpp_cursor cur, unsigned& begin_offset,
+                                     unsigned& end_offset);
 
             tokenizer(translation_unit& tu, cpp_cursor cur);
 

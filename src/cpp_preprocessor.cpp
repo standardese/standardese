@@ -11,12 +11,13 @@
 
 using namespace standardese;
 
-cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit&, cpp_cursor cur,
+cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit& tu,
+                                                                cpp_cursor        cur,
                                                                 const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_InclusionDirective);
 
-    auto source = detail::tokenizer::read_source(cur);
+    auto source = detail::tokenizer::read_source(tu, cur);
 
     size_t i = 1u; // skip #
     while (std::isspace(source[i]))
@@ -35,11 +36,12 @@ cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit
 namespace
 {
     // returns true if macro is predefined
-    bool parse_macro(cpp_cursor cur, std::string& name, std::string& args, std::string& rep)
+    bool parse_macro(translation_unit& tu, cpp_cursor cur, std::string& name, std::string& args,
+                     std::string& rep)
     {
         name = detail::parse_name(cur).c_str();
 
-        auto source = detail::tokenizer::read_source(cur);
+        auto source = detail::tokenizer::read_source(tu, cur);
         if (source.empty())
             // predefined macro, cannot parse
             return true;
@@ -81,22 +83,22 @@ namespace
     }
 }
 
-cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit&, cpp_cursor cur,
+cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit& tu, cpp_cursor cur,
                                                           const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_MacroDefinition);
 
     std::string name, args, rep;
-    auto        predefined = parse_macro(cur, name, args, rep);
+    auto        predefined = parse_macro(tu, cur, name, args, rep);
     assert(!predefined);
 
     return detail::make_cpp_ptr<cpp_macro_definition>(cur, parent, std::move(args), std::move(rep));
 }
 
-std::string detail::get_cmd_definition(cpp_cursor expansion_ref)
+std::string detail::get_cmd_definition(translation_unit& tu, cpp_cursor expansion_ref)
 {
     std::string name, args, rep;
-    parse_macro(clang_getCursorReferenced(expansion_ref), name, args, rep);
+    parse_macro(tu, clang_getCursorReferenced(expansion_ref), name, args, rep);
 
     return name + args + "=" + rep;
 }

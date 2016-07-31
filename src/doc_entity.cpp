@@ -4,17 +4,14 @@
 
 #include <standardese/doc_entity.hpp>
 
-#include <standardese/translation_unit.hpp>
+#include <standardese/parser.hpp>
 
 using namespace standardese;
 
-doc_entity::doc_entity(const cpp_entity& entity)
-: entity_(&entity), comment_(entity.has_comment() ? &entity.get_comment() : nullptr)
-{
-}
-
-doc_entity::doc_entity(const cpp_entity& entity, const md_comment& comment)
-: entity_(&entity), comment_(&comment)
+doc_entity::doc_entity(const parser& p, const cpp_entity& entity, string output_name)
+: output_name_(std::move(output_name)),
+  entity_(&entity),
+  comment_(p.get_comment_registry().lookup_comment(entity))
 {
 }
 
@@ -25,16 +22,7 @@ cpp_entity::type doc_entity::get_entity_type() const
 
 cpp_name doc_entity::get_unique_name() const
 {
-    if (has_comment() && get_comment().has_unique_name())
-        return get_comment().get_unique_name();
+    if (has_comment() && get_comment().has_unique_name_override())
+        return get_comment().get_unique_name_override();
     return entity_->get_unique_name();
-}
-
-cpp_name doc_entity::get_output_name() const
-{
-    if (get_entity_type() == cpp_entity::file_t)
-        return static_cast<const cpp_file&>(get_cpp_entity()).get_output_name();
-    else if (has_comment())
-        return get_comment().get_output_name();
-    return "";
 }

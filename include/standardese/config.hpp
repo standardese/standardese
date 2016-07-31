@@ -97,10 +97,7 @@ namespace standardese
     public:
         output_config();
 
-        void set_section_name(section_type t, std::string name)
-        {
-            section_names_[unsigned(t)] = std::move(name);
-        }
+        void set_section_name(section_type t, std::string name);
 
         const std::string& get_section_name(section_type t) const STANDARDESE_NOEXCEPT
         {

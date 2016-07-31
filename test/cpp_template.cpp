@@ -5,6 +5,7 @@
 #include <standardese/cpp_template.hpp>
 
 #include <catch.hpp>
+#include <standardese/detail/parse_utils.hpp>
 #include <standardese/cpp_class.hpp>
 #include <standardese/cpp_function.hpp>
 
@@ -444,7 +445,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             {
                 ++count;
                 REQUIRE(ptr->get_name() == "a<A>");
-                REQUIRE(ptr->get_raw_comment() == "/// a");
+                REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// a");
                 REQUIRE(ptr->get_signature() == "(A)");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
                 REQUIRE(func.get_return_type().get_name() == "void");
@@ -468,7 +469,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             {
                 ++count;
                 REQUIRE(ptr->get_name() == "b<A, B>");
-                REQUIRE(ptr->get_raw_comment() == "/// b");
+                REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// b");
                 REQUIRE(ptr->get_signature() == "(B)");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
                 REQUIRE(func.get_return_type().get_name() == "B (*)()");
@@ -499,7 +500,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             {
                 ++count;
                 REQUIRE(ptr->get_name() == "c<val>");
-                REQUIRE(ptr->get_raw_comment() == "/// c");
+                REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// c");
                 REQUIRE(ptr->get_signature() == "()");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
                 REQUIRE(func.get_return_type().get_name() == "void");
@@ -523,7 +524,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             {
                 ++count;
                 REQUIRE(ptr->get_name() == "d<A>");
-                REQUIRE(ptr->get_raw_comment() == "/// d");
+                REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// d");
                 REQUIRE(ptr->get_signature() == "()");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
                 REQUIRE(func.get_return_type().get_name() == "void");
@@ -552,7 +553,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             {
                 ++count;
                 REQUIRE(ptr->get_name() == "a<int>");
-                REQUIRE(ptr->get_raw_comment() == "/// a");
+                REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// a");
                 REQUIRE(ptr->get_signature() == "(int)");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
                 REQUIRE(func.get_return_type().get_name() == "void");
@@ -561,7 +562,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             {
                 ++count;
                 REQUIRE(ptr->get_name() == "b<0, int*>");
-                REQUIRE(ptr->get_raw_comment() == "/// b");
+                REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// b");
                 REQUIRE(ptr->get_signature() == "(int *)");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
                 REQUIRE(func.get_return_type().get_name() == "int* (*)()");
@@ -570,7 +571,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             {
                 ++count;
                 REQUIRE(ptr->get_name() == "c<-((1 << 4) > (3 >> (2 <= 1 && 3 < 2)))>");
-                REQUIRE(ptr->get_raw_comment() == "/// c");
+                REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// c");
                 REQUIRE(ptr->get_signature() == "()");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
                 REQUIRE(func.get_return_type().get_name() == "void");
@@ -579,7 +580,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             {
                 ++count;
                 REQUIRE(ptr->get_name() == "d<0 < -1>");
-                REQUIRE(ptr->get_raw_comment() == "/// d");
+                REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// d");
                 REQUIRE(ptr->get_signature() == "()");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
                 REQUIRE(func.get_return_type().get_name() == "void");
@@ -596,7 +597,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                     if (ptr->get_function().get_name() == "c")
                     {
                         ++count;
-                        REQUIRE(ptr->get_raw_comment() == "/// c");
+                        REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// c");
                         REQUIRE(dynamic_cast<const cpp_member_function*>(&ptr->get_function())
                                 != nullptr);
                         REQUIRE(!ptr->get_function().is_variadic());
@@ -621,7 +622,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                     else if (ptr->get_function().get_name() == "foo")
                     {
                         ++count;
-                        REQUIRE(ptr->get_raw_comment() == "/// foo");
+                        REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// foo");
                         REQUIRE(dynamic_cast<const cpp_constructor*>(&ptr->get_function())
                                 != nullptr);
                         REQUIRE(ptr->get_name() == "foo<A>");
@@ -645,7 +646,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                     else if (ptr->get_function().get_name() == "operator T *")
                     {
                         ++count;
-                        REQUIRE(ptr->get_raw_comment() == "/// operator");
+                        REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// operator");
                         REQUIRE(dynamic_cast<const cpp_conversion_op*>(&ptr->get_function())
                                 != nullptr);
                         REQUIRE(ptr->get_name() == "operator T *<T>");
@@ -757,7 +758,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             {
                 ++count;
                 REQUIRE(c->get_name() == "a<A>");
-                REQUIRE(c->get_raw_comment() == "/// a");
+                REQUIRE(detail::parse_comment(c->get_cursor()) == "/// a");
                 REQUIRE(c->get_class().get_class_type() == cpp_struct_t);
 
                 auto size = 0u;
@@ -779,7 +780,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             {
                 ++count;
                 REQUIRE(c->get_name() == "b<A, B...>");
-                REQUIRE(c->get_raw_comment() == "/// b");
+                REQUIRE(detail::parse_comment(c->get_cursor()) == "/// b");
                 REQUIRE(c->get_class().get_class_type() == cpp_class_t);
 
                 auto size = 0u;
@@ -808,7 +809,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             {
                 ++count;
                 REQUIRE(c->get_name() == "c<A>");
-                REQUIRE(c->get_raw_comment() == "/// c");
+                REQUIRE(detail::parse_comment(c->get_cursor()) == "/// c");
                 REQUIRE(c->get_class().get_class_type() == cpp_class_t);
 
                 auto size = 0u;
@@ -830,7 +831,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             {
                 ++count;
                 REQUIRE(c->get_name() == "d<A>");
-                REQUIRE(c->get_raw_comment() == "/// d");
+                REQUIRE(detail::parse_comment(c->get_cursor()) == "/// d");
                 REQUIRE(c->get_class().get_class_type() == cpp_class_t);
 
                 auto size = 0u;
@@ -857,7 +858,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             {
                 ++count;
                 REQUIRE(c->get_name() == "a<int *>");
-                REQUIRE(c->get_raw_comment() == "/// a");
+                REQUIRE(detail::parse_comment(c->get_cursor()) == "/// a");
                 REQUIRE(c->get_primary_template().get_name() == "a");
                 REQUIRE(c->get_class().get_class_type() == cpp_struct_t);
 
@@ -868,9 +869,9 @@ TEST_CASE("cpp_class_template", "[cpp]")
                     for (auto& param : ctor.get_parameters())
                     {
                         REQUIRE(param.get_name() == "a");
-                        if (ctor.get_raw_comment() == "/// a")
+                        if (detail::parse_comment(ctor.get_cursor()) == "/// a")
                             REQUIRE(param.get_type().get_full_name() == "const a<int *> &");
-                        else if (ctor.get_raw_comment() == "/// b")
+                        else if (detail::parse_comment(ctor.get_cursor()) == "/// b")
                             REQUIRE(param.get_type().get_full_name() == "const a<int> &");
                         else
                             REQUIRE(false);
@@ -881,7 +882,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             {
                 ++count;
                 REQUIRE(c->get_name() == "b<0, char, int(*)(char)>");
-                REQUIRE(c->get_raw_comment() == "/// b");
+                REQUIRE(detail::parse_comment(c->get_cursor()) == "/// b");
                 REQUIRE(c->get_primary_template().get_name() == "b");
                 REQUIRE(c->get_class().get_class_type() == cpp_class_t);
             }
@@ -889,7 +890,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             {
                 ++count;
                 REQUIRE(c->get_name() == "d<1 < 0>");
-                REQUIRE(c->get_raw_comment() == "/// d");
+                REQUIRE(detail::parse_comment(c->get_cursor()) == "/// d");
                 REQUIRE(c->get_primary_template().get_name() == "d");
                 REQUIRE(c->get_class().get_class_type() == cpp_class_t);
             }
@@ -902,7 +903,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             {
                 ++count;
                 REQUIRE(c->get_name() == "a<T(*)()>");
-                REQUIRE(c->get_raw_comment() == "/// a");
+                REQUIRE(detail::parse_comment(c->get_cursor()) == "/// a");
                 REQUIRE(c->get_primary_template().get_name() == "a");
                 REQUIRE(c->get_class().get_class_type() == cpp_struct_t);
 
@@ -913,9 +914,9 @@ TEST_CASE("cpp_class_template", "[cpp]")
                     for (auto& param : ctor.get_parameters())
                     {
                         REQUIRE(param.get_name() == "a");
-                        if (ctor.get_raw_comment() == "/// a")
+                        if (detail::parse_comment(ctor.get_cursor()) == "/// a")
                             REQUIRE(param.get_type().get_full_name() == "const a &");
-                        else if (ctor.get_raw_comment() == "/// b")
+                        else if (detail::parse_comment(ctor.get_cursor()) == "/// b")
                             REQUIRE(param.get_type().get_full_name() == "const a<int *> &");
                         else
                             REQUIRE(false);
@@ -926,7 +927,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             {
                 ++count;
                 REQUIRE(c->get_name() == "b<A, void(*)(B...)>");
-                REQUIRE(c->get_raw_comment() == "/// b");
+                REQUIRE(detail::parse_comment(c->get_cursor()) == "/// b");
                 REQUIRE(c->get_primary_template().get_name() == "b");
                 REQUIRE(c->get_class().get_class_type() == cpp_class_t);
             }
@@ -971,7 +972,7 @@ TEST_CASE("cpp_alias_template", "[cpp]")
         if (alias.get_name() == "a<T>")
         {
             ++count;
-            REQUIRE(alias.get_raw_comment() == "/// a");
+            REQUIRE(detail::parse_comment(alias.get_cursor()) == "/// a");
             REQUIRE(type.get_name() == "a");
             REQUIRE(type.get_target().get_name() == "T");
             REQUIRE(type.get_target().get_full_name() == "T");
@@ -979,7 +980,7 @@ TEST_CASE("cpp_alias_template", "[cpp]")
         else if (alias.get_name() == "b<T>")
         {
             ++count;
-            REQUIRE(alias.get_raw_comment() == "/// b");
+            REQUIRE(detail::parse_comment(alias.get_cursor()) == "/// b");
             REQUIRE(type.get_name() == "b");
             REQUIRE(type.get_target().get_name() == "foo<T>");
             REQUIRE(type.get_target().get_full_name() == "foo<T>");
@@ -987,7 +988,7 @@ TEST_CASE("cpp_alias_template", "[cpp]")
         else if (alias.get_name() == "c<T>")
         {
             ++count;
-            REQUIRE(alias.get_raw_comment() == "/// c");
+            REQUIRE(detail::parse_comment(alias.get_cursor()) == "/// c");
             REQUIRE(type.get_name() == "c");
             REQUIRE(type.get_target().get_name() == "unsigned int");
             REQUIRE(type.get_target().get_full_name() == "unsigned int");

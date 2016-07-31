@@ -13,12 +13,11 @@ namespace standardese
 {
     class parser;
     class compile_config;
+    struct cpp_cursor;
 
     namespace detail
     {
-        struct context;
-
-        context& get_preprocessing_context(translation_unit& tu);
+        struct tokenizer_access;
 
         struct tu_deleter
         {
@@ -49,16 +48,6 @@ namespace standardese
             return path_.c_str();
         }
 
-        const cpp_name& get_output_name() const STANDARDESE_NOEXCEPT
-        {
-            return output_name_;
-        }
-
-        void set_output_name(cpp_name name)
-        {
-            output_name_ = std::move(name);
-        }
-
         CXTranslationUnit get_cxunit() STANDARDESE_NOEXCEPT
         {
             return wrapper_.get();
@@ -66,11 +55,11 @@ namespace standardese
 
     private:
         cpp_file(cpp_cursor cur, CXTranslationUnit tu, cpp_name path)
-        : cpp_entity(get_entity_type(), cur), path_(std::move(path)), output_name_(""), wrapper_(tu)
+        : cpp_entity(get_entity_type(), cur), path_(std::move(path)), wrapper_(tu)
         {
         }
 
-        cpp_name           path_, output_name_;
+        cpp_name           path_;
         detail::tu_wrapper wrapper_;
 
         friend parser;
@@ -106,7 +95,7 @@ namespace standardese
         struct impl;
         std::unique_ptr<impl> pimpl_;
 
-        friend detail::context& detail::get_preprocessing_context(translation_unit&);
+        friend detail::tokenizer_access;
         friend parser;
     };
 

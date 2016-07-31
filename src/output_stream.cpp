@@ -35,6 +35,20 @@ void output_stream_base::unindent(unsigned width)
     level_ -= width;
 }
 
+void output_stream_base::remove_trailing_line()
+{
+    if (last_ == '\n')
+    {
+        last_ = undo_write();
+        if (last_ == ' ') // only if there is intendation to remove
+            for (auto i = 0u; i != level_; ++i)
+                last_ = undo_write();
+        else
+            // there wasn't an empty line
+            write_char('\n');
+    }
+}
+
 void output_stream_base::do_indent()
 {
     if (last_ == '\n')
