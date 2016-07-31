@@ -609,6 +609,7 @@ namespace
         auto last_paragraph = static_cast<md_paragraph*>(nullptr);
         auto first          = true;
         for (auto& child : children)
+        {
             try
             {
                 assert(child);
@@ -644,6 +645,7 @@ namespace
                 p.get_logger()->warn("when parsing comments ({}:{}): {}", error.get_line(),
                                      error.get_column(), error.what());
             }
+        }
 
         register_comment(p, info);
     }
