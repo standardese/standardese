@@ -27,7 +27,6 @@ const entity_blacklist::documentation_t entity_blacklist::documentation;
 entity_blacklist::entity_blacklist()
 {
     type_blacklist_.set(cpp_entity::inclusion_directive_t);
-    type_blacklist_.set(cpp_entity::language_linkage_t);
     type_blacklist_.set(cpp_entity::using_declaration_t);
     type_blacklist_.set(cpp_entity::using_directive_t);
     type_blacklist_.set(cpp_entity::access_specifier_t);

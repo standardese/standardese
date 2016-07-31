@@ -47,14 +47,22 @@ namespace
         return get_default_access(e.get_class());
     }
 
+    bool has_comment(const doc_entity& e)
+    {
+        return e.has_comment() && !e.get_comment().empty();
+    }
+
+    bool requires_comment(const doc_entity& e)
+    {
+        return e.get_entity_type() != cpp_entity::namespace_t
+               && e.get_entity_type() != cpp_entity::language_linkage_t;
+    }
+
     bool is_blacklisted(const parser& p, const doc_entity& e)
     {
         auto& blacklist = p.get_output_config().get_blacklist();
-        if (e.get_entity_type() != cpp_entity::namespace_t
-            && blacklist.is_set(entity_blacklist::require_comment)
-            && (!e.has_comment()
-                || e.get_comment()
-                       .empty())) // only valid for entities which can have comments except namespaces
+        if (requires_comment(e) && blacklist.is_set(entity_blacklist::require_comment)
+            && !has_comment(e))
             return true;
         else if (blacklist.is_blacklisted(entity_blacklist::documentation, e.get_cpp_entity()))
             return true;
@@ -121,6 +129,10 @@ namespace
         {
         case cpp_entity::namespace_t:
             for (auto& child : static_cast<const cpp_namespace&>(e.get_cpp_entity()))
+                dispatch(p, i, output, level, doc_entity(p, child, e.get_output_name()));
+            break;
+        case cpp_entity::language_linkage_t:
+            for (auto& child : static_cast<const cpp_language_linkage&>(e.get_cpp_entity()))
                 dispatch(p, i, output, level, doc_entity(p, child, e.get_output_name()));
             break;
 

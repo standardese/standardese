@@ -115,6 +115,8 @@ cpp_name cpp_entity::get_scope() const
 {
     if (!parent_ || parent_->get_entity_type() == file_t)
         return "";
+    else if (parent_->get_entity_type() == language_linkage_t)
+        return parent_->get_scope();
     return parent_->get_full_name();
 }
 
