@@ -224,4 +224,16 @@ private:
         REQUIRE(get_synopsis(tu) == "enum foo;");
         REQUIRE(get_synopsis(p, *tu.get_file().begin()) == synopsis);
     }
+    SECTION("function")
+    {
+        auto code = R"(
+/// \param c \exclude
+void func(int a, char* b, float c = .3);
+)";
+
+        auto synopsis = R"(void func(int a, char* b);)";
+
+        auto tu = parse(p, "synopsis_function", code);
+        REQUIRE(get_synopsis(p, *tu.get_file().begin()) == synopsis);
+    }
 }
