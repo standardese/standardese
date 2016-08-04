@@ -72,24 +72,24 @@ void detail::skip_attribute(detail::token_stream& stream, const cpp_cursor& cur)
     }
 }
 
+CXFile detail::get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset)
+{
+    auto source = clang_getCursorExtent(cur);
+    auto begin  = clang_getRangeStart(source);
+    auto end    = clang_getRangeEnd(source);
+
+    // translate location into offset and file
+    CXFile file  = nullptr;
+    begin_offset = 0u;
+    end_offset   = 0u;
+    clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
+    clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
+
+    return file;
+}
+
 namespace
 {
-    CXFile get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset)
-    {
-        auto source = clang_getCursorExtent(cur);
-        auto begin  = clang_getRangeStart(source);
-        auto end    = clang_getRangeEnd(source);
-
-        // translate location into offset and file
-        CXFile file  = nullptr;
-        begin_offset = 0u;
-        end_offset   = 0u;
-        clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
-        clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
-
-        return file;
-    }
-
     bool cursor_is_function(CXCursorKind kind)
     {
         return kind == CXCursor_FunctionDecl || kind == CXCursor_CXXMethod
@@ -119,7 +119,7 @@ namespace
                     || clang_getCursorKind(child) == CXCursor_CXXTryStmt)
                 {
                     unsigned ignored;
-                    get_range(child, body_begin, ignored);
+                    detail::get_range(child, body_begin, ignored);
                     return CXChildVisit_Break;
                 }
                 return CXChildVisit_Continue;

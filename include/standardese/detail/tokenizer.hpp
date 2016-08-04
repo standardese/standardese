@@ -108,6 +108,8 @@ namespace standardese
             static const std::string& get_source(translation_unit& tu);
         };
 
+        CXFile get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset);
+
         class tokenizer
         {
         public:
