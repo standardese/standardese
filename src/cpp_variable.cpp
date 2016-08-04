@@ -31,6 +31,23 @@ namespace
                 || detail::skip_if_token(stream, "static"))
                 // ignore
                 continue;
+            // check for type definition in the variable declaration
+            else if (detail::skip_if_token(stream, "struct")
+                     || detail::skip_if_token(stream, "class")
+                     || detail::skip_if_token(stream, "union")
+                     || detail::skip_if_token(stream, "enum"))
+            {
+                // handle enum class
+                detail::skip_if_token(stream, "class");
+
+                // set name of the new type
+                assert(in_type);
+                type_name += stream.peek().get_value().c_str();
+                stream.bump();
+
+                // skip type definition
+                detail::skip_bracket_count(stream, cur, "{", "}");
+            }
             else if (detail::skip_if_token(stream, "thread_local"))
                 is_thread_local = true;
             else if (detail::skip_if_token(stream, "mutable"))

@@ -28,6 +28,8 @@ TEST_CASE("cpp_variable", "[cpp]")
         thread_local auto g = f(4);
 
         int h[5];
+
+        const struct bar {} *i;
     )";
 
     auto tu = parse(p, "cpp_variable", code);
@@ -108,11 +110,19 @@ TEST_CASE("cpp_variable", "[cpp]")
                 REQUIRE(var->get_initializer() == "");
                 REQUIRE(!var->is_thread_local());
             }
+            else if (var->get_name() == "i")
+            {
+                ++count;
+                REQUIRE(type.get_name() == "const bar *");
+                REQUIRE(type.get_full_name() == "const struct bar *");
+                REQUIRE(var->get_initializer() == "");
+                REQUIRE(!var->is_thread_local());
+            }
             else
                 REQUIRE(false);
         }
     }
-    REQUIRE(count == 8);
+    REQUIRE(count == 9);
 }
 
 TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
