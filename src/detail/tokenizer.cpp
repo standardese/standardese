@@ -135,6 +135,25 @@ namespace
             while (std::isspace(*ptr))
                 ++ptr;
 
+            // also need to handle another awesome libclang bug
+            // everything inside the parenthesis of a decltype() isn't included
+            // so need to add it
+            if (*ptr == '(')
+            {
+                result += *ptr;
+                ++ptr;
+
+                for (auto bracket_count = 1; bracket_count != 0; ++ptr)
+                {
+                    if (*ptr == '(')
+                        ++bracket_count;
+                    else if (*ptr == ')')
+                        --bracket_count;
+
+                    result += *ptr;
+                }
+            }
+
             if (*ptr != '>' && *ptr != ',' && result.back() == '>')
                 result.pop_back();
         }

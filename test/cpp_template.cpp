@@ -18,7 +18,7 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
     parser p;
 
     auto code = R"(
-        template <typename A, typename B = int>
+        template <typename A, typename B = decltype(0)>
         struct s1;
 
         template <typename ... C>
@@ -58,7 +58,7 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
             ++count;
             REQUIRE(!param->is_variadic());
             REQUIRE(param->has_default_type());
-            REQUIRE(param->get_default_type().get_name() == "int");
+            REQUIRE(param->get_default_type().get_name() == "decltype(0)");
         }
         else if (param->get_name() == "C")
         {
