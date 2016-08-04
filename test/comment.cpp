@@ -43,31 +43,31 @@ TEST_CASE("md_comment", "[doc]")
 
     SECTION("comment styles")
     {
-        auto source = R"(/// C++ style.
-            
+        auto source = R"(///   C++ style.
+
             //! C++ exclamation.
-            
+
             /** C style. */
-            
+
             // ignored
             /* ignored as well */
-            
+
             /*! C exclamation.
             */
-            
+
             /** C style
               *
-              * multiline.
+              *   multiline.
               */
-              
+
             /** C style
             /// C++ multiline. */
-            
+
             /// Multiple
             //! C++
             /** and C style.
             */
-            
+
             foo, //< End line style.
             bar, //< End line style.
             /// Continued.
@@ -76,7 +76,7 @@ TEST_CASE("md_comment", "[doc]")
         auto comments = detail::read_comments(source);
         REQUIRE(comments.size() == 10);
 
-        REQUIRE(comments[0].content == "C++ style.");
+        REQUIRE(comments[0].content == "  C++ style.");
         REQUIRE(comments[0].count_lines == 1u);
         REQUIRE(comments[0].end_line == 1u);
 
@@ -92,7 +92,7 @@ TEST_CASE("md_comment", "[doc]")
         REQUIRE(comments[3].count_lines == 2u);
         REQUIRE(comments[3].end_line == 11u);
 
-        REQUIRE(comments[4].content == "C style\n\nmultiline.");
+        REQUIRE(comments[4].content == "C style\n\n  multiline.");
         REQUIRE(comments[4].count_lines == 4u);
         REQUIRE(comments[4].end_line == 16u);
 
@@ -119,7 +119,7 @@ TEST_CASE("md_comment", "[doc]")
     SECTION("simple parsing")
     {
         auto& comment = parse_comment(p, R"(/// Hello World.)");
-        auto count   = 0u;
+        auto  count   = 0u;
         for (auto& child : comment.get_content())
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
@@ -166,7 +166,7 @@ C
     {
         auto& comment = parse_comment(p, R"(/**
 * A
-* 
+*
 * B
 * C /// C
 */)");
@@ -355,23 +355,23 @@ TEST_CASE("comment-matching", "[doc]")
     auto source = R"(
         /// a
         #define a
-        
+
         /// \file
         ///
         /// file
-        
+
         void b(int g);
-        
+
         /// \entity b
         ///
         /// b
         ///
         /// \param g g
-        
+
         /// \entity f
         ///
         /// e
-        
+
         /// c
         ///
         /// \param d

@@ -47,7 +47,8 @@ namespace
 
     detail::raw_comment parse_cpp_comment(const char*& ptr, unsigned& cur_line)
     {
-        while (is_whitespace(*ptr))
+        // only skip one whitespace
+        if (is_whitespace(*ptr))
             ++ptr;
 
         std::string content;
@@ -68,7 +69,8 @@ namespace
         if (*ptr == '*' && ptr[1] != '/')
         {
             ++ptr;
-            while (is_whitespace(*ptr))
+            // only skip next whitespace
+            if (is_whitespace(*ptr))
                 ++ptr;
         }
     }

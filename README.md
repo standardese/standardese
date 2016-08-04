@@ -94,7 +94,7 @@ but if you wish to link them statically, just add `-DBoost_USE_STATIC_LIBS=ON` t
 
 Once built, simply run `standardese --help` for commandline usage.
 
-## Documentation 
+## Documentation
 
 > Disclaimer: Due to the lack of proper tooling there is currently no good documentation.
 > If you need help or encounter a problem please contact me [on gitter](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge), I'll usually answer within a day or faster.
@@ -171,6 +171,7 @@ standardese looks for documentation comments as shown in the following example:
 ```cpp
 /// A regular C++ style documentation comment.
 /// Multiple C++ style comments are merged automatically.
+///   This line has *two* leading whitespaces because one is always skipped.
 
 //! A C++ style comment using an exclamation mark.
 /// It will also merge with other C++ style comments.
@@ -179,9 +180,9 @@ standardese looks for documentation comments as shown in the following example:
 /** A C style documentation commment. */
 /** This is a different comment, they aren't merged.
  * But you can be fancy with the star at the beginning of the line.
- * It will ignore all whitespace, the star and any following whitespace.
+ * It will ignore all whitespace, the star and the first following whitespace.
  */
- 
+
 /*! You can also use an exclamation mark. */
 /// But neither will merge with any other comment.
 
