@@ -7,6 +7,7 @@ project(STANDARDESE VERSION 0.1)
 
 option(STANDARDESE_BUILD_TOOL "whether or not to build the tool" ON)
 option(STANDARDESE_BUILD_TEST "whether or not to build the test" OFF)
+option(STANDARDESE_VERBOSE_CONFIG "use verbose output when configuring Standardese build" OFF)
 
 set(lib_dest "lib/standardese")
 set(include_dest "include")
