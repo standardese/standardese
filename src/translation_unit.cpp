@@ -37,8 +37,10 @@ struct translation_unit::impl
 
         config.setup_context(context);
 
+        // need to open in binary mode as libclang does it (apparently)
+        // otherwise the offsets are incompatible under Windows
         std::filebuf filebuf;
-        filebuf.open(path, std::ios_base::in);
+        filebuf.open(path, std::ios_base::in | std::ios_base::binary);
         assert(filebuf.is_open());
 
         source =
