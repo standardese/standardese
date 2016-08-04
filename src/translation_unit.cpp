@@ -177,8 +177,8 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
             using namespace boost::wave;
             if (ex.get_errorcode() == preprocess_exception::alreadydefined_name
                 || ex.get_errorcode() == preprocess_exception::illegal_redefinition
-                || ex.get_errorcode() == preprocess_exception::macro_redefinition)
-                // ignore those error codes can happen for the predefined, builtin macros
+                || ex.get_errorcode() == preprocess_exception::macro_redefinition
+                || ex.get_errorcode() == preprocess_exception::warning_directive)
                 return CXChildVisit_Continue;
             else if (!is_recoverable(ex))
                 throw;
