@@ -108,7 +108,8 @@ namespace
         {
             auto body_begin = 0u;
             detail::visit_children(cur, [&](cpp_cursor child, cpp_cursor) {
-                if (clang_getCursorKind(child) == CXCursor_CompoundStmt)
+                if (clang_getCursorKind(child) == CXCursor_CompoundStmt
+                    || clang_getCursorKind(child) == CXCursor_CXXTryStmt)
                 {
                     unsigned ignored;
                     get_range(child, body_begin, ignored);

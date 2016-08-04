@@ -26,9 +26,13 @@ TEST_CASE("cpp_function", "[cpp]")
 
     auto code = R"(void a(int x, const char *ptr = nullptr);
 
-int b(int c, ...)
+int b(int c, ...) try
 {
     return 0;
+}
+catch (...)
+{
+    return 1;
 }
 
 int *c(int a = b(0)) = delete;
