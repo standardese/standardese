@@ -101,7 +101,7 @@ namespace
         {
             if (*ptr == '\n')
             {
-                while (is_whitespace(content.back()))
+                while (!content.empty() && is_whitespace(content.back()))
                     content.pop_back();
                 needs_newline = true;
 
@@ -130,7 +130,7 @@ namespace
         assert(ptr[-1] == '/');
         --ptr;
 
-        assert(content.back() != '\n');
+        assert(!content.empty() && content.back() != '\n');
         while (is_whitespace(content.back()))
             content.pop_back();
 
