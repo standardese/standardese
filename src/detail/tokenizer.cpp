@@ -90,13 +90,20 @@ namespace
         return file;
     }
 
+    bool cursor_is_function(CXCursorKind kind)
+    {
+        return kind == CXCursor_FunctionDecl || kind == CXCursor_CXXMethod
+               || kind == CXCursor_Constructor || kind == CXCursor_Destructor
+               || kind == CXCursor_ConversionFunction;
+    }
+
     std::string fixup(cpp_cursor cur, const char* ptr, std::string result, unsigned begin_offset)
     {
         auto is_templ_param = clang_getCursorKind(cur) == CXCursor_TemplateTypeParameter
                               || clang_getCursorKind(cur) == CXCursor_NonTypeTemplateParameter
                               || clang_getCursorKind(cur) == CXCursor_TemplateTemplateParameter;
-        auto is_function = clang_getCursorKind(cur) == CXCursor_FunctionDecl
-                           || clang_getTemplateCursorKind(cur) == CXCursor_FunctionDecl;
+        auto is_function = cursor_is_function(clang_getCursorKind(cur))
+                           || cursor_is_function(clang_getTemplateCursorKind(cur));
         auto is_class = clang_getCursorKind(cur) == CXCursor_ClassDecl
                         || clang_getCursorKind(cur) == CXCursor_StructDecl
                         || clang_getCursorKind(cur) == CXCursor_UnionDecl

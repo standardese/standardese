@@ -331,13 +331,21 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
     parser p;
 
     auto code = R"(
+        template <typename T>
+        struct bar {};
+
         struct foo
         {
             [[noreturn]] operator    int() [[]]; // multiple whitespace
 
-            explicit __attribute__((foo)) operator const char&();
+            explicit __attribute__((foo)) operator const char&(void);
 
-            constexpr explicit __attribute__((bar)) operator char() const volatile && noexcept;
+            constexpr explicit __attribute__((bar)) operator char() const volatile && noexcept
+            {
+                return '0';
+            }
+
+            operator bar<decltype(int())>();
         };
     )";
 
@@ -345,9 +353,13 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
 
     auto count = 0u;
     for_each(tu.get_file(), [&](const cpp_entity& t) {
+        if (t.get_name() != "foo")
+            return;
+
         for (auto& e : dynamic_cast<const cpp_class&>(t))
         {
             auto& op = dynamic_cast<const cpp_conversion_op&>(e);
+            INFO(op.get_name().c_str());
             REQUIRE(no_parameters(op) == 0u);
 
             if (op.get_name() == "operator int")
@@ -389,11 +401,24 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 REQUIRE(op.explicit_noexcept());
                 REQUIRE(op.get_signature() == "() const volatile &&");
             }
+            else if (op.get_name() == "operator bar<decltype(int())>")
+            {
+                ++count;
+                REQUIRE(op.get_target_type().get_name() == "bar<decltype(int())>");
+                REQUIRE(!op.is_explicit());
+                REQUIRE(!op.is_constexpr());
+                REQUIRE(!is_const(op.get_cv()));
+                REQUIRE(!is_volatile(op.get_cv()));
+                REQUIRE(op.get_ref_qualifier() == cpp_ref_none);
+                REQUIRE(op.get_noexcept() == "false");
+                REQUIRE(!op.explicit_noexcept());
+                REQUIRE(op.get_signature() == "()");
+            }
             else
                 REQUIRE(false);
         }
     });
-    REQUIRE(count == 3u);
+    REQUIRE(count == 4u);
 }
 
 TEST_CASE("cpp_constructor", "[cpp]")

@@ -588,19 +588,18 @@ cpp_member_function::cpp_member_function(cpp_cursor cur, const cpp_entity& paren
 
 namespace
 {
-    cpp_type_ref parse_conversion_op_type(cpp_cursor cur)
+    std::string parse_conversion_op_type(cpp_cursor cur)
     {
         if (clang_getCursorKind(cur) == CXCursor_ConversionFunction)
         {
             // parse name
             std::string name = detail::parse_name(cur).c_str();
 
-            auto target_type = clang_getCursorResultType(cur);
             auto target_type_spelling =
                 name.substr(9); // take everything from type after "operator "
             assert(target_type_spelling.front() != ' '); // no multiple whitespace
 
-            return cpp_type_ref(std::move(target_type_spelling), target_type);
+            return target_type_spelling;
         }
         else if (clang_getCursorKind(cur) == CXCursor_FunctionTemplate)
         {
@@ -610,9 +609,7 @@ namespace
             // operator type-parameter-0-0
             // so workaround by calculating name from the type spelling
             auto target_type = clang_getCursorResultType(cur);
-            auto spelling    = detail::parse_name(target_type);
-
-            return cpp_type_ref(spelling, target_type);
+            return detail::parse_name(target_type).c_str();
         }
 
         assert(false);
@@ -662,8 +659,10 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
     while (stream.peek().get_value() != "(" && stream.peek().get_value() != "<")
         stream.bump();
 
-    std::string template_args;
-    skip_template_arguments(stream, template_args, false);
+    std::string type_template_args;
+    skip_template_arguments(stream, type_template_args, false);
+    // template_args belong to the type name
+    type += std::move(type_template_args);
 
     auto variadic = false;
     skip_parameters(stream, cur, variadic);
@@ -677,16 +676,17 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
     if (finfo.noexcept_expression.empty())
         finfo.noexcept_expression = "false";
 
-    auto result = detail::make_cpp_ptr<cpp_conversion_op>(cur, parent, std::move(type),
-                                                          std::move(finfo), std::move(minfo));
+    auto result =
+        detail::make_cpp_ptr<cpp_conversion_op>(cur, parent,
+                                                cpp_type_ref(std::move(type),
+                                                             clang_getCursorResultType(cur)),
+                                                std::move(finfo), std::move(minfo));
 
     if ((result->get_virtual() == cpp_virtual_none || result->get_virtual() == cpp_virtual_new)
         && is_implicit_virtual(cur))
         // check for implicit virtual
         result->info_.virtual_flag = cpp_virtual_overriden;
 
-    if (!template_args.empty())
-        result->set_template_specialization_name(std::move(template_args));
     return result;
 }
 
