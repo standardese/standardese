@@ -438,7 +438,6 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
 
     auto count = 0u;
     for_each(tu.get_file(), [&](const cpp_entity& e) {
-        ;
         if (auto ptr = dynamic_cast<const cpp_function_template*>(&e))
         {
             if (ptr->get_function().get_name() == "a")

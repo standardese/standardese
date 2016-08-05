@@ -123,8 +123,10 @@ namespace
         std::string return_type;
         auto        allow_auto = false; // whether or not auto is allowed in return type
 
-        while (!detail::skip_if_token(stream, name.c_str()))
+        auto qualified_name = false;
+        while (qualified_name || !detail::skip_if_token(stream, name.c_str()))
         {
+            qualified_name = false;
             detail::skip_attribute(stream, cur);
 
             if (detail::skip_if_token(stream, "extern"))
@@ -167,7 +169,10 @@ namespace
             {
                 auto spelling = stream.get().get_value();
                 if (spelling == "decltype")
-                    allow_auto = true;           // decltype return, allow auto in return type
+                    allow_auto = true; // decltype return, allow auto in return type
+                else if (spelling == "::")
+                    qualified_name = true; // next name is qualified, can't be function name
+
                 return_type += spelling.c_str(); // part of return type
             }
         }
