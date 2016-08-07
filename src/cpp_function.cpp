@@ -46,7 +46,7 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(translation_unit& 
 cpp_name cpp_function_parameter::do_get_unique_name() const
 {
     assert(has_parent() && is_function_like(get_parent().get_entity_type()));
-    return std::string(get_parent().get_unique_name().c_str()) + "::" + get_name().c_str();
+    return std::string(get_parent().get_unique_name().c_str()) + "." + get_name().c_str();
 }
 
 cpp_ptr<cpp_function_base> cpp_function_base::try_parse(translation_unit& p, cpp_cursor cur,

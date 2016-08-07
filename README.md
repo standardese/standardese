@@ -210,7 +210,7 @@ The `unique-name` of an entity is the name with all scopes, i.e. `foo::bar::baz`
 
 * For functions you need to append the signature (parameter types and cv and ref qualifier), i.e. `func()`, `bar(int,char)` or `type::foo() const &&`. If the signature is `()`, you can omit it.
 
-* For (template) parameters it is of the form `function-unique-name::parameter-name`
+* For (template) parameters it is of the form `function-unique-name.parameter-name`
 
 * For base classes it is of the form `derived-class::base-class`
 

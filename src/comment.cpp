@@ -345,20 +345,20 @@ namespace
                 {
                     stack.pop();
                 }
-        }
-        catch (comment_parse_error& error)
-        {
-            p.get_logger()->warn("when parsing comments ({}:{}): {}", error.get_line(),
-                                 error.get_column(), error.what());
-
-            if (cmark_node_parent(node) == root.get())
-            {
-                // if the parant is root, remove from direct_children as well
-                assert(direct_children.back()->get_node() == node);
-                direct_children.pop_back();
             }
-            remove_node(node, iter.get());
-        }
+            catch (comment_parse_error& error)
+            {
+                p.get_logger()->warn("when parsing comments ({}:{}): {}", error.get_line(),
+                                     error.get_column(), error.what());
+
+                if (cmark_node_parent(node) == root.get())
+                {
+                    // if the parant is root, remove from direct_children as well
+                    assert(direct_children.back()->get_node() == node);
+                    direct_children.pop_back();
+                }
+                remove_node(node, iter.get());
+            }
         }
 
         return direct_children;
@@ -489,7 +489,7 @@ namespace
 
             comment_info inline_info(info.file_name, info.begin_line, info.end_line);
 
-            auto keep               = parse_command(p, inline_info, paragraph);
+            auto keep = parse_command(p, inline_info, paragraph);
             if (keep)
                 inline_info.comment.get_content().add_entity(
                     paragraph.clone(inline_info.comment.get_content()));
@@ -499,7 +499,7 @@ namespace
                 // we already have a remote comment
                 // need to construct unique name, and register as name
                 inline_info.entity_name =
-                    std::string(info.entity_name.c_str()) + "::" + std::move(param_name);
+                    std::string(info.entity_name.c_str()) + "." + std::move(param_name);
                 register_comment(p, inline_info);
             }
             else
