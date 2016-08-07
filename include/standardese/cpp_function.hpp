@@ -64,9 +64,11 @@ namespace standardese
 
     enum cpp_function_definition
     {
+        cpp_function_declaration,
         cpp_function_definition_normal,
         cpp_function_definition_deleted,
         cpp_function_definition_defaulted,
+        cpp_function_definition_pure,
     };
 
     struct cpp_function_info

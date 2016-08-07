@@ -195,7 +195,8 @@ namespace
                 if (!std::isspace(stream.peek().get_value()[0]))
                     tokens.push_back(stream.get_iter());
             }
-            assert(tokens.back()->get_value() == ";");
+            assert(tokens.back()->get_value() == ";" || tokens.back()->get_value() == ":"
+                   || tokens.back()->get_value() == "{");
 
             auto paren_count       = 0u;
             auto was_opening_paren = false;
@@ -286,6 +287,8 @@ namespace
         return expression;
     }
 
+    // whether or not the stream refers to the end of a declaration
+    // doesn't consume the terminating character
     bool is_declaration_end(detail::token_stream& stream, cpp_cursor cur,
                             bool& is_special_definition)
     {
@@ -297,14 +300,12 @@ namespace
         auto c = stream.peek().get_value()[0];
         if (c == ':' || c == ';' || c == '{')
         {
-            stream.bump();
             detail::skip_whitespace(stream);
             is_special_definition = false;
             return true;
         }
         else if (c == '=')
         {
-            stream.bump();
             detail::skip_whitespace(stream);
             is_special_definition = true;
             return true;
@@ -313,8 +314,6 @@ namespace
         return false;
     }
 
-    // return cpp_function_definition_normal for pure virtual
-    // yes, this is hacky
     cpp_function_definition parse_special_definition(detail::token_stream& stream, cpp_cursor cur)
     {
         auto spelling = stream.get().get_value();
@@ -327,10 +326,30 @@ namespace
             return cpp_function_definition_deleted;
         else if (spelling == "0")
             // pure virtual function
-            return cpp_function_definition_normal;
+            return cpp_function_definition_pure;
 
         throw parse_error(source_location(cur), std::string("unknown function definition \'= ")
                                                     + spelling.c_str() + "\'");
+    }
+
+    cpp_function_definition parse_definition(detail::token_stream& stream, cpp_cursor cur,
+                                             bool special_definition)
+    {
+        if (special_definition)
+        {
+            detail::skip(stream, cur, {"="});
+            return parse_special_definition(stream, cur);
+        }
+        else if (stream.peek().get_value() == "{" || stream.peek().get_value() == ":")
+        {
+            stream.bump();
+            return cpp_function_definition_normal;
+        }
+        else
+        {
+            detail::skip(stream, cur, ";");
+            return cpp_function_declaration;
+        }
     }
 
     std::string parse_member_function_suffix(detail::token_stream& stream, cpp_cursor cur,
@@ -392,14 +411,9 @@ namespace
                 stream.get();
         }
 
-        if (special_definition)
-        {
-            auto res = parse_special_definition(stream, cur);
-            if (res == cpp_function_definition_normal)
-                minfo.virtual_flag = cpp_virtual_pure;
-            else
-                finfo.definition = res;
-        }
+        finfo.definition = parse_definition(stream, cur, special_definition);
+        if (finfo.definition == cpp_function_definition_pure)
+            minfo.virtual_flag = cpp_virtual_pure;
 
         return trailing_return_type;
     }
@@ -773,13 +787,10 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit& tu, cpp_cursor
             stream.get();
     }
 
-    // parse special definition
-    if (special_definition)
-    {
-        info.definition = parse_special_definition(stream, cur);
-        if (info.definition == cpp_function_definition_normal)
-            throw parse_error(source_location(cur), "constructor is pure virtual");
-    }
+    // parse definition
+    info.definition = parse_definition(stream, cur, special_definition);
+    if (info.definition == cpp_function_definition_pure)
+        throw parse_error(source_location(cur), "constructor is pure virtual");
 
     if (!info.explicit_noexcept)
         info.noexcept_expression = "false";
@@ -858,15 +869,10 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor c
             stream.get();
     }
 
-    // parse special definition
-    if (special_definition)
-    {
-        auto res = parse_special_definition(stream, cur);
-        if (res == cpp_function_definition_normal)
-            virtual_flag = cpp_virtual_pure;
-        else
-            info.definition = res;
-    }
+    // parse definition
+    info.definition = parse_definition(stream, cur, special_definition);
+    if (info.definition == cpp_function_definition_pure)
+        virtual_flag = cpp_virtual_pure;
 
     // dtors are implictly noexcept
     if (!info.explicit_noexcept)

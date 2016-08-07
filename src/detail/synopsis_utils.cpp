@@ -168,16 +168,11 @@ void detail::write_noexcept(code_block_writer& out, const cpp_function_base& f)
     }
 }
 
-void detail::write_definition(code_block_writer& out, const cpp_function_base& f, bool pure)
+void detail::write_definition(code_block_writer& out, const cpp_function_base& f)
 {
-    if (pure)
-    {
-        out << " = 0";
-        assert(f.get_definition() == cpp_function_definition_normal);
-    }
-
     switch (f.get_definition())
     {
+    case cpp_function_declaration:
     case cpp_function_definition_normal:
         out << ';';
         break;
@@ -186,6 +181,9 @@ void detail::write_definition(code_block_writer& out, const cpp_function_base& f
         break;
     case cpp_function_definition_deleted:
         out << " = delete;";
+        break;
+    case cpp_function_definition_pure:
+        out << " = 0";
         break;
     }
 }

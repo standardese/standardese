@@ -110,13 +110,14 @@ namespace
                         || clang_getCursorKind(cur) == CXCursor_ClassTemplate
                         || clang_getCursorKind(cur) == CXCursor_ClassTemplatePartialSpecialization;
 
-        // for a function, shrink to declaration only
+        // for a function, shrink unnecessary body
         if (is_function && result.back() == '}')
         {
             auto body_begin = 0u;
             detail::visit_children(cur, [&](cpp_cursor child, cpp_cursor) {
                 if (clang_getCursorKind(child) == CXCursor_CompoundStmt
-                    || clang_getCursorKind(child) == CXCursor_CXXTryStmt)
+                    || clang_getCursorKind(child) == CXCursor_CXXTryStmt
+                    || clang_getCursorKind(child) == CXCursor_InitListExpr)
                 {
                     unsigned ignored;
                     detail::get_range(child, body_begin, ignored);
@@ -128,7 +129,7 @@ namespace
 
             auto actual_size = body_begin - begin_offset;
             result.erase(result.begin() + actual_size, result.end());
-            result += ';';
+            result += '{';
         }
         // for a class add semicolon
         else if (is_class && result.back() != ';')
@@ -184,7 +185,7 @@ namespace
         // awesome libclang bug 2.0:
         // the extent of a function cursor doesn't cover any "= delete"
         // so append all further characters until a ';' is reached
-        else if (is_function && result.back() != ';')
+        else if (is_function && result.back() != ';' && result.back() != '{')
         {
             while (*ptr != ';')
             {

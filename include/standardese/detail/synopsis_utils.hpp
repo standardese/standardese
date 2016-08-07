@@ -94,8 +94,7 @@ namespace standardese
 
         void write_noexcept(code_block_writer& out, const cpp_function_base& f);
 
-        void write_definition(code_block_writer& out, const cpp_function_base& f,
-                              bool pure = false);
+        void write_definition(code_block_writer& out, const cpp_function_base& f);
 
         void write_cv_ref(code_block_writer& out, int cv, int ref);
 

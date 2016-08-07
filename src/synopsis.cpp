@@ -374,7 +374,7 @@ namespace
         detail::write_cv_ref(out, f.get_cv(), f.get_ref_qualifier());
         detail::write_noexcept(out, f);
         detail::write_override_final(out, f.get_virtual());
-        detail::write_definition(out, f, f.get_virtual() == cpp_virtual_pure);
+        detail::write_definition(out, f);
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_conversion_op& f,
@@ -385,7 +385,7 @@ namespace
         detail::write_cv_ref(out, f.get_cv(), f.get_ref_qualifier());
         detail::write_noexcept(out, f);
         detail::write_override_final(out, f.get_virtual());
-        detail::write_definition(out, f, f.get_virtual() == cpp_virtual_pure);
+        detail::write_definition(out, f);
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_constructor& f,
@@ -403,7 +403,7 @@ namespace
         detail::write_prefix(out, f.get_virtual(), f.is_constexpr());
         detail::write_parameters(par, out, f, override_name);
         detail::write_noexcept(out, f);
-        detail::write_definition(out, f, f.get_virtual() == cpp_virtual_pure);
+        detail::write_definition(out, f);
     }
 
     //=== templates ===//
