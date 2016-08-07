@@ -699,7 +699,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
 
         /// c
         template <int A = ((1 << 4) > (3 >> (2 <= 1 && 3 < 2)))>
-        class c
+        class c : public b<A>
         {};
 
         template <>
@@ -825,6 +825,13 @@ TEST_CASE("cpp_class_template", "[cpp]")
                         REQUIRE(false);
                 }
                 REQUIRE(size == 1u);
+
+                for (auto& base : c->get_class().get_bases())
+                {
+                    REQUIRE(base.get_name() == "b<A>");
+                    REQUIRE(base.get_unique_name() == "c<A>::b<A>");
+                    REQUIRE(base.get_access() == cpp_access_specifier_t::cpp_public);
+                }
             }
             else if (c->get_class().get_name() == "d")
             {

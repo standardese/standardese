@@ -85,6 +85,8 @@ namespace standardese
         const cpp_class* get_class(const cpp_entity_registry& registry) const STANDARDESE_NOEXCEPT;
 
     private:
+        cpp_name do_get_unique_name() const override;
+
         cpp_base_class(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref type,
                        cpp_access_specifier_t a, bool virt)
         : cpp_entity(get_entity_type(), cur, parent),
@@ -163,6 +165,8 @@ namespace standardese
         }
 
     private:
+        cpp_name do_get_unique_name() const override;
+
         cpp_class(cpp_cursor cur, const cpp_entity& parent, cpp_class_type t, bool is_final)
         : cpp_type(get_entity_type(), cur, parent), type_(t), final_(is_final)
         {
