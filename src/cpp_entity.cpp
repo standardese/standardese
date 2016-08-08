@@ -17,7 +17,7 @@
 #include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
 
-#include <spdlog/details/format.h>
+#include <spdlog/fmt/fmt.h>
 
 using namespace standardese;
 

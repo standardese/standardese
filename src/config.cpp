@@ -6,7 +6,7 @@
 
 #include <clang-c/CXCompilationDatabase.h>
 #include <set>
-#include <spdlog/details/format.h>
+#include <spdlog/fmt/fmt.h>
 
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/detail/wrapper.hpp>

@@ -6,7 +6,7 @@
 
 #include <cassert>
 #include <cmark.h>
-#include <spdlog/details/format.h>
+#include <spdlog/fmt/fmt.h>
 
 #include <standardese/error.hpp>
 #include <standardese/md_blocks.hpp>

@@ -6,7 +6,7 @@
 
 #include <algorithm>
 #include <cctype>
-#include <spdlog/details/format.h>
+#include <spdlog/fmt/fmt.h>
 
 #include <standardese/comment.hpp>
 #include <standardese/cpp_namespace.hpp>
