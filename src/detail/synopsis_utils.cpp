@@ -88,7 +88,7 @@ void detail::write_bases(const parser& par, code_block_writer& out, const cpp_cl
     {
         if (!extract_private && base.get_access() == cpp_private)
             continue;
-        auto comment = par.get_comment_registry().lookup_comment(base);
+        auto comment = par.get_comment_registry().lookup_comment(par.get_entity_registry(), base);
         if (comment && comment->is_excluded())
             continue;
 

@@ -13,6 +13,7 @@
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/comment.hpp>
 #include <standardese/cpp_preprocessor.hpp>
+#include <standardese/cpp_template.hpp>
 #include <standardese/parser.hpp>
 
 using namespace standardese;
@@ -130,21 +131,30 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
 
         try
         {
-            if (get_parser().get_logger()->level() <= spdlog::level::debug)
-            {
-                auto location = source_location(cur);
-                get_parser()
-                    .get_logger()
-                    ->debug("parsing entity '{}' ({}:{}) of type '{}'",
-                            string(clang_getCursorDisplayName(cur)).c_str(), location.file_name,
-                            location.line,
-                            string(clang_getCursorKindSpelling(clang_getCursorKind(cur))).c_str());
-            }
-
             if (clang_getCursorKind(cur) == CXCursor_MacroExpansion)
-                pimpl_->context.add_macro_definition(detail::get_cmd_definition(*this, cur));
-            else
             {
+                auto definition = detail::get_cmd_definition(*this, cur);
+                auto registered = pimpl_->context.add_macro_definition(definition);
+                if (registered && get_parser().get_logger()->level() <= spdlog::level::debug)
+                    get_parser().get_logger()->debug("registered macro '{}'", definition);
+            }
+            else if (clang_getCursorKind(cur) == CXCursor_Namespace
+                     || clang_getCursorKind(cur) == CXCursor_LinkageSpec
+                     || is_full_specialization(*this, cur)
+                     || cur == clang_getCanonicalCursor(cur)) // only parse the canonical cursor
+            {
+                if (get_parser().get_logger()->level() <= spdlog::level::debug)
+                {
+                    auto location = source_location(cur);
+                    get_parser()
+                        .get_logger()
+                        ->debug("parsing entity '{}' ({}:{}) of type '{}'",
+                                string(clang_getCursorDisplayName(cur)).c_str(), location.file_name,
+                                location.line,
+                                string(clang_getCursorKindSpelling(clang_getCursorKind(cur)))
+                                    .c_str());
+                }
+
                 auto entity = cpp_entity::try_parse(*this, cur, stack.cur_parent());
                 if (!entity)
                     return CXChildVisit_Continue;
@@ -154,6 +164,22 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
                 auto container = stack.add_entity(std::move(entity), parent);
                 if (container)
                     return CXChildVisit_Recurse;
+            }
+            else
+            {
+                if (get_parser().get_logger()->level() <= spdlog::level::debug)
+                {
+                    auto location = source_location(cur);
+                    get_parser()
+                        .get_logger()
+                        ->debug("rejected entity '{}' ({}:{}) of type '{}'",
+                                string(clang_getCursorDisplayName(cur)).c_str(), location.file_name,
+                                location.line,
+                                string(clang_getCursorKindSpelling(clang_getCursorKind(cur)))
+                                    .c_str());
+                }
+
+                get_parser().get_entity_registry().register_alternative(cur);
             }
 
             return CXChildVisit_Continue;

@@ -22,6 +22,12 @@ namespace standardese
             map_.emplace(e.get_cursor(), &e);
         }
 
+        void register_alternative(const cpp_cursor& cur) const
+        {
+            std::unique_lock<std::mutex> lock(mutex_alternatives_);
+            alternatives_.emplace(clang_getCanonicalCursor(cur), cur);
+        }
+
         const cpp_entity& lookup_entity(const cpp_cursor& cur) const
         {
             std::unique_lock<std::mutex> lock(mutex_);
@@ -35,9 +41,20 @@ namespace standardese
             return iter == map_.end() ? nullptr : iter->second;
         }
 
+        using alternatives_iterator =
+            std::unordered_multimap<cpp_cursor, cpp_cursor>::const_iterator;
+
+        std::pair<alternatives_iterator, alternatives_iterator> get_alternatives(
+            const cpp_cursor& cur) const STANDARDESE_NOEXCEPT
+        {
+            std::unique_lock<std::mutex> lock(mutex_alternatives_);
+            return alternatives_.equal_range(clang_getCanonicalCursor(cur));
+        }
+
     private:
-        mutable std::mutex mutex_;
+        mutable std::mutex mutex_, mutex_alternatives_;
         mutable std::unordered_map<cpp_cursor, const cpp_entity*> map_;
+        mutable std::unordered_multimap<cpp_cursor, cpp_cursor>   alternatives_;
     };
 
     template <CXCursorKind Kind>

@@ -24,7 +24,7 @@ namespace standardese
             auto& blacklist = p.get_output_config().get_blacklist();
             if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
                 return true;
-            auto comment = p.get_comment_registry().lookup_comment(e);
+            auto comment = p.get_comment_registry().lookup_comment(p.get_entity_registry(), e);
             if (comment && comment->is_excluded())
                 return true;
             return false;

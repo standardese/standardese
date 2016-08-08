@@ -193,13 +193,15 @@ namespace standardese
     };
 
     class cpp_entity;
+    class cpp_entity_registry;
 
     class comment_registry
     {
     public:
         bool register_comment(comment_id id, comment c) const;
 
-        const comment* lookup_comment(const cpp_entity& e) const;
+        const comment* lookup_comment(const cpp_entity_registry& registry,
+                                      const cpp_entity&          e) const;
 
     private:
         mutable std::mutex mutex_;

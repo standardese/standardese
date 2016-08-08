@@ -135,25 +135,29 @@ namespace
         return e;
     }
 
-    comment_id create_location_id(const cpp_entity& e)
+    comment_id create_location_id(const cpp_cursor& cur, const cpp_name& name = "")
     {
-        if (e.get_entity_type() == cpp_entity::file_t)
-            return comment_id(e.get_full_name());
-
-        auto& parent   = get_inline_parent(e);
-        auto  location = get_location(parent.get_cursor());
+        auto location = get_location(cur);
         if (location.second == 1u)
             // entity is located at the first line of the file
             // no comment possible
             return comment_id("", 1u);
 
-        auto is_inline = &parent != &e;
-        if (is_inline)
-            return comment_id(location.first, location.second - 1, e.get_name());
-        return comment_id(location.first, location.second - 1);
+        return name.empty() ? comment_id(location.first, location.second - 1) :
+                              comment_id(location.first, location.second - 1, name);
     }
 
-    bool matches(const cpp_entity& e, const comment_id& id)
+    comment_id create_location_id(const cpp_entity& e)
+    {
+        if (e.get_entity_type() == cpp_entity::file_t)
+            return comment_id(e.get_full_name());
+
+        auto& parent    = get_inline_parent(e);
+        auto  is_inline = &parent != &e;
+        return create_location_id(parent.get_cursor(), is_inline ? e.get_name() : "");
+    }
+
+    bool matches(const cpp_entity& e, const comment_id& id, cpp_cursor cur = {})
     {
         auto& inline_parent = get_inline_parent(e);
 
@@ -165,7 +169,7 @@ namespace
                 // an entity that must have an inline location
                 return false;
 
-            auto location = get_location(e.get_cursor());
+            auto location = get_location(clang_Cursor_isNull(cur) ? e.get_cursor() : cur);
             return location.second - id.line() <= 1u && location.first == id.file_name();
         }
         else if (id.is_inline_location())
@@ -173,6 +177,7 @@ namespace
             if (&inline_parent == &e)
                 // not an entity where an inline location makes sense
                 return false;
+            assert(clang_Cursor_isNull(cur));
 
             auto location = get_location(inline_parent.get_cursor());
             return location.second - id.line() <= 1u && location.first == id.file_name()
@@ -184,10 +189,11 @@ namespace
     }
 
     template <class Map>
-    const comment* lookup_comment_location(Map& comments, const comment_id& id, const cpp_entity& e)
+    const comment* lookup_comment_location(Map& comments, const comment_id& id, const cpp_entity& e,
+                                           cpp_cursor cur = {})
     {
         auto iter = comments.lower_bound(id);
-        if (iter != comments.end() && matches(e, iter->first))
+        if (iter != comments.end() && matches(e, iter->first, cur))
         {
             if (!iter->second.empty())
                 return &iter->second;
@@ -209,7 +215,8 @@ namespace
     }
 }
 
-const comment* comment_registry::lookup_comment(const cpp_entity& e) const
+const comment* comment_registry::lookup_comment(const cpp_entity_registry& registry,
+                                                const cpp_entity&          e) const
 {
     std::unique_lock<std::mutex> lock(mutex_);
 
@@ -218,6 +225,16 @@ const comment* comment_registry::lookup_comment(const cpp_entity& e) const
     if (auto c = lookup_comment_location(comments_, location, e))
         return c;
 
+    // then look for comments at alternative locations
+    for (auto alternatives = registry.get_alternatives(e.get_cursor());
+         alternatives.first != alternatives.second; ++alternatives.first)
+    {
+        auto& alternative         = alternatives.first->second;
+        auto  definition_location = create_location_id(alternative);
+        if (auto c = lookup_comment_location(comments_, definition_location, e, alternative))
+            return c;
+    }
+
     // then for comments with the unique name
     auto id   = detail::get_id(e.get_unique_name().c_str());
     auto iter = comments_.find(comment_id(id));
@@ -225,7 +242,9 @@ const comment* comment_registry::lookup_comment(const cpp_entity& e) const
         return &iter->second;
 
     auto short_id = detail::get_short_id(id);
-    iter          = comments_.find(comment_id(short_id));
+    if (id == short_id)
+        return nullptr;
+    iter = comments_.find(comment_id(short_id));
     if (iter != comments_.end())
         return &iter->second;
 

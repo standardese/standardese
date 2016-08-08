@@ -60,10 +60,9 @@ cpp_entity_ptr cpp_entity::try_parse(translation_unit& tu, cpp_cursor cur, const
 
         STANDARDESE_DETAIL_HANDLE_TMP(FunctionDecl, function_template_specialization, function)
         STANDARDESE_DETAIL_HANDLE_TMP(CXXMethod, function_template_specialization, member_function)
-        STANDARDESE_DETAIL_HANDLE_TMP(ConversionFunction, function_template_specialization,
-                                      conversion_op)
+        STANDARDESE_DETAIL_HANDLE(ConversionFunction, conversion_op)
         STANDARDESE_DETAIL_HANDLE_TMP(Constructor, function_template_specialization, constructor)
-        STANDARDESE_DETAIL_HANDLE_TMP(Destructor, function_template_specialization, destructor)
+        STANDARDESE_DETAIL_HANDLE(Destructor, destructor)
 
         STANDARDESE_DETAIL_HANDLE(FunctionTemplate, function_template)
 

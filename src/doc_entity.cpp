@@ -11,7 +11,7 @@ using namespace standardese;
 doc_entity::doc_entity(const parser& p, const cpp_entity& entity, string output_name)
 : output_name_(std::move(output_name)),
   entity_(&entity),
-  comment_(p.get_comment_registry().lookup_comment(entity))
+  comment_(p.get_comment_registry().lookup_comment(p.get_entity_registry(), entity))
 {
 }
 

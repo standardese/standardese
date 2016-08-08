@@ -196,6 +196,15 @@ cpp_ptr<cpp_template_template_parameter> cpp_template_template_parameter::parse(
 
 bool standardese::is_full_specialization(translation_unit& tu, cpp_cursor cur)
 {
+    if (clang_getCursorKind(cur) != CXCursor_FunctionDecl
+        && clang_getCursorKind(cur) != CXCursor_CXXMethod
+        && clang_getCursorKind(cur) != CXCursor_Constructor
+        && clang_getCursorKind(cur) != CXCursor_ClassDecl
+        && clang_getCursorKind(cur) != CXCursor_StructDecl
+        && clang_getCursorKind(cur) != CXCursor_UnionDecl)
+        // not an entity that can be specialized
+        return false;
+
     detail::tokenizer tokenizer(tu, cur);
     auto              stream = detail::make_stream(tokenizer);
 
