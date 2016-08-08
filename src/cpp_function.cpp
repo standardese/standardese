@@ -23,15 +23,19 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(translation_unit& 
     auto              name   = detail::parse_name(cur);
 
     std::string type_name, default_value;
-    for (auto in_type = true; stream.peek().get_value() != ";";)
+    for (auto in_type = true, qualified_name = false; stream.peek().get_value() != ";";)
     {
         detail::skip_attribute(stream, cur);
-        if (detail::skip_if_token(stream, name.c_str()))
+        if (!qualified_name && detail::skip_if_token(stream, name.c_str()))
             continue;
         else if (detail::skip_if_token(stream, "="))
             in_type = false;
         else
+        {
+            qualified_name = stream.peek().get_value() == "::";
+
             (in_type ? type_name : default_value) += stream.get().get_value().c_str();
+        }
     }
 
     detail::erase_trailing_ws(type_name);
