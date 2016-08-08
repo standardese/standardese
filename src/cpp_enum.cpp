@@ -47,7 +47,8 @@ cpp_ptr<cpp_enum_value> cpp_enum_value::parse(translation_unit& tu, cpp_cursor c
 
     auto is_explicit = is_explicit_value(tu, cur);
 
-    auto type = clang_getEnumDeclIntegerType(clang_getCursorSemanticParent(cur));
+    auto type =
+        clang_getCanonicalType(clang_getEnumDeclIntegerType(clang_getCursorSemanticParent(cur)));
     if (is_signed_integer(type))
     {
         auto value = clang_getEnumConstantDeclValue(cur);
