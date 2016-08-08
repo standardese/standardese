@@ -113,6 +113,9 @@ constexpr int a(char& c, int* ptr, ...) noexcept(noexcept(1 + 1));
 template <typename T, template <typename> typename D, int ... I>
 void b(T t);
 
+template <typename ... T>
+void c(T&&... ts);
+
 int var = 32;
 
 using type = int;
@@ -207,7 +210,7 @@ private:
     b = 4,
     c,
     d,
-    
+
     /// \exclude
     e
 };)";

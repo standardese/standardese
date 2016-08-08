@@ -411,6 +411,8 @@ namespace
                            const cpp_template_type_parameter& p)
     {
         out << "typename";
+        if (p.is_variadic())
+            out << " ...";
         if (!p.get_name().empty())
             out << ' ' << p.get_name();
         if (p.has_default_type())
@@ -435,6 +437,8 @@ namespace
         });
 
         out << "> typename";
+        if (p.is_variadic())
+            out << " ...";
         if (!p.get_name().empty())
             out << ' ' << p.get_name();
         if (p.has_default_template())
