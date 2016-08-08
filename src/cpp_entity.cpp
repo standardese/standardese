@@ -116,7 +116,10 @@ cpp_name cpp_entity::get_scope() const
         return "";
     else if (parent_->get_entity_type() == language_linkage_t)
         return parent_->get_scope();
-    return parent_->get_full_name();
+
+    auto name = parent_->get_full_name();
+    // remove trailing ::, if any
+    return cpp_name(name.c_str(), name.end()[-1] == ':' ? name.length() - 2 : name.length());
 }
 
 cpp_entity::cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent)
