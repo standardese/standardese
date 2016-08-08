@@ -638,16 +638,16 @@ namespace
                 {
                     auto& paragraph = static_cast<md_paragraph&>(*child);
                     if (first)
-                    {
                         paragraph.set_section_type(section_type::brief, "");
-                        first = false;
-                    }
                     else
                         paragraph.set_section_type(section_type::details, "");
 
                     auto keep = parse_command(p, info, paragraph);
                     if (!keep)
                         continue;
+                    else
+                        // only reset here, on the first paragraph not kept
+                        first = false;
 
                     if (should_merge(last_paragraph, last_section, paragraph.get_section_type()))
                         merge(*last_paragraph, paragraph);
