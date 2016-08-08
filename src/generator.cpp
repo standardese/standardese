@@ -75,7 +75,7 @@ namespace
     using standardese::index; // to force standardese::index instead of ::index
 
     void dispatch(const parser& p, const index& i, md_document& output, unsigned level,
-                  const doc_entity& e);
+                  const doc_entity& e, bool in_container);
 
     template <class Entity, class Container>
     void handle_container(const parser& p, const index& i, md_document& out, unsigned level,
@@ -91,13 +91,13 @@ namespace
         if (auto templ_params = get_template_parameters(doc.get_cpp_entity()))
         {
             for (auto& param : *templ_params)
-                dispatch(p, i, out, level + 1, doc_entity(p, param, doc.get_output_name()));
+                dispatch(p, i, out, level + 1, doc_entity(p, param, doc.get_output_name()), true);
         }
 
         if (auto c = get_class(doc.get_cpp_entity()))
         {
             for (auto& base : c->get_bases())
-                dispatch(p, i, out, level + 1, doc_entity(p, base, doc.get_output_name()));
+                dispatch(p, i, out, level + 1, doc_entity(p, base, doc.get_output_name()), true);
         }
 
         for (auto& child : container)
@@ -108,14 +108,14 @@ namespace
                         .get_access();
             else if (blacklist.is_set(entity_blacklist::extract_private)
                      || cur_access != cpp_private || detail::is_virtual(child))
-                dispatch(p, i, out, level + 1, doc_entity(p, child, doc.get_output_name()));
+                dispatch(p, i, out, level + 1, doc_entity(p, child, doc.get_output_name()), true);
         }
 
         out.add_entity(md_thematic_break::make(out));
     }
 
     void dispatch(const parser& p, const index& i, md_document& output, unsigned level,
-                  const doc_entity& e)
+                  const doc_entity& e, bool in_container)
     {
         if (is_blacklisted(p, e))
             return;
@@ -129,11 +129,11 @@ namespace
         {
         case cpp_entity::namespace_t:
             for (auto& child : static_cast<const cpp_namespace&>(e.get_cpp_entity()))
-                dispatch(p, i, output, level, doc_entity(p, child, e.get_output_name()));
+                dispatch(p, i, output, level, doc_entity(p, child, e.get_output_name()), false);
             break;
         case cpp_entity::language_linkage_t:
             for (auto& child : static_cast<const cpp_language_linkage&>(e.get_cpp_entity()))
-                dispatch(p, i, output, level, doc_entity(p, child, e.get_output_name()));
+                dispatch(p, i, output, level, doc_entity(p, child, e.get_output_name()), false);
             break;
 
 #define STANDARDESE_DETAIL_HANDLE(name, ...)                                                       \
@@ -156,6 +156,8 @@ namespace
 
         default:
             generate_doc_entity(p, i, output, level, e);
+            if (!in_container)
+                output.add_entity(md_thematic_break::make(output));
             break;
         }
     }
@@ -303,7 +305,7 @@ md_ptr<md_document> standardese::generate_doc_file(const parser& p, const index&
     generate_doc_entity(p, i, *doc, 1, doc_entity(p, f, doc->get_output_name()));
 
     for (auto& e : f)
-        dispatch(p, i, *doc, 2, doc_entity(p, e, doc->get_output_name()));
+        dispatch(p, i, *doc, 2, doc_entity(p, e, doc->get_output_name()), false);
 
     return doc;
 }
