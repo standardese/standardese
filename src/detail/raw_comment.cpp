@@ -132,7 +132,7 @@ namespace
         assert(ptr[-1] == '/');
         --ptr;
 
-        assert(!content.empty() && content.back() != '\n');
+        assert(!content.empty());
         while (is_whitespace(content.back()))
             content.pop_back();
 
