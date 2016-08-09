@@ -115,11 +115,56 @@ const cpp_entity_registry& translation_unit::get_registry() const STANDARDESE_NO
     return pimpl_->parser->get_entity_registry();
 }
 
+namespace
+{
+    std::string include_guard(const translation_unit& tu, const std::string& source)
+    {
+        if (!clang_isFileMultipleIncludeGuarded(tu.get_cxunit(), tu.get_cxfile()))
+            return "";
+
+        auto ptr = source.c_str();
+        while (true)
+        {
+            std::string cur_line;
+            for (; *ptr && *ptr != '\n'; ++ptr)
+                cur_line += *ptr;
+            ++ptr;
+
+            if (cur_line.empty() || cur_line.compare(0, 2, "/**") == 0
+                || cur_line.compare(0, 2, "//") == 0)
+                // comment line
+                continue;
+            else if (cur_line[0] != '#')
+                break;
+
+            if (cur_line == "#pragma once")
+                return "";
+            else if (cur_line.compare(0, 3, "#if") == 0)
+                // wait for macro
+                continue;
+            else if (cur_line.compare(0, std::strlen("#define"), "#define") == 0)
+            {
+                auto macro = cur_line.c_str() + std::strlen("#define");
+                while (*macro && std::isspace(*macro))
+                    ++macro;
+
+                tu.get_parser().get_logger()->debug("detected include guard macro '{}'", macro);
+                return macro;
+            }
+        }
+
+        tu.get_parser().get_logger()->warn("unable to find include guard for file '{}'",
+                                           tu.get_path().c_str());
+        return "";
+    }
+}
+
 translation_unit::translation_unit(const parser& par, const char* path, cpp_file* file,
                                    const compile_config& config)
 : pimpl_(new impl(par, path, file, config))
 {
     detail::scope_stack stack(pimpl_->file);
+    auto                guard = include_guard(*this, pimpl_->source);
 
     detail::visit_tu(get_cxunit(), get_cxfile(), [&](cpp_cursor cur, cpp_cursor parent) {
         stack.pop_if_needed(parent);
@@ -158,6 +203,13 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
                 auto entity = cpp_entity::try_parse(*this, cur, stack.cur_parent());
                 if (!entity)
                     return CXChildVisit_Continue;
+                else if (entity->get_entity_type() == cpp_entity::macro_definition_t
+                         && entity->get_name() == guard.c_str())
+                {
+                    get_parser().get_logger()->debug("skipping include guard macro '{}'",
+                                                     entity->get_name().c_str());
+                    return CXChildVisit_Continue;
+                }
 
                 get_parser().get_entity_registry().register_entity(*entity);
 
