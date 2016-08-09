@@ -11,6 +11,7 @@
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
+#include <standardese/cpp_template.hpp>
 
 #include "test_parser.hpp"
 
@@ -380,6 +381,14 @@ TEST_CASE("comment-matching", "[doc]")
         /// \param e
         /// \unique_name f
         void c(int d, int e);
+
+        /// h<g>
+        ///
+        /// \param g g-param
+        ///
+        /// \base g g-base
+        template <typename g>
+        struct h : g {};
       )";
 
     auto tu = parse(p, "comment-matching", source);
@@ -397,6 +406,20 @@ TEST_CASE("comment-matching", "[doc]")
             {
                 INFO(param.get_name().c_str());
                 REQUIRE(get_text(doc_entity(p, param, "")) == param.get_name().c_str());
+            }
+        }
+        else if (entity.get_entity_type() == cpp_entity::class_template_t)
+        {
+            auto& templ = static_cast<const cpp_class_template&>(entity);
+            for (auto& param : templ.get_template_parameters())
+            {
+                INFO(param.get_name().c_str());
+                REQUIRE(get_text(doc_entity(p, param, "")) == "g-param");
+            }
+            for (auto& base : templ.get_class().get_bases())
+            {
+                INFO(base.get_name().c_str());
+                REQUIRE(get_text(doc_entity(p, base, "")) == "g-base");
             }
         }
     }

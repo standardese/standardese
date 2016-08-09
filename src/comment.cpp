@@ -135,16 +135,20 @@ namespace
         return e;
     }
 
-    comment_id create_location_id(const cpp_cursor& cur, const cpp_name& name = "")
+    comment_id create_location_id(cpp_entity::type t, const cpp_cursor& cur,
+                                  const cpp_name& name = "")
     {
         auto location = get_location(cur);
         if (location.second == 1u)
             // entity is located at the first line of the file
             // no comment possible
             return comment_id("", 1u);
+        else if (name.empty())
+            return comment_id(location.first, location.second - 1);
 
-        return name.empty() ? comment_id(location.first, location.second - 1) :
-                              comment_id(location.first, location.second - 1, name);
+        auto prefix = t == cpp_entity::base_class_t ? "::" : ".";
+        return comment_id(location.first, location.second - 1,
+                          detail::get_id(std::string(prefix) + name.c_str()));
     }
 
     comment_id create_location_id(const cpp_entity& e)
@@ -154,7 +158,24 @@ namespace
 
         auto& parent    = get_inline_parent(e);
         auto  is_inline = &parent != &e;
-        return create_location_id(parent.get_cursor(), is_inline ? e.get_name() : "");
+        return create_location_id(e.get_entity_type(), parent.get_cursor(),
+                                  is_inline ? e.get_name() : "");
+    }
+
+    bool inline_name_matches(const cpp_entity& e, const string& name)
+    {
+        if (e.get_entity_type() == cpp_entity::base_class_t)
+        {
+            if (std::strncmp(name.c_str(), "::", 2) != 0)
+                return false;
+            return std::strcmp(e.get_name().c_str(), name.c_str() + 2) == 0;
+        }
+        else
+        {
+            if (std::strncmp(name.c_str(), ".", 1) != 0)
+                return false;
+            return std::strcmp(e.get_name().c_str(), name.c_str() + 1) == 0;
+        }
     }
 
     bool matches(const cpp_entity& e, const comment_id& id, cpp_cursor cur = {})
@@ -181,7 +202,7 @@ namespace
 
             auto location = get_location(inline_parent.get_cursor());
             return location.second - id.line() <= 1u && location.first == id.file_name()
-                   && e.get_name() == id.inline_entity_name();
+                   && inline_name_matches(e, id.inline_entity_name());
         }
 
         assert(e.get_entity_type() == cpp_entity::file_t);
@@ -230,7 +251,7 @@ const comment* comment_registry::lookup_comment(const cpp_entity_registry& regis
          alternatives.first != alternatives.second; ++alternatives.first)
     {
         auto& alternative         = alternatives.first->second;
-        auto  definition_location = create_location_id(alternative);
+        auto  definition_location = create_location_id(e.get_entity_type(), alternative);
         if (auto c = lookup_comment_location(comments_, definition_location, e, alternative))
             return c;
     }
@@ -513,18 +534,19 @@ namespace
                 inline_info.comment.get_content().add_entity(
                     paragraph.clone(inline_info.comment.get_content()));
 
+            auto separator = make_command(command) == command_type::base ? "::" : ".";
             if (!info.entity_name.empty())
             {
                 // we already have a remote comment
                 // need to construct unique name, and register as name
                 inline_info.entity_name =
-                    std::string(info.entity_name.c_str()) + "." + std::move(param_name);
+                    std::string(info.entity_name.c_str()) + separator + std::move(param_name);
                 register_comment(p, inline_info);
             }
             else
             {
                 // regular inline comment
-                inline_info.entity_name = std::move(param_name);
+                inline_info.entity_name = separator + std::move(param_name);
                 register_comment(p, inline_info, true);
             }
         }

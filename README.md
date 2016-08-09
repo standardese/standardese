@@ -332,8 +332,9 @@ because you cannot put a corresponding comment there.
 As such they are shorthands for the `\entity unique-name` command.
 They are followed by the name of entity they refer to.
 
-> Technically, they are all aliases for each other, so it doesn't matter which one you use for which entity,
-> e.g. `\base` for parameters or `\param` for base classes.
+> Technically, `param` and `tparam` are alias, so it doesn't matter which one you use.
+> You must use `base` to refer to base classes, however,
+> because template parameters and base classes can have the same name.
 
 The *hybrid* and argument is stripped from the paragraph and the rest is parsed.
 If the rest starts with a *command* it will be parsed by the normal rules of commands.
