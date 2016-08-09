@@ -54,7 +54,8 @@ namespace
 
     bool requires_comment(const doc_entity& e)
     {
-        return e.get_entity_type() != cpp_entity::namespace_t
+        return e.get_entity_type() != cpp_entity::file_t
+               && e.get_entity_type() != cpp_entity::namespace_t
                && e.get_entity_type() != cpp_entity::language_linkage_t;
     }
 
