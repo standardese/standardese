@@ -281,7 +281,8 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
 {
     // write heading + anchor
     auto heading = make_heading(doc, document, level);
-    if (doc.has_comment())
+    if (!p.get_output_config().get_blacklist().is_set(entity_blacklist::require_comment)
+        || doc.has_comment())
     {
         auto anchor = md_anchor::make(*heading, doc.get_unique_name().c_str());
         heading->add_entity(std::move(anchor));
