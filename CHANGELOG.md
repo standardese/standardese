@@ -43,7 +43,11 @@ int bar; //< Bar.
 
 * Multithreaded documentation generation and new option `jobs/j` to specify number of threads.
 
-* New options:  `input.blacklist_dotfiles`, `comment.implicit_paragraph`, `comment.external_doc`, `output.format`, `output.width` and `output.tab_width`
+* Index generation
+
+* More output formats set by the `output.format` option: CommonMark, HTML, Latex (experimental), Man (experimental) and XML
+
+* New options:  `input.blacklist_dotfiles`, `comment.implicit_paragraph`, `comment.external_doc`, `output.link_extension`, `output.width` and `output.tab_width`
 
 ## 0.1-1
 
