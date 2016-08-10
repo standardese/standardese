@@ -5,31 +5,25 @@
 #ifndef STANDARDESE_DOC_ENTITY_HPP_INCLUDED
 #define STANDARDESE_DOC_ENTITY_HPP_INCLUDED
 
-#include <standardese/comment.hpp>
 #include <standardese/cpp_entity.hpp>
 
 namespace standardese
 {
+    class comment;
+
     class doc_entity
     {
     public:
-        doc_entity(const parser& p, const cpp_entity& e)
-        : comment_(comment::parse(p, e.get_name(), e.get_comment())), entity_(&e)
-        {
-        }
+        doc_entity(const parser& p, const cpp_entity& entity, cpp_name output_name);
 
-        doc_entity(comment com) : comment_(std::move(com))
+        bool has_comment() const STANDARDESE_NOEXCEPT
         {
+            return comment_ != nullptr;
         }
 
         const comment& get_comment() const STANDARDESE_NOEXCEPT
         {
-            return comment_;
-        }
-
-        bool has_cpp_entity() const STANDARDESE_NOEXCEPT
-        {
-            return entity_ != nullptr;
+            return *comment_;
         }
 
         const cpp_entity& get_cpp_entity() const STANDARDESE_NOEXCEPT
@@ -37,9 +31,29 @@ namespace standardese
             return *entity_;
         }
 
+        cpp_entity::type get_entity_type() const;
+
+        cpp_name get_name() const
+        {
+            return get_cpp_entity().get_name();
+        }
+
+        cpp_name get_full_name() const
+        {
+            return get_cpp_entity().get_full_name();
+        }
+
+        cpp_name get_unique_name() const;
+
+        cpp_name get_output_name() const
+        {
+            return output_name_;
+        }
+
     private:
-        comment           comment_;
+        cpp_name          output_name_;
         const cpp_entity* entity_;
+        const comment*    comment_;
     };
 } // namespace standardese
 

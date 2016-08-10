@@ -11,18 +11,17 @@
 #include <memory>
 #include <type_traits>
 
+#include <standardese/detail/entity_container.hpp>
 #include <standardese/cpp_cursor.hpp>
 #include <standardese/noexcept.hpp>
 #include <standardese/string.hpp>
 
 namespace standardese
 {
-    template <typename T>
-    class cpp_entity_container;
     class translation_unit;
+    class parser;
 
-    using cpp_name        = string;
-    using cpp_raw_comment = string;
+    using cpp_name = string;
 
     template <typename T>
     using cpp_ptr = std::unique_ptr<T>;
@@ -100,13 +99,7 @@ namespace standardese
         /// \returns The name of the entity as specified in the source.
         virtual cpp_name get_name() const;
 
-        /// \returns The scope of the entity, without trailing `::`, empty for global scope.
-        virtual cpp_name get_scope() const
-        {
-            if (!parent_ || parent_->get_entity_type() == file_t)
-                return "";
-            return parent_->get_full_name();
-        }
+        virtual cpp_name get_scope() const;
 
         /// \returns The full name of the entity, scope followed by name.
         cpp_name get_full_name() const
@@ -116,8 +109,11 @@ namespace standardese
                                    std::string(scope.c_str()) + "::" + get_name().c_str();
         }
 
-        /// \returns The raw comment string.
-        cpp_raw_comment get_comment() const;
+        /// \returns A unique name describing one entity.
+        cpp_name get_unique_name() const
+        {
+            return do_get_unique_name();
+        }
 
         /// \returns The type of the entity.
         type get_entity_type() const STANDARDESE_NOEXCEPT
@@ -145,30 +141,23 @@ namespace standardese
         }
 
     protected:
-        cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent) STANDARDESE_NOEXCEPT
-            : cursor_(cur),
-              next_(nullptr),
-              parent_(&parent),
-              t_(t)
-        {
-        }
+        cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent);
 
-        /// \effects Creates it without a parent.
-        cpp_entity(type t, cpp_cursor cur) STANDARDESE_NOEXCEPT : cursor_(cur),
-                                                                  next_(nullptr),
-                                                                  parent_(nullptr),
-                                                                  t_(t)
-        {
-        }
+        cpp_entity(type t, cpp_cursor cur);
 
     private:
-        cpp_cursor                  cursor_;
-        std::unique_ptr<cpp_entity> next_;
-        const cpp_entity*           parent_;
-        type                        t_;
+        virtual cpp_name do_get_unique_name() const
+        {
+            return get_full_name();
+        }
 
-        template <typename T>
-        friend class cpp_entity_container;
+        cpp_cursor         cursor_;
+        cpp_entity_ptr     next_;
+        const cpp_entity*  parent_;
+        type               t_;
+
+        template <typename T, class Base, template <typename> class Ptr>
+        friend class detail::entity_container;
     };
 
     inline bool is_preprocessor(cpp_entity::type t) STANDARDESE_NOEXCEPT
@@ -213,111 +202,8 @@ namespace standardese
         return is_function_template(t) || is_type_template(t);
     }
 
-    template <typename T>
-    class cpp_entity_container
-    {
-        static_assert(std::is_base_of<cpp_entity, T>::value, "T must be derived from cpp_entity");
-
-    public:
-        ~cpp_entity_container() STANDARDESE_NOEXCEPT = default;
-
-        bool empty() const STANDARDESE_NOEXCEPT
-        {
-            return first_ == nullptr;
-        }
-
-        class iterator
-        {
-        public:
-            using value_type        = T;
-            using reference         = const T&;
-            using pointer           = const T*;
-            using difference_type   = std::ptrdiff_t;
-            using iterator_category = std::forward_iterator_tag;
-
-            iterator() STANDARDESE_NOEXCEPT : cur_(nullptr)
-            {
-            }
-
-            reference operator*() const STANDARDESE_NOEXCEPT
-            {
-                return *cur_;
-            }
-
-            pointer operator->() const STANDARDESE_NOEXCEPT
-            {
-                return cur_;
-            }
-
-            iterator& operator++() STANDARDESE_NOEXCEPT
-            {
-                cur_ = static_cast<pointer>(cur_->next_.get());
-                return *this;
-            }
-
-            iterator operator++(int)STANDARDESE_NOEXCEPT
-            {
-                auto tmp = *this;
-                ++(*this);
-                return tmp;
-            }
-
-            friend bool operator==(const iterator& a, const iterator& b) STANDARDESE_NOEXCEPT
-            {
-                return a.cur_ == b.cur_;
-            }
-
-            friend bool operator!=(const iterator& a, const iterator& b) STANDARDESE_NOEXCEPT
-            {
-                return !(a == b);
-            }
-
-        private:
-            iterator(cpp_entity* ptr) : cur_(static_cast<pointer>(ptr))
-            {
-            }
-
-            const T* cur_;
-
-            friend cpp_entity_container;
-        };
-
-        iterator begin() const STANDARDESE_NOEXCEPT
-        {
-            return iterator(first_.get());
-        }
-
-        iterator end() const STANDARDESE_NOEXCEPT
-        {
-            return {};
-        }
-
-    protected:
-        cpp_entity_container() STANDARDESE_NOEXCEPT : first_(nullptr), last_(nullptr)
-        {
-        }
-
-        void add_entity(cpp_ptr<T> entity)
-        {
-            if (!entity)
-                return;
-
-            if (last_)
-            {
-                last_->next_ = std::move(entity);
-                last_        = last_->next_.get();
-            }
-            else
-            {
-                first_ = std::move(entity);
-                last_  = first_.get();
-            }
-        }
-
-    private:
-        cpp_entity_ptr first_;
-        cpp_entity*    last_;
-    };
+    template <class T>
+    using cpp_entity_container = detail::entity_container<T, cpp_entity, cpp_ptr>;
 
     namespace detail
     {
@@ -331,7 +217,7 @@ namespace standardese
         };
 
         template <typename T, typename... Args>
-        cpp_ptr<T> make_ptr(Args&&... args)
+        cpp_ptr<T> make_cpp_ptr(Args&&... args)
         {
             return cpp_ptr_access::make<T>(std::forward<Args>(args)...);
         }

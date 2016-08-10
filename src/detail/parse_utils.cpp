@@ -38,28 +38,22 @@ cpp_name detail::parse_name(CXType type)
     return cpp_name(clang_getTypeSpelling(type));
 }
 
+string detail::parse_comment(cpp_cursor cur)
+{
+    return string(clang_Cursor_getRawCommentText(cur));
+}
+
 cpp_name detail::parse_class_name(cpp_cursor cur)
 {
     std::string name = parse_name(cur).c_str();
-    auto        pos  = name.find(' ');
-    return name.substr(pos + 1);
-}
 
-void detail::unmunch(std::string& str)
-{
-    auto balance = 0;
-    for (auto c : str)
-        if (c == '<')
-            balance++;
-        else if (c == '>')
-            balance--;
-
-    assert(balance == 0 || balance == -1);
-    if (balance == -1)
-    {
-        assert(str.back() == '>');
-        str.pop_back();
-    }
+    auto pos = name.find(' ');
+    if (pos == std::string::npos)
+        return name;
+    else if (name.compare(0, pos, "class") == 0 || name.compare(0, pos, "struct") == 0
+             || name.compare(0, pos, "union") == 0)
+        return name.substr(pos + 1);
+    return name;
 }
 
 void detail::erase_template_args(std::string& name)

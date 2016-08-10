@@ -98,7 +98,7 @@ namespace standardese
     namespace detail
     {
         // returns the command line definition needed for the context
-        std::string get_cmd_definition(cpp_cursor expansion_ref);
+        std::string get_cmd_definition(translation_unit& tu, cpp_cursor expansion_ref);
     }
 } // namespace standardese
 

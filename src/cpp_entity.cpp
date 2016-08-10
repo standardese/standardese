@@ -15,8 +15,9 @@
 #include <standardese/cpp_type.hpp>
 #include <standardese/cpp_variable.hpp>
 #include <standardese/error.hpp>
+#include <standardese/translation_unit.hpp>
 
-#include <spdlog/details/format.h>
+#include <spdlog/fmt/fmt.h>
 
 using namespace standardese;
 
@@ -59,10 +60,9 @@ cpp_entity_ptr cpp_entity::try_parse(translation_unit& tu, cpp_cursor cur, const
 
         STANDARDESE_DETAIL_HANDLE_TMP(FunctionDecl, function_template_specialization, function)
         STANDARDESE_DETAIL_HANDLE_TMP(CXXMethod, function_template_specialization, member_function)
-        STANDARDESE_DETAIL_HANDLE_TMP(ConversionFunction, function_template_specialization,
-                                      conversion_op)
+        STANDARDESE_DETAIL_HANDLE(ConversionFunction, conversion_op)
         STANDARDESE_DETAIL_HANDLE_TMP(Constructor, function_template_specialization, constructor)
-        STANDARDESE_DETAIL_HANDLE_TMP(Destructor, function_template_specialization, destructor)
+        STANDARDESE_DETAIL_HANDLE(Destructor, destructor)
 
         STANDARDESE_DETAIL_HANDLE(FunctionTemplate, function_template)
 
@@ -110,7 +110,24 @@ cpp_name cpp_entity::get_name() const
     return detail::parse_name(cursor_);
 }
 
-cpp_raw_comment cpp_entity::get_comment() const
+cpp_name cpp_entity::get_scope() const
 {
-    return clang_Cursor_getRawCommentText(cursor_);
+    if (!parent_ || parent_->get_entity_type() == file_t)
+        return "";
+    else if (parent_->get_entity_type() == language_linkage_t)
+        return parent_->get_scope();
+
+    auto name = parent_->get_full_name();
+    // remove trailing ::, if any
+    return cpp_name(name.c_str(), name.end()[-1] == ':' ? name.length() - 2 : name.length());
+}
+
+cpp_entity::cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent)
+: cursor_(cur), next_(nullptr), parent_(&parent), t_(t)
+{
+}
+
+cpp_entity::cpp_entity(type t, cpp_cursor cur)
+: cursor_(cur), next_(nullptr), parent_(nullptr), t_(t)
+{
 }

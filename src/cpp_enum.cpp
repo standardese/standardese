@@ -8,7 +8,7 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
-#include <standardese/parser.hpp>
+#include <standardese/translation_unit.hpp>
 
 using namespace standardese;
 
@@ -47,16 +47,17 @@ cpp_ptr<cpp_enum_value> cpp_enum_value::parse(translation_unit& tu, cpp_cursor c
 
     auto is_explicit = is_explicit_value(tu, cur);
 
-    auto type = clang_getEnumDeclIntegerType(clang_getCursorSemanticParent(cur));
+    auto type =
+        clang_getCanonicalType(clang_getEnumDeclIntegerType(clang_getCursorSemanticParent(cur)));
     if (is_signed_integer(type))
     {
         auto value = clang_getEnumConstantDeclValue(cur);
-        return detail::make_ptr<cpp_signed_enum_value>(cur, parent, value, is_explicit);
+        return detail::make_cpp_ptr<cpp_signed_enum_value>(cur, parent, value, is_explicit);
     }
     else if (is_unsigned_integer(type))
     {
         auto value = clang_getEnumConstantDeclUnsignedValue(cur);
-        return detail::make_ptr<cpp_unsigned_enum_value>(cur, parent, value, is_explicit);
+        return detail::make_cpp_ptr<cpp_unsigned_enum_value>(cur, parent, value, is_explicit);
     }
 
     assert(!"enum type is neither signed nor unsigned");
@@ -120,9 +121,10 @@ cpp_ptr<cpp_enum> cpp_enum::parse(translation_unit& tu, cpp_cursor cur, const cp
         is_scoped = true;
     }
 
+    auto name = detail::parse_name(cur);
     detail::skip_attribute(stream, cur);
     detail::skip_whitespace(stream);
-    detail::skip(stream, cur, {detail::parse_name(cur).c_str()});
+    detail::skip(stream, cur, {name.c_str()});
 
     auto is_definition   = false;
     auto underlying_name = parse_underlying_type(stream, is_definition);
@@ -130,7 +132,7 @@ cpp_ptr<cpp_enum> cpp_enum::parse(translation_unit& tu, cpp_cursor cur, const cp
         return nullptr;
 
     auto underlying_type = clang_getEnumDeclIntegerType(cur);
-
-    return detail::make_ptr<cpp_enum>(cur, parent, cpp_type_ref(underlying_name, underlying_type),
-                                      is_scoped);
+    return detail::make_cpp_ptr<cpp_enum>(cur, parent,
+                                          cpp_type_ref(underlying_name, underlying_type),
+                                          is_scoped);
 }

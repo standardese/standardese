@@ -2,12 +2,13 @@
 # This file is subject to the license terms in the LICENSE file
 # found in the top-level directory of this distribution.
 
-set(header filesystem.hpp)
+set(header filesystem.hpp options.hpp thread_pool.hpp)
 set(src main.cpp)
 
 add_executable(standardese_tool ${header} ${src})
 comp_target_features(standardese_tool PRIVATE CPP11)
 target_link_libraries(standardese_tool PUBLIC standardese)
+target_include_directories(standardese_tool PUBLIC $<BUILD_INTERFACE:${THREADPOOL_INCLUDE_DIR}>)
 set_target_properties(standardese_tool PROPERTIES OUTPUT_NAME standardese)
 
 # link Boost

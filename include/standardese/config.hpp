@@ -52,6 +52,7 @@ namespace standardese
         friend class parser;
     };
 
+    enum class command_type : unsigned;
     enum class section_type : unsigned;
 
     class comment_config
@@ -69,15 +70,26 @@ namespace standardese
             return cmd_char_;
         }
 
-        void set_section_command(section_type t, std::string command);
+        bool get_implicit_paragraph() const STANDARDESE_NOEXCEPT
+        {
+            return implicit_par_;
+        }
 
-        section_type get_section(const std::string& command) const;
+        void set_implicit_paragraph(bool v) STANDARDESE_NOEXCEPT
+        {
+            implicit_par_ = v;
+        }
 
-        section_type try_get_section(const std::string& command) const STANDARDESE_NOEXCEPT;
+        void set_command(unsigned c, std::string command);
+
+        unsigned get_command(const std::string& command) const;
+
+        unsigned try_get_command(const std::string& command) const STANDARDESE_NOEXCEPT;
 
     private:
-        std::map<std::string, unsigned> section_commands_;
+        std::map<std::string, unsigned> commands_;
         char cmd_char_;
+        bool implicit_par_;
     };
 
     class output_config
@@ -85,10 +97,7 @@ namespace standardese
     public:
         output_config();
 
-        void set_section_name(section_type t, std::string name)
-        {
-            section_names_[unsigned(t)] = std::move(name);
-        }
+        void set_section_name(section_type t, std::string name);
 
         const std::string& get_section_name(section_type t) const STANDARDESE_NOEXCEPT
         {

@@ -35,44 +35,59 @@ namespace standardese
                 end_   = end(array);
             }
 
-            const value_type& peek() const STANDARDESE_NOEXCEPT
+            explicit sequence_stream(Iter begin, Iter end, value_type out_of_range = {})
+            : begin_(begin), cur_(begin), end_(end), out_of_range_(std::move(out_of_range))
+            {
+            }
+
+            const value_type& peek() const
             {
                 if (cur_ == end_)
                     return out_of_range_;
                 return *cur_;
             }
 
-            value_type peek(std::size_t offset) const STANDARDESE_NOEXCEPT
+            value_type peek(std::size_t offset) const
             {
                 if (std::ptrdiff_t(offset) > left())
                     return out_of_range_;
                 return *std::next(cur_, offset);
             }
 
-            void bump() STANDARDESE_NOEXCEPT
+            void bump()
             {
                 if (cur_ != end_)
                     ++cur_;
             }
 
-            value_type get() STANDARDESE_NOEXCEPT
+            value_type get()
             {
                 auto result = peek();
                 bump();
                 return result;
             }
 
-            std::size_t size() const STANDARDESE_NOEXCEPT
+            iterator get_iter() const
+            {
+                return cur_;
+            }
+
+            void reset(iterator iter)
+            {
+                cur_ = iter;
+            }
+
+            std::size_t size() const
             {
                 return std::size_t(std::distance(begin_, end_));
             }
 
-            std::ptrdiff_t left() const STANDARDESE_NOEXCEPT
+            std::ptrdiff_t left() const
             {
                 return std::distance(cur_, end_);
             }
 
-            bool done() const STANDARDESE_NOEXCEPT
+            bool done() const
             {
                 return cur_ == end_;
             }

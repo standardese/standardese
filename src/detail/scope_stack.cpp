@@ -92,7 +92,7 @@ bool detail::scope_stack::add_entity(cpp_entity_ptr ptr, cpp_cursor parent)
 
     add_to_container(*stack_.back().first, std::move(ptr));
 
-    if (is_container(*entity))
+    if (::is_container(*entity))
     {
         stack_.emplace_back(entity, parent);
         return true;

@@ -13,6 +13,7 @@
 #include <spdlog/logger.h>
 
 #include <standardese/detail/wrapper.hpp>
+#include <standardese/comment.hpp>
 #include <standardese/config.hpp>
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_entity_registry.hpp>
@@ -33,6 +34,10 @@ namespace standardese
     {
         struct file_container_impl : cpp_entity_container<cpp_entity>
         {
+            file_container_impl()
+            {
+            }
+
             void add_file(cpp_entity_ptr e) STANDARDESE_NOEXCEPT
             {
                 add_entity(std::move(e));
@@ -72,11 +77,17 @@ namespace standardese
         parser& operator=(const parser&) = delete;
 
         /// Parses a translation unit.
-        translation_unit parse(const char* path, const compile_config& c) const;
+        translation_unit parse(const char* full_path, const compile_config& c,
+                               const char* file_name = nullptr) const;
 
-        const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT
+        const cpp_entity_registry& get_entity_registry() const STANDARDESE_NOEXCEPT
         {
-            return registry_;
+            return entity_registry_;
+        }
+
+        const comment_registry& get_comment_registry() const STANDARDESE_NOEXCEPT
+        {
+            return comment_registry_;
         }
 
         const std::shared_ptr<spdlog::logger>& get_logger() const STANDARDESE_NOEXCEPT
@@ -110,7 +121,8 @@ namespace standardese
             void operator()(CXIndex idx) const STANDARDESE_NOEXCEPT;
         };
 
-        cpp_entity_registry registry_;
+        comment_registry    comment_registry_;
+        cpp_entity_registry entity_registry_;
         comment_config      comment_;
         output_config       output_;
         detail::wrapper<CXIndex, deleter> index_;

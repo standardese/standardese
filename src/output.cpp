@@ -4,79 +4,70 @@
 
 #include <standardese/output.hpp>
 
-#include <algorithm>
-#include <cassert>
+#include <spdlog/logger.h>
+
+#include <standardese/comment.hpp>
+#include <standardese/generator.hpp>
+#include <standardese/index.hpp>
+#include <standardese/md_inlines.hpp>
 
 using namespace standardese;
 
-output_base::~output_base() STANDARDESE_NOEXCEPT
+namespace
 {
-}
-
-void markdown_output::write_header_begin(unsigned level)
-{
-    static const char str[] = "######";
-    get_output().write_str(str, std::min(level, 6u));
-    get_output().write_char(' ');
-}
-
-void markdown_output::write_header_end(unsigned)
-{
-    get_output().write_blank_line();
-}
-
-void markdown_output::do_write_seperator()
-{
-    get_output().write_blank_line();
-    get_output().write_str("---", 3);
-    get_output().write_blank_line();
-}
-
-void markdown_output::write_begin(style s)
-{
-    switch (s)
+    void get_empty_links(std::vector<md_link*>& links, md_entity& cur)
     {
-    case style::normal:
-        break;
-    case style::italics:
-        get_output().write_char('*');
-        break;
-    case style::bold:
-        get_output().write_str("**", 2);
-        break;
-    case style::code_span:
-        get_output().write_char('`');
-        break;
-    default:
-        break;
+        if (cur.get_entity_type() == md_entity::link_t)
+        {
+            auto& link = static_cast<md_link&>(cur);
+            if (*link.get_destination() == '\0')
+                // empty link
+                links.push_back(&link);
+        }
+        else if (is_container(cur.get_entity_type()))
+        {
+            auto& container = static_cast<md_container&>(cur);
+            for (auto& entity : container)
+                get_empty_links(links, entity);
+        }
+    }
+
+    const char* get_entity_name(const md_link& link)
+    {
+        if (*link.get_title())
+            return link.get_title();
+        else if (link.begin()->get_entity_type() != md_entity::text_t)
+            // must be a text
+            return nullptr;
+        auto& text = static_cast<const md_text&>(*link.begin());
+        return text.get_string();
     }
 }
 
-void markdown_output::write_paragraph_begin()
+void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_document& doc,
+                    const char* output_extension)
 {
-}
+    auto document = md_ptr<md_document>(static_cast<md_document*>(doc.clone().release()));
 
-void markdown_output::write_paragraph_end()
-{
-    get_output().write_blank_line();
-}
+    std::vector<md_link*> links;
+    get_empty_links(links, *document);
 
-void markdown_output::write_code_block_begin()
-{
-    get_output().write_blank_line();
-    get_output().write_str("```cpp\n", 7);
-}
+    for (auto link : links)
+    {
+        auto str = get_entity_name(*link);
+        if (!str)
+            continue;
 
-void markdown_output::write_code_block_end()
-{
-    get_output().write_new_line();
-    get_output().write_str("```", 3);
-    get_output().write_blank_line();
-}
+        auto destination =
+            index_->get_url(str, output_extension ? output_extension : format_->extension());
+        if (destination.empty())
+        {
+            logger->warn("unable to resolve link to an entity named '{}'", str);
+            continue;
+        }
+        link->set_destination(destination.c_str());
+    }
 
-void markdown_output::do_write_section_heading(const std::string& section_name)
-{
-    get_output().write_char('*');
-    get_output().write_str(section_name.c_str(), section_name.size());
-    get_output().write_str(":* ", 3);
+    file_output output(prefix_ + document->get_output_name() + '.' + format_->extension());
+    format_->render(output, *document);
 }

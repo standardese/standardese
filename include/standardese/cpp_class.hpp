@@ -85,6 +85,8 @@ namespace standardese
         const cpp_class* get_class(const cpp_entity_registry& registry) const STANDARDESE_NOEXCEPT;
 
     private:
+        cpp_name do_get_unique_name() const override;
+
         cpp_base_class(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref type,
                        cpp_access_specifier_t a, bool virt)
         : cpp_entity(get_entity_type(), cur, parent),
@@ -130,12 +132,12 @@ namespace standardese
                 cpp_entity_container<cpp_entity>::add_entity(std::move(e));
         }
 
-        cpp_entity_container<cpp_entity>::iterator begin() const STANDARDESE_NOEXCEPT
+        cpp_entity_container<cpp_entity>::const_iterator begin() const STANDARDESE_NOEXCEPT
         {
             return cpp_entity_container<cpp_entity>::begin();
         }
 
-        cpp_entity_container<cpp_entity>::iterator end() const STANDARDESE_NOEXCEPT
+        cpp_entity_container<cpp_entity>::const_iterator end() const STANDARDESE_NOEXCEPT
         {
             return cpp_entity_container<cpp_entity>::end();
         }
@@ -144,6 +146,8 @@ namespace standardese
         {
             return cpp_entity_container<cpp_entity>::empty();
         }
+
+        cpp_name get_scope() const override;
 
         const cpp_entity_container<cpp_base_class>& get_bases() const STANDARDESE_NOEXCEPT
         {
@@ -161,6 +165,8 @@ namespace standardese
         }
 
     private:
+        cpp_name do_get_unique_name() const override;
+
         cpp_class(cpp_cursor cur, const cpp_entity& parent, cpp_class_type t, bool is_final)
         : cpp_type(get_entity_type(), cur, parent), type_(t), final_(is_final)
         {

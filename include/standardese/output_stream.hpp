@@ -44,12 +44,19 @@ namespace standardese
             write_char('\n');
         }
 
+        void remove_trailing_line();
+
         void indent(unsigned width);
 
         void unindent(unsigned width);
 
     private:
         virtual void do_write_char(char c) = 0;
+
+        virtual char undo_write()
+        {
+            return last_;
+        }
 
         void do_indent();
 
@@ -93,6 +100,33 @@ namespace standardese
         }
 
         std::ofstream file_;
+    };
+
+    class string_output : public output_stream_base
+    {
+    public:
+        string_output() STANDARDESE_NOEXCEPT
+        {
+        }
+
+        const std::string& get_string() const STANDARDESE_NOEXCEPT
+        {
+            return str_;
+        }
+
+    private:
+        void do_write_char(char c) override
+        {
+            str_.push_back(c);
+        }
+
+        char undo_write() override
+        {
+            str_.pop_back();
+            return str_.back();
+        }
+
+        std::string str_;
     };
 } // namespace standardese
 

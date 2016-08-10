@@ -39,6 +39,8 @@ namespace standardese
         }
 
     private:
+        cpp_name do_get_unique_name() const override;
+
         cpp_function_parameter(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref type,
                                std::string def)
         : cpp_entity(get_entity_type(), cur, parent),
@@ -62,9 +64,11 @@ namespace standardese
 
     enum cpp_function_definition
     {
+        cpp_function_declaration,
         cpp_function_definition_normal,
         cpp_function_definition_deleted,
         cpp_function_definition_defaulted,
+        cpp_function_definition_pure,
     };
 
     struct cpp_function_info
@@ -86,11 +90,12 @@ namespace standardese
     {
     public:
         static cpp_ptr<cpp_function_base> try_parse(translation_unit& tu, cpp_cursor cur,
-                                                    const cpp_entity& parent);
+                                                    const cpp_entity& parent,
+                                                    unsigned          template_offset = 0);
 
         void add_parameter(cpp_ptr<cpp_function_parameter> param)
         {
-            cpp_entity_container::add_entity(std::move(param));
+            cpp_entity_container<cpp_function_parameter>::add_entity(std::move(param));
         }
 
         const cpp_entity_container<cpp_function_parameter>& get_parameters() const
@@ -98,6 +103,8 @@ namespace standardese
         {
             return *this;
         }
+
+        cpp_name get_scope() const override;
 
         bool is_variadic() const STANDARDESE_NOEXCEPT
         {
@@ -132,6 +139,10 @@ namespace standardese
             return info_.explicit_noexcept;
         }
 
+        /// \returns The signature of a function,
+        /// i.e. the parameter types and everything else that influences overload resolution.
+        virtual cpp_name get_signature() const = 0;
+
     protected:
         cpp_function_base(cpp_entity::type t, cpp_cursor cur, const cpp_entity& parent,
                           cpp_function_info info)
@@ -139,7 +150,11 @@ namespace standardese
         {
         }
 
+        void set_template_specialization_name(cpp_name name);
+
     private:
+        cpp_name do_get_unique_name() const override;
+
         cpp_function_info info_;
     };
 
@@ -152,22 +167,24 @@ namespace standardese
         }
 
         static cpp_ptr<cpp_function> parse(translation_unit& tu, cpp_cursor cur,
-                                           const cpp_entity& parent);
+                                           const cpp_entity& parent, unsigned template_offset = 0);
 
         const cpp_type_ref& get_return_type() const STANDARDESE_NOEXCEPT
         {
             return return_;
         }
 
-    private:
-        cpp_function(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref ret,
-                     cpp_function_info info)
-        : cpp_function_base(get_entity_type(), cur, parent, std::move(info)),
-          return_(std::move(ret))
+        cpp_name get_signature() const override
         {
+            return signature_;
         }
 
+    private:
+        cpp_function(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref ret,
+                     cpp_function_info info);
+
         cpp_type_ref return_;
+        std::string  signature_;
 
         friend detail::cpp_ptr_access;
     };
@@ -237,7 +254,8 @@ namespace standardese
         }
 
         static cpp_ptr<cpp_member_function> parse(translation_unit& tu, cpp_cursor cur,
-                                                  const cpp_entity& parent);
+                                                  const cpp_entity& parent,
+                                                  unsigned          template_offset = 0);
 
         const cpp_type_ref& get_return_type() const STANDARDESE_NOEXCEPT
         {
@@ -259,17 +277,18 @@ namespace standardese
             return info_.virtual_flag;
         }
 
+        cpp_name get_signature() const override
+        {
+            return signature_;
+        }
+
     private:
         cpp_member_function(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref ret,
-                            cpp_function_info finfo, cpp_member_function_info minfo)
-        : cpp_function_base(get_entity_type(), cur, parent, std::move(finfo)),
-          return_(std::move(ret)),
-          info_(std::move(minfo))
-        {
-        }
+                            cpp_function_info finfo, cpp_member_function_info minfo);
 
         cpp_type_ref             return_;
         cpp_member_function_info info_;
+        std::string              signature_;
 
         friend detail::cpp_ptr_access;
     };
@@ -283,7 +302,8 @@ namespace standardese
         }
 
         static cpp_ptr<cpp_conversion_op> parse(translation_unit& tu, cpp_cursor cur,
-                                                const cpp_entity& parent);
+                                                const cpp_entity& parent,
+                                                unsigned          template_offset = 0);
 
         cpp_name get_name() const override;
 
@@ -306,6 +326,8 @@ namespace standardese
         {
             return info_.virtual_flag;
         }
+
+        cpp_name get_signature() const override;
 
     private:
         cpp_conversion_op(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref target,
@@ -331,15 +353,20 @@ namespace standardese
         }
 
         static cpp_ptr<cpp_constructor> parse(translation_unit& tu, cpp_cursor cur,
-                                              const cpp_entity& parent);
+                                              const cpp_entity& parent,
+                                              unsigned          template_offset = 0);
 
         cpp_name get_name() const override;
 
-    private:
-        cpp_constructor(cpp_cursor cur, const cpp_entity& parent, cpp_function_info info)
-        : cpp_function_base(get_entity_type(), cur, parent, std::move(info))
+        cpp_name get_signature() const override
         {
+            return signature_;
         }
+
+    private:
+        cpp_constructor(cpp_cursor cur, const cpp_entity& parent, cpp_function_info info);
+
+        std::string signature_;
 
         friend detail::cpp_ptr_access;
     };
@@ -353,13 +380,19 @@ namespace standardese
         }
 
         static cpp_ptr<cpp_destructor> parse(translation_unit& tu, cpp_cursor cur,
-                                             const cpp_entity& parent);
+                                             const cpp_entity& parent,
+                                             unsigned          template_offset = 0);
 
         cpp_name get_name() const override;
 
         cpp_virtual get_virtual() const STANDARDESE_NOEXCEPT
         {
             return virtual_;
+        }
+
+        cpp_name get_signature() const override
+        {
+            return "()";
         }
 
     private:

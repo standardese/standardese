@@ -8,7 +8,7 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
-#include <clang-c/Index.h>
+#include <standardese/translation_unit.hpp>
 
 using namespace standardese;
 
@@ -89,5 +89,14 @@ cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit& tu, cpp_cursor c
     auto name = parse_alias_target(tu, cur);
     auto type = clang_getTypedefDeclUnderlyingType(cur);
 
-    return detail::make_ptr<cpp_type_alias>(cur, parent, cpp_type_ref(name, type));
+    return detail::make_cpp_ptr<cpp_type_alias>(cur, parent, cpp_type_ref(name, type));
+}
+
+cpp_name cpp_type_alias::get_scope() const
+{
+    assert(has_parent());
+    if (get_parent().get_entity_type() == cpp_entity::alias_template_t)
+        // parent is an alias template, so it doesn't add a new scope
+        return get_parent().get_scope();
+    return cpp_entity::get_scope();
 }

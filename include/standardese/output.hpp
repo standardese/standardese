@@ -9,9 +9,16 @@
 #include <string>
 #include <ostream>
 
+#include <standardese/md_blocks.hpp>
 #include <standardese/noexcept.hpp>
+#include <standardese/output_format.hpp>
 #include <standardese/output_stream.hpp>
 #include <standardese/string.hpp>
+
+namespace spdlog
+{
+    class logger;
+} // namespace spdlog
 
 namespace standardese
 {
@@ -30,251 +37,114 @@ namespace standardese
     constexpr detail::newl_t   newl;
     constexpr detail::blankl_t blankl;
 
-    class output_base
+    class code_block_writer
     {
     public:
-        output_base(output_stream_base& out) STANDARDESE_NOEXCEPT : output_(&out)
+        code_block_writer(const md_entity& parent) STANDARDESE_NOEXCEPT : parent_(&parent)
         {
         }
 
-        output_base(const output_base&) = delete;
-        output_base(output_base&&)      = delete;
-
-        virtual ~output_base() STANDARDESE_NOEXCEPT;
-
-        output_base& operator=(const output_base&) = delete;
-        output_base& operator=(output_base&&) = delete;
-
-        enum class style
+        md_ptr<md_code_block> get_code_block(const char* fence = "cpp")
         {
-            normal,
-            italics,
-            bold,
-            code_span,
-            count
-        };
-
-        class writer
-        {
-        public:
-            writer(output_base& output) STANDARDESE_NOEXCEPT : output_(output)
-            {
-            }
-
-            writer(const writer&) = delete;
-
-            virtual ~writer() STANDARDESE_NOEXCEPT = default;
-
-            writer& operator<<(const char* str)
-            {
-                output_.get_output().write_str(str, std::strlen(str));
-                return *this;
-            }
-
-            writer& operator<<(const std::string& str)
-            {
-                output_.get_output().write_str(str.c_str(), str.size());
-                return *this;
-            }
-
-            writer& operator<<(const string& str)
-            {
-                output_.get_output().write_str(str.c_str(), str.length());
-                return *this;
-            }
-
-            writer& operator<<(char c)
-            {
-                output_.get_output().write_char(c);
-                return *this;
-            }
-
-            writer& operator<<(long long value)
-            {
-                return *this << std::to_string(value);
-            }
-
-            writer& operator<<(unsigned long long value)
-            {
-                return *this << std::to_string(value);
-            }
-
-            writer& operator<<(detail::newl_t)
-            {
-                output_.get_output().write_new_line();
-                return *this;
-            }
-
-            writer& operator<<(detail::blankl_t)
-            {
-                output_.get_output().write_blank_line();
-                return *this;
-            }
-
-            writer& operator<<(style st)
-            {
-                auto i = int(st);
-                if (begin_[i])
-                {
-                    output_.write_begin(st);
-                    begin_[i] = false;
-                }
-                else
-                {
-                    output_.write_end(st);
-                    begin_[i] = true;
-                }
-
-                return *this;
-            }
-
-        protected:
-            output_base& output_;
-
-        private:
-            bool begin_[int(style::count)] = {};
-        };
-
-        class paragraph_writer : public writer
-        {
-        public:
-            paragraph_writer(output_base& output) STANDARDESE_NOEXCEPT : writer(output)
-            {
-                output_.write_paragraph_begin();
-            }
-
-            ~paragraph_writer() STANDARDESE_NOEXCEPT override
-            {
-                output_.write_paragraph_end();
-            }
-
-            void start_new() const
-            {
-                output_.write_paragraph_end();
-                output_.write_paragraph_begin();
-            }
-        };
-
-        class heading_writer : public writer
-        {
-        public:
-            heading_writer(output_base& output, unsigned level) STANDARDESE_NOEXCEPT
-                : writer(output),
-                  level_(level)
-            {
-                output_.write_header_begin(level_);
-            }
-
-            ~heading_writer() STANDARDESE_NOEXCEPT override
-            {
-                output_.write_header_end(level_);
-            }
-
-        private:
-            unsigned level_;
-        };
-
-        void write_section_heading(const std::string& section_name)
-        {
-            do_write_section_heading(section_name);
+            return md_code_block::make(*parent_, stream_.get_string().c_str(), fence);
         }
 
-        class code_block_writer : public writer
+        void indent(unsigned width)
         {
-        public:
-            code_block_writer(output_base& output) STANDARDESE_NOEXCEPT : writer(output)
-            {
-                output_.write_code_block_begin();
-            }
-
-            ~code_block_writer() STANDARDESE_NOEXCEPT
-            {
-                output_.write_code_block_end();
-            }
-
-            void indent(unsigned level)
-            {
-                output_.get_output().indent(level);
-            }
-
-            void unindent(unsigned level)
-            {
-                output_.get_output().unindent(level);
-            }
-        };
-
-        void write_seperator() STANDARDESE_NOEXCEPT
-        {
-            do_write_seperator();
+            stream_.indent(width);
         }
 
-    protected:
-        output_stream_base& get_output() STANDARDESE_NOEXCEPT
+        void unindent(unsigned width)
         {
-            return *output_;
+            stream_.unindent(width);
         }
 
-        virtual void write_header_begin(unsigned level) = 0;
-
-        virtual void write_header_end(unsigned level)
+        void remove_trailing_line()
         {
-            write_header_begin(level);
+            stream_.remove_trailing_line();
         }
 
-        virtual void do_write_seperator() = 0;
-
-        virtual void write_begin(style s) = 0;
-
-        virtual void write_end(style s)
+        code_block_writer& operator<<(const char* str)
         {
-            write_begin(s);
+            stream_.write_str(str, std::strlen(str));
+            return *this;
         }
 
-        virtual void write_paragraph_begin() = 0;
-
-        virtual void write_paragraph_end()
+        code_block_writer& operator<<(const std::string& str)
         {
-            write_paragraph_begin();
+            stream_.write_str(str.c_str(), str.size());
+            return *this;
         }
 
-        virtual void write_code_block_begin() = 0;
-        virtual void write_code_block_end()
+        code_block_writer& operator<<(const string& str)
         {
-            write_code_block_begin();
+            stream_.write_str(str.c_str(), str.length());
+            return *this;
         }
 
-        virtual void do_write_section_heading(const std::string& section_name) = 0;
+        code_block_writer& operator<<(char c)
+        {
+            stream_.write_char(c);
+            return *this;
+        }
+
+        code_block_writer& operator<<(long long value)
+        {
+            return *this << std::to_string(value);
+        }
+
+        code_block_writer& operator<<(unsigned long long value)
+        {
+            return *this << std::to_string(value);
+        }
+
+        code_block_writer& operator<<(detail::newl_t)
+        {
+            stream_.write_new_line();
+            return *this;
+        }
+
+        code_block_writer& operator<<(detail::blankl_t)
+        {
+            stream_.write_blank_line();
+            return *this;
+        }
 
     private:
-        output_stream_base* output_;
-
-        friend writer;
-        friend paragraph_writer;
-        friend heading_writer;
+        string_output    stream_;
+        const md_entity* parent_;
     };
 
-    class markdown_output : public output_base
+    class md_document;
+    class index;
+
+    using path = std::string;
+
+    class output
     {
     public:
-        markdown_output(output_stream_base& output) STANDARDESE_NOEXCEPT : output_base(output)
+        output(const index& i, path prefix, output_format_base& format)
+        : prefix_(std::move(prefix)), format_(&format), index_(&i)
         {
         }
 
-    protected:
-        void write_header_begin(unsigned level) override;
-        void write_header_end(unsigned level) override;
+        void render(const std::shared_ptr<spdlog::logger>& logger, const md_document& document,
+                    const char* output_extension = nullptr);
 
-        void do_write_seperator() override;
+        output_format_base& get_format() STANDARDESE_NOEXCEPT
+        {
+            return *format_;
+        }
 
-        void write_begin(style s) override;
+        const path& get_prefix() const STANDARDESE_NOEXCEPT
+        {
+            return prefix_;
+        }
 
-        void write_paragraph_begin() override;
-        void write_paragraph_end() override;
-
-        void write_code_block_begin() override;
-        void write_code_block_end() override;
-
-        void do_write_section_heading(const std::string& section_name) override;
+    private:
+        path                prefix_;
+        output_format_base* format_;
+        const index*        index_;
     };
 } // namespace standardese
 

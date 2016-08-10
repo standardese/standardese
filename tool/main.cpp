@@ -10,13 +10,19 @@
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
+#include <cmark_version.h>
+#include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
 #include <standardese/error.hpp>
 #include <standardese/generator.hpp>
+#include <standardese/index.hpp>
 #include <standardese/parser.hpp>
+#include <standardese/output.hpp>
 
 #include "filesystem.hpp"
+#include "options.hpp"
+#include "thread_pool.hpp"
 
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
@@ -31,6 +37,7 @@ void print_version(const char* exe_name)
     std::clog << '\n';
     std::clog << "Using libclang version: " << standardese::string(clang_getClangVersion()).c_str()
               << '\n';
+    std::clog << "Using cmark version: " << CMARK_VERSION_STRING << '\n';
 }
 
 void print_usage(const char* exe_name, const po::options_description& generic,
@@ -43,82 +50,6 @@ void print_usage(const char* exe_name, const po::options_description& generic,
     std::clog << configuration << '\n';
 }
 
-bool erase_prefix(std::string& str, const std::string& prefix)
-{
-    auto res = str.find(prefix);
-    if (res != 0u)
-        return false;
-    str.erase(0, prefix.size());
-    return true;
-}
-
-void handle_unparsed_options(standardese::parser& p, const po::parsed_options& options)
-{
-    using namespace standardese;
-
-    for (auto& opt : options.options)
-        if (opt.unregistered)
-        {
-            auto name = opt.string_key;
-
-            if (erase_prefix(name, "comment.cmd_name_"))
-            {
-                auto section = p.get_comment_config().get_section(name);
-                p.get_comment_config().set_section_command(section, opt.value[0]);
-            }
-            else if (erase_prefix(name, "output.section_name_"))
-            {
-                auto section = p.get_comment_config().get_section(name);
-                p.get_output_config().set_section_name(section, opt.value[0]);
-            }
-            else
-                throw std::invalid_argument("unrecognized option '" + opt.string_key + "'");
-        }
-}
-
-standardese::cpp_standard parse_standard(const std::string& str)
-{
-    using namespace standardese;
-
-    if (str == "c++98")
-        return cpp_standard::cpp_98;
-    else if (str == "c++03")
-        return cpp_standard::cpp_03;
-    else if (str == "c++11")
-        return cpp_standard::cpp_11;
-    else if (str == "c++14")
-        return cpp_standard::cpp_14;
-    else
-        throw std::invalid_argument("invalid C++ standard '" + str + "'");
-}
-
-standardese::compile_config parse_config(const po::variables_map& map)
-{
-    using namespace standardese;
-
-    auto standard = parse_standard(map.at("compilation.standard").as<std::string>());
-    auto dir = map.find("compilation.commands_dir");
-
-    compile_config result(standard, dir == map.end() ? "" : dir->second.as<std::string>());
-
-    auto incs = map.find("compilation.include_dir");
-    if (incs != map.end())
-        for (auto& val : incs->second.as<std::vector<std::string>>())
-            result.add_include(val);
-
-    auto defs = map.find("compilation.macro_definition");
-    if (defs != map.end())
-        for (auto& val : defs->second.as<std::vector<std::string>>())
-            result.add_macro_definition(val);
-
-    auto undefs = map.find("compilation.macro_undefinition");
-    if (undefs != map.end())
-        for (auto& val : undefs->second.as<std::vector<std::string>>())
-            result.remove_macro_definition(val);
-
-    return result;
-}
-
 int main(int argc, char* argv[])
 {
     // clang-format off
@@ -129,6 +60,8 @@ int main(int argc, char* argv[])
             ("config,c", po::value<fs::path>(), "read options from additional config file as well")
             ("verbose,v", po::value<bool>()->implicit_value(true)->default_value(false),
              "prints more information")
+            ("jobs,j", po::value<unsigned>()->default_value(standardese_tool::default_no_threads()),
+             "sets the number of threads to use")
             ("color", po::value<bool>()->implicit_value(true)->default_value(true),
              "enable/disable color support of logger");
 
@@ -142,6 +75,9 @@ int main(int argc, char* argv[])
             ("input.blacklist_dir",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
              "directory that is forbidden, relative to traversed directory")
+            ("input.blacklist_dotfiles",
+             po::value<bool>()->implicit_value(true)->default_value(true),
+             "whether or not dotfiles are blacklisted")
             ("input.blacklist_entity_name",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
              "C++ entity names (and all children) that are forbidden")
@@ -173,45 +109,31 @@ int main(int argc, char* argv[])
              "character used to introduce special commands")
             ("comment.cmd_name_", po::value<std::string>(),
              "override name for the command following the name_ (e.g. comment.cmd_name_requires=require)")
+            ("comment.implicit_paragraph", po::value<bool>()->implicit_value(true)->default_value(false),
+             "whether or not each line in the documentation comment is one paragraph")
+            ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""),
+             "syntax is prefix=url, supports linking to a different URL for entities starting with prefix")
 
+            ("output.format",
+             po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"commonmark"}, "{commonmark}"),
+             "the output format used (commonmark, latex, man, html, xml)")
+            ("output.link_extension", po::value<std::string>(),
+             "the file extension of the links to entities, useful if you convert standardese output to a different format and change the extension")
             ("output.section_name_", po::value<std::string>(),
-             "override output name for the section following the name_ (e.g. output.section_name_requires=Require)");
+             "override output name for the section following the name_ (e.g. output.section_name_requires=Require)")
+            ("output.tab_width", po::value<unsigned>()->default_value(4),
+             "the tab width (i.e. number of spaces, won't emit tab) of the code in the synthesis")
+            ("output.width", po::value<unsigned>()->default_value(terminal_width),
+             "the width of the output (used in e.g. commonmark format)");
     // clang-format on
 
-    po::options_description input("");
-    input.add_options()("input-files", po::value<std::vector<fs::path>>(), "input files");
-    po::positional_options_description input_pos;
-    input_pos.add("input-files", -1);
-
-    po::options_description cmd;
-    cmd.add(generic).add(configuration).add(input);
-
-    po::variables_map  map;
-    po::parsed_options cmd_result(nullptr), file_result(nullptr);
+    standardese_tool::configuration config;
     try
     {
-        cmd_result = po::command_line_parser(argc, argv)
-                         .options(cmd)
-                         .positional(input_pos)
-                         .allow_unregistered()
-                         .run();
-        po::store(cmd_result, map);
-        po::notify(map);
+        config = standardese_tool::get_configuration(argc, argv, generic, configuration);
 
-        auto iter = map.find("config");
-        if (iter != map.end())
-        {
-            auto          path = iter->second.as<fs::path>();
-            std::ifstream config(path.string());
-            if (!config.is_open())
-                throw std::runtime_error("config file '" + path.generic_string() + "' not found");
-
-            po::options_description conf;
-            conf.add(configuration);
-            file_result = po::parse_config_file(config, configuration, true);
-            po::store(file_result, map);
-            po::notify(map);
-        }
+        if (config.map.at("jobs").as<unsigned>() == 0)
+            throw std::invalid_argument("number of threads must not be 0");
     }
     catch (std::exception& ex)
     {
@@ -220,16 +142,11 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    auto log = spdlog::stdout_logger_mt("standardese_log", map.at("color").as<bool>());
-    log->set_pattern("[%l] %v");
-    if (map.at("verbose").as<bool>())
-        log->set_level(spdlog::level::debug);
-
-    standardese::parser parser(log);
-
-    auto config = parse_config(map);
-    handle_unparsed_options(parser, cmd_result);
-    handle_unparsed_options(parser, file_result);
+    auto& map            = config.map;
+    auto& parser         = *config.parser;
+    auto& compile_config = config.compile_config;
+    auto& log            = parser.get_logger();
+    auto& formats        = config.formats;
 
     if (map.count("help"))
         print_usage(argv[0], generic, configuration);
@@ -248,12 +165,17 @@ int main(int argc, char* argv[])
 
             parser.get_comment_config().set_command_character(
                 map.at("comment.command_character").as<char>());
+            parser.get_comment_config().set_implicit_paragraph(
+                map.at("comment.implicit_paragraph").as<bool>());
 
-            auto input           = map.at("input-files").as<std::vector<fs::path>>();
-            auto blacklist_ext   = map.at("input.blacklist_ext").as<std::vector<std::string>>();
-            auto blacklist_file  = map.at("input.blacklist_file").as<std::vector<std::string>>();
-            auto blacklist_dir   = map.at("input.blacklist_dir").as<std::vector<std::string>>();
-            auto force_blacklist = map.at("input.force_blacklist").as<bool>();
+            parser.get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
+
+            auto input              = map.at("input-files").as<std::vector<fs::path>>();
+            auto blacklist_ext      = map.at("input.blacklist_ext").as<std::vector<std::string>>();
+            auto blacklist_file     = map.at("input.blacklist_file").as<std::vector<std::string>>();
+            auto blacklist_dir      = map.at("input.blacklist_dir").as<std::vector<std::string>>();
+            auto blacklist_dotfiles = map.at("input.blacklist_dotfiles").as<bool>();
+            auto force_blacklist    = map.at("input.force_blacklist").as<bool>();
 
             auto& blacklist_entity = parser.get_output_config().get_blacklist();
             for (auto& str : map.at("input.blacklist_entity_name").as<std::vector<std::string>>())
@@ -266,33 +188,90 @@ int main(int argc, char* argv[])
                 blacklist_entity.set_option(entity_blacklist::extract_private);
 
             log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
+            log->debug("Using cmark version: {}", CMARK_VERSION_STRING);
+
+            standardese::index                            index;
+            standardese_tool::thread_pool                 pool(map.at("jobs").as<unsigned>());
+            std::vector<std::future<md_ptr<md_document>>> futures;
+            futures.reserve(input.size());
+
+            auto generate = [&](const fs::path& p, const fs::path& relative) {
+                log->info("Generating documentation for {}...", p);
+
+                md_ptr<md_document> result;
+                try
+                {
+                    std::string output_name;
+                    // convert "detail/some_file.hpp" to "detail__some_file"
+                    for (auto iter = relative.begin(); iter != std::prev(relative.end()); ++iter)
+                        output_name += iter->generic_string() + "__";
+                    output_name += relative.stem().generic_string();
+
+                    auto tu = parser.parse(p.generic_string().c_str(), compile_config,
+                                           relative.generic_string().c_str());
+                    result = generate_doc_file(parser, index, tu.get_file(), output_name);
+                }
+                catch (libclang_error& ex)
+                {
+                    log->error("libclang error on {}", ex.what());
+                }
+                catch (cmark_error& ex)
+                {
+                    log->error("cmark error in '{}'", ex.what());
+                }
+
+                return result;
+            };
 
             assert(!input.empty());
             for (auto& path : input)
+                standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,
+                                              blacklist_dotfiles, force_blacklist,
+                                              [&](const fs::path& p, const fs::path& relative) {
+                                                  futures.push_back(
+                                                      standardese_tool::add_job(pool, generate, p,
+                                                                                relative));
+                                              });
+
+            std::vector<md_ptr<md_document>> documents;
+            for (auto& f : futures)
             {
-                auto handle = [&](const fs::path& p) {
-                    log->info() << "Generating documentation for " << p << "...";
+                auto doc = f.get();
+                if (doc)
+                    documents.push_back(std::move(doc));
+            }
 
-                    try
-                    {
-                        auto tu = parser.parse(p.generic_string().c_str(), config);
+            log->info("Generating indices...");
+            documents.push_back(generate_file_index(index));
+            documents.push_back(generate_entity_index(index));
 
-                        file_output     file(p.stem().generic_string() + ".md");
-                        markdown_output out(file);
-                        generate_doc_file(parser, out, tu.get_file());
-                    }
-                    catch (libclang_error& ex)
-                    {
-                        log->error("libclang error on {}", ex.what());
-                    }
-                };
+            config.set_external(index);
+            for (auto& format : formats)
+            {
+                log->info("Writing files for output format {}...", format->extension());
 
-                auto res = standardese_tool::handle_path(path, blacklist_ext, blacklist_file,
-                                                         blacklist_dir, handle);
-                if (!res && !force_blacklist)
-                    // path is a normal file that is on the blacklist
-                    // blacklist isn't enforced however
-                    handle(path);
+                path prefix;
+                if (formats.size() > 1u)
+                {
+                    fs::create_directories(format->extension());
+                    prefix = format->extension();
+                    prefix += '/'; // hope that every platform handles it
+                }
+
+                std::vector<std::future<void>> futures;
+                futures.reserve(documents.size());
+
+                output out(index, prefix, *format);
+                for (auto& document : documents)
+                    futures.push_back(
+                        standardese_tool::add_job(pool,
+                                                  [&](const md_document& doc) {
+                                                      out.render(log, doc, config.link_extension());
+                                                  },
+                                                  std::ref(*document)));
+
+                for (auto& f : futures)
+                    f.wait();
             }
         }
         catch (std::exception& ex)

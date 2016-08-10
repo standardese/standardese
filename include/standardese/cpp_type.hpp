@@ -71,6 +71,8 @@ namespace standardese
         static cpp_ptr<cpp_type_alias> parse(translation_unit& tu, cpp_cursor cur,
                                              const cpp_entity& parent);
 
+        cpp_name get_scope() const override;
+
         const cpp_type_ref& get_target() const STANDARDESE_NOEXCEPT
         {
             return target_;

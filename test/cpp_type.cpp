@@ -244,7 +244,7 @@ TEST_CASE("cpp_class", "[cpp]")
 
         };
 
-        class base_a {};
+        struct base_a {};
         class base_b {};
         class base_c {};
 
@@ -320,7 +320,7 @@ TEST_CASE("cpp_class", "[cpp]")
         {
             ++count;
             REQUIRE(!c.is_final());
-            REQUIRE(c.get_class_type() == cpp_class_t);
+            REQUIRE(c.get_class_type() == cpp_struct_t);
         }
         else if (c.get_name() == "base_b")
         {
@@ -345,18 +345,21 @@ TEST_CASE("cpp_class", "[cpp]")
                     ++count;
                     REQUIRE(base.get_access() == cpp_public);
                     REQUIRE(!base.is_virtual());
+                    REQUIRE(base.get_unique_name() == "derived::base_a");
                 }
                 else if (base.get_name() == "base_b")
                 {
                     ++count;
                     REQUIRE(base.get_access() == cpp_private);
                     REQUIRE(base.is_virtual());
+                    REQUIRE(base.get_unique_name() == "derived::base_b");
                 }
                 else if (base.get_name() == "base_c")
                 {
                     ++count;
                     REQUIRE(base.get_access() == cpp_protected);
                     REQUIRE(!base.is_virtual());
+                    REQUIRE(base.get_unique_name() == "derived::base_c");
                 }
             }
         }

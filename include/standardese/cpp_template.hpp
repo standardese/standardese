@@ -33,6 +33,8 @@ namespace standardese
         }
 
     private:
+        cpp_name do_get_unique_name() const override;
+
         bool variadic_;
     };
 
@@ -126,7 +128,7 @@ namespace standardese
 
         void add_paramter(cpp_ptr<cpp_template_parameter> param)
         {
-            cpp_entity_container::add_entity(std::move(param));
+            cpp_entity_container<cpp_template_parameter>::add_entity(std::move(param));
         }
 
         bool has_default_template() const STANDARDESE_NOEXCEPT
@@ -172,7 +174,7 @@ namespace standardese
 
         void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
         {
-            cpp_entity_container::add_entity(std::move(param));
+            cpp_entity_container<cpp_template_parameter>::add_entity(std::move(param));
         }
 
         const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const
@@ -183,12 +185,16 @@ namespace standardese
 
         cpp_name get_name() const override;
 
+        cpp_name get_signature() const;
+
         const cpp_function_base& get_function() const STANDARDESE_NOEXCEPT
         {
             return *func_;
         }
 
     private:
+        cpp_name do_get_unique_name() const override;
+
         cpp_function_template(cpp_cursor cur, const cpp_entity& parent);
 
         cpp_ptr<cpp_function_base> func_;
@@ -213,6 +219,8 @@ namespace standardese
             return name_;
         }
 
+        cpp_name get_signature() const;
+
         const cpp_function_base& get_function() const STANDARDESE_NOEXCEPT
         {
             return *func_;
@@ -224,6 +232,8 @@ namespace standardese
         }
 
     private:
+        cpp_name do_get_unique_name() const override;
+
         cpp_function_template_specialization(cpp_cursor cur, const cpp_entity& parent);
 
         cpp_template_ref           primary_;
@@ -231,6 +241,7 @@ namespace standardese
         cpp_ptr<cpp_function_base> func_;
 
         friend detail::cpp_ptr_access;
+        friend cpp_function_base;
     };
 
     /// \returns If `e` is a function type returns a pointer to `e`,
@@ -252,7 +263,7 @@ namespace standardese
 
         void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
         {
-            cpp_entity_container::add_entity(std::move(param));
+            cpp_entity_container<cpp_template_parameter>::add_entity(std::move(param));
         }
 
         void add_entity(cpp_entity_ptr ptr)
@@ -327,6 +338,7 @@ namespace standardese
         cpp_ptr<cpp_class> class_;
 
         friend detail::cpp_ptr_access;
+        friend cpp_class;
     };
 
     class cpp_class_template_partial_specialization final
@@ -345,7 +357,7 @@ namespace standardese
 
         void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
         {
-            cpp_entity_container::add_entity(std::move(param));
+            cpp_entity_container<cpp_template_parameter>::add_entity(std::move(param));
         }
 
         void add_entity(cpp_entity_ptr ptr)
@@ -385,6 +397,7 @@ namespace standardese
         cpp_ptr<cpp_class> class_;
 
         friend detail::cpp_ptr_access;
+        friend cpp_class;
     };
 
     /// \returns If `e` is a class returns a pointer to `e`,
@@ -408,7 +421,7 @@ namespace standardese
 
         void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
         {
-            cpp_entity_container::add_entity(std::move(param));
+            cpp_entity_container<cpp_template_parameter>::add_entity(std::move(param));
         }
 
         cpp_name get_name() const override;
@@ -434,6 +447,9 @@ namespace standardese
 
         friend detail::cpp_ptr_access;
     };
+
+    const cpp_entity_container<cpp_template_parameter>* get_template_parameters(
+        const cpp_entity& e);
 } // namespace standardese
 
 #endif // STANDARDESE_CPP_TEMPLATE_HPP_INCLUDED

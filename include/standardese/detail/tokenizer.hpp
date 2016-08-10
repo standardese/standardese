@@ -25,6 +25,7 @@
 #include <standardese/detail/sequence_stream.hpp>
 #include <standardese/error.hpp>
 #include <standardese/string.hpp>
+#include <standardese/cpp_cursor.hpp>
 
 namespace standardese
 {
@@ -72,18 +73,20 @@ namespace standardese
             detail::skip(stream, cur, open);
 
             auto bracket_count = 1;
-            while (bracket_count != 0)
+            auto expr_bracket  = 0;
+            while (bracket_count != 0 || expr_bracket != 0)
             {
                 auto spelling = stream.get().get_value();
-                if (spelling == open)
+                if (expr_bracket == 0 && spelling == open)
                     ++bracket_count;
-                else if (spelling == close)
+                else if (expr_bracket == 0 && spelling == close)
                     --bracket_count;
-                else if (std::strcmp(close, ">") == 0 && spelling == ">>")
-                {
-                    // just hope nobody uses a right shift operator
+                else if (expr_bracket == 0 && std::strcmp(close, ">") == 0 && spelling == ">>")
                     bracket_count -= 2;
-                }
+                else if (spelling == "(")
+                    ++expr_bracket;
+                else if (spelling == ")")
+                    --expr_bracket;
 
                 f(spelling.c_str());
             }
@@ -98,16 +101,29 @@ namespace standardese
         // skips an attribute if any
         void skip_attribute(detail::token_stream& stream, const cpp_cursor& cur);
 
+        struct tokenizer_access
+        {
+            static context& get_context(translation_unit& tu);
+
+            static const std::string& get_source(translation_unit& tu);
+        };
+
+        CXFile get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset);
+
         class tokenizer
         {
         public:
-            static std::string read_source(cpp_cursor cur);
+            static std::string read_source(translation_unit& tu, cpp_cursor cur);
+
+            static CXFile read_range(translation_unit& tu, cpp_cursor cur, unsigned& begin_offset,
+                                     unsigned& end_offset);
 
             tokenizer(translation_unit& tu, cpp_cursor cur);
 
-            context::iterator_type begin()
+            context::iterator_type begin(unsigned offset = 0)
             {
-                return impl_->begin(source_.begin(), source_.end());
+                assert(offset < source_.size());
+                return impl_->begin(source_.begin() + offset, source_.end());
             }
 
             context::iterator_type end()
@@ -125,11 +141,11 @@ namespace standardese
             context*    impl_;
         };
 
-        inline token_stream make_stream(tokenizer& t)
+        inline token_stream make_stream(tokenizer& t, unsigned offset = 0)
         {
             auto last =
                 boost::wave::cpplexer::lex_token<>(boost::wave::token_id::T_SEMICOLON, ";", {});
-            return token_stream(t, last);
+            return token_stream(t.begin(offset), t.end(), last);
         }
     }
 } // namespace standardese::detail

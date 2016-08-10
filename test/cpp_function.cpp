@@ -5,6 +5,7 @@
 #include <standardese/cpp_function.hpp>
 
 #include <catch.hpp>
+#include <standardese/detail/parse_utils.hpp>
 #include <standardese/cpp_class.hpp>
 
 #include "test_parser.hpp"
@@ -19,69 +20,47 @@ std::size_t no_parameters(const cpp_function_base& base)
     return result;
 }
 
-TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
+TEST_CASE("cpp_function", "[cpp]")
 {
     parser p;
 
-    auto code = R"(
-        void a(int x, const char *ptr = nullptr);
+    auto code = R"(void a(int x, const char *ptr = nullptr);
 
-        int b(int c, ...)
-        {
-            return 0;
-        }
+int b(int c, ...) try
+{
+    return 0;
+}
+catch (...)
+{
+    return 1;
+}
 
-        int *c(int a = b(0)) = delete;
+int *c(int a = b(0)) = delete;
 
-        [[foo]] char & __attribute__((d)) d() noexcept [[bar]];
+[[foo]] char & __attribute__((d)) d() noexcept [[bar]];
 
-        const int e() noexcept(false);
+const int e() noexcept(false);
 
-        int (*f(int a))(volatile char&&);
+int (*f(int a))(volatile char&&);
 
-        constexpr auto g() -> const char&&;
+constexpr auto g() -> const char&&;
 
-        auto h() noexcept(noexcept(e()))
-        {
-            return 0;
-        }
+auto h() noexcept(noexcept(e()))
+{
+    return 0;
+}
 
-        decltype(auto) i();
-
-        struct base
-        {
-            static void j();
-
-            virtual int& k() const = 0;
-
-            void l() volatile && = delete;
-
-            virtual void m(int a = h()) {}
-        };
-
-        struct derived : base
-        {
-            virtual int& k() const override;
-
-            void m(int a = h()) final;
-
-            derived& operator   =(const derived &a) = default;
-        };
-    )";
+decltype(auto) i();)";
 
     auto tu = parse(p, "cpp_function", code);
 
     // no need to check the parameters, same code as for variables
     auto count = 0u;
     for_each(tu.get_file(), [&](const cpp_entity& e) {
-        if (dynamic_cast<const cpp_function*>(&e))
+        if (e.get_entity_type() == cpp_entity::function_t)
         {
             auto& func = dynamic_cast<const cpp_function&>(e);
             REQUIRE(func.get_name() == func.get_full_name());
-            if (func.get_name() != "c")
-                REQUIRE(func.get_definition() == cpp_function_definition_normal);
-            else
-                REQUIRE(func.get_definition() == cpp_function_definition_deleted);
 
             if (func.get_name() == "a")
             {
@@ -92,6 +71,8 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 2u);
+                REQUIRE(func.get_signature() == "(int,const char *)");
+                REQUIRE(func.get_definition() == cpp_function_declaration);
             }
             else if (func.get_name() == "b")
             {
@@ -102,6 +83,8 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 1u);
+                REQUIRE(func.get_signature() == "(int,...)");
+                REQUIRE(func.get_definition() == cpp_function_definition_normal);
             }
             else if (func.get_name() == "c")
             {
@@ -112,6 +95,8 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 1u);
+                REQUIRE(func.get_signature() == "(int)");
+                REQUIRE(func.get_definition() == cpp_function_definition_deleted);
             }
             else if (func.get_name() == "d")
             {
@@ -122,6 +107,8 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(func.get_noexcept() == "true");
                 REQUIRE(func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
+                REQUIRE(func.get_definition() == cpp_function_declaration);
             }
             else if (func.get_name() == "e")
             {
@@ -132,6 +119,8 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
+                REQUIRE(func.get_definition() == cpp_function_declaration);
             }
             else if (func.get_name() == "f")
             {
@@ -142,6 +131,8 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 1u);
+                REQUIRE(func.get_signature() == "(int)");
+                REQUIRE(func.get_definition() == cpp_function_declaration);
             }
             else if (func.get_name() == "g")
             {
@@ -152,6 +143,8 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
+                REQUIRE(func.get_definition() == cpp_function_declaration);
             }
             else if (func.get_name() == "h")
             {
@@ -162,6 +155,8 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(func.get_noexcept() == "noexcept(e())");
                 REQUIRE(func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
+                REQUIRE(func.get_definition() == cpp_function_definition_normal);
             }
             else if (func.get_name() == "i")
             {
@@ -172,11 +167,48 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
+                REQUIRE(func.get_definition() == cpp_function_declaration);
             }
             else
                 REQUIRE(false);
         }
-        else if (e.get_name() == "base")
+        else
+            REQUIRE(false);
+    });
+    REQUIRE(count == 9u);
+}
+
+TEST_CASE("cpp_member_function", "[cpp]")
+{
+    parser p;
+
+    auto code = R"(struct base
+{
+    static void j();
+
+    virtual int& k() const = 0;
+
+    void l() volatile && = delete;
+
+    virtual void m(int a = (j(), 0)) {}
+};
+
+struct derived : base
+{
+    virtual int& k() const override;
+
+    void m(int a = (j(), 0)) final;
+
+    derived& operator   =(const derived &a) = default;
+};)";
+
+    auto tu = parse(p, "cpp_member_function", code);
+
+    // no need to check the parameters, same code as for variables
+    auto count = 0u;
+    for_each(tu.get_file(), [&](const cpp_entity& e) {
+        if (e.get_name() == "base")
         {
             auto& c = dynamic_cast<const cpp_class&>(e);
             for (auto& ent : c)
@@ -195,8 +227,9 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                     REQUIRE(!is_const(func.get_cv()));
                     REQUIRE(!is_volatile(func.get_cv()));
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
-                    REQUIRE(func.get_definition() == cpp_function_definition_normal);
+                    REQUIRE(func.get_definition() == cpp_function_declaration);
                     REQUIRE(no_parameters(func) == 0u);
+                    REQUIRE(func.get_signature() == "()");
                 }
                 else if (func.get_name() == "k")
                 {
@@ -206,8 +239,9 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                     REQUIRE(is_const(func.get_cv()));
                     REQUIRE(!is_volatile(func.get_cv()));
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
-                    REQUIRE(func.get_definition() == cpp_function_definition_normal);
+                    REQUIRE(func.get_definition() == cpp_function_definition_pure);
                     REQUIRE(no_parameters(func) == 0u);
+                    REQUIRE(func.get_signature() == "() const");
                 }
                 else if (func.get_name() == "l")
                 {
@@ -219,6 +253,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_rvalue);
                     REQUIRE(func.get_definition() == cpp_function_definition_deleted);
                     REQUIRE(no_parameters(func) == 0u);
+                    REQUIRE(func.get_signature() == "() volatile &&");
                 }
                 else if (func.get_name() == "m")
                 {
@@ -230,6 +265,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
                     REQUIRE(func.get_definition() == cpp_function_definition_normal);
                     REQUIRE(no_parameters(func) == 1u);
+                    REQUIRE(func.get_signature() == "(int)");
                 }
                 else
                     REQUIRE(false);
@@ -257,8 +293,9 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                     REQUIRE(is_const(func.get_cv()));
                     REQUIRE(!is_volatile(func.get_cv()));
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
-                    REQUIRE(func.get_definition() == cpp_function_definition_normal);
+                    REQUIRE(func.get_definition() == cpp_function_declaration);
                     REQUIRE(no_parameters(func) == 0u);
+                    REQUIRE(func.get_signature() == "() const");
                 }
                 else if (func.get_name() == "m")
                 {
@@ -268,8 +305,9 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                     REQUIRE(!is_const(func.get_cv()));
                     REQUIRE(!is_volatile(func.get_cv()));
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
-                    REQUIRE(func.get_definition() == cpp_function_definition_normal);
+                    REQUIRE(func.get_definition() == cpp_function_declaration);
                     REQUIRE(no_parameters(func) == 1u);
+                    REQUIRE(func.get_signature() == "(int)");
                 }
                 else if (func.get_name() == "operator=")
                 {
@@ -281,6 +319,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
                     REQUIRE(func.get_ref_qualifier() == cpp_ref_none);
                     REQUIRE(func.get_definition() == cpp_function_definition_defaulted);
                     REQUIRE(no_parameters(func) == 1u);
+                    REQUIRE(func.get_signature() == "(const derived &)");
                 }
                 else
                     REQUIRE(false);
@@ -289,7 +328,7 @@ TEST_CASE("cpp_function and cpp_member_function", "[cpp]")
         else
             REQUIRE(false);
     });
-    REQUIRE(count == 16u);
+    REQUIRE(count == 7u);
 }
 
 TEST_CASE("cpp_conversion_op", "[cpp]")
@@ -297,13 +336,21 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
     parser p;
 
     auto code = R"(
+        template <typename T>
+        struct bar {};
+
         struct foo
         {
             [[noreturn]] operator    int() [[]]; // multiple whitespace
 
-            explicit __attribute__((foo)) operator const char&();
+            explicit __attribute__((foo)) operator const char&(void);
 
-            constexpr explicit __attribute__((bar)) operator char() const volatile && noexcept;
+            constexpr explicit __attribute__((bar)) operator char() const volatile && noexcept
+            {
+                return '0';
+            }
+
+            operator bar<decltype(int())>();
         };
     )";
 
@@ -311,9 +358,13 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
 
     auto count = 0u;
     for_each(tu.get_file(), [&](const cpp_entity& t) {
+        if (t.get_name() != "foo")
+            return;
+
         for (auto& e : dynamic_cast<const cpp_class&>(t))
         {
             auto& op = dynamic_cast<const cpp_conversion_op&>(e);
+            INFO(op.get_name().c_str());
             REQUIRE(no_parameters(op) == 0u);
 
             if (op.get_name() == "operator int")
@@ -327,6 +378,8 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 REQUIRE(op.get_ref_qualifier() == cpp_ref_none);
                 REQUIRE(op.get_noexcept() == "false");
                 REQUIRE(!op.explicit_noexcept());
+                REQUIRE(op.get_signature() == "()");
+                REQUIRE(op.get_definition() == cpp_function_declaration);
             }
             else if (op.get_name() == "operator const char &")
             {
@@ -339,6 +392,8 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 REQUIRE(op.get_ref_qualifier() == cpp_ref_none);
                 REQUIRE(op.get_noexcept() == "false");
                 REQUIRE(!op.explicit_noexcept());
+                REQUIRE(op.get_signature() == "()");
+                REQUIRE(op.get_definition() == cpp_function_declaration);
             }
             else if (op.get_name() == "operator char")
             {
@@ -351,12 +406,28 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 REQUIRE(op.get_ref_qualifier() == cpp_ref_rvalue);
                 REQUIRE(op.get_noexcept() == "true");
                 REQUIRE(op.explicit_noexcept());
+                REQUIRE(op.get_signature() == "() const volatile &&");
+                REQUIRE(op.get_definition() == cpp_function_definition_normal);
+            }
+            else if (op.get_name() == "operator bar<decltype(int())>")
+            {
+                ++count;
+                REQUIRE(op.get_target_type().get_name() == "bar<decltype(int())>");
+                REQUIRE(!op.is_explicit());
+                REQUIRE(!op.is_constexpr());
+                REQUIRE(!is_const(op.get_cv()));
+                REQUIRE(!is_volatile(op.get_cv()));
+                REQUIRE(op.get_ref_qualifier() == cpp_ref_none);
+                REQUIRE(op.get_noexcept() == "false");
+                REQUIRE(!op.explicit_noexcept());
+                REQUIRE(op.get_signature() == "()");
+                REQUIRE(op.get_definition() == cpp_function_declaration);
             }
             else
                 REQUIRE(false);
         }
     });
-    REQUIRE(count == 3u);
+    REQUIRE(count == 4u);
 }
 
 TEST_CASE("cpp_constructor", "[cpp]")
@@ -370,13 +441,17 @@ TEST_CASE("cpp_constructor", "[cpp]")
             [[noreturn]] foo() = delete;
 
             /// b
-            explicit foo(int a = {});
+            explicit foo(int a = {}) {}
 
             /// c
             constexpr foo(char c) noexcept;
 
             /// d
             foo(const foo &other) __attribute__(()) = default;
+
+            /// e
+            foo(char *ptr) noexcept(false)
+            : foo(0) {}
         };
     )";
 
@@ -389,7 +464,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
             auto& ctor = dynamic_cast<const cpp_constructor&>(e);
             REQUIRE(!ctor.is_variadic());
 
-            if (ctor.get_comment() == "/// a")
+            if (detail::parse_comment(ctor.get_cursor()) == "/// a")
             {
                 ++count;
                 REQUIRE(no_parameters(ctor) == 0u);
@@ -398,8 +473,9 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(ctor.get_noexcept() == "false");
                 REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_deleted);
+                REQUIRE(ctor.get_signature() == "()");
             }
-            else if (ctor.get_comment() == "/// b")
+            else if (detail::parse_comment(ctor.get_cursor()) == "/// b")
             {
                 ++count;
                 REQUIRE(no_parameters(ctor) == 1u);
@@ -408,8 +484,9 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(ctor.get_noexcept() == "false");
                 REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
+                REQUIRE(ctor.get_signature() == "(int)");
             }
-            else if (ctor.get_comment() == "/// c")
+            else if (detail::parse_comment(ctor.get_cursor()) == "/// c")
             {
                 ++count;
                 REQUIRE(no_parameters(ctor) == 1u);
@@ -417,9 +494,10 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(!ctor.is_explicit());
                 REQUIRE(ctor.get_noexcept() == "true");
                 REQUIRE(ctor.explicit_noexcept());
-                REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
+                REQUIRE(ctor.get_definition() == cpp_function_declaration);
+                REQUIRE(ctor.get_signature() == "(char)");
             }
-            else if (ctor.get_comment() == "/// d")
+            else if (detail::parse_comment(ctor.get_cursor()) == "/// d")
             {
                 ++count;
                 REQUIRE(no_parameters(ctor) == 1u);
@@ -428,12 +506,24 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(ctor.get_noexcept() == "false");
                 REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_defaulted);
+                REQUIRE(ctor.get_signature() == "(const foo &)");
+            }
+            else if (detail::parse_comment(ctor.get_cursor()) == "/// e")
+            {
+                ++count;
+                REQUIRE(no_parameters(ctor) == 1u);
+                REQUIRE(!ctor.is_constexpr());
+                REQUIRE(!ctor.is_explicit());
+                REQUIRE(ctor.get_noexcept() == "false");
+                REQUIRE(ctor.explicit_noexcept());
+                REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
+                REQUIRE(ctor.get_signature() == "(char *)");
             }
             else
                 REQUIRE(false);
         }
     });
-    REQUIRE(count == 4u);
+    REQUIRE(count == 5u);
 }
 
 TEST_CASE("cpp_destructor", "[cpp]")
@@ -463,7 +553,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
 
         struct e : d
         {
-            ~e() __attribute__(()) override;
+            ~e() __attribute__(()) override {}
         };
     )";
 
@@ -483,6 +573,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(dtor.get_virtual() == cpp_virtual_none);
                 REQUIRE(!dtor.explicit_noexcept());
                 REQUIRE(dtor.get_definition() == cpp_function_definition_defaulted);
+                REQUIRE(dtor.get_signature() == "()");
                 ++count;
             }
         }
@@ -497,6 +588,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(!dtor.explicit_noexcept());
                 REQUIRE(dtor.get_virtual() == cpp_virtual_none);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_deleted);
+                REQUIRE(dtor.get_signature() == "()");
                 ++count;
             }
         }
@@ -510,7 +602,8 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(dtor.get_noexcept() == "false");
                 REQUIRE(dtor.explicit_noexcept());
                 REQUIRE(dtor.get_virtual() == cpp_virtual_none);
-                REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
+                REQUIRE(dtor.get_definition() == cpp_function_declaration);
+                REQUIRE(dtor.get_signature() == "()");
                 ++count;
             }
         }
@@ -524,7 +617,8 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(dtor.get_noexcept() == "true");
                 REQUIRE(dtor.explicit_noexcept());
                 REQUIRE(dtor.get_virtual() == cpp_virtual_pure);
-                REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
+                REQUIRE(dtor.get_definition() == cpp_function_definition_pure);
+                REQUIRE(dtor.get_signature() == "()");
                 ++count;
             }
         }
@@ -542,6 +636,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(!dtor.explicit_noexcept());
                 REQUIRE(dtor.get_virtual() == cpp_virtual_overriden);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
+                REQUIRE(dtor.get_signature() == "()");
                 ++count;
             }
         }
@@ -609,43 +704,43 @@ TEST_CASE("implicit virtual", "[cpp]")
         {
             for (auto& member : dynamic_cast<const cpp_class&>(e))
             {
-                if (member.get_comment() == "/// a")
+                if (detail::parse_comment(member.get_cursor()) == "/// a")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
                             == cpp_virtual_overriden);
                 }
-                else if (member.get_comment() == "/// b")
+                else if (detail::parse_comment(member.get_cursor()) == "/// b")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
                             == cpp_virtual_none);
                 }
-                else if (member.get_comment() == "/// c")
+                else if (detail::parse_comment(member.get_cursor()) == "/// c")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
                             == cpp_virtual_overriden);
                 }
-                else if (member.get_comment() == "/// d")
+                else if (detail::parse_comment(member.get_cursor()) == "/// d")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
                             == cpp_virtual_none);
                 }
-                else if (member.get_comment() == "/// e")
+                else if (detail::parse_comment(member.get_cursor()) == "/// e")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_member_function&>(member).get_virtual()
                             == cpp_virtual_overriden);
                 }
-                else if (member.get_comment() == "/// f")
+                else if (detail::parse_comment(member.get_cursor()) == "/// f")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_conversion_op&>(member).get_virtual()
                             == cpp_virtual_overriden);
                 }
-                else if (member.get_comment() == "/// g")
+                else if (detail::parse_comment(member.get_cursor()) == "/// g")
                 {
                     ++count;
                     REQUIRE(dynamic_cast<const cpp_destructor&>(member).get_virtual()

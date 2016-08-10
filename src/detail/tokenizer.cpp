@@ -5,7 +5,6 @@
 #include <standardese/detail/tokenizer.hpp>
 
 #include <cassert>
-#include <fstream>
 #include <string>
 
 #include <boost/version.hpp>
@@ -73,104 +72,186 @@ void detail::skip_attribute(detail::token_stream& stream, const cpp_cursor& cur)
     }
 }
 
-std::string detail::tokenizer::read_source(cpp_cursor cur)
+CXFile detail::get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset)
 {
     auto source = clang_getCursorExtent(cur);
     auto begin  = clang_getRangeStart(source);
     auto end    = clang_getRangeEnd(source);
 
     // translate location into offset and file
-    CXFile   file = nullptr;
-    unsigned begin_offset = 0u, end_offset = 0u;
+    CXFile file  = nullptr;
+    begin_offset = 0u;
+    end_offset   = 0u;
     clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
     clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
-    
-    if (!file)
-        return "";
-    
-    assert(end_offset > begin_offset);
 
-    // open file buffer
-    std::filebuf buf;
-
-    string filename(clang_getFileName(file));
-    buf.open(filename.c_str(), std::ios_base::in | std::ios_base::binary);
-    assert(buf.is_open());
-
-    // seek to beginning
-    buf.pubseekpos(begin_offset);
-
-    // read bytes
-    std::string result(end_offset - begin_offset, '\0');
-    buf.sgetn(&result[0], result.size());
-
-    // awesome libclang bug:
-    // if there is a macro expansion at the end, the closing bracket is missing
-    // ie.: using foo = IMPL_DEFINED(bar
-    // go backwards, if a '(' is found before a ')', append a ')'
-    if (clang_getCursorKind(cur) == CXCursor_MacroDefinition)
-        for (auto iter = result.rbegin(); iter != result.rend(); ++iter)
-        {
-            if (*iter == ')')
-                break;
-            else if (*iter == '(')
-            {
-                result += ')';
-                break;
-            }
-        }
-
-    // awesome libclang bug 2.0:
-    // the extent of a function cursor doesn't cover any "= delete"
-    // so append all further characters until a ';' is reached
-    auto is_function = clang_getCursorKind(cur) == CXCursor_FunctionDecl
-                       || clang_getTemplateCursorKind(cur) == CXCursor_FunctionDecl;
-    auto needs_definition = result.back() != ';' && result.back() != '}';
-    if (is_function && needs_definition)
-    {
-        while (buf.sgetc() != ';')
-        {
-            result += buf.sgetc();
-            buf.sbumpc();
-        }
-    }
-
-    // awesome libclang bug 3.0
-    // the extent for a type alias is too short
-    // needs to be extended until the semicolon
-    if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl && result.back() != ';')
-        while (buf.sgetc() != ';')
-        {
-            result += buf.sgetc();
-            buf.sbumpc();
-        }
-
-    // prevent more awesome libclang bugs:
-    // read until next line, just to be somewhat sure
-    if (clang_getCursorKind(cur) != CXCursor_ParmDecl
-        && clang_getCursorKind(cur) != CXCursor_TemplateTypeParameter
-        && clang_getCursorKind(cur) != CXCursor_NonTypeTemplateParameter
-        && clang_getCursorKind(cur) != CXCursor_TemplateTemplateParameter
-        && clang_getCursorKind(cur) != CXCursor_CXXBaseSpecifier)
-        while (buf.sgetc() != '\n')
-        {
-            result += buf.sgetc();
-            buf.sbumpc();
-        }
-
-    return result;
+    return file;
 }
 
-namespace standardese
+namespace
 {
-    namespace detail
+    bool cursor_is_function(CXCursorKind kind)
     {
-        context& get_preprocessing_context(translation_unit& tu);
+        return kind == CXCursor_FunctionDecl || kind == CXCursor_CXXMethod
+               || kind == CXCursor_Constructor || kind == CXCursor_Destructor
+               || kind == CXCursor_ConversionFunction;
     }
-} // namespace standardese::detail
+
+    std::string fixup(cpp_cursor cur, const char* ptr, std::string result, unsigned begin_offset)
+    {
+        auto is_templ_param = clang_getCursorKind(cur) == CXCursor_TemplateTypeParameter
+                              || clang_getCursorKind(cur) == CXCursor_NonTypeTemplateParameter
+                              || clang_getCursorKind(cur) == CXCursor_TemplateTemplateParameter;
+        auto is_function = cursor_is_function(clang_getCursorKind(cur))
+                           || cursor_is_function(clang_getTemplateCursorKind(cur));
+        auto is_class = clang_getCursorKind(cur) == CXCursor_ClassDecl
+                        || clang_getCursorKind(cur) == CXCursor_StructDecl
+                        || clang_getCursorKind(cur) == CXCursor_UnionDecl
+                        || clang_getCursorKind(cur) == CXCursor_ClassTemplate
+                        || clang_getCursorKind(cur) == CXCursor_ClassTemplatePartialSpecialization;
+
+        // for a function, shrink unnecessary body
+        if (is_function && result.back() == '}')
+        {
+            auto body_begin = 0u;
+            detail::visit_children(cur, [&](cpp_cursor child, cpp_cursor) {
+                if (clang_getCursorKind(child) == CXCursor_CompoundStmt
+                    || clang_getCursorKind(child) == CXCursor_CXXTryStmt
+                    || clang_getCursorKind(child) == CXCursor_InitListExpr)
+                {
+                    unsigned ignored;
+                    detail::get_range(child, body_begin, ignored);
+                    return CXChildVisit_Break;
+                }
+                return CXChildVisit_Continue;
+            });
+            assert(body_begin > begin_offset);
+
+            auto actual_size = body_begin - begin_offset;
+            result.erase(result.begin() + actual_size, result.end());
+            result += '{';
+        }
+        // for a class add semicolon
+        else if (is_class && result.back() != ';')
+            result += ';';
+
+        // maximal munch fixup
+        // if cur refers to a template parameter, the next character must be either '>' or comma
+        // if that isn't the case, maximal munch has consumed the seperating '>' as well
+        if (is_templ_param)
+        {
+            while (std::isspace(*ptr))
+                ++ptr;
+
+            // also need to handle another awesome libclang bug
+            // everything inside the parenthesis of a decltype() isn't included
+            // so need to add it
+            if (*ptr == '(')
+            {
+                result += *ptr;
+                ++ptr;
+
+                for (auto bracket_count = 1; bracket_count != 0; ++ptr)
+                {
+                    if (*ptr == '(')
+                        ++bracket_count;
+                    else if (*ptr == ')')
+                        --bracket_count;
+
+                    result += *ptr;
+                }
+            }
+
+            if (*ptr != '>' && *ptr != ',' && result.back() == '>')
+                result.pop_back();
+        }
+        // awesome libclang bug:
+        // if there is a macro expansion at the end, the closing bracket is missing
+        // ie.: using foo = IMPL_DEFINED(bar
+        // go backwards, if a '(' is found before a ')', append a ')'
+        else if (clang_getCursorKind(cur) == CXCursor_MacroDefinition)
+        {
+            for (auto iter = result.rbegin(); iter != result.rend(); ++iter)
+            {
+                if (*iter == ')')
+                    break;
+                else if (*iter == '(')
+                {
+                    result += ')';
+                    break;
+                }
+            }
+        }
+        // awesome libclang bug 2.0:
+        // the extent of a function cursor doesn't cover any "= delete"
+        // so append all further characters until a ';' is reached
+        else if (is_function && result.back() != ';' && result.back() != '{')
+        {
+            while (*ptr != ';')
+            {
+                result += *ptr;
+                ++ptr;
+            }
+            result += ';';
+        }
+        // awesome libclang bug 3.0
+        // the extent for a type alias is too short
+        // needs to be extended until the semicolon
+        else if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl && result.back() != ';')
+        {
+            while (*ptr != ';')
+            {
+                result += *ptr;
+                ++ptr;
+            }
+            result += ';';
+        }
+        // prevent more awesome libclang bugs:
+        // read until next line, just to be somewhat sure
+        else if (clang_isDeclaration(clang_getCursorKind(cur))
+                 && clang_getCursorKind(cur) != CXCursor_ParmDecl
+                 && clang_getCursorKind(cur) != CXCursor_TemplateTypeParameter
+                 && clang_getCursorKind(cur) != CXCursor_NonTypeTemplateParameter
+                 && clang_getCursorKind(cur) != CXCursor_TemplateTemplateParameter
+                 && clang_getCursorKind(cur) != CXCursor_CXXBaseSpecifier)
+            while (*ptr != '\n' && *ptr)
+            {
+                result += *ptr;
+                ++ptr;
+            }
+
+        return result;
+    }
+}
+
+std::string detail::tokenizer::read_source(translation_unit& tu, cpp_cursor cur)
+{
+    unsigned begin_offset, end_offset;
+    auto     file = get_range(cur, begin_offset, end_offset);
+    if (!file)
+        return "";
+    assert(clang_File_isEqual(file, tu.get_cxfile()));
+    assert(end_offset > begin_offset);
+
+    auto source = tokenizer_access::get_source(tu).c_str();
+
+    std::string result(source + begin_offset, source + end_offset);
+    return fixup(cur, source + end_offset, result, begin_offset);
+}
+
+CXFile detail::tokenizer::read_range(translation_unit& tu, cpp_cursor cur, unsigned& begin_offset,
+                                     unsigned& end_offset)
+{
+    auto file = get_range(cur, begin_offset, end_offset);
+
+    // we need to handle the fixup, so change end_offset
+    end_offset = static_cast<unsigned>(begin_offset + read_source(tu, cur).size());
+
+    return file;
+}
 
 detail::tokenizer::tokenizer(translation_unit& tu, cpp_cursor cur)
-: source_(read_source(cur)), impl_(&get_preprocessing_context(tu))
+: source_(read_source(tu, cur)), impl_(&tokenizer_access::get_context(tu))
 {
     // append trailing newline
     // required for parsing code

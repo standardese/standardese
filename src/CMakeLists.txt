@@ -1,9 +1,11 @@
-# Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+﻿# Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
 # This file is subject to the license terms in the LICENSE file
 # found in the top-level directory of this distribution.
 
 set(detail_header
+        ../include/standardese/detail/entity_container.hpp
         ../include/standardese/detail/parse_utils.hpp
+        ../include/standardese/detail/raw_comment.hpp
         ../include/standardese/detail/scope_stack.hpp
         ../include/standardese/detail/sequence_stream.hpp
         ../include/standardese/detail/synopsis_utils.hpp
@@ -26,7 +28,12 @@ set(header
         ../include/standardese/doc_entity.hpp
         ../include/standardese/error.hpp
         ../include/standardese/generator.hpp
+        ../include/standardese/index.hpp
+        ../include/standardese/md_blocks.hpp
+        ../include/standardese/md_entity.hpp
+        ../include/standardese/md_inlines.hpp
         ../include/standardese/output.hpp
+        ../include/standardese/output_format.hpp
         ../include/standardese/output_stream.hpp
         ../include/standardese/parser.hpp
         ../include/standardese/section.hpp
@@ -35,6 +42,7 @@ set(header
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
+        detail/raw_comment.cpp
         detail/scope_stack.cpp
         detail/synopsis_utils.cpp
         detail/tokenizer.cpp
@@ -49,9 +57,15 @@ set(src
         cpp_template.cpp
         cpp_type.cpp
         cpp_variable.cpp
+        doc_entity.cpp
         error.cpp
         generator.cpp
+        index.cpp
+        md_blocks.cpp
+        md_entity.cpp
+        md_inlines.cpp
         output.cpp
+        output_format.cpp
         output_stream.cpp
         parser.cpp
         synopsis.cpp
@@ -78,6 +92,9 @@ target_link_libraries(standardese PUBLIC Threads::Threads)
 # link libclang
 target_include_directories(standardese PUBLIC ${LIBCLANG_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${LIBCLANG_LIBRARY})
+
+# link cmark
+target_link_libraries(standardese PUBLIC libcmark_static)
 
 # link Boost
 find_package(Boost COMPONENTS wave filesystem system thread date_time chrono REQUIRED)
