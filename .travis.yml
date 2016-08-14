@@ -65,6 +65,9 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.3.0-Darwin-x86_64.tar.gz && ls && ls cmake-3.3.0-Darwin-x86_64; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.3.0-Darwin-x86_64/CMake.app/Contents/bin/cmake; fi
 
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$TOOLSET" == "clang" ]]; then export BUILD_TOOL=true; export OUTPUT=standardese_ubuntu; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export BUILD_TOOL=true; export OUTPUT=standardese_osx; fi
+
   - export CXX=$TOOLSET
   - $CXX --version
   - $CMAKE --version
@@ -73,7 +76,7 @@ install:
 
 script:
   - mkdir build && cd build
-  - $CMAKE -DCMAKE_CXX_FLAGS="-Wall -Wextra -pedantic -Wno-parentheses" -DLIBCLANG_LIBRARY=$LIBCLANG_LIBRARY -DLIBCLANG_INCLUDE_DIR=$LIBCLANG_INCLUDE_DIR -DLIBCLANG_SYSTEM_INCLUDE_DIR=$LIBCLANG_SYSTEM_INCLUDE_DIR  ../
+  - $CMAKE -DCMAKE_CXX_FLAGS="-Wall -Wextra -pedantic -Wno-parentheses" -DLIBCLANG_LIBRARY=$LIBCLANG_LIBRARY -DLIBCLANG_INCLUDE_DIR=$LIBCLANG_INCLUDE_DIR -DLIBCLANG_SYSTEM_INCLUDE_DIR=$LIBCLANG_SYSTEM_INCLUDE_DIR -DSTANDARDESE_BUILD_TOOL=$BUILD_TOOL ../
   - $CMAKE --build .
-  - ./tool/standardese --version
+  - if [[ $BUILD_TOOL ]]; then ./tool/standardese --version; mv tool/standardese $OUTPUT; fi
   - ./test/standardese_test
