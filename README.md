@@ -94,6 +94,27 @@ but if you wish to link them statically, just add `-DBoost_USE_STATIC_LIBS=ON` t
 
 Once built, simply run `standardese --help` for commandline usage.
 
+### Travis CI
+
+There are pre-built binaries for Travis CI (both MacOS and Linux).
+Under Boost you are good to go, but Linux needs an update of libstdc++ and Boost 1.55:
+
+```
+addons:
+  apt:
+    sources: ['ubuntu-toolchain-r-test', 'boost-latest']
+    packages: ['g++-5', 'libboost1.55-all-dev']<
+```
+For convenience you can use the script `travis_get_standardese.sh`.
+It will download libclang and the `standardese` binary.
+You can use it like so:
+
+```
+wget https://raw.githubusercontent.com/foonathan/standardese/travis_get_standardese.sh
+STANDARDESE_TAG=tag-name . travis_get_standardese.sh
+./standardese/standardese --version
+```
+
 ## Documentation
 
 > Disclaimer: Due to the lack of proper tooling there is currently no good documentation.
