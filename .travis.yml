@@ -33,29 +33,17 @@ matrix:
         apt:
           sources: ['ubuntu-toolchain-r-test', 'boost-latest']
           packages: ['g++-5', 'libboost1.55-all-dev']
-      env: TOOLSET=$TRAVIS_BUILD_DIR/../llvm-3.8/bin/clang++ BUILD_TOOL=true OUTPUT_NAME=standardese-ubuntu-12.04.tar.gz
+      env: BUILD_TOOL=true OUTPUT_NAME=standardese-ubuntu-12.04.tar.gz
 
     - os: osx
       compiler: clang
       env: TOOLSET=clang++ BUILD_TOOL=true OUTPUT_NAME=standardese-osx.tar.gz
 
 install:
+  - . travis_install_libclang.sh
+  - if [ -z $TOOLSET ]; then export TOOLSET=$LLVM_DIR/bin/clang++; fi 
+
   - cd ../
-
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget --no-check-certificate http://llvm.org/releases/3.8.0/clang+llvm-3.8.0-x86_64-linux-gnu-ubuntu-14.04.tar.xz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tar -xJf clang+llvm-3.8.0-x86_64-linux-gnu-ubuntu-14.04.tar.xz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then mv clang+llvm-3.8.0-x86_64-linux-gnu-ubuntu-14.04 llvm-3.8; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export LIBCLANG_LIBRARY=$TRAVIS_BUILD_DIR/../llvm-3.8/lib/libclang.so.3.8; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export LIBCLANG_INCLUDE_DIR=$TRAVIS_BUILD_DIR/../llvm-3.8/include/; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export LIBCLANG_SYSTEM_INCLUDE_DIR=$TRAVIS_BUILD_DIR/../llvm-3.8/lib/clang/3.8.0/include; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export LD_LIBRARY_PATH=$TRAVIS_BUILD_DIR/../llvm-3.8/lib; fi
-
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate http://llvm.org/releases/3.8.0/clang+llvm-3.8.0-x86_64-apple-darwin.tar.xz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xJf clang+llvm-3.8.0-x86_64-apple-darwin.tar.xz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then mv clang+llvm-3.8.0-x86_64-apple-darwin llvm-3.8; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export LIBCLANG_LIBRARY=$TRAVIS_BUILD_DIR/../llvm-3.8/lib/libclang.dylib; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export LIBCLANG_INCLUDE_DIR=$TRAVIS_BUILD_DIR/../llvm-3.8/include/; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export LIBCLANG_SYSTEM_INCLUDE_DIR=$TRAVIS_BUILD_DIR/../llvm-3.8/lib/clang/3.8.0/include; fi
 
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget --no-check-certificate https://www.cmake.org/files/v3.3/cmake-3.3.1-Linux-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tar -xzf cmake-3.3.1-Linux-x86_64.tar.gz; fi
