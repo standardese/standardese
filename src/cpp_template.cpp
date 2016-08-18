@@ -86,7 +86,7 @@ cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translat
     }
 
     return detail::make_cpp_ptr<cpp_template_type_parameter>(cur, parent,
-                                                             cpp_type_ref(def_name, {}),
+                                                             cpp_type_ref(def_name, CXType()),
                                                              is_variadic);
 }
 
