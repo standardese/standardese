@@ -4,17 +4,18 @@ build_script:
   - cmd: cmake -G"Visual Studio 14 2015 Win64" -DLIBCLANG_LIBRARY="C:\Program Files\LLVM\lib\libclang.lib" -DLIBCLANG_SYSTEM_INCLUDE_DIR="C:\Program Files\LLVM\lib\clang\3.8.0\include" -DBOOST_ROOT="C:\Libraries\boost_1_60_0" -DBOOST_LIBRARYDIR="C:\Libraries\boost_1_60_0\lib64-msvc-14.0" -DBoost_USE_STATIC_LIBS=ON ../
 
   - cmd: cmake --build . -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - cmd: test\Debug\standardese_test.exe
-
   - cmd: cmake --build . --config Release --target standardese_tool -- /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
-  - cmd: tool\Release\standardese.exe --version
 
   - cmd: mkdir standardese && cd standardese
-  - cmd: move ..\tool\Release\standardese.exe .
-  - cmd: move ..\..\LICENSE .
-  - cmd: move ..\..\*.md .
+  - cmd: copy ..\tool\Release\standardese.exe .
+  - cmd: copy ..\..\LICENSE .
+  - cmd: copy ..\..\*.md .
   - cmd: cd ..\
   - cmd: 7z a standardese-windows-64bit-msvc14.zip standardese
+
+test_script:
+  - cmd: tool\Release\standardese.exe --version
+  - cmd: test\Debug\standardese_test.exe
 
 artifacts:
   - path: build\standardese-windows-64bit-msvc14.zip
