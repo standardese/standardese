@@ -94,9 +94,14 @@ but if you wish to link them statically, just add `-DBoost_USE_STATIC_LIBS=ON` t
 
 Once built, simply run `standardese --help` for commandline usage.
 
+### Windows
+
+There is a pre-built binary for Windows 64 Bit, built with Appveyor and MSVC 14.
+You need to install [libclang](http://llvm.org/releases/download.html) but should work out the box otherwise.
+
 ### Travis CI
 
-There are pre-built binaries for Travis CI (both MacOS and Linux).
+There are pre-built binaries for Travis CI (both MacOS and Linux), useful for building documentation on your CI system.
 Under Boost you are good to go, but Linux needs an update of libstdc++ and Boost 1.55:
 
 ```
