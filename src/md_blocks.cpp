@@ -50,7 +50,7 @@ md_ptr<md_list> md_list::make(const md_entity& parent, md_list_type type, md_lis
     if (!node)
         throw cmark_error("md_list::make");
 
-    auto res = true;
+    auto res = 1;
     switch (type)
     {
     case md_list_type::bullet:
@@ -60,7 +60,7 @@ md_ptr<md_list> md_list::make(const md_entity& parent, md_list_type type, md_lis
         res = cmark_node_set_list_type(node, CMARK_ORDERED_LIST);
         break;
     }
-    if (!res)
+    if (res == 0)
         throw cmark_error("md_list::make: cmark_node_set_list_type");
 
     switch (delim)
@@ -75,7 +75,7 @@ md_ptr<md_list> md_list::make(const md_entity& parent, md_list_type type, md_lis
         res = cmark_node_set_list_delim(node, CMARK_PERIOD_DELIM);
         break;
     }
-    if (type == md_list_type::ordered && !res)
+    if (type == md_list_type::ordered && res == 0)
         throw cmark_error("md_list::make: cmark_node_set_list_delim");
 
     if (!cmark_node_set_list_start(node, start))
