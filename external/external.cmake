@@ -90,7 +90,7 @@ endif()
 find_library(CMARK_LIBRARY "cmark" "/usr/lib" "/usr/local/lib")
 find_path(CMARK_INCLUDE_DIR "cmark.h" "/usr/include" "/usr/local/include")
 
-if(true OR (NOT CMARK_LIBRARY) OR (NOT CMARK_INCLUDE_DIR))
+if((NOT CMARK_LIBRARY) OR (NOT CMARK_INCLUDE_DIR))
     message("Unable to find cmark, installing it myself...")
     execute_process(COMMAND git submodule update --init -- external/cmark
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})

@@ -75,6 +75,7 @@ namespace standardese
             auto kind           = clang_getCursorKind(cur);
             auto valid_ref_kind = Kind == CXCursor_FirstInvalid || Kind == kind;
             assert(clang_isDeclaration(kind) || (clang_isReference(kind) && valid_ref_kind));
+            (void)valid_ref_kind;
         }
 
         cpp_cursor operator*() const STANDARDESE_NOEXCEPT

@@ -21,6 +21,7 @@ namespace standardese
         void validate(T* obj)
         {
             assert(obj);
+            (void)obj;
         }
 
         template <typename T, class Deleter>
