@@ -30,6 +30,9 @@ void detail::skip_whitespace(token_stream& stream)
 
 void detail::skip(token_stream& stream, const cpp_cursor& cur, const char* value)
 {
+    if (!*value)
+        return;
+
     auto& val = stream.peek();
     if (val.get_value() != value)
         throw parse_error(source_location(cur), std::string("expected \'") + value + "\' got \'"
