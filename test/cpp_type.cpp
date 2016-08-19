@@ -156,9 +156,8 @@ TEST_CASE("cpp_enum", "[cpp]")
             enum d
             {
                 d_1 = 1 + T{},
-                d_2 = 4,
-                d_3,
-                d_4 = T{}
+                d_2,
+                d_3 = T{}
             };
         };
     )";
@@ -286,14 +285,13 @@ TEST_CASE("cpp_enum", "[cpp]")
                 REQUIRE(!t.is_scoped());
                 auto& underlying = t.get_underlying_type();
                 REQUIRE(underlying.get_name() == "");
-                REQUIRE(underlying.get_cxtype().kind == CXType_Dependent);
 
                 auto i = 1u;
                 for (auto& eval : t)
                 {
                     REQUIRE(eval.get_name() == "d_" + std::to_string(i));
                     REQUIRE(eval.get_full_name() == "foo<T>::d_" + std::to_string(i));
-                    if (i != 3u)
+                    if (i != 2u)
                         REQUIRE(eval.is_explicitly_given());
 
                     REQUIRE(eval.get_entity_type() == cpp_entity::expression_enum_value_t);
@@ -302,16 +300,14 @@ TEST_CASE("cpp_enum", "[cpp]")
                     if (i == 1u)
                         REQUIRE(exprval.get_value() == "1 + T{}");
                     else if (i == 2u)
-                        REQUIRE(exprval.get_value() == "4");
-                    else if (i == 3u)
                         REQUIRE(exprval.get_value() == "");
-                    else if (i == 4u)
+                    else if (i == 3u)
                         REQUIRE(exprval.get_value() == "T{}");
                     else
                         REQUIRE(false);
                     ++i;
                 }
-                REQUIRE(i == 5u);
+                REQUIRE(i == 4u);
             }
         }
         else
