@@ -132,8 +132,7 @@ namespace
         assert(ptr[-1] == '/');
         --ptr;
 
-        assert(!content.empty());
-        while (is_whitespace(content.back()))
+        while (!content.empty() && is_whitespace(content.back()))
             content.pop_back();
 
         return {std::move(content), lines, cur_line};
