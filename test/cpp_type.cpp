@@ -291,10 +291,12 @@ TEST_CASE("cpp_enum", "[cpp]")
                     REQUIRE(eval.get_name() == "d_" + std::to_string(i));
                     REQUIRE(eval.get_full_name() == "foo<T>::d_" + std::to_string(i));
 
-                    ++i;
                     if (eval.get_entity_type() != cpp_entity::expression_enum_value_t)
+                    {
+                        ++i;
                         // for some reason, under Windows the type is int...
                         continue;
+                    }
 
                     auto& exprval = dynamic_cast<const cpp_expression_enum_value&>(eval);
                     if (i == 1u)
@@ -303,6 +305,8 @@ TEST_CASE("cpp_enum", "[cpp]")
                         REQUIRE(exprval.get_value() == "T{}");
                     else
                         REQUIRE(false);
+
+                    ++i;
                 }
                 REQUIRE(i == 3u);
             }
