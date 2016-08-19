@@ -140,6 +140,13 @@ TEST_CASE("cpp_enum", "[cpp]")
             b_2,
             b_3 = -1
         };
+        
+        enum : unsigned
+        {
+            c_1,
+            c_2 = 5u,
+            c_3,
+        };
     )";
 
     auto tu = parse(p, "cpp_enum", code);
@@ -213,10 +220,49 @@ TEST_CASE("cpp_enum", "[cpp]")
 
             ++count;
         }
+        else if (t.get_name() == "")
+        {
+            REQUIRE(!t.is_scoped());
+            auto& underlying = t.get_underlying_type();
+            REQUIRE(underlying.get_name() == "unsigned");
+
+            auto i = 1u;
+            for (auto& val : t)
+            {
+                auto& eval = dynamic_cast<const cpp_enum_value&>(val);
+                REQUIRE(eval.get_name() == "c_" + std::to_string(i));
+                REQUIRE(eval.get_full_name() == "c_" + std::to_string(i));
+
+                // it is implementation defined which integer is used
+                auto value = val.get_entity_type() == cpp_entity::unsigned_enum_value_t ?
+                                 dynamic_cast<const cpp_unsigned_enum_value&>(val).get_value() :
+                                 dynamic_cast<const cpp_signed_enum_value&>(val).get_value();
+
+                if (i == 2u)
+                {
+                    REQUIRE(value == 5);
+                    REQUIRE(eval.is_explicitly_given());
+                }
+                else if (i == 3u)
+                {
+                    REQUIRE(value == 6);
+                    REQUIRE(!eval.is_explicitly_given());
+                }
+                else
+                {
+                    REQUIRE(value == i - 1);
+                    REQUIRE(!eval.is_explicitly_given());
+                }
+                ++i;
+            }
+            REQUIRE(i == 4u);
+
+            ++count;
+        }
         else
             REQUIRE(false);
     });
-    REQUIRE(count == 2u);
+    REQUIRE(count == 3u);
 }
 
 TEST_CASE("cpp_class", "[cpp]")

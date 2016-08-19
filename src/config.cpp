@@ -110,6 +110,7 @@ namespace
 compile_config::compile_config(cpp_standard standard, string commands_dir)
 : flags_{"-x", "c++", "-I", STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR)}
 {
+    (void)standards_initializer;
     // cmake sucks at string handling, so sometimes LIBCLANG_SYSTEM_INCLUDE_DIR isn't a string
     // so we need to stringify it
     // but if the argument was a string, libclang can't handle the double qoutes

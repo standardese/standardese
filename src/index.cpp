@@ -59,6 +59,7 @@ void index::register_entity(doc_entity entity) const
         {
             auto res = entities_.emplace(std::move(short_id), std::make_pair(true, entity)).second;
             assert(res);
+            (void)res;
         }
         else if (iter->second.first)
             // it was a short name

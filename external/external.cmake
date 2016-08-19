@@ -94,8 +94,7 @@ if((NOT CMARK_LIBRARY) OR (NOT CMARK_INCLUDE_DIR))
     message("Unable to find cmark, installing it myself...")
     execute_process(COMMAND git submodule update --init -- external/cmark
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    set(CMARK_TESTS OFF)
-    add_subdirectory(external/cmark ${CMAKE_CURRENT_BINARY_DIR}/cmark)
+    add_subdirectory(external/cmark ${CMAKE_CURRENT_BINARY_DIR}/cmark EXCLUDE_FROM_ALL)
     target_include_directories(libcmark_static PUBLIC
                                $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/cmark/src>
                                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/cmark/src>)

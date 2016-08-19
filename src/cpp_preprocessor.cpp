@@ -120,6 +120,7 @@ cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit&, cpp
     std::string name, args, rep;
     auto        predefined = parse_macro(cur, name, args, rep);
     assert(!predefined);
+    (void)predefined;
 
     return detail::make_cpp_ptr<cpp_macro_definition>(cur, parent, std::move(args), std::move(rep));
 }

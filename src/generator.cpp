@@ -172,6 +172,7 @@ md_ptr<md_document> md_document::make(std::string name)
 md_entity_ptr md_document::do_clone(const md_entity* parent) const
 {
     assert(!parent);
+    (void)parent;
 
     auto result = make(name_);
     for (auto& child : *this)
