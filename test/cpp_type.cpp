@@ -6,8 +6,10 @@
 #include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/cpp_type.hpp>
+#include <standardese/cpp_template.hpp>
 
 #include <catch.hpp>
+#include <clang-c/Index.h>
 
 #include "test_parser.hpp"
 
@@ -140,12 +142,24 @@ TEST_CASE("cpp_enum", "[cpp]")
             b_2,
             b_3 = -1
         };
-        
+
         enum : unsigned
         {
             c_1,
             c_2 = 5u,
             c_3,
+        };
+
+        template <typename T>
+        struct foo
+        {
+            enum d
+            {
+                d_1 = 1 + T{},
+                d_2 = 4,
+                d_3,
+                d_4 = T{}
+            };
         };
     )";
 
@@ -153,116 +167,157 @@ TEST_CASE("cpp_enum", "[cpp]")
 
     auto count = 0u;
     for_each(tu.get_file(), [&](const cpp_entity& e) {
-        auto& t = dynamic_cast<const cpp_enum&>(e);
-        REQUIRE(t.get_name() == t.get_full_name());
-
-        if (t.get_name() == "a")
+        if (e.get_entity_type() == cpp_entity::enum_t)
         {
-            REQUIRE(!t.is_scoped());
-            auto& underlying = t.get_underlying_type();
-            REQUIRE(underlying.get_name() == "");
+            auto& t = dynamic_cast<const cpp_enum&>(e);
+            REQUIRE(t.get_name() == t.get_full_name());
 
-            auto i = 1u;
-            for (auto& val : t)
+            if (t.get_name() == "a")
             {
-                auto& eval = dynamic_cast<const cpp_enum_value&>(val);
-                REQUIRE(eval.get_name() == "a_" + std::to_string(i));
-                REQUIRE(eval.get_full_name() == "a_" + std::to_string(i));
+                REQUIRE(!t.is_scoped());
+                auto& underlying = t.get_underlying_type();
+                REQUIRE(underlying.get_name() == "");
 
-                // it is implementation defined which integer is used
-                auto value = val.get_entity_type() == cpp_entity::unsigned_enum_value_t ?
-                                 dynamic_cast<const cpp_unsigned_enum_value&>(val).get_value() :
-                                 dynamic_cast<const cpp_signed_enum_value&>(val).get_value();
+                auto i = 1u;
+                for (auto& val : t)
+                {
+                    auto& eval = dynamic_cast<const cpp_enum_value&>(val);
+                    REQUIRE(eval.get_name() == "a_" + std::to_string(i));
+                    REQUIRE(eval.get_full_name() == "a_" + std::to_string(i));
 
-                if (i == 3u)
-                {
-                    REQUIRE(value == 5);
-                    REQUIRE(eval.is_explicitly_given());
+                    // it is implementation defined which integer is used
+                    auto value = val.get_entity_type() == cpp_entity::unsigned_enum_value_t ?
+                                     dynamic_cast<const cpp_unsigned_enum_value&>(val).get_value() :
+                                     dynamic_cast<const cpp_signed_enum_value&>(val).get_value();
+
+                    if (i == 3u)
+                    {
+                        REQUIRE(value == 5);
+                        REQUIRE(eval.is_explicitly_given());
+                    }
+                    else
+                    {
+                        REQUIRE(value == i - 1);
+                        REQUIRE(!eval.is_explicitly_given());
+                    }
+                    ++i;
                 }
-                else
-                {
-                    REQUIRE(value == i - 1);
-                    REQUIRE(!eval.is_explicitly_given());
-                }
-                ++i;
+                REQUIRE(i == 4u);
+
+                ++count;
             }
-            REQUIRE(i == 4u);
+            else if (t.get_name() == "b")
+            {
+                REQUIRE(t.is_scoped());
+                auto& underlying = t.get_underlying_type();
+                REQUIRE(underlying.get_name() == "int");
+                REQUIRE(underlying.get_full_name() == "int");
 
-            ++count;
+                auto i = 1u;
+                for (auto& val : t)
+                {
+                    auto& eval = dynamic_cast<const cpp_signed_enum_value&>(val);
+                    REQUIRE(eval.get_name() == "b_" + std::to_string(i));
+                    REQUIRE(eval.get_full_name() == "b::b_" + std::to_string(i));
+
+                    if (i == 3u)
+                    {
+                        REQUIRE(eval.get_value() == -1);
+                        REQUIRE(eval.is_explicitly_given());
+                    }
+                    else
+                    {
+                        REQUIRE(eval.get_value() == i - 1);
+                        REQUIRE(!eval.is_explicitly_given());
+                    }
+                    ++i;
+                }
+                REQUIRE(i == 4u);
+
+                ++count;
+            }
+            else if (t.get_name() == "")
+            {
+                REQUIRE(!t.is_scoped());
+                auto& underlying = t.get_underlying_type();
+                REQUIRE(underlying.get_name() == "unsigned");
+
+                auto i = 1u;
+                for (auto& eval : t)
+                {
+                    REQUIRE(eval.get_name() == "c_" + std::to_string(i));
+                    REQUIRE(eval.get_full_name() == "c_" + std::to_string(i));
+
+                    // it is implementation defined which integer is used
+                    auto value = dynamic_cast<const cpp_unsigned_enum_value&>(eval).get_value();
+                    if (i == 2u)
+                    {
+                        REQUIRE(value == 5);
+                        REQUIRE(eval.is_explicitly_given());
+                    }
+                    else if (i == 3u)
+                    {
+                        REQUIRE(value == 6);
+                        REQUIRE(!eval.is_explicitly_given());
+                    }
+                    else
+                    {
+                        REQUIRE(value == i - 1);
+                        REQUIRE(!eval.is_explicitly_given());
+                    }
+                    ++i;
+                }
+                REQUIRE(i == 4u);
+
+                ++count;
+            }
+            else
+                REQUIRE(false);
         }
-        else if (t.get_name() == "b")
+        else if (e.get_entity_type() == cpp_entity::class_template_t)
         {
-            REQUIRE(t.is_scoped());
-            auto& underlying = t.get_underlying_type();
-            REQUIRE(underlying.get_name() == "int");
-            REQUIRE(underlying.get_full_name() == "int");
-
-            auto i = 1u;
-            for (auto& val : t)
+            auto c = get_class(e);
+            REQUIRE(c);
+            for (auto& child : *c)
             {
-                auto& eval = dynamic_cast<const cpp_signed_enum_value&>(val);
-                REQUIRE(eval.get_name() == "b_" + std::to_string(i));
-                REQUIRE(eval.get_full_name() == "b::b_" + std::to_string(i));
+                ++count;
+                REQUIRE(child.get_name() == "d");
+                auto& t = dynamic_cast<const cpp_enum&>(child);
+                REQUIRE(!t.is_scoped());
+                auto& underlying = t.get_underlying_type();
+                REQUIRE(underlying.get_name() == "");
+                REQUIRE(underlying.get_cxtype().kind == CXType_Dependent);
 
-                if (i == 3u)
+                auto i = 1u;
+                for (auto& eval : t)
                 {
-                    REQUIRE(eval.get_value() == -1);
-                    REQUIRE(eval.is_explicitly_given());
+                    REQUIRE(eval.get_name() == "d_" + std::to_string(i));
+                    REQUIRE(eval.get_full_name() == "foo<T>::d_" + std::to_string(i));
+                    if (i != 3u)
+                        REQUIRE(eval.is_explicitly_given());
+
+                    REQUIRE(eval.get_entity_type() == cpp_entity::expression_enum_value_t);
+                    auto& exprval = dynamic_cast<const cpp_expression_enum_value&>(eval);
+
+                    if (i == 1u)
+                        REQUIRE(exprval.get_value() == "1 + T{}");
+                    else if (i == 2u)
+                        REQUIRE(exprval.get_value() == "4");
+                    else if (i == 3u)
+                        REQUIRE(exprval.get_value() == "");
+                    else if (i == 4u)
+                        REQUIRE(exprval.get_value() == "T{}");
+                    else
+                        REQUIRE(false);
+                    ++i;
                 }
-                else
-                {
-                    REQUIRE(eval.get_value() == i - 1);
-                    REQUIRE(!eval.is_explicitly_given());
-                }
-                ++i;
+                REQUIRE(i == 5u);
             }
-            REQUIRE(i == 4u);
-
-            ++count;
-        }
-        else if (t.get_name() == "")
-        {
-            REQUIRE(!t.is_scoped());
-            auto& underlying = t.get_underlying_type();
-            REQUIRE(underlying.get_name() == "unsigned");
-
-            auto i = 1u;
-            for (auto& val : t)
-            {
-                auto& eval = dynamic_cast<const cpp_enum_value&>(val);
-                REQUIRE(eval.get_name() == "c_" + std::to_string(i));
-                REQUIRE(eval.get_full_name() == "c_" + std::to_string(i));
-
-                // it is implementation defined which integer is used
-                auto value = val.get_entity_type() == cpp_entity::unsigned_enum_value_t ?
-                                 dynamic_cast<const cpp_unsigned_enum_value&>(val).get_value() :
-                                 dynamic_cast<const cpp_signed_enum_value&>(val).get_value();
-
-                if (i == 2u)
-                {
-                    REQUIRE(value == 5);
-                    REQUIRE(eval.is_explicitly_given());
-                }
-                else if (i == 3u)
-                {
-                    REQUIRE(value == 6);
-                    REQUIRE(!eval.is_explicitly_given());
-                }
-                else
-                {
-                    REQUIRE(value == i - 1);
-                    REQUIRE(!eval.is_explicitly_given());
-                }
-                ++i;
-            }
-            REQUIRE(i == 4u);
-
-            ++count;
         }
         else
             REQUIRE(false);
     });
-    REQUIRE(count == 3u);
+    REQUIRE(count == 4u);
 }
 
 TEST_CASE("cpp_class", "[cpp]")

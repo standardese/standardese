@@ -59,7 +59,8 @@ namespace
 
         case cpp_entity::enum_t:
             assert(ptr->get_entity_type() == cpp_entity::signed_enum_value_t
-                   || ptr->get_entity_type() == cpp_entity::unsigned_enum_value_t);
+                   || ptr->get_entity_type() == cpp_entity::unsigned_enum_value_t
+                   || ptr->get_entity_type() == cpp_entity::expression_enum_value_t);
             static_cast<cpp_enum&>(container).add_enum_value(
                 detail::downcast<cpp_enum_value>(std::move(ptr)));
             break;

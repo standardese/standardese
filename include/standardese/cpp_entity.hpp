@@ -53,6 +53,7 @@ namespace standardese
             enum_t,
             signed_enum_value_t,
             unsigned_enum_value_t,
+            expression_enum_value_t,
 
             variable_t,
             member_variable_t,
@@ -151,10 +152,10 @@ namespace standardese
             return get_full_name();
         }
 
-        cpp_cursor         cursor_;
-        cpp_entity_ptr     next_;
-        const cpp_entity*  parent_;
-        type               t_;
+        cpp_cursor        cursor_;
+        cpp_entity_ptr    next_;
+        const cpp_entity* parent_;
+        type              t_;
 
         template <typename T, class Base, template <typename> class Ptr>
         friend class detail::entity_container;

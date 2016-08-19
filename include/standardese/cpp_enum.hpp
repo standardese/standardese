@@ -85,6 +85,30 @@ namespace standardese
         friend detail::cpp_ptr_access;
     };
 
+    class cpp_expression_enum_value final : public cpp_enum_value
+    {
+    public:
+        static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return cpp_entity::expression_enum_value_t;
+        }
+
+        const string& get_value() const STANDARDESE_NOEXCEPT
+        {
+            return value_;
+        }
+
+    private:
+        cpp_expression_enum_value(cpp_cursor cur, const cpp_entity& parent, string value)
+        : cpp_enum_value(get_entity_type(), cur, parent, !value.empty()), value_(std::move(value))
+        {
+        }
+
+        string value_;
+
+        friend detail::cpp_ptr_access;
+    };
+
     class cpp_enum final : public cpp_type, public cpp_entity_container<cpp_enum_value>
     {
     public:

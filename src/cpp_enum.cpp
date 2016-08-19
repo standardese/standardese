@@ -9,6 +9,7 @@
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/translation_unit.hpp>
+#include <clang-c/Index.h>
 
 using namespace standardese;
 
@@ -45,23 +46,47 @@ cpp_ptr<cpp_enum_value> cpp_enum_value::parse(translation_unit& tu, cpp_cursor c
 {
     assert(clang_getCursorKind(cur) == CXCursor_EnumConstantDecl);
 
-    auto is_explicit = is_explicit_value(tu, cur);
-
     auto type =
         clang_getCanonicalType(clang_getEnumDeclIntegerType(clang_getCursorSemanticParent(cur)));
     if (is_signed_integer(type))
     {
-        auto value = clang_getEnumConstantDeclValue(cur);
+        auto is_explicit = is_explicit_value(tu, cur);
+        auto value       = clang_getEnumConstantDeclValue(cur);
         return detail::make_cpp_ptr<cpp_signed_enum_value>(cur, parent, value, is_explicit);
     }
     else if (is_unsigned_integer(type))
     {
-        auto value = clang_getEnumConstantDeclUnsignedValue(cur);
+        auto is_explicit = is_explicit_value(tu, cur);
+        auto value       = clang_getEnumConstantDeclUnsignedValue(cur);
         return detail::make_cpp_ptr<cpp_unsigned_enum_value>(cur, parent, value, is_explicit);
     }
+    else
+    {
+        assert(type.kind == CXType_Dependent);
+        detail::tokenizer tokenizer(tu, cur);
+        auto              stream = detail::make_stream(tokenizer);
 
-    assert(!"enum type is neither signed nor unsigned");
-    return nullptr;
+        detail::skip(stream, cur, {detail::parse_name(cur).c_str()});
+        if (!detail::skip_if_token(stream, "="))
+            return detail::make_cpp_ptr<cpp_expression_enum_value>(cur, parent, "");
+
+        std::string result;
+        for (auto bracket_count = 0; !stream.done() && stream.peek().get_value() != ","
+                                     && (bracket_count != 0 || stream.peek().get_value() != "}");
+             stream.bump())
+        {
+            auto& str = stream.peek().get_value();
+            if (str == "{")
+                ++bracket_count;
+            else if (str == "}")
+                --bracket_count;
+
+            result += str.c_str();
+        }
+        detail::erase_trailing_ws(result);
+
+        return detail::make_cpp_ptr<cpp_expression_enum_value>(cur, parent, result);
+    }
 }
 
 cpp_name cpp_enum_value::get_scope() const

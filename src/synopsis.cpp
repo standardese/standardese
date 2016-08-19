@@ -191,6 +191,14 @@ namespace
             out << " = " << e.get_value();
     }
 
+    void do_write_synopsis(const parser&, code_block_writer& out,
+                           const cpp_expression_enum_value& e)
+    {
+        out << e.get_name();
+        if (e.is_explicitly_given())
+            out << " = " << e.get_value();
+    }
+
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_enum& e,
                            bool top_level)
     {
@@ -563,6 +571,7 @@ namespace
 
             STANDARDESE_DETAIL_HANDLE(signed_enum_value)
             STANDARDESE_DETAIL_HANDLE(unsigned_enum_value)
+            STANDARDESE_DETAIL_HANDLE(expression_enum_value)
             STANDARDESE_DETAIL_HANDLE(enum)
 
             STANDARDESE_DETAIL_HANDLE(base_class)
