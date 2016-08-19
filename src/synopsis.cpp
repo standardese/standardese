@@ -206,7 +206,7 @@ namespace
         if (e.is_scoped())
             out << "class ";
         out << e.get_name();
-        if (top_level)
+        if (e.get_name().empty() || top_level)
         {
             if (!e.get_underlying_type().get_name().empty())
                 out << newl << ": " << detail::get_ref_name(par, e.get_underlying_type());
@@ -249,11 +249,11 @@ namespace
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_class& c,
                            bool top_level, const cpp_name& override_name)
     {
-        detail::write_class_name(out, override_name.empty() ? c.get_name() : override_name,
-                                 c.get_class_type());
+        auto name = override_name.empty() ? c.get_name() : override_name;
+        detail::write_class_name(out, name, c.get_class_type());
 
         auto& blacklist = par.get_output_config().get_blacklist();
-        if (top_level)
+        if (name.empty() || top_level)
         {
             if (c.is_final())
                 out << " final";
