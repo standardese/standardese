@@ -112,12 +112,13 @@ cpp_name cpp_entity::get_name() const
 
 cpp_name cpp_entity::get_scope() const
 {
-    if (!parent_ || parent_->get_entity_type() == file_t)
+    auto parent = get_semantic_parent();
+    if (!parent || parent->get_entity_type() == file_t)
         return "";
     else if (parent_->get_entity_type() == language_linkage_t)
         return parent_->get_scope();
 
-    auto name = parent_->get_full_name();
+    auto name = parent->get_full_name();
     // remove trailing ::, if any
     return cpp_name(name.c_str(), name.end()[-1] == ':' ? name.length() - 2 : name.length());
 }

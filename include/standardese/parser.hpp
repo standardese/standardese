@@ -40,7 +40,7 @@ namespace standardese
 
             void add_file(cpp_entity_ptr e) STANDARDESE_NOEXCEPT
             {
-                add_entity(std::move(e));
+                add_entity(nullptr, std::move(e));
             }
         };
 

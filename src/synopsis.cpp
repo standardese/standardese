@@ -68,7 +68,7 @@ bool entity_blacklist::is_blacklisted(documentation_t, const cpp_entity& e) cons
 
 bool entity_blacklist::is_blacklisted(synopsis_t, const cpp_entity& e) const
 {
-    for (auto cur = &e; cur; cur = cur->has_parent() ? &cur->get_parent() : nullptr)
+    for (auto cur = &e; cur; cur = cur->get_semantic_parent())
         if (::is_blacklisted(synopsis_blacklist_, *cur))
             return true;
 
@@ -315,11 +315,7 @@ namespace
     //=== variables ===//
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_variable& v)
     {
-        if (v.get_parent().get_entity_type() == cpp_entity::class_t
-            || v.get_parent().get_entity_type() == cpp_entity::class_template_t
-            || v.get_parent().get_entity_type() == cpp_entity::class_template_full_specialization_t
-            || v.get_parent().get_entity_type()
-                   == cpp_entity::class_template_partial_specialization_t)
+        if (v.get_ast_parent().get_entity_type() == cpp_entity::class_t)
             out << "static ";
 
         if (v.is_thread_local())

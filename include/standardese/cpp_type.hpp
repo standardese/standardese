@@ -71,14 +71,19 @@ namespace standardese
         static cpp_ptr<cpp_type_alias> parse(translation_unit& tu, cpp_cursor cur,
                                              const cpp_entity& parent);
 
-        cpp_name get_scope() const override;
-
         const cpp_type_ref& get_target() const STANDARDESE_NOEXCEPT
         {
             return target_;
         }
 
+        bool is_templated() const STANDARDESE_NOEXCEPT;
+
     private:
+        bool is_semantic_parent() const STANDARDESE_NOEXCEPT override
+        {
+            return !is_templated();
+        }
+
         cpp_type_alias(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref target)
         : cpp_type(get_entity_type(), cur, parent), target_(target)
         {

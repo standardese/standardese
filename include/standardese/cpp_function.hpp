@@ -95,7 +95,7 @@ namespace standardese
 
         void add_parameter(cpp_ptr<cpp_function_parameter> param)
         {
-            cpp_entity_container<cpp_function_parameter>::add_entity(std::move(param));
+            cpp_entity_container<cpp_function_parameter>::add_entity(this, std::move(param));
         }
 
         const cpp_entity_container<cpp_function_parameter>& get_parameters() const
@@ -103,8 +103,6 @@ namespace standardese
         {
             return *this;
         }
-
-        cpp_name get_scope() const override;
 
         bool is_variadic() const STANDARDESE_NOEXCEPT
         {
@@ -143,6 +141,8 @@ namespace standardese
         /// i.e. the parameter types and everything else that influences overload resolution.
         virtual cpp_name get_signature() const = 0;
 
+        bool is_templated() const STANDARDESE_NOEXCEPT;
+
     protected:
         cpp_function_base(cpp_entity::type t, cpp_cursor cur, const cpp_entity& parent,
                           cpp_function_info info)
@@ -154,6 +154,11 @@ namespace standardese
 
     private:
         cpp_name do_get_unique_name() const override;
+
+        bool is_semantic_parent() const STANDARDESE_NOEXCEPT override
+        {
+            return !is_templated();
+        }
 
         cpp_function_info info_;
     };

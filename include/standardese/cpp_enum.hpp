@@ -122,7 +122,7 @@ namespace standardese
 
         void add_enum_value(cpp_ptr<cpp_enum_value> value)
         {
-            cpp_entity_container<cpp_enum_value>::add_entity(std::move(value));
+            cpp_entity_container<cpp_enum_value>::add_entity(this, std::move(value));
         }
 
         bool is_scoped() const STANDARDESE_NOEXCEPT

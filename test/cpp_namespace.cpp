@@ -52,6 +52,7 @@ TEST_CASE("cpp_language_linkage", "[cpp]")
                 {
                     auto valid = child.get_name() == "a" || child.get_name() == "b";
                     REQUIRE(valid);
+                    REQUIRE(child.get_full_name() == child.get_name());
                 }
             }
             else if (detail::parse_comment(lang.get_cursor()) == "/// b")
@@ -62,6 +63,7 @@ TEST_CASE("cpp_language_linkage", "[cpp]")
                 {
                     auto valid = child.get_name() == "d" || child.get_name() == "e";
                     REQUIRE(valid);
+                    REQUIRE(child.get_full_name() == child.get_name());
                 }
             }
             else

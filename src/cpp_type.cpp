@@ -92,11 +92,8 @@ cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit& tu, cpp_cursor c
     return detail::make_cpp_ptr<cpp_type_alias>(cur, parent, cpp_type_ref(name, type));
 }
 
-cpp_name cpp_type_alias::get_scope() const
+bool cpp_type_alias::is_templated() const STANDARDESE_NOEXCEPT
 {
-    assert(has_parent());
-    if (get_parent().get_entity_type() == cpp_entity::alias_template_t)
-        // parent is an alias template, so it doesn't add a new scope
-        return get_parent().get_scope();
-    return cpp_entity::get_scope();
+    assert(has_ast_parent());
+    return get_ast_parent().get_entity_type() == cpp_entity::alias_template_t;
 }

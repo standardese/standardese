@@ -40,7 +40,7 @@ namespace standardese
 
         void add_entity(cpp_entity_ptr e)
         {
-            cpp_entity_container<cpp_entity>::add_entity(std::move(e));
+            cpp_entity_container<cpp_entity>::add_entity(this, std::move(e));
         }
 
         cpp_name get_name() const override

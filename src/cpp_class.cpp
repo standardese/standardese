@@ -92,9 +92,12 @@ const cpp_class* cpp_base_class::get_class(const cpp_entity_registry& registry) 
     return c;
 }
 
-cpp_name cpp_base_class::do_get_unique_name() const
+const cpp_entity* cpp_base_class::do_get_semantic_parent() const STANDARDESE_NOEXCEPT
 {
-    return std::string(get_parent().get_unique_name().c_str()) + "::" + get_name().c_str();
+    assert(has_ast_parent());
+    auto c = standardese::get_class(get_ast_parent());
+    assert(c);
+    return c->is_templated() ? &c->get_ast_parent() : c;
 }
 
 namespace
@@ -220,27 +223,11 @@ cpp_ptr<cpp_class> cpp_class::parse(translation_unit& tu, cpp_cursor cur, const 
     return detail::make_cpp_ptr<cpp_class>(cur, parent, ctype, is_final);
 }
 
-namespace
+bool cpp_class::is_templated() const STANDARDESE_NOEXCEPT
 {
-    bool is_actually_template(const cpp_entity& e) STANDARDESE_NOEXCEPT
-    {
-        assert(e.has_parent());
-        // e actually is a template iff parent is template and same cursor
-        return is_type_template(e.get_parent().get_entity_type())
-               && e.get_parent().get_cursor() == e.get_cursor();
-    }
-}
-
-cpp_name cpp_class::get_scope() const
-{
-    // if template, don't add a new scope
-    return is_actually_template(*this) ? get_parent().get_scope() : cpp_entity::get_scope();
-}
-
-cpp_name cpp_class::do_get_unique_name() const
-{
-    // if template, return unique name of template
-    return is_actually_template(*this) ? get_parent().get_unique_name() : get_full_name();
+    assert(has_ast_parent());
+    return is_type_template(get_ast_parent().get_entity_type())
+           && get_ast_parent().get_cursor() == get_cursor();
 }
 
 bool standardese::is_base_of(const cpp_entity_registry& registry, const cpp_class& base,

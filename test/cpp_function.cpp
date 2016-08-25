@@ -61,6 +61,8 @@ decltype(auto) i();)";
         {
             auto& func = dynamic_cast<const cpp_function&>(e);
             REQUIRE(func.get_name() == func.get_full_name());
+            REQUIRE(std::string(func.get_full_name().c_str()) + func.get_signature().c_str()
+                    == func.get_unique_name());
 
             if (func.get_name() == "a")
             {
@@ -218,6 +220,9 @@ struct derived : base
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
+                REQUIRE(std::string("base::") + func.get_name().c_str() == func.get_full_name());
+                REQUIRE(std::string(func.get_full_name().c_str()) + func.get_signature().c_str()
+                        == func.get_unique_name());
 
                 if (func.get_name() == "j")
                 {
@@ -284,6 +289,9 @@ struct derived : base
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
+                REQUIRE(std::string("derived::") + func.get_name().c_str() == func.get_full_name());
+                REQUIRE(std::string(func.get_full_name().c_str()) + func.get_signature().c_str()
+                        == func.get_unique_name());
 
                 if (func.get_name() == "k")
                 {
@@ -366,6 +374,9 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
             auto& op = dynamic_cast<const cpp_conversion_op&>(e);
             INFO(op.get_name().c_str());
             REQUIRE(no_parameters(op) == 0u);
+            REQUIRE(std::string("foo::") + op.get_name().c_str() == op.get_full_name());
+            REQUIRE(std::string(op.get_full_name().c_str()) + op.get_signature().c_str()
+                    == op.get_unique_name());
 
             if (op.get_name() == "operator int")
             {
@@ -463,6 +474,9 @@ TEST_CASE("cpp_constructor", "[cpp]")
         {
             auto& ctor = dynamic_cast<const cpp_constructor&>(e);
             REQUIRE(!ctor.is_variadic());
+            REQUIRE(std::string("foo::") + ctor.get_name().c_str() == ctor.get_full_name());
+            REQUIRE(std::string(ctor.get_full_name().c_str()) + ctor.get_signature().c_str()
+                    == ctor.get_unique_name());
 
             if (detail::parse_comment(ctor.get_cursor()) == "/// a")
             {
@@ -574,6 +588,8 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(!dtor.explicit_noexcept());
                 REQUIRE(dtor.get_definition() == cpp_function_definition_defaulted);
                 REQUIRE(dtor.get_signature() == "()");
+                REQUIRE(dtor.get_full_name() == "a::~a");
+                REQUIRE(dtor.get_unique_name() == "a::~a()");
                 ++count;
             }
         }
@@ -589,6 +605,8 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(dtor.get_virtual() == cpp_virtual_none);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_deleted);
                 REQUIRE(dtor.get_signature() == "()");
+                REQUIRE(dtor.get_full_name() == "b::~b");
+                REQUIRE(dtor.get_unique_name() == "b::~b()");
                 ++count;
             }
         }
@@ -604,6 +622,8 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(dtor.get_virtual() == cpp_virtual_none);
                 REQUIRE(dtor.get_definition() == cpp_function_declaration);
                 REQUIRE(dtor.get_signature() == "()");
+                REQUIRE(dtor.get_full_name() == "c::~c");
+                REQUIRE(dtor.get_unique_name() == "c::~c()");
                 ++count;
             }
         }
@@ -619,6 +639,8 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(dtor.get_virtual() == cpp_virtual_pure);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_pure);
                 REQUIRE(dtor.get_signature() == "()");
+                REQUIRE(dtor.get_full_name() == "d::~d");
+                REQUIRE(dtor.get_unique_name() == "d::~d()");
                 ++count;
             }
         }
@@ -637,6 +659,8 @@ TEST_CASE("cpp_destructor", "[cpp]")
                 REQUIRE(dtor.get_virtual() == cpp_virtual_overriden);
                 REQUIRE(dtor.get_definition() == cpp_function_definition_normal);
                 REQUIRE(dtor.get_signature() == "()");
+                REQUIRE(dtor.get_full_name() == "e::~e");
+                REQUIRE(dtor.get_unique_name() == "e::~e()");
                 ++count;
             }
         }

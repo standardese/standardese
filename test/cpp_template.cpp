@@ -766,6 +766,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
                     if (param.get_name() == "A")
                     {
                         ++size;
+                        REQUIRE(param.get_unique_name() == "a<A>.A");
                         REQUIRE(dynamic_cast<const cpp_template_type_parameter*>(&param)
                                 != nullptr);
                         REQUIRE(!param.is_variadic());
@@ -788,6 +789,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
                     if (param.get_name() == "A")
                     {
                         ++size;
+                        REQUIRE(param.get_unique_name() == "b<A, B...>.A");
                         REQUIRE(dynamic_cast<const cpp_non_type_template_parameter*>(&param)
                                 != nullptr);
                         REQUIRE(!param.is_variadic());
@@ -795,6 +797,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
                     else if (param.get_name() == "B")
                     {
                         ++size;
+                        REQUIRE(param.get_unique_name() == "b<A, B...>.B");
                         REQUIRE(dynamic_cast<const cpp_template_type_parameter*>(&param)
                                 != nullptr);
                         REQUIRE(param.is_variadic());
@@ -817,6 +820,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
                     if (param.get_name() == "A")
                     {
                         ++size;
+                        REQUIRE(param.get_unique_name() == "c<A>.A");
                         REQUIRE(dynamic_cast<const cpp_non_type_template_parameter*>(&param)
                                 != nullptr);
                         REQUIRE(!param.is_variadic());
@@ -846,6 +850,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
                     if (param.get_name() == "A")
                     {
                         ++size;
+                        REQUIRE(param.get_unique_name() == "d<A>.A");
                         REQUIRE(dynamic_cast<const cpp_non_type_template_parameter*>(&param)
                                 != nullptr);
                         REQUIRE(!param.is_variadic());

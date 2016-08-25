@@ -104,33 +104,17 @@ namespace
     const cpp_entity& get_inline_parent(const cpp_entity& e)
     {
         if (e.get_entity_type() == cpp_entity::function_parameter_t)
-        {
-            assert(e.has_parent());
-
-            auto& func = e.get_parent();
-            assert(is_function_like(func.get_entity_type()) && func.has_parent());
-            if (is_function_template(func.get_parent().get_entity_type()))
-                return func.get_parent();
-            return func;
-        }
+            return *e.get_semantic_parent();
         else if (e.get_entity_type() == cpp_entity::template_type_parameter_t
                  || e.get_entity_type() == cpp_entity::non_type_template_parameter_t
                  || e.get_entity_type() == cpp_entity::template_template_parameter_t)
         {
-            assert(e.has_parent());
-
-            auto& templ = e.get_parent();
-            assert(is_template(templ.get_entity_type()));
-            return templ;
+            auto templ = e.get_semantic_parent();
+            assert(templ && is_template(templ->get_entity_type()));
+            return *templ;
         }
         else if (e.get_entity_type() == cpp_entity::base_class_t)
-        {
-            assert(e.has_parent());
-
-            auto& c = e.get_parent();
-            assert(c.get_entity_type() == cpp_entity::class_t);
-            return c;
-        }
+            return *e.get_semantic_parent();
 
         return e;
     }

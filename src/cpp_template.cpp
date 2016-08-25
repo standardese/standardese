@@ -34,8 +34,9 @@ cpp_ptr<cpp_template_parameter> cpp_template_parameter::try_parse(translation_un
 
 cpp_name cpp_template_parameter::do_get_unique_name() const
 {
-    assert(has_parent());
-    return std::string(get_parent().get_unique_name().c_str()) + "." + get_name().c_str();
+    auto parent = get_semantic_parent();
+    assert(parent);
+    return std::string(parent->get_unique_name().c_str()) + "." + get_name().c_str();
 }
 
 cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translation_unit& tu,

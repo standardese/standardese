@@ -85,7 +85,7 @@ namespace standardese
         const cpp_class* get_class(const cpp_entity_registry& registry) const STANDARDESE_NOEXCEPT;
 
     private:
-        cpp_name do_get_unique_name() const override;
+        const cpp_entity* do_get_semantic_parent() const STANDARDESE_NOEXCEPT;
 
         cpp_base_class(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref type,
                        cpp_access_specifier_t a, bool virt)
@@ -126,10 +126,11 @@ namespace standardese
         void add_entity(cpp_entity_ptr e)
         {
             if (e->get_entity_type() == cpp_entity::base_class_t)
-                cpp_entity_container<cpp_base_class>::add_entity(
-                    detail::downcast<cpp_base_class>(std::move(e)));
+                cpp_entity_container<cpp_base_class>::add_entity(this,
+                                                                 detail::downcast<cpp_base_class>(
+                                                                     std::move(e)));
             else
-                cpp_entity_container<cpp_entity>::add_entity(std::move(e));
+                cpp_entity_container<cpp_entity>::add_entity(this, std::move(e));
         }
 
         cpp_entity_container<cpp_entity>::const_iterator begin() const STANDARDESE_NOEXCEPT
@@ -147,8 +148,6 @@ namespace standardese
             return cpp_entity_container<cpp_entity>::empty();
         }
 
-        cpp_name get_scope() const override;
-
         const cpp_entity_container<cpp_base_class>& get_bases() const STANDARDESE_NOEXCEPT
         {
             return *this;
@@ -164,8 +163,13 @@ namespace standardese
             return final_;
         }
 
+        bool is_templated() const STANDARDESE_NOEXCEPT;
+
     private:
-        cpp_name do_get_unique_name() const override;
+        bool is_semantic_parent() const STANDARDESE_NOEXCEPT override
+        {
+            return !is_templated();
+        }
 
         cpp_class(cpp_cursor cur, const cpp_entity& parent, cpp_class_type t, bool is_final)
         : cpp_type(get_entity_type(), cur, parent), type_(t), final_(is_final)

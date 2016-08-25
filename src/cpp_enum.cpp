@@ -91,10 +91,10 @@ cpp_ptr<cpp_enum_value> cpp_enum_value::parse(translation_unit& tu, cpp_cursor c
 
 cpp_name cpp_enum_value::get_scope() const
 {
-    if (static_cast<const cpp_enum&>(get_parent()).is_scoped())
+    if (static_cast<const cpp_enum&>(get_ast_parent()).is_scoped())
         return cpp_entity::get_scope();
     // don't append parent name if enum isn't scoped
-    return get_parent().get_scope();
+    return get_ast_parent().get_scope();
 }
 
 namespace
