@@ -32,6 +32,8 @@ md_entity& md_comment::add_entity(md_entity_ptr ptr)
         if (par.get_section_type() == section_type::brief)
         {
             // add all children to brief
+            if (!get_brief().empty())
+                get_brief().add_entity(md_soft_break::make(get_brief()));
             for (auto& child : par)
                 get_brief().add_entity(child.clone(get_brief()));
             return get_brief();
@@ -624,6 +626,8 @@ namespace
 
     void merge(md_paragraph& last_paragraph, const md_paragraph& cur_paragraph)
     {
+        if (!last_paragraph.empty())
+            last_paragraph.add_entity(md_soft_break::make(last_paragraph));
         for (auto& child : cur_paragraph)
             last_paragraph.add_entity(child.clone(last_paragraph));
     }
@@ -658,7 +662,14 @@ namespace
                     if (p.get_comment_config()
                             .get_implicit_paragraph() // only merge if implicit paragraph
                         && should_merge(last_paragraph, last_section, paragraph.get_section_type()))
+                    {
+                        assert(paragraph.begin()->get_entity_type() == md_entity::text_t);
+                        auto& text = static_cast<md_text&>(*paragraph.begin());
+                        assert(text.get_string()[0] == ' ');
+                        text.set_string(std::string(text.get_string() + 1).c_str());
+
                         merge(*last_paragraph, paragraph);
+                    }
                     else
                     {
                         last_paragraph = &paragraph;

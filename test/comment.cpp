@@ -236,9 +236,11 @@ C
         auto& comment = parse_comment(p, R"(/**
 \effects A
 \effects A
+\brief E
 \requires B
 C
 \details D
+\brief E
 */)");
 
         auto count = 0u;
@@ -248,7 +250,7 @@ C
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
             INFO('"' + get_text(paragraph) + '"');
 
-            if (get_text(paragraph) == " A A")
+            if (get_text(paragraph) == " A\nA")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::effects);
@@ -269,9 +271,13 @@ C
                 REQUIRE(paragraph.get_section_type() == section_type::details);
             }
             else
+            {
+                ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::brief);
+                REQUIRE(get_text(paragraph) == "E\nE");
+            }
         }
-        REQUIRE(count == 4u);
+        REQUIRE(count == 5u);
     }
     SECTION("commands")
     {
@@ -293,36 +299,6 @@ C
             ++count;
         }
         REQUIRE(count == 1u);
-    }
-    SECTION("implicit paragraph")
-    {
-        p.get_comment_config().set_implicit_paragraph(true);
-
-        auto& comment = parse_comment(p, R"(
-/// \effects A
-/// \effects A
-/// \requires B)");
-
-        auto count = 0u;
-        for (auto& child : comment.get_content())
-        {
-            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
-            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
-
-            if (get_text(paragraph) == " A A")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::effects);
-            }
-            else if (get_text(paragraph) == " B")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::requires);
-            }
-            else
-                REQUIRE(paragraph.get_section_type() == section_type::brief);
-        }
-        REQUIRE(count == 2u);
     }
 }
 
