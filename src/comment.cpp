@@ -655,7 +655,9 @@ namespace
                         // only reset here, on the first paragraph not kept
                         first = false;
 
-                    if (should_merge(last_paragraph, last_section, paragraph.get_section_type()))
+                    if (p.get_comment_config()
+                            .get_implicit_paragraph() // only merge if implicit paragraph
+                        && should_merge(last_paragraph, last_section, paragraph.get_section_type()))
                         merge(*last_paragraph, paragraph);
                     else
                     {

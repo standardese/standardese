@@ -331,22 +331,19 @@ They are not labeled in the output.
 
 Unlike for a *command* a *section* paragraph is included in the output.
 As such the rest of the paragraph won't be parsed for further sections.
-Any `brief` paragraphs will be merged together,
-as do two adjacent paragraphs using the same *section*, unless that section is `details`:
+Any `brief` paragraphs will be merged together
+and if the option `--comment.implicit_paragraph` is `true` two adjacent paragraphs using the same *section* will be merged as well, unless that section is `details`:
 
 ```cpp
 /// \brief This is a brief paragraph.
-///
 /// \effects This is an effects paragraph.
-///
 /// \effects This is the same effects paragraph.
-///
 /// \brief And this is still the same brief paragraph.
-///
 /// \details But this is one details paragraph.
-///
 /// \details And this is a different details paragraph.
 ```
+
+* To clarify: If the implicit paragraph isn't enabled, only the `brief` section will be merged. *
 
 If you don't specify a section for a paragraph, the first paragraph will be implictly `brief`, all others implictly `details`.
 

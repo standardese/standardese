@@ -232,15 +232,12 @@ C
     }
     SECTION("merging")
     {
+        p.get_comment_config().set_implicit_paragraph(true);
         auto& comment = parse_comment(p, R"(/**
 \effects A
-
 \effects A
-
 \requires B
-
 C
-
 \details D
 */)");
 
