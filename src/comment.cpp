@@ -270,7 +270,7 @@ namespace
 
     using md_node = detail::wrapper<cmark_node*, node_deleter>;
 
-    md_node parse_document(const parser& p, const string& raw_comment)
+    md_node parse_document(const parser&, const string& raw_comment)
     {
         struct parser_deleter
         {
@@ -283,23 +283,7 @@ namespace
         using md_parser = detail::wrapper<cmark_parser*, parser_deleter>;
 
         md_parser parser(cmark_parser_new(CMARK_OPT_NORMALIZE));
-
-        std::string cur;
-        for (auto c : raw_comment)
-        {
-            if (c == '\n')
-            {
-                cur += '\n';
-                if (p.get_comment_config().get_implicit_paragraph())
-                    cur += '\n'; // add empty newline
-                cmark_parser_feed(parser.get(), cur.c_str(), cur.length());
-                cur.clear();
-            }
-            else
-                cur += c;
-        }
-        cmark_parser_feed(parser.get(), cur.c_str(), cur.length());
-
+        cmark_parser_feed(parser.get(), raw_comment.c_str(), raw_comment.length());
         return cmark_parser_finish(parser.get());
     }
 
@@ -354,16 +338,27 @@ namespace
                     auto entity = md_entity::try_parse(node, *stack.top());
                     auto parent = stack.top();
 
+                    // terminate paragraph if needed
+                    if (p.get_comment_config().get_implicit_paragraph()
+                        && (entity->get_entity_type() == md_entity::soft_break_t
+                            || entity->get_entity_type() == md_entity::line_break_t)
+                        && parent->get_entity_type() == md_entity::paragraph_t)
+                    {
+                        if (entity->get_entity_type() == md_entity::line_break_t)
+                            parent->add_entity(std::move(entity));
+
+                        stack.pop();
+                        parent = stack.top();
+                        entity = md_paragraph::make(*parent);
+                    }
+
                     // push new scope
                     if (is_container(entity->get_entity_type()))
                         stack.push(static_cast<md_container*>(entity.get()));
 
                     // add entity to parent
-                    if (cmark_node_parent(node) == root.get())
-                    {
-                        assert(parent == &comment.get_content());
+                    if (parent == &comment.get_content())
                         direct_children.push_back(std::move(entity));
-                    }
                     else
                         parent->add_entity(std::move(entity));
                 }
@@ -621,7 +616,9 @@ namespace
     {
         if (cur_section == section_type::details || cur_section == section_type::brief)
             return false;
-        return last_paragraph && last_section == cur_section;
+        return last_paragraph && last_section == cur_section
+               && (last_paragraph->empty()
+                   || last_paragraph->back().get_entity_type() != md_entity::line_break_t);
     }
 
     void merge(md_paragraph& last_paragraph, const md_paragraph& cur_paragraph)

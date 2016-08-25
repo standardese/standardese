@@ -163,6 +163,26 @@ namespace standardese
     public:
         virtual md_entity& add_entity(md_entity_ptr entity);
 
+        md_entity& front() STANDARDESE_NOEXCEPT
+        {
+            return *begin();
+        }
+
+        const md_entity& front() const STANDARDESE_NOEXCEPT
+        {
+            return *begin();
+        }
+
+        md_entity& back() STANDARDESE_NOEXCEPT
+        {
+            return *get_last();
+        }
+
+        const md_entity& back() const STANDARDESE_NOEXCEPT
+        {
+            return *get_last();
+        }
+
     protected:
         md_container(md_entity::type t, cmark_node* node,
                      const md_entity& parent) STANDARDESE_NOEXCEPT;

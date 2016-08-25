@@ -241,6 +241,8 @@ C
 C
 \details D
 \brief E
+\notes F\
+\notes G
 */)");
 
         auto count = 0u;
@@ -270,6 +272,16 @@ C
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::details);
             }
+            else if (get_text(paragraph) == " F")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::notes);
+            }
+            else if (get_text(paragraph) == " G")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::notes);
+            }
             else
             {
                 ++count;
@@ -277,7 +289,7 @@ C
                 REQUIRE(get_text(paragraph) == "E\nE");
             }
         }
-        REQUIRE(count == 5u);
+        REQUIRE(count == 7u);
     }
     SECTION("commands")
     {

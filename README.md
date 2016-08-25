@@ -332,7 +332,8 @@ They are not labeled in the output.
 Unlike for a *command* a *section* paragraph is included in the output.
 As such the rest of the paragraph won't be parsed for further sections.
 Any `brief` paragraphs will be merged together
-and if the option `--comment.implicit_paragraph` is `true` two adjacent paragraphs using the same *section* will be merged as well, unless that section is `details`:
+and if the option `--comment.implicit_paragraph` is `true` two adjacent paragraphs using the same *section* will be merged as well, unless that section is `details`. 
+To prevent merging, add a hard line break at the end of a section.
 
 ```cpp
 /// \brief This is a brief paragraph.
@@ -341,6 +342,8 @@ and if the option `--comment.implicit_paragraph` is `true` two adjacent paragrap
 /// \brief And this is still the same brief paragraph.
 /// \details But this is one details paragraph.
 /// \details And this is a different details paragraph.
+/// \notes This is a notes paragraph.\
+/// \notes But this is a different notes paragraph.
 ```
 
 * To clarify: If the implicit paragraph isn't enabled, only the `brief` section will be merged. *
