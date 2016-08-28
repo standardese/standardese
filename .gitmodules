@@ -6,4 +6,4 @@
     url = git://github.com/progschj/ThreadPool.git
 [submodule "external/cmark"]
     path = external/cmark
-    url = git://github.com/foonathan/cmark.git
+    url = git://github.com/jgm/cmark.git
