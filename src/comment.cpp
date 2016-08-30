@@ -490,7 +490,7 @@ namespace
         const parser*                 parser_;
     };
 
-    void parse_command(const parser& p, container_stack& stack, md_entity_ptr text_entity)
+    bool parse_command(const parser& p, container_stack& stack, md_entity_ptr text_entity)
     {
         assert(text_entity->get_entity_type() == md_entity::text_t);
         auto& text = static_cast<md_text&>(*text_entity);
@@ -504,6 +504,8 @@ namespace
             paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
             remove_command_string(text, command_str);       // remove the command of the string
             stack.top().add_entity(std::move(text_entity)); // add the text
+
+            return true;
         }
         else if (is_command(command))
         {
@@ -580,6 +582,8 @@ namespace
             stack.top().add_entity(std::move(text_entity));
         else if (command == static_cast<unsigned int>(command_type::invalid))
             throw comment_parse_error(fmt::format("invalid command name '{}'", command_str), text);
+
+        return false;
     }
 
     void parse_comment(const parser& p, comment_info& info, const md_node& root)
@@ -596,7 +600,7 @@ namespace
         md_iter iter(cmark_iter_new(root.get()));
 
         container_stack stack(p, info);
-        auto            first_paragraph = true;
+        auto            first_paragraph = true, added_section = false;
         for (auto ev = CMARK_EVENT_NONE; (ev = cmark_iter_next(iter.get())) != CMARK_EVENT_DONE;)
         {
             auto node = cmark_iter_get_node(iter.get());
@@ -633,7 +637,7 @@ namespace
                         first_paragraph = false;
                     }
                     else if (entity->get_entity_type() == md_entity::text_t)
-                        parse_command(p, stack, std::move(entity));
+                        added_section |= parse_command(p, stack, std::move(entity));
                     else if (entity->get_entity_type() == md_entity::soft_break_t)
                         stack.add_soft_break(std::move(entity));
                     else
@@ -643,7 +647,8 @@ namespace
                 {
                     stack.pop();
                     // reset first_paragraph if brief paragraph was empty
-                    first_paragraph = stack.info().comment.get_content().get_brief().empty();
+                    first_paragraph =
+                        !added_section && stack.info().comment.get_content().get_brief().empty();
                 }
                 else
                     assert(false);
