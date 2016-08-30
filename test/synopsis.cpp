@@ -230,7 +230,8 @@ private:
     SECTION("function")
     {
         auto code = R"(
-/// \param c \exclude
+/// \param c
+/// \exclude
 void func(int a, char* b, float c = .3);
 )";
 

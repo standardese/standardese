@@ -260,39 +260,14 @@ By default the tool supports http://en.cppreference.com/w/ with a prefix of `std
 #### Special commands
 
 standardese adds its own sets of special commands.
-A command is introduced by the *command character* (a backslash by default) at the beginning of a new (Markdown) paragraph.
+A command is introduced by the *command character* (a backslash by default) at the beginning of a CommonMark text node, i.e. at the beginning of each line in the comment.
 
-> Because a Markdown paragraph is seperated by blank lines, this necessarily leads to many blank lines in the comment.
-> If you don't like that, you can pass the option `--comment.implicit_paragraph`, this will start a new paragraph
-> for each line of the comment.
-> Thanks to smart paragraph merging this works the same in most cases.
-
-There are three kinds of special commands: *commands*, *sections* and *hybrids*.
+There are three kinds of special commands: *commands*, *sections* and *inlines*.
 
 ---
 
 A *command* is used to control the documentation generation in some way.
-Thus a paragraph that begins with a *command* doesn't appear in the output documentation.
-For that reason, you can use a new *command* on each line of the paragraph without starting a new one.
-This allows writing:
-
-```cpp
-/// \command
-/// \some_other_command
-///
-/// Normal documentation paragraph.
-/// \command that won't be parsed.
-```
-
-instead of the more verbose:
-```cpp
-/// \command
-///
-/// \some_other_command
-///
-/// Normal documentation paragraph.
-/// \command that won't be parsed.
-```
+A text that begins with a *command* doesn't appear in the output documentation at all.
 
 There are the following *commands*:
 
@@ -314,7 +289,6 @@ void foo();
 
 /// This comment has no corresponding entity.
 /// But the command specifies the entity it will belong to.
-///
 /// \entity foo
 ```
 It also mixes with `unique_name` as you might expect.
@@ -329,30 +303,28 @@ Those sections will create a paragraph in the output prefixed with a human reada
 There are two special sections, `brief` and `details`.
 They are not labeled in the output.
 
-Unlike for a *command* a *section* paragraph is included in the output.
-As such the rest of the paragraph won't be parsed for further sections.
-Any `brief` paragraphs will be merged together
-and if the option `--comment.implicit_paragraph` is `true` two adjacent paragraphs using the same *section* will be merged as well, unless that section is `details`. 
-To prevent merging, add a hard line break at the end of a section.
-
-```cpp
-/// \brief This is a brief paragraph.
-/// \effects This is an effects paragraph.
-/// \effects This is the same effects paragraph.
-/// \brief And this is still the same brief paragraph.
-/// \details But this is one details paragraph.
-/// \details And this is a different details paragraph.
-/// \notes This is a notes paragraph.\
-/// \notes But this is a different notes paragraph.
-```
-
-* To clarify: If the implicit paragraph isn't enabled, only the `brief` section will be merged. *
+Unlike for a *command* text following a *section* is included in the output.
+A *section* is active for the rest of the paragraph, a hard line break or until another special command is ecnountered.
+Any `brief` sections will be merged together automatically.
 
 If you don't specify a section for a paragraph, the first paragraph will be implictly `brief`, all others implictly `details`.
 
+```cpp
+/// \brief This text is brief.
+///
+/// This is implictly details.
+/// \effects This is effects.
+/// This is still effects.
+/// \returns This is returns.\
+/// Due to the hard break this is details again.
+///
+/// \notes This is notes.
+/// \notes This is a different notes.
+```
+
 ---
 
-A *hybrid* is a special kind of command.
+A *inline* is a special kind of command.
 They are `param`, `tparam` and `base` and used to document (template) parameters and base classes,
 because you cannot put a corresponding comment there.
 As such they are shorthands for the `\entity unique-name` command.
@@ -362,23 +334,23 @@ They are followed by the name of entity they refer to.
 > You must use `base` to refer to base classes, however,
 > because template parameters and base classes can have the same name.
 
-The *hybrid* and argument is stripped from the paragraph and the rest is parsed.
-If the rest starts with a *command* it will be parsed by the normal rules of commands.
-Otherwise the text is treated as documentation.
+The *inline* and argument is stripped from the text.
+The rest of the line will be treated as `brief` documentation.
+Like a *section*, an *inline* ends when a new special command or hard line break is encountered or a paragraph ends.
 
-> Note: You cannot use *sections* in *hybrids*.
+> Note: You cannot use *sections* in *inlines*.
 
 For example:
 
 ```cpp
 /// Normal documentation for the function.
 ///
-/// \param foo Normal documentation for the parameter `foo`.
-/// It continues here.
-///
+/// \param foo Brief documentation for the parameter `foo`.
+/// It continues here with details.
 /// \param bar
 /// \exclude
-/// Error: normal markup cannot appear here anymore.
+///
+/// The `\exclude` is part of the documentation for `bar`.
 void func(int foo, int bar);
 ```
 

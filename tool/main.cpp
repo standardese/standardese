@@ -109,8 +109,6 @@ int main(int argc, char* argv[])
              "character used to introduce special commands")
             ("comment.cmd_name_", po::value<std::string>(),
              "override name for the command following the name_ (e.g. comment.cmd_name_requires=require)")
-            ("comment.implicit_paragraph", po::value<bool>()->implicit_value(true)->default_value(false),
-             "whether or not each line in the documentation comment is one paragraph")
             ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""),
              "syntax is prefix=url, supports linking to a different URL for entities starting with prefix")
 
@@ -165,8 +163,6 @@ int main(int argc, char* argv[])
 
             parser.get_comment_config().set_command_character(
                 map.at("comment.command_character").as<char>());
-            parser.get_comment_config().set_implicit_paragraph(
-                map.at("comment.implicit_paragraph").as<bool>());
 
             parser.get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
 

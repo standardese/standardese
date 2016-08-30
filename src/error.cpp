@@ -4,7 +4,10 @@
 
 #include <standardese/error.hpp>
 
+#include <cmark.h>
+
 #include <standardese/cpp_cursor.hpp>
+#include <standardese/md_entity.hpp>
 #include <standardese/string.hpp>
 
 using namespace standardese;
@@ -46,5 +49,11 @@ source_location::source_location(CXSourceLocation location, std::string entity)
 
 source_location::source_location(cpp_cursor cur)
 : source_location(clang_getCursorLocation(cur), string(clang_getCursorDisplayName(cur)).c_str())
+{
+}
+
+comment_parse_error::comment_parse_error(std::string message, const md_entity& entity)
+: comment_parse_error(std::move(message), cmark_node_get_start_line(entity.get_node()),
+                      cmark_node_get_start_column(entity.get_node()))
 {
 }

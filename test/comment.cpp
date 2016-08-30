@@ -210,17 +210,17 @@ C
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
             INFO(get_text(paragraph));
 
-            if (get_text(paragraph) == " A A\nA A")
+            if (get_text(paragraph) == "A A\nA A")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::effects);
             }
-            else if (get_text(paragraph) == " B B")
+            else if (get_text(paragraph) == "B B")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::returns);
             }
-            else if (get_text(paragraph) == " C C")
+            else if (get_text(paragraph) == "C C")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::error_conditions);
@@ -230,12 +230,11 @@ C
         }
         REQUIRE(count == 3u);
     }
-    SECTION("merging")
+    SECTION("one paragraph")
     {
-        p.get_comment_config().set_implicit_paragraph(true);
         auto& comment = parse_comment(p, R"(/**
 \effects A
-\effects A
+A
 \brief E
 \requires B
 C
@@ -252,32 +251,27 @@ C
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
             INFO('"' + get_text(paragraph) + '"');
 
-            if (get_text(paragraph) == " A\nA")
+            if (get_text(paragraph) == "A\nA")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::effects);
             }
-            else if (get_text(paragraph) == " B")
+            else if (get_text(paragraph) == "B\nC")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::requires);
-            }
-            else if (get_text(paragraph) == "C")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::details);
             }
             else if (get_text(paragraph) == "D")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::details);
             }
-            else if (get_text(paragraph) == " F")
+            else if (get_text(paragraph) == "F")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::notes);
             }
-            else if (get_text(paragraph) == " G")
+            else if (get_text(paragraph) == "G")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::notes);
@@ -289,7 +283,7 @@ C
                 REQUIRE(get_text(paragraph) == "E\nE");
             }
         }
-        REQUIRE(count == 7u);
+        REQUIRE(count == 6u);
     }
     SECTION("commands")
     {
@@ -306,6 +300,7 @@ C
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
+            INFO('"' << get_text(paragraph) << '"');
             REQUIRE(paragraph.get_section_type() == section_type::brief);
             REQUIRE(get_text(paragraph) == "Normal markup.");
             ++count;
@@ -360,9 +355,7 @@ TEST_CASE("comment-matching", "[doc]")
 
         /// c
         ///
-        /// \param d
-        /// d
-        ///
+        /// \param d d
         /// \param e
         /// \unique_name f
         void c(int d, int e);

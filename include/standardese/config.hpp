@@ -70,16 +70,6 @@ namespace standardese
             return cmd_char_;
         }
 
-        bool get_implicit_paragraph() const STANDARDESE_NOEXCEPT
-        {
-            return implicit_par_;
-        }
-
-        void set_implicit_paragraph(bool v) STANDARDESE_NOEXCEPT
-        {
-            implicit_par_ = v;
-        }
-
         void set_command(unsigned c, std::string command);
 
         unsigned get_command(const std::string& command) const;
@@ -89,7 +79,6 @@ namespace standardese
     private:
         std::map<std::string, unsigned> commands_;
         char cmd_char_;
-        bool implicit_par_;
     };
 
     class output_config

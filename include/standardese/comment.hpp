@@ -41,6 +41,18 @@ namespace standardese
             return brief;
         }
 
+        md_ptr<md_comment> clone() const
+        {
+            auto entity = do_clone(nullptr);
+            return md_ptr<md_comment>(static_cast<md_comment*>(entity.release()));
+        }
+
+        md_ptr<md_comment> clone(const md_entity& parent) const
+        {
+            auto entity = do_clone(&parent);
+            return md_ptr<md_comment>(static_cast<md_comment*>(entity.release()));
+        }
+
     protected:
         md_entity_ptr do_clone(const md_entity* parent) const override;
 
@@ -174,6 +186,11 @@ namespace standardese
         md_comment& get_content() STANDARDESE_NOEXCEPT
         {
             return *content_;
+        }
+
+        void set_content(md_ptr<md_comment> content) STANDARDESE_NOEXCEPT
+        {
+            content_ = std::move(content);
         }
 
         bool is_excluded() const STANDARDESE_NOEXCEPT

@@ -275,13 +275,15 @@ md_entity_ptr md_paragraph::do_clone(const md_entity* parent) const
                 continue;
             }
         }
-        else if (skip_soft_break && child.get_entity_type() == md_entity::soft_break_t)
+        else if (child.get_entity_type() == md_entity::soft_break_t
+                 && (skip_soft_break || &child == &back()))
+            // skip soft breaks if after empty text or if last entity
             continue;
 
         skip_soft_break = false;
         result->add_entity(child.clone(*result));
     }
-    return std::move(result);
+    return result->empty() ? nullptr : std::move(result);
 }
 
 md_paragraph::md_paragraph(cmark_node* node, const md_entity& parent)
