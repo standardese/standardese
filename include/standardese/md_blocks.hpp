@@ -5,6 +5,7 @@
 #ifndef STANDARDESE_MD_BLOCKS_HPP_INCLUDED
 #define STANDARDESE_MD_BLOCKS_HPP_INCLUDED
 
+#include <standardese/md_custom.hpp>
 #include <standardese/md_entity.hpp>
 #include <standardese/section.hpp>
 
@@ -62,8 +63,8 @@ namespace standardese
     private:
         md_paragraph(cmark_node* node, const md_entity& parent);
 
-        md_entity_ptr section_node_;
-        section_type  section_type_;
+        md_ptr<md_section> section_;
+        section_type       section_type_;
 
         friend detail::md_ptr_access;
     };

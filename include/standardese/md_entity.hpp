@@ -52,6 +52,8 @@ namespace standardese
             link_t,
             anchor_t,
 
+            section_t,
+
             _end_inline,
             count = _end_inline,
         };

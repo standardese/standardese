@@ -30,6 +30,7 @@ set(header
         ../include/standardese/generator.hpp
         ../include/standardese/index.hpp
         ../include/standardese/md_blocks.hpp
+        ../include/standardese/md_custom.hpp
         ../include/standardese/md_entity.hpp
         ../include/standardese/md_inlines.hpp
         ../include/standardese/output.hpp
@@ -62,6 +63,7 @@ set(src
         generator.cpp
         index.cpp
         md_blocks.cpp
+        md_custom.cpp
         md_entity.cpp
         md_inlines.cpp
         output.cpp

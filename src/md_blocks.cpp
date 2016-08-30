@@ -223,28 +223,13 @@ void md_paragraph::set_section_type(section_type t, const std::string& name)
     section_type_ = t;
 
     if (name.empty())
-    {
-        cmark_node_unlink(section_node_->get_node());
-    }
+        cmark_node_unlink(section_->get_node());
     else
     {
-        auto& emph = static_cast<md_emphasis&>(*section_node_);
-        assert(emph.begin()->get_entity_type() == md_entity::text_t);
-
-        // set section text
-        static_cast<md_text&>(*emph.begin())
-            .set_string(name.back() == ':' ? name.c_str() : (name + ':').c_str());
-
-        // add leading whitespace to first paragraph text
-        if (!empty())
-        {
-            assert(begin()->get_entity_type() == md_entity::text_t);
-            auto& text = static_cast<md_text&>(*begin());
-            text.set_string((' ' + std::string(text.get_string())).c_str());
-        }
+        section_->set_section_text(name);
 
         // add the section node as child on the cmark api
-        auto res = cmark_node_prepend_child(get_node(), section_node_->get_node());
+        auto res = cmark_node_prepend_child(get_node(), section_->get_node());
         if (!res)
             throw cmark_error("md_paragraph::set_section_type");
     }
@@ -257,11 +242,7 @@ md_entity_ptr md_paragraph::do_clone(const md_entity* parent) const
     auto result = make(*parent);
 
     if (section_type_ != section_type::invalid)
-    {
-        auto& text =
-            static_cast<const md_text&>(*static_cast<const md_emphasis&>(*section_node_).begin());
-        result->set_section_type(section_type_, text.get_string());
-    }
+        result->set_section_type(section_type_, section_->get_section_text());
 
     auto skip_soft_break = false;
     for (auto& child : *this)
@@ -288,7 +269,7 @@ md_entity_ptr md_paragraph::do_clone(const md_entity* parent) const
 
 md_paragraph::md_paragraph(cmark_node* node, const md_entity& parent)
 : md_container(get_entity_type(), node, parent),
-  section_node_(md_emphasis::make(*this, "")),
+  section_(md_section::make(*this, "")),
   section_type_(section_type::invalid)
 {
 }
