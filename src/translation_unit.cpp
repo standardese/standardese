@@ -173,20 +173,26 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
             && clang_getCursorSemanticParent(cur) != cpp_cursor())
             // out of class definition, some weird other stuff with extern templates, implicit dtors
             return CXChildVisit_Continue;
+        else if (clang_getCursorKind(cur) == CXCursor_MacroExpansion)
+            // skip all macro expansions
+            // originally I registered only those for Boost.Wave
+            // but they're incomplete, so of no use
+            // (a macro exapnsion inside a macro expansion isn't handled)
+            return CXChildVisit_Continue;
+        else if (clang_getCursorKind(cur) == CXCursor_MacroDefinition)
+        {
+            auto definition = detail::get_cmd_definition(*this, cur);
+            auto registered = pimpl_->context.add_macro_definition(definition);
+            if (registered && get_parser().get_logger()->level() <= spdlog::level::debug)
+                get_parser().get_logger()->debug("registered macro '{}'", definition);
+        }
 
         try
         {
-            if (clang_getCursorKind(cur) == CXCursor_MacroExpansion)
-            {
-                auto definition = detail::get_cmd_definition(*this, cur);
-                auto registered = pimpl_->context.add_macro_definition(definition);
-                if (registered && get_parser().get_logger()->level() <= spdlog::level::debug)
-                    get_parser().get_logger()->debug("registered macro '{}'", definition);
-            }
-            else if (clang_getCursorKind(cur) == CXCursor_Namespace
-                     || clang_getCursorKind(cur) == CXCursor_LinkageSpec
-                     || is_full_specialization(*this, cur)
-                     || cur == clang_getCanonicalCursor(cur)) // only parse the canonical cursor
+            if (clang_getCursorKind(cur) == CXCursor_Namespace
+                || clang_getCursorKind(cur) == CXCursor_LinkageSpec
+                || is_full_specialization(*this, cur)
+                || cur == clang_getCanonicalCursor(cur)) // only parse the canonical cursor
             {
                 if (get_parser().get_logger()->level() <= spdlog::level::debug)
                 {

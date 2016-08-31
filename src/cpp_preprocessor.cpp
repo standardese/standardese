@@ -125,10 +125,10 @@ cpp_ptr<cpp_macro_definition> cpp_macro_definition::parse(translation_unit&, cpp
     return detail::make_cpp_ptr<cpp_macro_definition>(cur, parent, std::move(args), std::move(rep));
 }
 
-std::string detail::get_cmd_definition(translation_unit&, cpp_cursor expansion_ref)
+std::string detail::get_cmd_definition(translation_unit&, cpp_cursor macro)
 {
     std::string name, args, rep;
-    parse_macro(clang_getCursorReferenced(expansion_ref), name, args, rep);
+    parse_macro(macro, name, args, rep);
 
     return name + args + "=" + rep;
 }
