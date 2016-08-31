@@ -158,12 +158,22 @@ namespace
         return "";
     }
 
-    void register_macro(detail::context& context, translation_unit& tu, cpp_cursor macro)
+    void register_macro(detail::context& context, translation_unit& tu, cpp_cursor macro) try
     {
         auto definition = detail::get_cmd_definition(tu, macro);
         auto registered = context.add_macro_definition(definition);
         if (registered && tu.get_parser().get_logger()->level() <= spdlog::level::debug)
             tu.get_parser().get_logger()->debug("registered macro '{}'", definition);
+    }
+    catch (boost::wave::cpp_exception& ex)
+    {
+        using namespace boost::wave;
+        if (ex.get_errorcode() != preprocess_exception::alreadydefined_name
+            && ex.get_errorcode() != preprocess_exception::illegal_redefinition
+            && ex.get_errorcode() != preprocess_exception::macro_redefinition)
+            // ignore those exceptions
+            // happen when an already predefined macro gets registered
+            throw;
     }
 }
 
@@ -269,10 +279,7 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
                          catch (boost::wave::cpp_exception& ex)
                          {
                              using namespace boost::wave;
-                             if (ex.get_errorcode() == preprocess_exception::alreadydefined_name
-                                 || ex.get_errorcode() == preprocess_exception::illegal_redefinition
-                                 || ex.get_errorcode() == preprocess_exception::macro_redefinition
-                                 || ex.get_errorcode() == preprocess_exception::warning_directive)
+                             if (ex.get_errorcode() == preprocess_exception::warning_directive)
                                  return CXChildVisit_Continue;
                              else if (!is_recoverable(ex))
                                  throw;
