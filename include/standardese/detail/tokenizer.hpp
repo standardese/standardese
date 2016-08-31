@@ -120,11 +120,7 @@ namespace standardese
 
             tokenizer(translation_unit& tu, cpp_cursor cur);
 
-            context::iterator_type begin(unsigned offset = 0)
-            {
-                assert(offset < source_.size());
-                return impl_->begin(source_.begin() + offset, source_.end());
-            }
+            context::iterator_type begin(unsigned offset = 0);
 
             context::iterator_type end()
             {
@@ -137,8 +133,9 @@ namespace standardese
             }
 
         private:
-            std::string source_;
+            std::string source_, buffer_;
             context*    impl_;
+            unsigned    line_;
         };
 
         inline token_stream make_stream(tokenizer& t, unsigned offset = 0)

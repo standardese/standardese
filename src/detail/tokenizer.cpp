@@ -254,9 +254,24 @@ CXFile detail::tokenizer::read_range(translation_unit& tu, cpp_cursor cur, unsig
 }
 
 detail::tokenizer::tokenizer(translation_unit& tu, cpp_cursor cur)
-: source_(read_source(tu, cur)), impl_(&tokenizer_access::get_context(tu))
+: source_(read_source(tu, cur) + '\n'), impl_(&tokenizer_access::get_context(tu))
 {
-    // append trailing newline
-    // required for parsing code
-    source_ += '\n';
+    auto extent = clang_getCursorExtent(cur);
+    auto begin  = clang_getRangeStart(extent);
+    clang_getSpellingLocation(begin, nullptr, &line_, nullptr, nullptr);
+}
+
+detail::context::iterator_type detail::tokenizer::begin(unsigned offset)
+{
+    assert(offset < source_.size());
+    assert(buffer_.empty());
+
+    auto no_newl = 0u;
+    for (auto i = 0u; i != offset; ++i)
+        if (source_[i] == '\n')
+            ++no_newl;
+
+    buffer_ = "#line " + std::to_string(line_ + no_newl) + '\n';
+    buffer_ += source_.c_str() + offset;
+    return impl_->begin(buffer_.begin(), buffer_.end());
 }
