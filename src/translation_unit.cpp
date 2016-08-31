@@ -157,6 +157,14 @@ namespace
                                            tu.get_path().c_str());
         return "";
     }
+
+    void register_macro(detail::context& context, translation_unit& tu, cpp_cursor macro)
+    {
+        auto definition = detail::get_cmd_definition(tu, macro);
+        auto registered = context.add_macro_definition(definition);
+        if (registered && tu.get_parser().get_logger()->level() <= spdlog::level::debug)
+            tu.get_parser().get_logger()->debug("registered macro '{}'", definition);
+    }
 }
 
 translation_unit::translation_unit(const parser& par, const char* path, cpp_file* file,
@@ -174,20 +182,20 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
                              && clang_getCursorSemanticParent(cur) != cpp_cursor())
                              // out of class definition, some weird other stuff with extern templates, implicit dtors
                              return CXChildVisit_Continue;
-                         else if (clang_getCursorKind(cur) == CXCursor_MacroExpansion)
-                             // skip all macro expansions
-                             // originally I registered only those for Boost.Wave
-                             // but they're incomplete, so of no use
-                             // (a macro exapnsion inside a macro expansion isn't handled)
-                             return CXChildVisit_Continue;
 
                          try
                          {
-                             if (clang_getCursorKind(cur) == CXCursor_Namespace
-                                 || clang_getCursorKind(cur) == CXCursor_LinkageSpec
-                                 || is_full_specialization(*this, cur)
-                                 || cur == clang_getCanonicalCursor(
-                                               cur)) // only parse the canonical cursor
+                             if (clang_getCursorKind(cur) == CXCursor_MacroExpansion)
+                                 // register macro here as well
+                                 // because of the heuristic in the actual macro definition visitor
+                                 // it won't catch internal macros, even if they're used
+                                 register_macro(pimpl_->context, *this,
+                                                clang_getCursorReferenced(cur));
+                             else if (clang_getCursorKind(cur) == CXCursor_Namespace
+                                      || clang_getCursorKind(cur) == CXCursor_LinkageSpec
+                                      || is_full_specialization(*this, cur)
+                                      || cur == clang_getCanonicalCursor(
+                                                    cur)) // only parse the canonical cursor
                              {
                                  if (get_parser().get_logger()->level() <= spdlog::level::debug)
                                  {
@@ -284,24 +292,9 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
                          }
                      },
                      [&](cpp_cursor macro) {
-                         try
-                         {
-                             auto definition = detail::get_cmd_definition(*this, macro);
-                             auto registered = pimpl_->context.add_macro_definition(definition);
-                             if (registered
-                                 && get_parser().get_logger()->level() <= spdlog::level::debug)
-                                 get_parser().get_logger()->debug("registered macro '{}'",
-                                                                  definition);
-                         }
-                         catch (boost::wave::cpp_exception& ex)
-                         {
-                             if (ex.get_errorcode()
-                                     != boost::wave::preprocess_exception::macro_redefinition
-                                 && ex.get_errorcode()
-                                        != boost::wave::preprocess_exception::illegal_redefinition)
-                                 throw;
-                             // ignore those two kinds of erros
-                             // they happen when predefined macro definition cursor are registered
-                         }
+                         if (detail::parse_name(macro).c_str()[0] != '_')
+                             // horrible heuristic to prevent including tons and tons of standard library macros
+                             // if macro starts with an underscore, don't register
+                             register_macro(pimpl_->context, *this, macro);
                      });
 }
