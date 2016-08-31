@@ -257,8 +257,11 @@ detail::tokenizer::tokenizer(translation_unit& tu, cpp_cursor cur)
 : source_(read_source(tu, cur) + '\n'), impl_(&tokenizer_access::get_context(tu))
 {
     auto extent = clang_getCursorExtent(cur);
-    auto begin  = clang_getRangeStart(extent);
-    clang_getSpellingLocation(begin, nullptr, &line_, nullptr, nullptr);
+    // we need the end of the range
+    // because the only time __LINE__ is relevant, is if inside a macro
+    // and for a macro expansion only the last line of the macro counts
+    auto end = clang_getRangeEnd(extent);
+    clang_getSpellingLocation(end, nullptr, &line_, nullptr, nullptr);
 }
 
 detail::context::iterator_type detail::tokenizer::begin(unsigned offset)
