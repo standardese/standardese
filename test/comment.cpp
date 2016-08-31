@@ -72,6 +72,8 @@ TEST_CASE("md_comment", "[doc]")
             foo, //< End line style.
             bar, //< End line style.
             /// Continued.
+
+            /**/
 )";
 
         auto comments = detail::read_comments(source);

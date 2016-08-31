@@ -31,7 +31,8 @@ namespace
             ptr += 3;
             return comment_style::cpp;
         }
-        else if (std::strncmp(ptr, "/**", 3) == 0 || std::strncmp(ptr, "/*!", 3) == 0)
+        else if (std::strncmp(ptr, "/**/", 4) != 0 // handle completely empty comment
+                 && (std::strncmp(ptr, "/**", 3) == 0 || std::strncmp(ptr, "/*!", 3) == 0))
         {
             ptr += 3;
             return comment_style::c;
