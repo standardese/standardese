@@ -101,14 +101,15 @@ namespace standardese
 
     namespace detail
     {
-        template <typename Func>
-        void visit_tu(CXTranslationUnit tu, CXFile file, Func f)
+        template <typename Func, typename MacroFunc>
+        void visit_tu(CXTranslationUnit tu, CXFile file, Func f, MacroFunc m)
         {
             struct data_t
             {
-                Func*  func;
-                CXFile file;
-            } data{&f, file};
+                Func*      func;
+                MacroFunc* macro_func;
+                CXFile     file;
+            } data{&f, &m, file};
 
             auto visitor_impl = [](CXCursor cursor, CXCursor parent,
                                    CXClientData client_data) -> CXChildVisitResult {
@@ -117,6 +118,10 @@ namespace standardese
                 auto   location = clang_getCursorLocation(cursor);
                 CXFile file;
                 clang_getSpellingLocation(location, &file, nullptr, nullptr, nullptr);
+
+                if (clang_getCursorKind(cursor) == CXCursor_MacroDefinition)
+                    (*data->macro_func)(cursor);
+
                 if (!file || !clang_File_isEqual(file, data->file))
                     return CXChildVisit_Continue;
                 return (*data->func)(cursor, parent);

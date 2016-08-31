@@ -166,117 +166,142 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
     detail::scope_stack stack(pimpl_->file);
     auto                guard = include_guard(*this, pimpl_->source);
 
-    detail::visit_tu(get_cxunit(), get_cxfile(), [&](cpp_cursor cur, cpp_cursor parent) {
-        stack.pop_if_needed(parent);
+    detail::visit_tu(get_cxunit(), get_cxfile(),
+                     [&](cpp_cursor cur, cpp_cursor parent) {
+                         stack.pop_if_needed(parent);
 
-        if (clang_getCursorSemanticParent(cur) != parent
-            && clang_getCursorSemanticParent(cur) != cpp_cursor())
-            // out of class definition, some weird other stuff with extern templates, implicit dtors
-            return CXChildVisit_Continue;
-        else if (clang_getCursorKind(cur) == CXCursor_MacroExpansion)
-            // skip all macro expansions
-            // originally I registered only those for Boost.Wave
-            // but they're incomplete, so of no use
-            // (a macro exapnsion inside a macro expansion isn't handled)
-            return CXChildVisit_Continue;
-        else if (clang_getCursorKind(cur) == CXCursor_MacroDefinition)
-        {
-            auto definition = detail::get_cmd_definition(*this, cur);
-            auto registered = pimpl_->context.add_macro_definition(definition);
-            if (registered && get_parser().get_logger()->level() <= spdlog::level::debug)
-                get_parser().get_logger()->debug("registered macro '{}'", definition);
-        }
+                         if (clang_getCursorSemanticParent(cur) != parent
+                             && clang_getCursorSemanticParent(cur) != cpp_cursor())
+                             // out of class definition, some weird other stuff with extern templates, implicit dtors
+                             return CXChildVisit_Continue;
+                         else if (clang_getCursorKind(cur) == CXCursor_MacroExpansion)
+                             // skip all macro expansions
+                             // originally I registered only those for Boost.Wave
+                             // but they're incomplete, so of no use
+                             // (a macro exapnsion inside a macro expansion isn't handled)
+                             return CXChildVisit_Continue;
 
-        try
-        {
-            if (clang_getCursorKind(cur) == CXCursor_Namespace
-                || clang_getCursorKind(cur) == CXCursor_LinkageSpec
-                || is_full_specialization(*this, cur)
-                || cur == clang_getCanonicalCursor(cur)) // only parse the canonical cursor
-            {
-                if (get_parser().get_logger()->level() <= spdlog::level::debug)
-                {
-                    auto location = source_location(cur);
-                    get_parser()
-                        .get_logger()
-                        ->debug("parsing entity '{}' ({}:{}) of type '{}'",
-                                string(clang_getCursorDisplayName(cur)).c_str(), location.file_name,
-                                location.line,
-                                string(clang_getCursorKindSpelling(clang_getCursorKind(cur)))
-                                    .c_str());
-                }
+                         try
+                         {
+                             if (clang_getCursorKind(cur) == CXCursor_Namespace
+                                 || clang_getCursorKind(cur) == CXCursor_LinkageSpec
+                                 || is_full_specialization(*this, cur)
+                                 || cur == clang_getCanonicalCursor(
+                                               cur)) // only parse the canonical cursor
+                             {
+                                 if (get_parser().get_logger()->level() <= spdlog::level::debug)
+                                 {
+                                     auto location = source_location(cur);
+                                     get_parser()
+                                         .get_logger()
+                                         ->debug("parsing entity '{}' ({}:{}) of type '{}'",
+                                                 string(clang_getCursorDisplayName(cur)).c_str(),
+                                                 location.file_name, location.line,
+                                                 string(clang_getCursorKindSpelling(
+                                                            clang_getCursorKind(cur)))
+                                                     .c_str());
+                                 }
 
-                auto entity = cpp_entity::try_parse(*this, cur, stack.cur_parent());
-                if (!entity)
-                    return CXChildVisit_Continue;
-                else if (entity->get_entity_type() == cpp_entity::macro_definition_t
-                         && entity->get_name() == guard.c_str())
-                {
-                    get_parser().get_logger()->debug("skipping include guard macro '{}'",
-                                                     entity->get_name().c_str());
-                    return CXChildVisit_Continue;
-                }
+                                 auto entity =
+                                     cpp_entity::try_parse(*this, cur, stack.cur_parent());
+                                 if (!entity)
+                                     return CXChildVisit_Continue;
+                                 else if (entity->get_entity_type()
+                                              == cpp_entity::macro_definition_t
+                                          && entity->get_name() == guard.c_str())
+                                 {
+                                     get_parser()
+                                         .get_logger()
+                                         ->debug("skipping include guard macro '{}'",
+                                                 entity->get_name().c_str());
+                                     return CXChildVisit_Continue;
+                                 }
 
-                get_parser().get_entity_registry().register_entity(*entity);
+                                 get_parser().get_entity_registry().register_entity(*entity);
 
-                auto container = stack.add_entity(std::move(entity), parent);
-                if (container)
-                    return CXChildVisit_Recurse;
-            }
-            else
-            {
-                if (get_parser().get_logger()->level() <= spdlog::level::debug)
-                {
-                    auto location = source_location(cur);
-                    get_parser()
-                        .get_logger()
-                        ->debug("rejected entity '{}' ({}:{}) of type '{}'",
-                                string(clang_getCursorDisplayName(cur)).c_str(), location.file_name,
-                                location.line,
-                                string(clang_getCursorKindSpelling(clang_getCursorKind(cur)))
-                                    .c_str());
-                }
+                                 auto container = stack.add_entity(std::move(entity), parent);
+                                 if (container)
+                                     return CXChildVisit_Recurse;
+                             }
+                             else
+                             {
+                                 if (get_parser().get_logger()->level() <= spdlog::level::debug)
+                                 {
+                                     auto location = source_location(cur);
+                                     get_parser()
+                                         .get_logger()
+                                         ->debug("rejected entity '{}' ({}:{}) of type '{}'",
+                                                 string(clang_getCursorDisplayName(cur)).c_str(),
+                                                 location.file_name, location.line,
+                                                 string(clang_getCursorKindSpelling(
+                                                            clang_getCursorKind(cur)))
+                                                     .c_str());
+                                 }
 
-                get_parser().get_entity_registry().register_alternative(cur);
-            }
+                                 get_parser().get_entity_registry().register_alternative(cur);
+                             }
 
-            return CXChildVisit_Continue;
-        }
-        catch (parse_error& ex)
-        {
-            if (ex.get_severity() == severity::warning)
-                get_parser().get_logger()->warn("when parsing '{}' ({}:{}): {}",
-                                                ex.get_location().entity_name,
-                                                ex.get_location().file_name, ex.get_location().line,
-                                                ex.what());
-            else
-                get_parser().get_logger()->error("when parsing '{}' ({}:{}): {}",
-                                                 ex.get_location().entity_name,
-                                                 ex.get_location().file_name,
-                                                 ex.get_location().line, ex.what());
-            return CXChildVisit_Continue;
-        }
-        catch (boost::wave::cpp_exception& ex)
-        {
-            using namespace boost::wave;
-            if (ex.get_errorcode() == preprocess_exception::alreadydefined_name
-                || ex.get_errorcode() == preprocess_exception::illegal_redefinition
-                || ex.get_errorcode() == preprocess_exception::macro_redefinition
-                || ex.get_errorcode() == preprocess_exception::warning_directive)
-                return CXChildVisit_Continue;
-            else if (!is_recoverable(ex))
-                throw;
-            else if (ex.get_severity() >= util::severity_error)
-                get_parser().get_logger()->error("when parsing '{}' ({}:{}): {} (Boost.Wave)",
-                                                 ex.get_related_name(), ex.file_name(),
-                                                 ex.line_no(), preprocess_exception::error_text(
-                                                                   ex.get_errorcode()));
-            else
-                get_parser().get_logger()->warn("when parsing '{}' ({}:{}): {} (Boost.Wave)",
-                                                ex.get_related_name(), ex.file_name(), ex.line_no(),
-                                                preprocess_exception::error_text(
-                                                    ex.get_errorcode()));
-            return CXChildVisit_Continue;
-        }
-    });
+                             return CXChildVisit_Continue;
+                         }
+                         catch (parse_error& ex)
+                         {
+                             if (ex.get_severity() == severity::warning)
+                                 get_parser().get_logger()->warn("when parsing '{}' ({}:{}): {}",
+                                                                 ex.get_location().entity_name,
+                                                                 ex.get_location().file_name,
+                                                                 ex.get_location().line, ex.what());
+                             else
+                                 get_parser().get_logger()->error("when parsing '{}' ({}:{}): {}",
+                                                                  ex.get_location().entity_name,
+                                                                  ex.get_location().file_name,
+                                                                  ex.get_location().line,
+                                                                  ex.what());
+                             return CXChildVisit_Continue;
+                         }
+                         catch (boost::wave::cpp_exception& ex)
+                         {
+                             using namespace boost::wave;
+                             if (ex.get_errorcode() == preprocess_exception::alreadydefined_name
+                                 || ex.get_errorcode() == preprocess_exception::illegal_redefinition
+                                 || ex.get_errorcode() == preprocess_exception::macro_redefinition
+                                 || ex.get_errorcode() == preprocess_exception::warning_directive)
+                                 return CXChildVisit_Continue;
+                             else if (!is_recoverable(ex))
+                                 throw;
+                             else if (ex.get_severity() >= util::severity_error)
+                                 get_parser()
+                                     .get_logger()
+                                     ->error("when parsing '{}' ({}:{}): {} (Boost.Wave)",
+                                             ex.get_related_name(), ex.file_name(), ex.line_no(),
+                                             preprocess_exception::error_text(ex.get_errorcode()));
+                             else
+                                 get_parser()
+                                     .get_logger()
+                                     ->warn("when parsing '{}' ({}:{}): {} (Boost.Wave)",
+                                            ex.get_related_name(), ex.file_name(), ex.line_no(),
+                                            preprocess_exception::error_text(ex.get_errorcode()));
+                             return CXChildVisit_Continue;
+                         }
+                     },
+                     [&](cpp_cursor macro) {
+                         try
+                         {
+                             auto definition = detail::get_cmd_definition(*this, macro);
+                             auto registered = pimpl_->context.add_macro_definition(definition);
+                             if (registered
+                                 && get_parser().get_logger()->level() <= spdlog::level::debug)
+                                 get_parser().get_logger()->debug("registered macro '{}'",
+                                                                  definition);
+                         }
+                         catch (boost::wave::cpp_exception& ex)
+                         {
+                             if (ex.get_errorcode()
+                                     != boost::wave::preprocess_exception::macro_redefinition
+                                 && ex.get_errorcode()
+                                        != boost::wave::preprocess_exception::illegal_redefinition)
+                                 throw;
+                             // ignore those two kinds of erros
+                             // they happen when predefined macro definition cursor are registered
+                         }
+                     });
 }

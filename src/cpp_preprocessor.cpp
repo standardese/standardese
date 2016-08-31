@@ -41,9 +41,6 @@ namespace
                      std::string& rep)
     {
         auto i = name.length();
-        while (std::isspace(source[i]))
-            ++i;
-
         // arguments
         if (source[i] == '(')
         {
@@ -67,6 +64,10 @@ namespace
             while (std::isspace(source[i]))
                 ++i;
         }
+        else
+            // skip whitespace
+            while (std::isspace(source[i]))
+                ++i;
 
         // replacement
         while (i < source.size())
