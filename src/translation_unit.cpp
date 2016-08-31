@@ -281,8 +281,6 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
                              using namespace boost::wave;
                              if (ex.get_errorcode() == preprocess_exception::warning_directive)
                                  return CXChildVisit_Continue;
-                             else if (!is_recoverable(ex))
-                                 throw;
                              else if (ex.get_severity() >= util::severity_error)
                                  get_parser()
                                      .get_logger()
