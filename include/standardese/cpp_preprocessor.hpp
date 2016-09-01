@@ -12,12 +12,6 @@ namespace standardese
     class cpp_inclusion_directive final : public cpp_entity
     {
     public:
-        enum kind
-        {
-            system,
-            local
-        };
-
         static cpp_entity::type get_entity_type() STANDARDESE_NOEXCEPT
         {
             return cpp_entity::inclusion_directive_t;
@@ -31,25 +25,18 @@ namespace standardese
             return "inclusion directive";
         }
 
-        kind get_kind() const STANDARDESE_NOEXCEPT
-        {
-            return kind_;
-        }
-
         const std::string& get_file_name() const STANDARDESE_NOEXCEPT
         {
             return file_name_;
         }
 
     private:
-        cpp_inclusion_directive(cpp_cursor cur, const cpp_entity& parent, std::string file_name,
-                                kind k)
-        : cpp_entity(get_entity_type(), cur, parent), file_name_(std::move(file_name)), kind_(k)
+        cpp_inclusion_directive(cpp_cursor cur, const cpp_entity& parent, std::string file_name)
+        : cpp_entity(get_entity_type(), cur, parent), file_name_(std::move(file_name))
         {
         }
 
         std::string file_name_;
-        kind        kind_;
 
         friend detail::cpp_ptr_access;
     };

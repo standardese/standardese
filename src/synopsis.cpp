@@ -93,19 +93,7 @@ namespace
     //=== preprocessor ===//
     void do_write_synopsis(const parser&, code_block_writer& out, const cpp_inclusion_directive& i)
     {
-        out << "#include ";
-
-        if (i.get_kind() == cpp_inclusion_directive::local)
-            out << '"';
-        else
-            out << '<';
-
-        out << i.get_file_name();
-
-        if (i.get_kind() == cpp_inclusion_directive::local)
-            out << '"';
-        else
-            out << '>';
+        out << "#include <" << i.get_file_name() << ">";
     }
 
     void do_write_synopsis(const parser&, code_block_writer& out, const cpp_macro_definition& m)

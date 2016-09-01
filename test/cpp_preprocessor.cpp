@@ -17,8 +17,6 @@ TEST_CASE("cpp_preprocessor", "[cpp]")
     auto code = R"(
         #include <iostream>
 
-        #include "cpp_function"
-
         #define A
 
         #define B foo
@@ -47,10 +45,7 @@ TEST_CASE("cpp_preprocessor", "[cpp]")
         {
             ++count;
             auto& inc = dynamic_cast<const cpp_inclusion_directive&>(e);
-            if (inc.get_file_name() == "iostream")
-                REQUIRE(inc.get_kind() == cpp_inclusion_directive::system);
-            else if (inc.get_file_name() == "cpp_variable")
-                REQUIRE(inc.get_kind() == cpp_inclusion_directive::local);
+            REQUIRE(inc.get_file_name() == "iostream");
         }
         else if (e.get_name() == "A")
         {

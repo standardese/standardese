@@ -18,8 +18,7 @@ cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit
     assert(clang_getCursorKind(cur) == CXCursor_InclusionDirective);
 
     return detail::make_cpp_ptr<cpp_inclusion_directive>(cur, parent,
-                                                         detail::parse_name(cur).c_str(),
-                                                         kind::system);
+                                                         detail::parse_name(cur).c_str());
 }
 
 namespace
