@@ -5,10 +5,12 @@
 #include <standardese/cpp_class.hpp>
 
 #include <cassert>
+#include <vector>
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/cpp_template.hpp>
+#include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -158,7 +160,7 @@ namespace
                 // beginning of bases
                 break;
             else if (stream.peek().get_value() == "{"
-                     && (tokens.empty() || *(tokens.back()->get_value().rbegin()) == '>'))
+                     && (tokens.empty() || *(std::prev(tokens.back()->get_value().end())) == '>'))
                 // beginning of class definition
                 // just rudimentary check against uniform initialization inside the args
                 break;

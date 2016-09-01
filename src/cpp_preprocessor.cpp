@@ -12,26 +12,14 @@
 
 using namespace standardese;
 
-cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit& tu,
-                                                                cpp_cursor        cur,
+cpp_ptr<cpp_inclusion_directive> cpp_inclusion_directive::parse(translation_unit&, cpp_cursor cur,
                                                                 const cpp_entity& parent)
 {
     assert(clang_getCursorKind(cur) == CXCursor_InclusionDirective);
 
-    auto source = detail::tokenizer::read_source(tu, cur);
-
-    size_t i = 1u; // skip #
-    while (std::isspace(source[i]))
-        ++i;
-
-    i += std::strlen("include");
-    while (std::isspace(source[i]))
-        ++i;
-
-    auto k = source[i] == '<' ? kind::system : kind::local;
-
     return detail::make_cpp_ptr<cpp_inclusion_directive>(cur, parent,
-                                                         detail::parse_name(cur).c_str(), k);
+                                                         detail::parse_name(cur).c_str(),
+                                                         kind::system);
 }
 
 namespace
@@ -75,10 +63,26 @@ namespace
         detail::erase_trailing_ws(rep);
     }
 
+    CXFile get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset)
+    {
+        auto source = clang_getCursorExtent(cur);
+        auto begin  = clang_getRangeStart(source);
+        auto end    = clang_getRangeEnd(source);
+
+        // translate location into offset and file
+        CXFile file  = nullptr;
+        begin_offset = 0u;
+        end_offset   = 0u;
+        clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
+        clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
+
+        return file;
+    }
+
     std::string get_source(cpp_cursor cur)
     {
         unsigned begin, end;
-        auto     file = detail::get_range(cur, begin, end);
+        auto     file = get_range(cur, begin, end);
         if (!file)
             return "";
 

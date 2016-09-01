@@ -5,10 +5,12 @@
 #include <standardese/cpp_function.hpp>
 
 #include <cassert>
+#include <vector>
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/cpp_template.hpp>
+#include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -152,10 +154,10 @@ namespace
                     auto& spelling = stream.peek().get_value();
                     if (!std::isspace(spelling[0]))
                     {
-                        auto res = std::strncmp(ptr, spelling.c_str(), spelling.size());
+                        auto res = std::strncmp(ptr, spelling.c_str(), spelling.length());
                         if (res != 0)
                             break;
-                        ptr += spelling.size();
+                        ptr += spelling.length();
                     }
 
                     stream.bump();
@@ -291,7 +293,7 @@ namespace
     {
         detail::skip_attribute(stream, cur);
 
-        if (stream.peek().get_value().size() > 1u)
+        if (stream.peek().get_value().length() > 1u)
             return false;
 
         auto c = stream.peek().get_value()[0];
@@ -517,7 +519,7 @@ cpp_ptr<cpp_function> cpp_function::parse(translation_unit& tu, cpp_cursor cur,
            || clang_getTemplateCursorKind(cur) == CXCursor_FunctionDecl);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto              stream = detail::make_stream(tokenizer, template_offset);
+    auto              stream = detail::make_stream(tokenizer);
     auto              name   = detail::parse_name(cur);
 
     cpp_function_info        finfo;
@@ -570,7 +572,7 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit& tu, cp
            || clang_getTemplateCursorKind(cur) == CXCursor_CXXMethod);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto              stream = detail::make_stream(tokenizer, template_offset);
+    auto              stream = detail::make_stream(tokenizer);
     auto              name   = detail::parse_name(cur);
 
     cpp_function_info        finfo;
@@ -641,7 +643,7 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
            || clang_getTemplateCursorKind(cur) == CXCursor_ConversionFunction);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto              stream = detail::make_stream(tokenizer, template_offset);
+    auto              stream = detail::make_stream(tokenizer);
 
     auto type = parse_conversion_op_type(cur);
     skip_template_parameter_declaration(stream, cur);
@@ -725,7 +727,7 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit& tu, cpp_cursor
            || clang_getTemplateCursorKind(cur) == CXCursor_Constructor);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto              stream = detail::make_stream(tokenizer, template_offset);
+    auto              stream = detail::make_stream(tokenizer);
     skip_template_parameter_declaration(stream, cur);
 
     std::string name = detail::parse_name(cur).c_str();
@@ -821,7 +823,7 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor c
     assert(template_offset == 0u);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto              stream = detail::make_stream(tokenizer, template_offset);
+    auto              stream = detail::make_stream(tokenizer);
 
     std::string name = detail::parse_name(cur).c_str();
     detail::erase_template_args(name);

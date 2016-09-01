@@ -17,8 +17,6 @@ namespace standardese
 
     namespace detail
     {
-        struct tokenizer_access;
-
         struct tu_deleter
         {
             void operator()(CXTranslationUnit tu) const STANDARDESE_NOEXCEPT
@@ -95,7 +93,6 @@ namespace standardese
         struct impl;
         std::unique_ptr<impl> pimpl_;
 
-        friend detail::tokenizer_access;
         friend parser;
     };
 

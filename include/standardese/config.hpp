@@ -15,11 +15,6 @@
 
 namespace standardese
 {
-    namespace detail
-    {
-        struct context;
-    } // namespace detail
-
     /// C++ standard to be used
     enum class cpp_standard
     {
@@ -43,8 +38,6 @@ namespace standardese
 
     private:
         std::vector<const char*> get_flags() const;
-
-        void setup_context(detail::context& context) const;
 
         std::vector<string> flags_;
 

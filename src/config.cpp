@@ -164,30 +164,6 @@ std::vector<const char*> compile_config::get_flags() const
     return result;
 }
 
-void compile_config::setup_context(detail::context& context) const
-{
-    for (auto iter = flags_.begin(); iter != flags_.end(); ++iter)
-    {
-        if (*iter == "-D")
-        {
-            ++iter;
-            context.add_macro_definition(*iter);
-        }
-        else if (*iter == "-U")
-        {
-            ++iter;
-            context.remove_macro_definition(*iter);
-        }
-        else if (iter->c_str()[0] == '-')
-        {
-            if (iter->c_str()[1] == 'D')
-                context.add_macro_definition(&(iter->c_str()[2]));
-            else if (iter->c_str()[1] == 'U')
-                context.remove_macro_definition(&(iter->c_str()[2]));
-        }
-    }
-}
-
 comment_config::comment_config() : cmd_char_('\\')
 {
 #define STANDARDESE_DETAIL_SET(type) set_command(unsigned(section_type::type), #type);

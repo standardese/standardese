@@ -8,6 +8,7 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
+#include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;

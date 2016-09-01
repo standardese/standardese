@@ -22,7 +22,7 @@ cpp_ptr<cpp_language_linkage> cpp_language_linkage::parse(translation_unit& tu, 
 
     detail::skip(stream, cur, {"extern"});
     auto   str = stream.get().get_value();
-    string name(str.c_str() + 1, str.size() - 2); // cut quotes
+    string name(str.c_str() + 1, str.length() - 2); // cut quotes
 
     return detail::make_cpp_ptr<cpp_language_linkage>(cur, parent, std::move(name));
 }

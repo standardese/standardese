@@ -9,7 +9,7 @@
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/cpp_function.hpp>
-#include <clang-c/Index.h>
+#include <standardese/error.hpp>
 
 using namespace standardese;
 
@@ -238,14 +238,7 @@ namespace
             }
             return CXChildVisit_Break;
         });
-
-        if (clang_Cursor_isNull(last))
-            return 0u;
-
-        // determine template offset
-        unsigned begin, end;
-        detail::tokenizer::read_range(tu, last, begin, end);
-        return end;
+        return 0u;
     }
 
     // appends template paramters to name
@@ -276,22 +269,7 @@ namespace
 
     unsigned get_template_offset(translation_unit& tu, cpp_cursor cur, unsigned last_offset)
     {
-        assert(last_offset);
-        auto source = detail::tokenizer::read_source(tu, cur);
-
-        unsigned begin, end;
-        detail::tokenizer::read_range(tu, cur, begin, end);
-
-        // make relative
-        last_offset -= begin;
-
-        // find closing bracket
-        while (std::isspace(source[last_offset]))
-            ++last_offset;
-        assert(source[last_offset] == '>');
-        ++last_offset;
-
-        return last_offset;
+        return 0;
     }
 }
 
