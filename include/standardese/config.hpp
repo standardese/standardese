@@ -36,13 +36,10 @@ namespace standardese
 
         void add_include(string path);
 
-    private:
         std::vector<const char*> get_flags() const;
 
+    private:
         std::vector<string> flags_;
-
-        friend class translation_unit;
-        friend class parser;
     };
 
     enum class command_type : unsigned;

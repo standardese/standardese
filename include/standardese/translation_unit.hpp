@@ -66,12 +66,6 @@ namespace standardese
     class translation_unit
     {
     public:
-        translation_unit(translation_unit&& other) STANDARDESE_NOEXCEPT;
-
-        ~translation_unit() STANDARDESE_NOEXCEPT;
-
-        translation_unit& operator=(translation_unit&& other) STANDARDESE_NOEXCEPT;
-
         const parser& get_parser() const STANDARDESE_NOEXCEPT;
 
         const cpp_name& get_path() const STANDARDESE_NOEXCEPT;
@@ -87,26 +81,25 @@ namespace standardese
         const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT;
 
     private:
-        translation_unit(const parser& par, const char* path, cpp_file* file,
-                         const compile_config& config);
+        translation_unit(const parser& par, const char* path, cpp_file* file);
 
-        struct impl;
-        std::unique_ptr<impl> pimpl_;
+        cpp_name      full_path_;
+        cpp_file*     file_;
+        const parser* parser_;
 
         friend parser;
     };
 
     namespace detail
     {
-        template <typename Func, typename MacroFunc>
-        void visit_tu(CXTranslationUnit tu, CXFile file, Func f, MacroFunc m)
+        template <typename Func>
+        void visit_tu(CXTranslationUnit tu, CXFile file, Func f)
         {
             struct data_t
             {
-                Func*      func;
-                MacroFunc* macro_func;
-                CXFile     file;
-            } data{&f, &m, file};
+                Func*  func;
+                CXFile file;
+            } data{&f, file};
 
             auto visitor_impl = [](CXCursor cursor, CXCursor parent,
                                    CXClientData client_data) -> CXChildVisitResult {
@@ -115,9 +108,6 @@ namespace standardese
                 auto   location = clang_getCursorLocation(cursor);
                 CXFile file;
                 clang_getSpellingLocation(location, &file, nullptr, nullptr, nullptr);
-
-                if (clang_getCursorKind(cursor) == CXCursor_MacroDefinition)
-                    (*data->macro_func)(cursor);
 
                 if (!file || !clang_File_isEqual(file, data->file))
                     return CXChildVisit_Continue;
