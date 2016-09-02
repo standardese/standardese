@@ -232,12 +232,6 @@ void detail::skip_offset(detail::token_stream& stream, unsigned offset)
         stream.bump();
 }
 
-void detail::skip_whitespace(token_stream& stream)
-{
-    while (std::isspace(stream.peek().get_value()[0]))
-        stream.bump();
-}
-
 void detail::skip(token_stream& stream, const cpp_cursor& cur, const char* value)
 {
     if (!*value)
@@ -254,10 +248,7 @@ void detail::skip(token_stream& stream, const cpp_cursor& cur,
                   std::initializer_list<const char*> values)
 {
     for (auto val : values)
-    {
         skip(stream, cur, val);
-        skip_whitespace(stream);
-    }
 }
 
 bool detail::skip_if_token(detail::token_stream& stream, const char* token)
@@ -265,7 +256,6 @@ bool detail::skip_if_token(detail::token_stream& stream, const char* token)
     if (stream.peek().get_value() != token)
         return false;
     stream.bump();
-    detail::skip_whitespace(stream);
     return true;
 }
 

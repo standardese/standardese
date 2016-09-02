@@ -141,11 +141,9 @@ namespace
         {
             // skip class/struct/union/keyword
             stream.bump();
-            detail::skip_whitespace(stream);
             detail::skip_attribute(stream, cur);
-            detail::skip_whitespace(stream);
         }
-        detail::skip(stream, cur, {name.c_str()});
+        detail::skip(stream, cur, name.c_str());
 
         // we need to go backwards from the end
         auto save = stream.get_iter();

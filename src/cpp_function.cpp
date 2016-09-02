@@ -39,9 +39,6 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(translation_unit& 
         }
     }
 
-    detail::erase_trailing_ws(type_name);
-    detail::erase_trailing_ws(default_value);
-
     return detail::make_cpp_ptr<cpp_function_parameter>(cur, parent,
                                                         cpp_type_ref(std::move(type_name),
                                                                      clang_getCursorType(cur)),
@@ -111,7 +108,6 @@ namespace
             detail::skip_offset(stream, last_offset);
             detail::skip_if_token(stream, ">");
         }
-        detail::skip_whitespace(stream);
     }
 
     std::string parse_member_function_prefix(detail::token_stream& stream, cpp_cursor cur,
@@ -245,8 +241,6 @@ namespace
 
     std::string parse_noexcept(detail::token_stream& stream)
     {
-        detail::skip_whitespace(stream);
-
         std::string expression;
         if (stream.peek().get_value() == "(")
         {
@@ -288,13 +282,11 @@ namespace
         auto c = stream.peek().get_value()[0];
         if (c == ':' || c == ';' || c == '{')
         {
-            detail::skip_whitespace(stream);
             is_special_definition = false;
             return true;
         }
         else if (c == '=')
         {
-            detail::skip_whitespace(stream);
             is_special_definition = true;
             return true;
         }
@@ -325,7 +317,7 @@ namespace
     {
         if (special_definition)
         {
-            detail::skip(stream, cur, {"="});
+            detail::skip(stream, cur, "=");
             return parse_special_definition(stream, cur);
         }
         else if (stream.peek().get_value() == "{" || stream.peek().get_value() == ":")
@@ -436,12 +428,8 @@ namespace
 
         detail::append_token(return_type, parse_member_function_suffix(stream, cur, finfo, minfo));
         if (return_type.empty())
-        {
             // we have a deduced return type
             return_type = "auto";
-        }
-        else
-            detail::erase_trailing_ws(return_type);
 
         if (finfo.noexcept_expression.empty())
             finfo.noexcept_expression = "false";
@@ -830,7 +818,6 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor c
         info.set_flag(cpp_constexpr_fnc);
 
     detail::skip_attribute(stream, cur);
-    detail::skip_whitespace(stream);
 
     // skip name and arguments
     detail::skip(stream, cur, {"~", &name[1], "(", ")"});

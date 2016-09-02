@@ -63,7 +63,7 @@ namespace
         {
             assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl);
 
-            skip(stream, cur, {"typedef"});
+            skip(stream, cur, "typedef");
 
             while (stream.peek().get_value() != ";")
             {
@@ -77,7 +77,6 @@ namespace
             }
         }
 
-        detail::erase_trailing_ws(target_name);
         return target_name;
     }
 }

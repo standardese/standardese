@@ -60,20 +60,18 @@ cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translat
     if (stream.peek().get_value() == "...")
     {
         stream.bump();
-        detail::skip_whitespace(stream);
         is_variadic = true;
     }
 
     // skip name
     if (!name.empty())
-        detail::skip(stream, cur, {name.c_str()});
+        detail::skip(stream, cur, name.c_str());
 
     // default
     std::string def_name;
     if (stream.peek().get_value() == "=")
     {
         stream.bump();
-        detail::skip_whitespace(stream);
 
         while (!stream.done())
             detail::append_token(def_name, stream.get().get_value());
@@ -111,26 +109,22 @@ cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
     if (stream.peek().get_value() == "...")
     {
         stream.bump();
-        detail::skip_whitespace(stream);
         is_variadic = true;
     }
 
     // skip name
     if (!name.empty())
-        detail::skip(stream, cur, {name.c_str()});
+        detail::skip(stream, cur, name.c_str());
 
     // continue with type
     while (!stream.done() && stream.peek().get_value() != "=")
         detail::append_token(type_given, stream.get().get_value());
-
-    detail::erase_trailing_ws(type_given);
 
     // default
     std::string def;
     if (stream.peek().get_value() == "=")
     {
         stream.bump();
-        detail::skip_whitespace(stream);
 
         while (!stream.done())
             detail::append_token(def, stream.get().get_value());

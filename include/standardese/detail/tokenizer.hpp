@@ -179,9 +179,6 @@ namespace standardese
         // skips until behind offset
         void skip_offset(token_stream& stream, unsigned offset);
 
-        // skips all whitespace
-        void skip_whitespace(token_stream& stream);
-
         // skips "value" and asserts that it is actually there
         void skip(token_stream& stream, const cpp_cursor& cur, const char* value);
 
@@ -195,7 +192,6 @@ namespace standardese
         void skip_bracket_count(detail::token_stream& stream, const cpp_cursor& cur,
                                 const char* open, const char* close, Func f)
         {
-            detail::skip_whitespace(stream);
             detail::skip(stream, cur, open);
 
             auto bracket_count = 1;

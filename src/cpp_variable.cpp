@@ -57,16 +57,12 @@ namespace
             {
                 stream.bump();
                 was_bitfield = false;
-                detail::skip_whitespace(stream);
             }
             else if (detail::skip_if_token(stream, "="))
                 in_type = false;
             else
                 detail::append_token((in_type ? type_name : initializer), stream.get().get_value());
         }
-
-        detail::erase_trailing_ws(type_name);
-        detail::erase_trailing_ws(initializer);
 
         return {std::move(type_name), clang_getCursorType(cur)};
     }
