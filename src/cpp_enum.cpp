@@ -81,7 +81,7 @@ cpp_ptr<cpp_enum_value> cpp_enum_value::parse(translation_unit& tu, cpp_cursor c
             else if (str == "}")
                 --bracket_count;
 
-            result += str.c_str();
+            detail::append_token(result, str);
         }
         detail::erase_trailing_ws(result);
 
@@ -109,7 +109,7 @@ namespace
 
             while (stream.peek().get_value() != ";")
             {
-                auto spelling = stream.get().get_value();
+                auto& spelling = stream.get().get_value();
 
                 if (spelling == "{")
                 {
@@ -117,7 +117,7 @@ namespace
                     break;
                 }
                 else
-                    underlying_type += spelling.c_str();
+                    detail::append_token(underlying_type, spelling);
             }
         }
         else if (stream.peek().get_value() == "{")

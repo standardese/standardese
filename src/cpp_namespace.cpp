@@ -70,7 +70,7 @@ namespace
         std::string target;
         while (!stream.done())
             if (stream.peek().get_value() != ";")
-                target += stream.get().get_value().c_str();
+                detail::append_token(target, stream.get().get_value());
             else
                 stream.get();
         detail::erase_trailing_ws(target);

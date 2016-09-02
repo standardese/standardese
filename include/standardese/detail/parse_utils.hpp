@@ -28,6 +28,10 @@ namespace standardese
         // cannot use parse_name(), adds "struct"/... before
         cpp_name parse_class_name(cpp_cursor cur);
 
+        // appends a token to a string
+        // inserts whitespace if needed
+        void append_token(std::string& result, const string& token);
+
         // erases template arguments
         void erase_template_args(std::string& name);
 

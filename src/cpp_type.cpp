@@ -54,8 +54,9 @@ namespace
 
             while (stream.peek().get_value() != ";")
             {
-                detail::skip_attribute(stream, cur);
-                target_name += stream.get().get_value().c_str();
+                if (detail::skip_attribute(stream, cur))
+                    continue;
+                detail::append_token(target_name, stream.get().get_value());
             }
         }
         else
@@ -66,10 +67,11 @@ namespace
 
             while (stream.peek().get_value() != ";")
             {
-                detail::skip_attribute(stream, cur);
+                if (detail::skip_attribute(stream, cur))
+                    continue;
                 auto& val = stream.peek().get_value();
                 if (val != name.c_str())
-                    target_name += val.c_str();
+                    detail::append_token(target_name, val);
 
                 stream.bump();
             }

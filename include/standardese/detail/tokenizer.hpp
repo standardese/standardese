@@ -11,6 +11,7 @@
 #include <standardese/detail/sequence_stream.hpp>
 #include <standardese/string.hpp>
 #include <standardese/cpp_cursor.hpp>
+#include <standardese/translation_unit.hpp>
 
 namespace standardese
 {
@@ -22,6 +23,8 @@ namespace standardese
 {
     namespace detail
     {
+        CXFile get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset);
+
         class token
         {
         public:
@@ -29,9 +32,12 @@ namespace standardese
             {
             }
 
-            token(string value, CXTokenKind kind) : value_(value), kind_(kind)
+            token(string value, CXTokenKind kind, unsigned offset = 0)
+            : value_(value), kind_(kind), offset_(offset)
             {
             }
+
+            token(CXTranslationUnit tu, CXToken token);
 
             const string& get_value() const STANDARDESE_NOEXCEPT
             {
@@ -43,29 +49,35 @@ namespace standardese
                 return kind_;
             }
 
+            unsigned get_offset() const STANDARDESE_NOEXCEPT
+            {
+                return offset_;
+            }
+
         private:
             string      value_;
             CXTokenKind kind_;
+            unsigned    offset_;
         };
 
-        class token_iterator : public std::iterator<std::forward_iterator_tag, token>
+        class token_iterator : public std::iterator<std::bidirectional_iterator_tag, token>
         {
         public:
             const token& operator*() const STANDARDESE_NOEXCEPT
             {
+                token_ = token(tu_, *cx_token_);
                 return token_;
             }
 
             const token* operator->() const STANDARDESE_NOEXCEPT
             {
+                token_ = token(tu_, *cx_token_);
                 return &token_;
             }
 
             token_iterator& operator++() STANDARDESE_NOEXCEPT
             {
                 ++cx_token_;
-                token_ =
-                    token(clang_getTokenSpelling(tu_, *cx_token_), clang_getTokenKind(*cx_token_));
                 return *this;
             }
 
@@ -73,6 +85,19 @@ namespace standardese
             {
                 token_iterator tmp(*this);
                 ++*this;
+                return tmp;
+            }
+
+            token_iterator& operator--() STANDARDESE_NOEXCEPT
+            {
+                --cx_token_;
+                return *this;
+            }
+
+            token_iterator operator--(int)STANDARDESE_NOEXCEPT
+            {
+                token_iterator tmp(*this);
+                --*this;
                 return tmp;
             }
 
@@ -96,14 +121,13 @@ namespace standardese
             }
 
             token_iterator(CXTranslationUnit tu, CXToken* token) STANDARDESE_NOEXCEPT
-                : tu_(tu),
+                : token_(tu, *token),
+                  tu_(tu),
                   cx_token_(token)
             {
-                token_ = detail::token(clang_getTokenSpelling(tu_, *cx_token_),
-                                       clang_getTokenKind(*cx_token_));
             }
 
-            token             token_;
+            mutable token     token_;
             CXTranslationUnit tu_;
             CXToken*          cx_token_;
 
@@ -122,31 +146,38 @@ namespace standardese
 
             token_iterator begin() const STANDARDESE_NOEXCEPT
             {
-                return token_iterator(tu_, tokens_);
+                return token_iterator(get_cxunit(), tokens_);
             }
 
-            token_iterator end() const STANDARDESE_NOEXCEPT
-            {
-                return token_iterator(nullptr, tu_, tokens_ + no_tokens_);
-            }
+            token_iterator end() const STANDARDESE_NOEXCEPT;
 
-            CXTranslationUnit get_cxunit() const STANDARDESE_NOEXCEPT
+            // returns whether two '>' characters at the end were munched into a single '>>'
+            // only necessary for template parameter
+            bool need_unmunch() const STANDARDESE_NOEXCEPT;
+
+            CXTranslationUnit get_cxunit() const STANDARDESE_NOEXCEPT;
+
+            token end_token() const STANDARDESE_NOEXCEPT
             {
-                return tu_;
+                return token(end_, CXToken_Punctuation);
             }
 
         private:
-            CXTranslationUnit tu_;
-            CXToken*          tokens_;
-            unsigned          no_tokens_;
+            const translation_unit* tu_;
+            CXToken*                tokens_;
+            unsigned                no_tokens_, end_offset_;
+            const char*             end_;
         };
 
         using token_stream = sequence_stream<token_iterator>;
 
         inline token_stream make_stream(const tokenizer& t)
         {
-            return token_stream(t.begin(), t.end(), token(";", CXToken_Punctuation));
+            return token_stream(t.begin(), t.end(), t.end_token());
         }
+
+        // skips until behind offset
+        void skip_offset(token_stream& stream, unsigned offset);
 
         // skips all whitespace
         void skip_whitespace(token_stream& stream);
@@ -194,7 +225,7 @@ namespace standardese
         }
 
         // skips an attribute if any
-        void skip_attribute(detail::token_stream& stream, const cpp_cursor& cur);
+        bool skip_attribute(detail::token_stream& stream, const cpp_cursor& cur);
     }
 } // namespace standardese::detail
 

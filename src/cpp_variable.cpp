@@ -25,9 +25,7 @@ namespace
         std::string type_name;
         for (auto in_type = true, was_bitfield = false; stream.peek().get_value() != ";";)
         {
-            detail::skip_attribute(stream, cur);
-
-            if (detail::skip_if_token(stream, name.c_str())
+            if (detail::skip_attribute(stream, cur) || detail::skip_if_token(stream, name.c_str())
                 || detail::skip_if_token(stream, "extern")
                 || detail::skip_if_token(stream, "static"))
                 // ignore
@@ -43,7 +41,7 @@ namespace
 
                 // set name of the new type
                 assert(in_type);
-                type_name += stream.peek().get_value().c_str();
+                detail::append_token(type_name, stream.peek().get_value());
                 stream.bump();
 
                 // skip type definition
@@ -64,7 +62,7 @@ namespace
             else if (detail::skip_if_token(stream, "="))
                 in_type = false;
             else
-                (in_type ? type_name : initializer) += stream.get().get_value().c_str();
+                detail::append_token((in_type ? type_name : initializer), stream.get().get_value());
         }
 
         detail::erase_trailing_ws(type_name);

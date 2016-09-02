@@ -91,7 +91,7 @@ decltype(auto) i();)";
             else if (func.get_name() == "c")
             {
                 ++count;
-                REQUIRE(func.get_return_type().get_name() == "int *");
+                REQUIRE(func.get_return_type().get_name() == "int*");
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
@@ -103,7 +103,7 @@ decltype(auto) i();)";
             else if (func.get_name() == "d")
             {
                 ++count;
-                REQUIRE(func.get_return_type().get_name() == "char &");
+                REQUIRE(func.get_return_type().get_name() == "char&");
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "true");
@@ -127,7 +127,7 @@ decltype(auto) i();)";
             else if (func.get_name() == "f")
             {
                 ++count;
-                REQUIRE(func.get_return_type().get_name() == "int (*)(volatile char&&)");
+                REQUIRE(func.get_return_type().get_name() == "int(*)(volatile char&&)");
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");

@@ -20,7 +20,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
     parser p;
 
     auto code = R"(
-        using /* comment */ type_1 = unsigned int;
+        using type_1 = unsigned int;
         using type_2 = char[];
 
         typedef int type_3;
@@ -79,7 +79,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
             ++count;
             REQUIRE(t.get_full_name() == "type_4");
             auto& target = t.get_target();
-            REQUIRE(target.get_name() == "const foo *");
+            REQUIRE(target.get_name() == "const foo*");
             REQUIRE(target.get_full_name() == "const foo *");
         }
         else if (t.get_name() == "type_5")
@@ -300,7 +300,7 @@ TEST_CASE("cpp_enum", "[cpp]")
 
                     auto& exprval = dynamic_cast<const cpp_expression_enum_value&>(eval);
                     if (i == 1u)
-                        REQUIRE(exprval.get_value() == "1 + T{}");
+                        REQUIRE(exprval.get_value() == "1+T{}");
                     else if (i == 2u)
                         REQUIRE(exprval.get_value() == "T{}");
                     else

@@ -56,6 +56,50 @@ cpp_name detail::parse_class_name(cpp_cursor cur)
     return name;
 }
 
+namespace
+{
+    bool any_alpha(const std::string& result, const string& token)
+    {
+        return std::isalnum(result.back()) || std::isalnum(*token.begin());
+    }
+
+    bool both_alpha(const std::string& result, const string& token)
+    {
+        return std::isalnum(result.back()) && std::isalnum(*token.begin());
+    }
+
+    bool is_bracket(char c)
+    {
+        return c == '(' || c == '{' || c == '[' || c == '<' || c == ')' || c == '}' || c == ']'
+               || c == '>';
+    }
+
+    bool is_bracket(const std::string& result, const string& token)
+    {
+        return is_bracket(result.back()) || is_bracket(*token.begin());
+    }
+
+    bool ends_with(const std::string& result, const char* str)
+    {
+        auto l = std::strlen(str);
+        if (result.size() < l)
+            return false;
+        return result.compare(result.size() - l, l, str) == 0;
+    }
+}
+
+void detail::append_token(std::string& result, const string& token)
+{
+    // these are the whitespace rules I've come up with
+    // note: it must be very conservative because otherwise types looks okay but expressions don't
+    if (result.empty() || token == "::" || ends_with(result, "::") || token == ",")
+        ; // never add whitespace
+    else if (both_alpha(result, token) || result.back() == ',')
+        // insert whitespace
+        result += ' ';
+    result += token.c_str();
+}
+
 void detail::erase_template_args(std::string& name)
 {
     auto beg = name.find('<');

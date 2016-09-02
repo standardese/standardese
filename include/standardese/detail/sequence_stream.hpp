@@ -47,7 +47,7 @@ namespace standardese
                 return *cur_;
             }
 
-            value_type peek(std::size_t offset) const
+            value_type peek(std::ptrdiff_t offset) const
             {
                 if (std::ptrdiff_t(offset) > left())
                     return out_of_range_;
@@ -60,11 +60,27 @@ namespace standardese
                     ++cur_;
             }
 
+            void bump_back()
+            {
+                if (cur_ != begin_)
+                    --cur_;
+            }
+
             value_type get()
             {
                 auto result = peek();
                 bump();
                 return result;
+            }
+
+            iterator get_begin() const
+            {
+                return begin_;
+            }
+
+            iterator get_end() const
+            {
+                return end_;
             }
 
             iterator get_iter() const

@@ -108,7 +108,7 @@ TEST_CASE("synopsis")
     {
         auto code = R"(#define FOO something
 
-constexpr int a(char& c, int* ptr, ...) noexcept(noexcept(1 + 1));
+constexpr int a(char& c, int* ptr, ...) noexcept(noexcept(1+1));
 
 template <typename T, template <typename> typename D, int ... I>
 void b(T t);

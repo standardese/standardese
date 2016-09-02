@@ -62,26 +62,10 @@ namespace
         detail::erase_trailing_ws(rep);
     }
 
-    CXFile get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset)
-    {
-        auto source = clang_getCursorExtent(cur);
-        auto begin  = clang_getRangeStart(source);
-        auto end    = clang_getRangeEnd(source);
-
-        // translate location into offset and file
-        CXFile file  = nullptr;
-        begin_offset = 0u;
-        end_offset   = 0u;
-        clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
-        clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
-
-        return file;
-    }
-
     std::string get_source(cpp_cursor cur)
     {
         unsigned begin, end;
-        auto     file = get_range(cur, begin, end);
+        auto     file = detail::get_range(cur, begin, end);
         if (!file)
             return "";
 

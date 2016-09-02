@@ -92,5 +92,5 @@ TEST_CASE("cpp_preprocessor", "[cpp]")
         else
             REQUIRE(false);
     }
-    REQUIRE(count == 8u);
+    REQUIRE(count == 7u);
 }
