@@ -102,25 +102,34 @@ namespace
 
         return db_args;
     }
-}
+
+    // cmake sucks at string handling, so sometimes LIBCLANG_SYSTEM_INCLUDE_DIR isn't a string
+    // so we need to stringify it
+    // but if the argument was a string, libclang can't handle the double quotes
+    // so unstringify it then at runtime (you can't do that in the preprocessor...)
+    std::string unquote(const char* str)
+    {
+        if (str[0] == '"')
+        {
+            std::string res(str + 1);
+            res.pop_back();
+            return res;
+        }
+
+        return str;
+    }
 
 #define STANDARDESE_DETAIL_STRINGIFY_IMPL(x) #x
 #define STANDARDESE_DETAIL_STRINGIFY(x) STANDARDESE_DETAIL_STRINGIFY_IMPL(x)
+}
 
 compile_config::compile_config(cpp_standard standard, string commands_dir)
-: flags_{"-x", "c++", "-I", STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR)}
+: flags_{"-x", "c++",
+         "-I", unquote(STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_STDLIB_INCLUDE_DIR)),
+         "-I", unquote(STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR)),
+         "-I", unquote(STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_PLATFORM_INCLUDE_DIR))}
 {
     (void)standards_initializer;
-    // cmake sucks at string handling, so sometimes LIBCLANG_SYSTEM_INCLUDE_DIR isn't a string
-    // so we need to stringify it
-    // but if the argument was a string, libclang can't handle the double qoutes
-    // so unstringify it then at runtime (you can't do that in the preprocessor...)
-    if (flags_.back().c_str()[0] == '"')
-    {
-        std::string str = flags_.back().c_str() + 1;
-        str.pop_back();
-        flags_.back() = std::move(str);
-    }
 
     if (!commands_dir.empty())
     {

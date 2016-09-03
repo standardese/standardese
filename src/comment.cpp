@@ -108,12 +108,11 @@ namespace
         auto range    = clang_getCursorExtent(cur);
         auto location = clang_getRangeStart(range);
 
-        CXFile   file;
+        CXString file;
         unsigned line;
-        clang_getSpellingLocation(location, &file, &line, nullptr, nullptr);
-        assert(file);
+        clang_getPresumedLocation(location, &file, &line, nullptr);
 
-        return std::make_pair(clang_getFileName(file), line);
+        return std::make_pair(file, line);
     }
 
     const cpp_entity& get_inline_parent(const cpp_entity& e)
@@ -189,8 +188,9 @@ namespace
                 // an entity that must have an inline location
                 return false;
 
-            auto location = get_location(clang_Cursor_isNull(cur) ? e.get_cursor() : cur);
-            return location.second - id.line() <= 1u && location.first == id.file_name();
+            auto       location = get_location(clang_Cursor_isNull(cur) ? e.get_cursor() : cur);
+            comment_id e_id(location.first, location.second);
+            return e_id.line() - id.line() <= 1u && e_id.file_name() == id.file_name();
         }
         else if (id.is_inline_location())
         {
@@ -199,8 +199,9 @@ namespace
                 return false;
             assert(clang_Cursor_isNull(cur));
 
-            auto location = get_location(inline_parent.get_cursor());
-            return location.second - id.line() <= 1u && location.first == id.file_name()
+            auto       location = get_location(inline_parent.get_cursor());
+            comment_id e_id(location.first, location.second);
+            return e_id.line() - id.line() <= 1u && e_id.file_name() == id.file_name()
                    && inline_name_matches(e, id.inline_entity_name());
         }
 
@@ -664,8 +665,7 @@ namespace
     }
 }
 
-void standardese::parse_comments(const parser& p, const string& file_name,
-                                 const std::string& source)
+void standardese::parse_comments(const parser& p, const char* file_name, const std::string& source)
 {
     auto raw_comments = detail::read_comments(source);
     for (auto& raw_comment : raw_comments)

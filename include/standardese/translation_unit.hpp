@@ -9,6 +9,8 @@
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_entity_registry.hpp>
 
+#include <iostream>
+
 namespace standardese
 {
     class parser;
@@ -98,18 +100,23 @@ namespace standardese
             struct data_t
             {
                 Func*  func;
-                CXFile file;
-            } data{&f, file};
+                string file_name;
+            } data{&f, clang_getFileName(file)};
 
             auto visitor_impl = [](CXCursor cursor, CXCursor parent,
                                    CXClientData client_data) -> CXChildVisitResult {
                 auto data = static_cast<data_t*>(client_data);
 
-                auto   location = clang_getCursorLocation(cursor);
-                CXFile file;
-                clang_getSpellingLocation(location, &file, nullptr, nullptr, nullptr);
+                auto     location = clang_getCursorLocation(cursor);
+                CXString cx_file_name;
+                clang_getPresumedLocation(location, &cx_file_name, nullptr, nullptr);
 
-                if (!file || !clang_File_isEqual(file, data->file))
+                string file_name(cx_file_name);
+                // if file_name ends with the file name of the TU
+                // (ends because file_name is the full path, not just the name)
+                if (file_name.length() < data->file_name.length()
+                    || std::strcmp(file_name.end() - data->file_name.length(),
+                                   data->file_name.c_str()))
                     return CXChildVisit_Continue;
                 return (*data->func)(cursor, parent);
             };

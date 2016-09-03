@@ -38,6 +38,16 @@ namespace standardese
 
         std::vector<const char*> get_flags() const;
 
+        std::vector<string>::const_iterator begin() const
+        {
+            return flags_.begin();
+        }
+
+        std::vector<string>::const_iterator end() const
+        {
+            return flags_.end();
+        }
+
     private:
         std::vector<string> flags_;
     };
