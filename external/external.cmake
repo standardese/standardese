@@ -60,16 +60,6 @@ if(NOT LIBCLANG_SYSTEM_INCLUDE_DIR)
     set(LIBCLANG_SYSTEM_INCLUDE_DIR "${LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL}/clang/${libclang_version}/include")
 endif()
 
-find_path(LIBCLANG_STDLIB_INCLUDE_DIR "iostream" "/usr/include/c++/*")
-if(NOT LIBCLANG_STDLIB_INCLUDE_DIR)
-    message(WARNING "unable to find include directory of the standard library, please set LIBCLANG_STDLIB_INCLUDE_DIR yourself")
-endif()
-
-find_path(LIBCLANG_PLATFORM_INCLUDE_DIR "stdio.h" "/usr/include/")
-if(NOT LIBCLANG_PLATFORM_INCLUDE_DIR)
-    message(WARNING "unable to find include directory of the platform, please set LIBCLANG_PLATFORM_INCLUDE_DIR yourself")
-endif()
-
 #
 # add spdlog
 #

@@ -7,7 +7,7 @@
 #include <fstream>
 #include <spdlog/sinks/null_sink.h>
 
-#include <standardese/detail/preprocessor.hpp>
+#include <standardese/preprocessor.hpp>
 #include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
 
@@ -58,7 +58,7 @@ translation_unit parser::parse(const char* full_path, const compile_config& c,
     auto source = read_source(full_path);
     parse_comments(*this, file_name, source);
 
-    auto preprocessed = detail::preprocess(c, full_path, source);
+    auto preprocessed = preprocessor_.preprocess(c, full_path, source);
     auto tu           = get_cxunit(index_.get(), c, full_path, preprocessed);
 
     cpp_ptr<cpp_file> file(new cpp_file(clang_getTranslationUnitCursor(tu), tu, file_name));

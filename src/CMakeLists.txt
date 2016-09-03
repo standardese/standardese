@@ -5,7 +5,6 @@
 set(detail_header
         ../include/standardese/detail/entity_container.hpp
         ../include/standardese/detail/parse_utils.hpp
-        ../include/standardese/detail/preprocessor.hpp
         ../include/standardese/detail/raw_comment.hpp
         ../include/standardese/detail/scope_stack.hpp
         ../include/standardese/detail/sequence_stream.hpp
@@ -38,13 +37,13 @@ set(header
         ../include/standardese/output_format.hpp
         ../include/standardese/output_stream.hpp
         ../include/standardese/parser.hpp
+        ../include/standardese/preprocessor.hpp
         ../include/standardese/section.hpp
         ../include/standardese/string.hpp
         ../include/standardese/synopsis.hpp
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
-        detail/preprocessor.cpp
         detail/raw_comment.cpp
         detail/scope_stack.cpp
         detail/synopsis_utils.cpp
@@ -72,6 +71,7 @@ set(src
         output_format.cpp
         output_stream.cpp
         parser.cpp
+        preprocessor.cpp
         synopsis.cpp
         translation_unit.cpp)
 
@@ -87,9 +87,7 @@ target_compile_definitions(standardese PUBLIC
                                 STANDARDESE=1
                                 STANDARDESE_VERSION_MAJOR=${STANDARDESE_VERSION_MAJOR}
                                 STANDARDESE_VERSION_MINOR=${STANDARDESE_VERSION_MINOR}
-                                LIBCLANG_SYSTEM_INCLUDE_DIR="${LIBCLANG_SYSTEM_INCLUDE_DIR}"
-                                LIBCLANG_STDLIB_INCLUDE_DIR="${LIBCLANG_STDLIB_INCLUDE_DIR}"
-                                LIBCLANG_PLATFORM_INCLUDE_DIR="${LIBCLANG_PLATFORM_INCLUDE_DIR}")
+                                LIBCLANG_SYSTEM_INCLUDE_DIR="${LIBCLANG_SYSTEM_INCLUDE_DIR}")
 
 # add threading support
 find_package(Threads REQUIRED)

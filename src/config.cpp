@@ -124,10 +124,7 @@ namespace
 }
 
 compile_config::compile_config(cpp_standard standard, string commands_dir)
-: flags_{"-x", "c++",
-         "-I", unquote(STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_STDLIB_INCLUDE_DIR)),
-         "-I", unquote(STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR)),
-         "-I", unquote(STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_PLATFORM_INCLUDE_DIR))}
+: flags_{"-x", "c++", "-I", unquote(STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR))}
 {
     (void)standards_initializer;
 
