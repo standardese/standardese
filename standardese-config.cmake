@@ -20,19 +20,21 @@ find_program(STANDARDESE_TOOL standardese)
 #                      [INCLUDE_DIRECTORY <include_dir_a> [include_dir_b ...]]
 #                      [MACRO_DEFINITION <def_a> [def_b ...]]
 #                      [MACRO_UNDEFINITION <def_a> [def_b ...]]
+#                      [PREPROCESS_DIRECTORY <dir_a> [dir_b ...]]
 #                      INPUT <input_a> [input_b ...])
 # ALL - whether or not the custom target will run when building all
 # CONFIG - same as --config for standardese
 # INCLUDE_DIRECTORY - same as -I <arg> for standardese for each argument
 # MACRO_DEFINITION - same as -D <arg> for standardese for each argument
 # MACRO_UNDEFINITION - same as -U <arg> for standardese for each argument
+# PREPROCESS_DIRECTORY - same as -P <arg> for standardese for each argument
 # INPUT - the input files given to standardese
 # all paths must be absolute (e.g. through CMAKE_CURRENT_SOURCE_DIR or similar)
 # or relative to the working directory of standardese which is ${CMAKE_CURRENT_BINARY_DIR}/standardese_${target}
 function(standardese_generate target)
     cmake_parse_arguments(STANDARDESE "ALL" # no arg
                                       "CONFIG" # single arg
-                                      "INPUT;INCLUDE_DIRECTORY;MACRO_DEFINITION;MACRO_UNDEFINITION" # multiple arg
+                                      "INPUT;INCLUDE_DIRECTORY;MACRO_DEFINITION;MACRO_UNDEFINITION;PREPROCESS_DIRECTORY" # multiple arg
                           ${ARGN})
 
     if(STANDARDESE_CONFIG)
@@ -55,6 +57,12 @@ function(standardese_generate target)
         foreach(def ${STANDARDESE_MACRO_UNDEFINITION})
             list(APPEND options -U ${def})
         endforeach()
+    endif()
+
+    if (STANDARDESE_PREPROCESS_DIRECTORY)
+       foreach(dir ${STANDARDESE_PREPROCESS_DIRECTORY)
+           list(APPEND options -P ${dir})
+       endforeach()
     endif()
 
     foreach(input ${STANDARDESE_INPUT})

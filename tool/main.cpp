@@ -105,6 +105,8 @@ int main(int argc, char* argv[])
              "adds an implicit #define before parsing")
             ("compilation.macro_undefinition,U", po::value<std::vector<std::string>>(),
              "adds an implicit #undef before parsing")
+            ("compilation.preprocess_dir,P", po::value<std::vector<std::string>>(),
+             "adds a directory whose contents will be preprocessed by standardese")
 
             ("comment.command_character", po::value<char>()->default_value('\\'),
              "character used to introduce special commands")

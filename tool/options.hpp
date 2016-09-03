@@ -117,6 +117,11 @@ namespace standardese_tool
         detail::handle_unparsed_options(*p, cmd_result);
         detail::handle_unparsed_options(*p, file_result);
 
+        auto dirs = map.find("compilation.preprocess_dir");
+        if (dirs != map.end())
+            for (auto& dir : dirs->second.as<std::vector<std::string>>())
+                p->get_preprocessor().add_preprocess_directory(std::move(dir));
+
         return p;
     }
 
