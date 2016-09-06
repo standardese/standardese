@@ -28,6 +28,7 @@
 #endif
 
 #include <standardese/config.hpp>
+#include <standardese/translation_unit.hpp>
 
 using namespace standardese;
 namespace bw = boost::wave;
@@ -41,7 +42,8 @@ namespace
     class policy : public bw::context_policies::default_preprocessing_hooks
     {
     public:
-        policy(const preprocessor& pre, std::string& include) : pre_(&pre), include_(&include)
+        policy(const preprocessor& pre, cpp_file& file, std::string& include)
+        : pre_(&pre), file_(&file), include_(&include)
         {
         }
 
@@ -53,29 +55,91 @@ namespace
         }
 
         template <typename ContextT>
-        bool found_include_directive(const ContextT& ctx, const std::string& file_name,
-                                     bool include_next)
+        bool found_include_directive(const ContextT& ctx, std::string file_name, bool include_next)
         {
-            if (use_include(ctx, file_name, include_next))
+            bool is_system;
+            if (use_include(ctx, file_name, is_system, include_next))
+            {
+                if (ctx.get_iteration_depth() == 0)
+                    // in the main file
+                    file_->add_entity(
+                        cpp_inclusion_directive::make(*file_, file_name,
+                                                      is_system ? cpp_inclusion_directive::system :
+                                                                  cpp_inclusion_directive::local,
+                                                      0));
                 return false;
+            }
+            else
+            {
+                // write include so that libclang can use it
+                *include_ += '#';
+                *include_ += include_next ? "include_next" : "include";
+                *include_ += is_system ? '<' : '"';
+                *include_ += file_name;
+                *include_ += is_system ? '>' : '"';
+                *include_ += '\n';
 
-            *include_ += '#';
-            *include_ += include_next ? "include_next" : "include";
-            *include_ += ' ';
-            *include_ += file_name + '\n';
+                return true;
+            }
+        }
 
-            return true;
+        template <typename ContextT, typename ParametersT, typename DefinitionT>
+        void defined_macro(const ContextT& ctx, const bw::cpplexer::lex_token<>& name,
+                           bool is_function_like, const ParametersT& parameters,
+                           const DefinitionT& definition, bool is_predefined)
+        {
+            if (is_predefined || ctx.get_iteration_depth() != 0)
+                // not in the main file
+                return;
+
+            std::string str_name = name.get_value().c_str();
+
+            std::string str_params;
+            if (is_function_like)
+            {
+                str_params += '(';
+                for (auto& token : parameters)
+                    str_params += token.get_value().c_str();
+                str_params += ')';
+            }
+
+            std::string str_def;
+            for (auto& token : definition)
+                str_def += token.get_value().c_str();
+
+            file_->add_entity(cpp_macro_definition::make(*file_, std::move(str_name),
+                                                         std::move(str_params), std::move(str_def),
+                                                         unsigned(name.get_position().get_line())));
+        }
+
+        template <typename ContextT>
+        void undefined_macro(const ContextT& ctx, const bw::cpplexer::lex_token<>& name)
+        {
+            if (ctx.get_iteration_depth() != 0)
+                // not in the main file
+                return;
+
+            auto prev = static_cast<cpp_entity*>(nullptr);
+            for (auto& entity : *file_)
+            {
+                if (entity.get_name() == name.get_value().c_str())
+                    break;
+                prev = &entity;
+            }
+
+            file_->remove_entity_after(prev);
         }
 
     private:
         template <typename ContextT>
-        bool use_include(const ContextT& ctx, std::string file_name, bool include_next)
+        bool use_include(const ContextT& ctx, std::string& file_name, bool& is_system,
+                         bool include_next)
         {
             if (include_next)
                 return false;
 
             assert(file_name[0] == '<' || file_name[0] == '"');
-            auto is_system = file_name[0] == '<';
+            is_system = file_name[0] == '<';
 
             file_name.erase(file_name.begin());
             file_name.pop_back();
@@ -87,6 +151,7 @@ namespace
         }
 
         const preprocessor* pre_;
+        cpp_file*           file_;
         std::string*        include_;
     };
 
@@ -132,27 +197,14 @@ namespace
                     cont.add_include_path(&(iter->c_str()[2]));
             }
         }
-
-        // support clang extensions
-        cont.add_macro_definition("__has_builtin(x)=1");
-        cont.add_macro_definition("__has_feature(x)=1");
-        cont.add_macro_definition("__has_extension(x)=1");
-        cont.add_macro_definition("__has_cpp_attribute(x)=1");
-        cont.add_macro_definition("__has_attribute(x)=1");
-        cont.add_macro_definition("__has_declspec_attribute(x)=1");
-        cont.add_macro_definition("__is_identifier(x)=1");
-
-        // include checks
-        cont.add_macro_definition("__has_include(x)=1");
-        cont.add_macro_definition("__has_include_next(x)=1");
     }
 }
 
 std::string preprocessor::preprocess(const compile_config& c, const char* full_path,
-                                     const std::string& source) const
+                                     const std::string& source, cpp_file& file) const
 {
     std::string include;
-    context     cont(source.begin(), source.end(), full_path, policy(*this, include));
+    context     cont(source.begin(), source.end(), full_path, policy(*this, file, include));
     setup_context(cont, c);
 
     std::string preprocessed;

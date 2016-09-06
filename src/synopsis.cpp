@@ -9,13 +9,13 @@
 #include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
-#include <standardese/cpp_preprocessor.hpp>
 #include <standardese/cpp_template.hpp>
 #include <standardese/cpp_type.hpp>
 #include <standardese/cpp_variable.hpp>
 #include <standardese/generator.hpp>
 #include <standardese/output.hpp>
 #include <standardese/parser.hpp>
+#include <standardese/preprocessor.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -93,12 +93,15 @@ namespace
     //=== preprocessor ===//
     void do_write_synopsis(const parser&, code_block_writer& out, const cpp_inclusion_directive& i)
     {
-        out << "#include <" << i.get_file_name() << ">";
+        out << "#include ";
+        out << (i.get_kind() == cpp_inclusion_directive::system ? '<' : '"');
+        out << i.get_file_name();
+        out << (i.get_kind() == cpp_inclusion_directive::system ? '>' : '"');
     }
 
     void do_write_synopsis(const parser&, code_block_writer& out, const cpp_macro_definition& m)
     {
-        out << "#define " << m.get_name() << m.get_argument_string() << ' ' << m.get_replacement();
+        out << "#define " << m.get_name() << m.get_parameter_string() << ' ' << m.get_replacement();
     }
 
     //=== namespace related ===//

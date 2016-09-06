@@ -10,7 +10,6 @@
 #include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
-#include <standardese/cpp_preprocessor.hpp>
 #include <standardese/cpp_template.hpp>
 #include <standardese/cpp_type.hpp>
 #include <standardese/cpp_variable.hpp>
@@ -40,9 +39,6 @@ cpp_entity_ptr cpp_entity::try_parse(translation_unit& tu, cpp_cursor cur, const
             return cpp_##TypeA::parse(tu, cur, parent);                                            \
         else                                                                                       \
             return cpp_##TypeB::parse(tu, cur, parent);
-
-        STANDARDESE_DETAIL_HANDLE(InclusionDirective, inclusion_directive)
-        STANDARDESE_DETAIL_HANDLE(MacroDefinition, macro_definition)
 
         STANDARDESE_DETAIL_HANDLE(Namespace, namespace)
         STANDARDESE_DETAIL_HANDLE(NamespaceAlias, namespace_alias)

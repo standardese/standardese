@@ -12,7 +12,6 @@
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/detail/wrapper.hpp>
 #include <standardese/comment.hpp>
-#include <standardese/cpp_preprocessor.hpp>
 #include <standardese/cpp_template.hpp>
 #include <standardese/error.hpp>
 #include <standardese/parser.hpp>

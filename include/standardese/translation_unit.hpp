@@ -43,6 +43,11 @@ namespace standardese
             cpp_entity_container<cpp_entity>::add_entity(this, std::move(e));
         }
 
+        void remove_entity_after(cpp_entity* e)
+        {
+            cpp_entity_container<cpp_entity>::remove_entity_after(e);
+        }
+
         cpp_name get_name() const override
         {
             return path_.c_str();
@@ -54,8 +59,8 @@ namespace standardese
         }
 
     private:
-        cpp_file(cpp_cursor cur, CXTranslationUnit tu, cpp_name path)
-        : cpp_entity(get_entity_type(), cur), path_(std::move(path)), wrapper_(tu)
+        cpp_file(cpp_name path)
+        : cpp_entity(get_entity_type(), clang_getNullCursor()), path_(std::move(path))
         {
         }
 

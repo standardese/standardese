@@ -102,7 +102,7 @@ namespace
 {
     std::pair<string, unsigned> get_location(const cpp_cursor& cur)
     {
-        assert(!clang_isTranslationUnit(clang_getCursorKind(cur)));
+        assert(!clang_Cursor_isNull(cur) && !clang_isTranslationUnit(clang_getCursorKind(cur)));
 
         // we need the extent because we need the very first character of the cursor
         auto range    = clang_getCursorExtent(cur);
@@ -133,10 +133,9 @@ namespace
         return e;
     }
 
-    comment_id create_location_id(cpp_entity::type t, const cpp_cursor& cur,
+    comment_id create_location_id(cpp_entity::type t, const std::pair<string, unsigned>& location,
                                   const cpp_name& name = "")
     {
-        auto location = get_location(cur);
         if (location.second == 1u)
             // entity is located at the first line of the file
             // no comment possible
@@ -149,14 +148,25 @@ namespace
                           detail::get_id(std::string(prefix) + name.c_str()));
     }
 
+    template <class Entity>
+    comment_id create_preprocessor_id(const Entity& e)
+    {
+        auto loc = std::make_pair(e.get_ast_parent().get_name(), e.get_line_number());
+        return create_location_id(e.get_entity_type(), loc);
+    }
+
     comment_id create_location_id(const cpp_entity& e)
     {
         if (e.get_entity_type() == cpp_entity::file_t)
             return comment_id(e.get_full_name());
+        else if (e.get_entity_type() == cpp_entity::macro_definition_t)
+            return create_preprocessor_id(static_cast<const cpp_macro_definition&>(e));
+        else if (e.get_entity_type() == cpp_entity::inclusion_directive_t)
+            return create_preprocessor_id(static_cast<const cpp_inclusion_directive&>(e));
 
         auto& parent    = get_inline_parent(e);
         auto  is_inline = &parent != &e;
-        return create_location_id(e.get_entity_type(), parent.get_cursor(),
+        return create_location_id(e.get_entity_type(), get_location(parent.get_cursor()),
                                   is_inline ? e.get_name() : "");
     }
 
@@ -188,8 +198,7 @@ namespace
                 // an entity that must have an inline location
                 return false;
 
-            auto       location = get_location(clang_Cursor_isNull(cur) ? e.get_cursor() : cur);
-            comment_id e_id(location.first, location.second);
+            auto e_id = create_location_id(e);
             return e_id.line() - id.line() <= 1u && e_id.file_name() == id.file_name();
         }
         else if (id.is_inline_location())
@@ -199,8 +208,7 @@ namespace
                 return false;
             assert(clang_Cursor_isNull(cur));
 
-            auto       location = get_location(inline_parent.get_cursor());
-            comment_id e_id(location.first, location.second);
+            auto e_id = create_location_id(e);
             return e_id.line() - id.line() <= 1u && e_id.file_name() == id.file_name()
                    && inline_name_matches(e, id.inline_entity_name());
         }
@@ -249,8 +257,9 @@ const comment* comment_registry::lookup_comment(const cpp_entity_registry& regis
     for (auto alternatives = registry.get_alternatives(e.get_cursor());
          alternatives.first != alternatives.second; ++alternatives.first)
     {
-        auto& alternative         = alternatives.first->second;
-        auto  definition_location = create_location_id(e.get_entity_type(), alternative);
+        auto& alternative = alternatives.first->second;
+        auto  definition_location =
+            create_location_id(e.get_entity_type(), get_location(alternative));
         if (auto c = lookup_comment_location(comments_, definition_location, e, alternative))
             return c;
     }
