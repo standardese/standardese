@@ -322,6 +322,10 @@ If you don't specify a section for a paragraph, the first paragraph will be impl
 /// \notes This is a different notes.
 ```
 
+> A note for those who know the preprocessor well:
+> A backslash at the end of line means that this line will be merged with the following line in the source code.
+> But don't worry, this is handled by standardese, there is no need to escape the backslash in any way.
+
 ---
 
 A *inline* is a special kind of command.

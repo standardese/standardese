@@ -55,14 +55,15 @@ translation_unit parser::parse(const char* full_path, const compile_config& c,
 {
     file_name = file_name ? file_name : full_path;
 
+    auto source = read_source(full_path);
+    parse_comments(*this, file_name, source);
+
     cpp_ptr<cpp_file> file(new cpp_file(file_name));
     auto              file_ptr = file.get();
     files_.add_file(std::move(file));
 
-    auto source       = read_source(full_path);
     auto preprocessed = preprocessor_.preprocess(c, full_path, source, *file_ptr);
-    parse_comments(*this, file_name, preprocessed);
-    auto tu = get_cxunit(index_.get(), c, full_path, preprocessed);
+    auto tu           = get_cxunit(index_.get(), c, full_path, preprocessed);
 
     file_ptr->wrapper_ = detail::tu_wrapper(tu);
     file_ptr->set_cursor(clang_getTranslationUnitCursor(tu));

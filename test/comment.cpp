@@ -210,7 +210,7 @@ C
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
-            INFO(get_text(paragraph));
+            INFO('"' << get_text(paragraph) << '"');
 
             if (get_text(paragraph) == "A A\nA A")
             {
