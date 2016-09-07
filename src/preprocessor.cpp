@@ -47,14 +47,34 @@ namespace
         {
         }
 
-        template <typename ContextT, typename ContainerT>
+        template <class ContextT, class ContainerT>
         bool found_warning_directive(const ContextT&, const ContainerT&)
         {
             // ignore warnings
             return true;
         }
 
-        template <typename ContextT>
+        template <class ContextT, class TokenT, class ContainerT>
+        bool evaluated_conditional_expression(const ContextT& ctx, const TokenT& directive,
+                                              const ContainerT& expression, bool value)
+        {
+            if (found_guard_ || ctx.get_iteration_depth() != 0)
+                // already found, not in main file
+                return false;
+            else if (value || directive.get_value() != "#ifndef")
+                // invalid directive
+                return false;
+            else if (expression.size() > 1)
+                // more than one token in the expression
+                return false;
+
+            // remember include guard
+            include_guard_ = expression.begin()->get_value().c_str();
+            ifndef_line_   = expression.begin()->get_position().get_line();
+            return false;
+        }
+
+        template <class ContextT>
         bool found_include_directive(const ContextT& ctx, std::string file_name, bool include_next)
         {
             bool is_system;
@@ -83,7 +103,7 @@ namespace
             }
         }
 
-        template <typename ContextT, typename ParametersT, typename DefinitionT>
+        template <class ContextT, class ParametersT, class DefinitionT>
         void defined_macro(const ContextT& ctx, const bw::cpplexer::lex_token<>& name,
                            bool is_function_like, const ParametersT& parameters,
                            const DefinitionT& definition, bool is_predefined)
@@ -91,6 +111,24 @@ namespace
             if (is_predefined || ctx.get_iteration_depth() != 0)
                 // not in the main file
                 return;
+            else if (!found_guard_ && !include_guard_.empty())
+            {
+                // include guard not found, but encountered directive
+                if (name.get_position().get_line() == ifndef_line_ + 1
+                    && name.get_value() == include_guard_.c_str())
+                {
+                    // this is in the next line and has the same macro name
+                    // treat it as include guard
+                    found_guard_ = true;
+                    return;
+                }
+                else
+                {
+                    // reset state, not include guard
+                    include_guard_.clear();
+                    ifndef_line_ = 0;
+                }
+            }
 
             std::string str_name = name.get_value().c_str();
 
@@ -112,7 +150,7 @@ namespace
                                                          unsigned(name.get_position().get_line())));
         }
 
-        template <typename ContextT>
+        template <class ContextT>
         void undefined_macro(const ContextT& ctx, const bw::cpplexer::lex_token<>& name)
         {
             if (ctx.get_iteration_depth() != 0)
@@ -131,7 +169,7 @@ namespace
         }
 
     private:
-        template <typename ContextT>
+        template <class ContextT>
         bool use_include(const ContextT& ctx, std::string& file_name, bool& is_system,
                          bool include_next)
         {
@@ -153,6 +191,10 @@ namespace
         const preprocessor* pre_;
         cpp_file*           file_;
         std::string*        include_;
+
+        std::string include_guard_;
+        unsigned    ifndef_line_ = 0;
+        bool        found_guard_ = false;
     };
 
     using context = bw::context<input_iterator, token_iterator,
