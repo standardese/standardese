@@ -57,9 +57,7 @@ namespace
             content += *ptr;
 
         assert(*ptr == '\n');
-        if (ptr[-1] != '\\')
-            // don't escape if backslash
-            ++cur_line;
+        ++cur_line;
         return {std::move(content), 1, cur_line - 1};
     }
 
@@ -110,14 +108,9 @@ namespace
                     content.pop_back();
                 needs_newline = true;
 
-                if (ptr[-1] != '\\')
-                {
-                    // don't increment if backslash
-                    ++cur_line;
-                    ++lines;
-                }
-
                 ++ptr;
+                ++cur_line;
+                ++lines;
 
                 skip_c_doc_comment_continuation(ptr);
                 // handle empty line
@@ -203,8 +196,7 @@ std::vector<detail::raw_comment> detail::read_comments(const std::string& source
             else
                 comments.emplace_back(parse_cpp_comment(ptr, cur_line), style);
         }
-        else if (*ptr == '\n' && (ptr == source.c_str() || ptr[-1] != '\\'))
-            // don't increment line number if previous character was a backslash
+        else if (*ptr == '\n')
             ++cur_line;
     }
 

@@ -30,6 +30,7 @@ std::string get_text(const md_paragraph& paragraph)
 
 const comment& parse_comment(parser& p, std::string source)
 {
+    std::replace(source.begin(), source.end(), '$', ' ');
     auto  tu     = parse(p, "md_comment", (source + "\nint a;").c_str());
     auto& entity = *tu.get_file().begin();
 
@@ -210,7 +211,7 @@ C
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
-            INFO('"' << get_text(paragraph) << '"');
+            INFO(get_text(paragraph));
 
             if (get_text(paragraph) == "A A\nA A")
             {
@@ -234,6 +235,8 @@ C
     }
     SECTION("one paragraph")
     {
+        // '$' == ' '
+        // trailing space required for the C preprocessor
         auto& comment = parse_comment(p, R"(/**
 \effects A
 A
@@ -242,7 +245,7 @@ A
 C
 \details D
 \brief E
-\notes F\
+\notes F\$
 \notes G
 */)");
 

@@ -315,16 +315,17 @@ If you don't specify a section for a paragraph, the first paragraph will be impl
 /// This is implictly details.
 /// \effects This is effects.
 /// This is still effects.
-/// \returns This is returns.\
+/// \returns This is returns.\ 
 /// Due to the hard break this is details again.
 ///
 /// \notes This is notes.
 /// \notes This is a different notes.
 ```
 
-> A note for those who know the preprocessor well:
-> A backslash at the end of line means that this line will be merged with the following line in the source code.
-> But don't worry, this is handled by standardese, there is no need to escape the backslash in any way.
+* Note: if the last character of any line in the source code - even comments - is a backslash,
+the C preprocessor will merge it with the following line.
+To prevent that, you need to put whitespace after the backslash.
+CommonMark will still treat it as a hard line break, but the preprocessor won't. *
 
 ---
 
