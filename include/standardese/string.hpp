@@ -90,6 +90,11 @@ namespace standardese
             return clang_getCString(*static_cast<const CXString*>(get_storage()));
         }
 
+        char operator[](std::size_t i) const STANDARDESE_NOEXCEPT
+        {
+            return c_str()[i];
+        }
+
         bool empty() const STANDARDESE_NOEXCEPT
         {
             return length_ == 0u;

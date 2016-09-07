@@ -9,6 +9,8 @@
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_entity_registry.hpp>
 
+#include <iostream>
+
 namespace standardese
 {
     class parser;
@@ -17,8 +19,6 @@ namespace standardese
 
     namespace detail
     {
-        struct tokenizer_access;
-
         struct tu_deleter
         {
             void operator()(CXTranslationUnit tu) const STANDARDESE_NOEXCEPT
@@ -43,6 +43,11 @@ namespace standardese
             cpp_entity_container<cpp_entity>::add_entity(this, std::move(e));
         }
 
+        void remove_entity_after(cpp_entity* e)
+        {
+            cpp_entity_container<cpp_entity>::remove_entity_after(e);
+        }
+
         cpp_name get_name() const override
         {
             return path_.c_str();
@@ -54,8 +59,8 @@ namespace standardese
         }
 
     private:
-        cpp_file(cpp_cursor cur, CXTranslationUnit tu, cpp_name path)
-        : cpp_entity(get_entity_type(), cur), path_(std::move(path)), wrapper_(tu)
+        cpp_file(cpp_name path)
+        : cpp_entity(get_entity_type(), clang_getNullCursor()), path_(std::move(path))
         {
         }
 
@@ -68,12 +73,6 @@ namespace standardese
     class translation_unit
     {
     public:
-        translation_unit(translation_unit&& other) STANDARDESE_NOEXCEPT;
-
-        ~translation_unit() STANDARDESE_NOEXCEPT;
-
-        translation_unit& operator=(translation_unit&& other) STANDARDESE_NOEXCEPT;
-
         const parser& get_parser() const STANDARDESE_NOEXCEPT;
 
         const cpp_name& get_path() const STANDARDESE_NOEXCEPT;
@@ -89,40 +88,40 @@ namespace standardese
         const cpp_entity_registry& get_registry() const STANDARDESE_NOEXCEPT;
 
     private:
-        translation_unit(const parser& par, const char* path, cpp_file* file,
-                         const compile_config& config);
+        translation_unit(const parser& par, const char* path, cpp_file* file);
 
-        struct impl;
-        std::unique_ptr<impl> pimpl_;
+        cpp_name      full_path_;
+        cpp_file*     file_;
+        const parser* parser_;
 
-        friend detail::tokenizer_access;
         friend parser;
     };
 
     namespace detail
     {
-        template <typename Func, typename MacroFunc>
-        void visit_tu(CXTranslationUnit tu, CXFile file, Func f, MacroFunc m)
+        template <typename Func>
+        void visit_tu(CXTranslationUnit tu, CXFile file, Func f)
         {
             struct data_t
             {
-                Func*      func;
-                MacroFunc* macro_func;
-                CXFile     file;
-            } data{&f, &m, file};
+                Func*  func;
+                string file_name;
+            } data{&f, clang_getFileName(file)};
 
             auto visitor_impl = [](CXCursor cursor, CXCursor parent,
                                    CXClientData client_data) -> CXChildVisitResult {
                 auto data = static_cast<data_t*>(client_data);
 
-                auto   location = clang_getCursorLocation(cursor);
-                CXFile file;
-                clang_getSpellingLocation(location, &file, nullptr, nullptr, nullptr);
+                auto     location = clang_getCursorLocation(cursor);
+                CXString cx_file_name;
+                clang_getPresumedLocation(location, &cx_file_name, nullptr, nullptr);
 
-                if (clang_getCursorKind(cursor) == CXCursor_MacroDefinition)
-                    (*data->macro_func)(cursor);
-
-                if (!file || !clang_File_isEqual(file, data->file))
+                string file_name(cx_file_name);
+                // if file_name ends with the file name of the TU
+                // (ends because file_name is the full path, not just the name)
+                if (file_name.length() < data->file_name.length()
+                    || std::strcmp(file_name.end() - data->file_name.length(),
+                                   data->file_name.c_str()))
                     return CXChildVisit_Continue;
                 return (*data->func)(cursor, parent);
             };

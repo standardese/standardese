@@ -9,6 +9,7 @@
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/cpp_template.hpp>
+#include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -140,16 +141,13 @@ namespace
         {
             // skip class/struct/union/keyword
             stream.bump();
-            detail::skip_whitespace(stream);
             detail::skip_attribute(stream, cur);
-            detail::skip_whitespace(stream);
         }
-        detail::skip(stream, cur, {name.c_str()});
+        detail::skip(stream, cur, name.c_str());
 
         // we need to go backwards from the end
-        // but the iterator doesn't support that, so store them
-        std::vector<detail::token_stream::iterator> tokens;
-        for (; !stream.done(); stream.bump())
+        auto save = stream.get_iter();
+        for (auto in_template = false; !stream.done(); stream.bump())
         {
             if (stream.peek().get_value() == ";")
                 // end of class declaration
@@ -157,20 +155,21 @@ namespace
             else if (stream.peek().get_value() == ":")
                 // beginning of bases
                 break;
-            else if (stream.peek().get_value() == "{"
-                     && (tokens.empty() || *(tokens.back()->get_value().rbegin()) == '>'))
+            else if (stream.peek().get_value() == "{" && !in_template)
                 // beginning of class definition
                 // just rudimentary check against uniform initialization inside the args
                 break;
-            else if (!std::isspace(stream.peek().get_value()[0]))
-                tokens.push_back(stream.get_iter());
+            else if (stream.peek().get_value() == "<")
+                in_template = true;
+            else if (*std::prev(stream.peek().get_value().end()) == '>')
+                in_template = false;
         }
 
         is_final = false;
-        for (auto iter = tokens.rbegin(); iter != tokens.rend(); ++iter)
+
+        for (; std::next(stream.get_iter()) != save; stream.bump_back())
         {
-            auto& token = *iter;
-            auto& str   = token->get_value();
+            auto& str = stream.peek().get_value();
 
             if (str == "final")
                 is_final = true;
@@ -178,11 +177,13 @@ namespace
             {
                 // end of template arguments
                 // concatenate them all
-                stream.reset(tokens.front());
+                auto end = stream.get_iter();
+                stream.reset(save);
+
                 specialization_name = name.c_str();
-                while (stream.get_iter() != *std::prev(iter.base()))
-                    specialization_name += stream.get().get_value().c_str();
-                specialization_name += '>';
+                while (stream.get_iter() != end)
+                    detail::append_token(specialization_name, stream.get().get_value());
+                detail::append_token(specialization_name, stream.get().get_value());
                 break;
             }
         }

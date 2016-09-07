@@ -8,24 +8,10 @@
 #include <initializer_list>
 #include <string>
 
-#ifdef _MSC_VER
-#pragma warning(push)
-// 'sprintf' : format string '%ld' requires an argument of type 'long', but variadic argument 1 has type 'size_t'
-#pragma warning(disable : 4477)
-#endif
-
-#include <boost/wave/cpplexer/cpp_lex_iterator.hpp>
-#include <boost/wave/cpplexer/cpp_lex_token.hpp>
-#include <boost/wave.hpp>
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
 #include <standardese/detail/sequence_stream.hpp>
-#include <standardese/error.hpp>
 #include <standardese/string.hpp>
 #include <standardese/cpp_cursor.hpp>
+#include <standardese/translation_unit.hpp>
 
 namespace standardese
 {
@@ -37,24 +23,161 @@ namespace standardese
 {
     namespace detail
     {
-        using token_iterator =
-            boost::wave::cpplexer::lex_iterator<boost::wave::cpplexer::lex_token<>>;
+        CXFile get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset);
 
-        // inherit from it to allow forward declaration
-        struct context : public boost::wave::context<std::string::const_iterator, token_iterator>
+        class token
         {
-            context(const std::string& path)
-            : boost::wave::context<std::string::const_iterator, token_iterator>(path.end(),
-                                                                                path.end(),
-                                                                                path.c_str())
+        public:
+            token() : token("", CXToken_Punctuation)
             {
             }
+
+            token(string value, CXTokenKind kind, unsigned offset = 0)
+            : value_(value), kind_(kind), offset_(offset)
+            {
+            }
+
+            token(CXTranslationUnit tu, CXToken token);
+
+            const string& get_value() const STANDARDESE_NOEXCEPT
+            {
+                return value_;
+            }
+
+            CXTokenKind get_kind() const STANDARDESE_NOEXCEPT
+            {
+                return kind_;
+            }
+
+            unsigned get_offset() const STANDARDESE_NOEXCEPT
+            {
+                return offset_;
+            }
+
+        private:
+            string      value_;
+            CXTokenKind kind_;
+            unsigned    offset_;
         };
 
-        using token_stream = sequence_stream<context::iterator_type>;
+        class token_iterator : public std::iterator<std::bidirectional_iterator_tag, token>
+        {
+        public:
+            const token& operator*() const STANDARDESE_NOEXCEPT
+            {
+                token_ = token(tu_, *cx_token_);
+                return token_;
+            }
 
-        // skips all whitespace
-        void skip_whitespace(token_stream& stream);
+            const token* operator->() const STANDARDESE_NOEXCEPT
+            {
+                token_ = token(tu_, *cx_token_);
+                return &token_;
+            }
+
+            token_iterator& operator++() STANDARDESE_NOEXCEPT
+            {
+                ++cx_token_;
+                return *this;
+            }
+
+            token_iterator operator++(int)STANDARDESE_NOEXCEPT
+            {
+                token_iterator tmp(*this);
+                ++*this;
+                return tmp;
+            }
+
+            token_iterator& operator--() STANDARDESE_NOEXCEPT
+            {
+                --cx_token_;
+                return *this;
+            }
+
+            token_iterator operator--(int)STANDARDESE_NOEXCEPT
+            {
+                token_iterator tmp(*this);
+                --*this;
+                return tmp;
+            }
+
+            friend bool operator==(const token_iterator& a,
+                                   const token_iterator& b) STANDARDESE_NOEXCEPT
+            {
+                return a.cx_token_ == b.cx_token_;
+            }
+
+            friend bool operator!=(const token_iterator& a,
+                                   const token_iterator& b) STANDARDESE_NOEXCEPT
+            {
+                return !(a == b);
+            }
+
+        private:
+            token_iterator(std::nullptr_t, CXTranslationUnit tu,
+                           CXToken* token) STANDARDESE_NOEXCEPT : tu_(tu),
+                                                                  cx_token_(token)
+            {
+            }
+
+            token_iterator(CXTranslationUnit tu, CXToken* token) STANDARDESE_NOEXCEPT
+                : token_(tu, *token),
+                  tu_(tu),
+                  cx_token_(token)
+            {
+            }
+
+            mutable token     token_;
+            CXTranslationUnit tu_;
+            CXToken*          cx_token_;
+
+            friend class tokenizer;
+        };
+
+        class tokenizer
+        {
+        public:
+            tokenizer(const translation_unit& tu, cpp_cursor cur);
+
+            ~tokenizer() STANDARDESE_NOEXCEPT;
+
+            tokenizer(tokenizer&&) = delete;
+            tokenizer& operator=(tokenizer&&) = delete;
+
+            token_iterator begin() const STANDARDESE_NOEXCEPT
+            {
+                return token_iterator(get_cxunit(), tokens_);
+            }
+
+            token_iterator end() const STANDARDESE_NOEXCEPT;
+
+            // returns whether two '>' characters at the end were munched into a single '>>'
+            // only necessary for template parameter
+            bool need_unmunch() const STANDARDESE_NOEXCEPT;
+
+            CXTranslationUnit get_cxunit() const STANDARDESE_NOEXCEPT;
+
+            token end_token() const STANDARDESE_NOEXCEPT
+            {
+                return token(end_, CXToken_Punctuation);
+            }
+
+        private:
+            const translation_unit* tu_;
+            CXToken*                tokens_;
+            unsigned                no_tokens_, end_offset_;
+            const char*             end_;
+        };
+
+        using token_stream = sequence_stream<token_iterator>;
+
+        inline token_stream make_stream(const tokenizer& t)
+        {
+            return token_stream(t.begin(), t.end(), t.end_token());
+        }
+
+        // skips until behind offset
+        void skip_offset(token_stream& stream, unsigned offset);
 
         // skips "value" and asserts that it is actually there
         void skip(token_stream& stream, const cpp_cursor& cur, const char* value);
@@ -69,7 +192,6 @@ namespace standardese
         void skip_bracket_count(detail::token_stream& stream, const cpp_cursor& cur,
                                 const char* open, const char* close, Func f)
         {
-            detail::skip_whitespace(stream);
             detail::skip(stream, cur, open);
 
             auto bracket_count = 1;
@@ -99,51 +221,7 @@ namespace standardese
         }
 
         // skips an attribute if any
-        void skip_attribute(detail::token_stream& stream, const cpp_cursor& cur);
-
-        struct tokenizer_access
-        {
-            static context& get_context(translation_unit& tu);
-
-            static const std::string& get_source(translation_unit& tu);
-        };
-
-        CXFile get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset);
-
-        class tokenizer
-        {
-        public:
-            static std::string read_source(translation_unit& tu, cpp_cursor cur);
-
-            static CXFile read_range(translation_unit& tu, cpp_cursor cur, unsigned& begin_offset,
-                                     unsigned& end_offset);
-
-            tokenizer(translation_unit& tu, cpp_cursor cur);
-
-            context::iterator_type begin(unsigned offset = 0);
-
-            context::iterator_type end()
-            {
-                return impl_->end();
-            }
-
-            const std::string& get_source() const STANDARDESE_NOEXCEPT
-            {
-                return source_;
-            }
-
-        private:
-            std::string source_, buffer_;
-            context*    impl_;
-            unsigned    line_;
-        };
-
-        inline token_stream make_stream(tokenizer& t, unsigned offset = 0)
-        {
-            auto last =
-                boost::wave::cpplexer::lex_token<>(boost::wave::token_id::T_SEMICOLON, ";", {});
-            return token_stream(t.begin(offset), t.end(), last);
-        }
+        bool skip_attribute(detail::token_stream& stream, const cpp_cursor& cur);
     }
 } // namespace standardese::detail
 

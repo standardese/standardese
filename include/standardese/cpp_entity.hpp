@@ -154,6 +154,11 @@ namespace standardese
 
         cpp_entity(type t, cpp_cursor cur);
 
+        void set_cursor(cpp_cursor cur) STANDARDESE_NOEXCEPT
+        {
+            cursor_ = cur;
+        }
+
     private:
         virtual cpp_name do_get_unique_name() const
         {
@@ -226,9 +231,18 @@ namespace standardese
 
         void add_entity(const cpp_entity* this_entity, cpp_entity_ptr entity)
         {
-            if (this_entity && entity->has_ast_parent() && &entity->get_ast_parent() != this_entity)
+            if (this_entity
+                && (!entity->has_ast_parent() || &entity->get_ast_parent() != this_entity))
                 entity->parent_ = this_entity;
             detail::entity_container<T, cpp_entity, cpp_ptr>::add_entity(std::move(entity));
+        }
+
+        cpp_entity_ptr remove_entity_after(cpp_entity* base)
+        {
+            auto entity =
+                detail::entity_container<T, cpp_entity, cpp_ptr>::remove_entity_after(base);
+            entity->parent_ = nullptr;
+            return std::move(entity);
         }
     };
 

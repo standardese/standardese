@@ -19,6 +19,7 @@
 #include <standardese/index.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/output.hpp>
+#include <boost/wave/cpp_exceptions.hpp>
 
 #include "filesystem.hpp"
 #include "options.hpp"
@@ -104,6 +105,8 @@ int main(int argc, char* argv[])
              "adds an implicit #define before parsing")
             ("compilation.macro_undefinition,U", po::value<std::vector<std::string>>(),
              "adds an implicit #undef before parsing")
+            ("compilation.preprocess_dir,P", po::value<std::vector<std::string>>(),
+             "adds a directory whose contents will be preprocessed by standardese")
 
             ("comment.command_character", po::value<char>()->default_value('\\'),
              "character used to introduce special commands")
@@ -193,6 +196,8 @@ int main(int argc, char* argv[])
 
             auto generate = [&](const fs::path& p, const fs::path& relative) {
                 log->info("Generating documentation for {}...", p);
+                parser.get_preprocessor().add_preprocess_directory(
+                    p.parent_path().generic_string());
 
                 md_ptr<md_document> result;
                 try
@@ -269,6 +274,13 @@ int main(int argc, char* argv[])
                 for (auto& f : futures)
                     f.wait();
             }
+        }
+        catch (boost::wave::cpp_exception& ex)
+        {
+            parser.get_logger()->critical("when parsing '{}' ({}:{}): {} (Boost.Wave)",
+                                          ex.get_related_name(), ex.file_name(), ex.line_no(),
+                                          boost::wave::preprocess_exception::error_text(
+                                              ex.get_errorcode()));
         }
         catch (std::exception& ex)
         {

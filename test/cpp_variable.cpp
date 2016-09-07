@@ -53,7 +53,7 @@ TEST_CASE("cpp_variable", "[cpp]")
             else if (var->get_name() == "b")
             {
                 ++count;
-                REQUIRE(type.get_name() == "char *");
+                REQUIRE(type.get_name() == "char*");
                 REQUIRE(type.get_full_name() == "char *");
                 REQUIRE(var->get_initializer() == "&a");
                 REQUIRE(!var->is_thread_local());
@@ -69,7 +69,7 @@ TEST_CASE("cpp_variable", "[cpp]")
             else if (var->get_name() == "d")
             {
                 ++count;
-                REQUIRE(type.get_name() == "const float * const");
+                REQUIRE(type.get_name() == "const float*const");
                 REQUIRE(type.get_full_name() == "const float *const");
                 REQUIRE(var->get_initializer() == "nullptr");
                 REQUIRE(!var->is_thread_local());
@@ -85,7 +85,7 @@ TEST_CASE("cpp_variable", "[cpp]")
             else if (var->get_name() == "f")
             {
                 ++count;
-                REQUIRE(type.get_name() == "unsigned int (*)(int x)");
+                REQUIRE(type.get_name() == "unsigned int(*)(int x)");
                 REQUIRE(type.get_full_name() == "unsigned int (*)(int)");
                 REQUIRE(var->get_initializer() == "nullptr");
                 REQUIRE(!var->is_thread_local());
@@ -105,7 +105,7 @@ TEST_CASE("cpp_variable", "[cpp]")
             else if (var->get_name() == "h")
             {
                 ++count;
-                REQUIRE(type.get_name() == "int [5]");
+                REQUIRE(type.get_name() == "int[5]");
                 REQUIRE(type.get_full_name() == "int [5]");
                 REQUIRE(var->get_initializer() == "");
                 REQUIRE(!var->is_thread_local());
@@ -113,7 +113,7 @@ TEST_CASE("cpp_variable", "[cpp]")
             else if (var->get_name() == "i")
             {
                 ++count;
-                REQUIRE(type.get_name() == "const bar *");
+                REQUIRE(type.get_name() == "const bar*");
                 REQUIRE(type.get_full_name() == "const struct bar *");
                 REQUIRE(var->get_initializer() == "");
                 REQUIRE(!var->is_thread_local());
@@ -186,7 +186,7 @@ TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
             else if (var.get_name() == "c")
             {
                 ++count;
-                REQUIRE(var.get_type().get_name() == "const int [42]");
+                REQUIRE(var.get_type().get_name() == "const int[42]");
                 REQUIRE(var.get_initializer() == "");
                 REQUIRE(!var.is_mutable());
             }

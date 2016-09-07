@@ -178,6 +178,29 @@ namespace
 
         return results;
     }
+
+    bool parse_line_directive(const char*& ptr, unsigned& cur_line)
+    {
+        auto line        = "#line";
+        auto line_length = std::strlen(line);
+        if (std::strncmp(ptr, line, line_length) != 0)
+            return false;
+
+        ptr += line_length;
+        while (is_whitespace(*ptr))
+            ++ptr;
+
+        std::string line_no;
+        while (!is_whitespace(*ptr))
+            line_no += *ptr++;
+        cur_line = static_cast<unsigned>(std::stoul(line_no));
+
+        while (*ptr != '\n')
+            // skip to end of line
+            ++ptr;
+
+        return true;
+    }
 }
 
 std::vector<detail::raw_comment> detail::read_comments(const std::string& source)
@@ -198,6 +221,8 @@ std::vector<detail::raw_comment> detail::read_comments(const std::string& source
         }
         else if (*ptr == '\n')
             ++cur_line;
+
+        parse_line_directive(ptr, cur_line);
     }
 
     return normalize(comments);

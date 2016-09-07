@@ -66,7 +66,7 @@ cpp_ptr<cpp_enum_value> cpp_enum_value::parse(translation_unit& tu, cpp_cursor c
         detail::tokenizer tokenizer(tu, cur);
         auto              stream = detail::make_stream(tokenizer);
 
-        detail::skip(stream, cur, {detail::parse_name(cur).c_str()});
+        detail::skip(stream, cur, detail::parse_name(cur).c_str());
         if (!detail::skip_if_token(stream, "="))
             return detail::make_cpp_ptr<cpp_expression_enum_value>(cur, parent, "");
 
@@ -81,9 +81,8 @@ cpp_ptr<cpp_enum_value> cpp_enum_value::parse(translation_unit& tu, cpp_cursor c
             else if (str == "}")
                 --bracket_count;
 
-            result += str.c_str();
+            detail::append_token(result, str);
         }
-        detail::erase_trailing_ws(result);
 
         return detail::make_cpp_ptr<cpp_expression_enum_value>(cur, parent, result);
     }
@@ -105,11 +104,10 @@ namespace
         if (stream.peek().get_value() == ":")
         {
             stream.bump();
-            detail::skip_whitespace(stream);
 
             while (stream.peek().get_value() != ";")
             {
-                auto spelling = stream.get().get_value();
+                auto& spelling = stream.get().get_value();
 
                 if (spelling == "{")
                 {
@@ -117,7 +115,7 @@ namespace
                     break;
                 }
                 else
-                    underlying_type += spelling.c_str();
+                    detail::append_token(underlying_type, spelling);
             }
         }
         else if (stream.peek().get_value() == "{")
@@ -125,7 +123,6 @@ namespace
             is_definition = true;
         }
 
-        detail::erase_trailing_ws(underlying_type);
         return underlying_type;
     }
 }
@@ -136,20 +133,18 @@ cpp_ptr<cpp_enum> cpp_enum::parse(translation_unit& tu, cpp_cursor cur, const cp
 
     detail::tokenizer tokenizer(tu, cur);
     auto              stream = detail::make_stream(tokenizer);
-    detail::skip(stream, cur, {"enum"});
+    detail::skip(stream, cur, "enum");
 
     auto is_scoped = false;
     if (stream.peek().get_value() == "class")
     {
         stream.bump();
-        detail::skip_whitespace(stream);
         is_scoped = true;
     }
 
     auto name = detail::parse_name(cur);
     detail::skip_attribute(stream, cur);
-    detail::skip_whitespace(stream);
-    detail::skip(stream, cur, {name.c_str()});
+    detail::skip(stream, cur, name.c_str());
 
     auto is_definition   = false;
     auto underlying_name = parse_underlying_type(stream, is_definition);

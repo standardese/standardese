@@ -78,14 +78,14 @@ namespace standardese
     class comment_id
     {
     public:
-        comment_id(string file_name, unsigned line)
-        : file_name_or_name_(std::move(file_name)), line_(line)
+        comment_id(const string& file_name, unsigned line)
+        : file_name_or_name_(get_file_name(file_name.c_str())), line_(line)
         {
             assert(line != 0u);
         }
 
         comment_id(const string& file_name, unsigned line, const string& entity_name)
-        : file_name_or_name_('$' + std::string(file_name.c_str()) + '$' + entity_name.c_str()),
+        : file_name_or_name_('$' + get_file_name(file_name.c_str()) + '$' + entity_name.c_str()),
           line_(line)
         {
             assert(line != 0u);
@@ -147,6 +147,11 @@ namespace standardese
         }
 
     private:
+        std::string get_file_name(const std::string& path)
+        {
+            return path.substr(path.find_last_of("/\\:") + 1);
+        }
+
         string   file_name_or_name_;
         unsigned line_;
 
@@ -227,7 +232,7 @@ namespace standardese
 
     class parser;
 
-    void parse_comments(const parser& p, const string& file_name, const std::string& source);
+    void parse_comments(const parser& p, const char* file_name, const std::string& source);
 } // namespace standardese
 
 #endif // STANDARDESE_COMMENT_HPP_INCLUDED

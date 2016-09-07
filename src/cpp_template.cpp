@@ -9,7 +9,7 @@
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/cpp_function.hpp>
-#include <clang-c/Index.h>
+#include <standardese/error.hpp>
 
 using namespace standardese;
 
@@ -52,38 +52,32 @@ cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translat
     // skip typename
     auto res = detail::skip_if_token(stream, "typename");
     if (!res)
-    {
-        res = detail::skip_if_token(stream, "class");
-        if (!res)
-            throw parse_error(source_location(cur),
-                              "unexpected token \'" + std::string(stream.peek().get_value().c_str())
-                                  + "\'");
-    }
+        // it must be class
+        detail::skip(stream, cur, "class");
 
     // variadic parameter
     auto is_variadic = false;
     if (stream.peek().get_value() == "...")
     {
         stream.bump();
-        detail::skip_whitespace(stream);
         is_variadic = true;
     }
 
     // skip name
     if (!name.empty())
-        detail::skip(stream, cur, {name.c_str()});
+        detail::skip(stream, cur, name.c_str());
 
     // default
     std::string def_name;
     if (stream.peek().get_value() == "=")
     {
         stream.bump();
-        detail::skip_whitespace(stream);
 
         while (!stream.done())
-            def_name += stream.get().get_value().c_str();
+            detail::append_token(def_name, stream.get().get_value());
 
-        detail::erase_trailing_ws(def_name);
+        if (def_name.back() == '>' && tokenizer.need_unmunch())
+            def_name.pop_back();
     }
 
     return detail::make_cpp_ptr<cpp_template_type_parameter>(cur, parent,
@@ -102,10 +96,12 @@ cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
 
     // given type
     std::string type_given;
-    while (stream.peek().get_value() != "..." && stream.peek().get_value() != name.c_str())
+    while (!stream.done() && stream.peek().get_value() != "..."
+           && stream.peek().get_value() != name.c_str())
     {
-        detail::skip_attribute(stream, cur);
-        type_given += stream.get().get_value().c_str();
+        if (detail::skip_attribute(stream, cur))
+            continue;
+        detail::append_token(type_given, stream.get().get_value());
     }
 
     // variadic parameter
@@ -113,31 +109,31 @@ cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
     if (stream.peek().get_value() == "...")
     {
         stream.bump();
-        detail::skip_whitespace(stream);
         is_variadic = true;
     }
 
     // skip name
     if (!name.empty())
-        detail::skip(stream, cur, {name.c_str()});
+        detail::skip(stream, cur, name.c_str());
 
     // continue with type
     while (!stream.done() && stream.peek().get_value() != "=")
-        type_given += stream.get().get_value().c_str();
-
-    detail::erase_trailing_ws(type_given);
+        detail::append_token(type_given, stream.get().get_value());
 
     // default
     std::string def;
     if (stream.peek().get_value() == "=")
     {
         stream.bump();
-        detail::skip_whitespace(stream);
 
         while (!stream.done())
-            def += stream.get().get_value().c_str();
+            detail::append_token(def, stream.get().get_value());
 
-        detail::erase_trailing_ws(def);
+        if (tokenizer.need_unmunch())
+        {
+            assert(def.back() == '>');
+            def.pop_back();
+        }
     }
 
     auto type = clang_getCursorType(cur);
@@ -225,6 +221,7 @@ const cpp_function_base* standardese::get_function(const cpp_entity& e) STANDARD
 
 namespace
 {
+    // returns the end of the last parameter
     template <typename T>
     unsigned parse_parameters(translation_unit& tu, T& result, cpp_cursor cur)
     {
@@ -239,12 +236,8 @@ namespace
             return CXChildVisit_Break;
         });
 
-        if (clang_Cursor_isNull(last))
-            return 0u;
-
-        // determine template offset
-        unsigned begin, end;
-        detail::tokenizer::read_range(tu, last, begin, end);
+        unsigned unused, end;
+        detail::get_range(last, unused, end);
         return end;
     }
 
@@ -273,26 +266,6 @@ namespace
 
         return name;
     }
-
-    unsigned get_template_offset(translation_unit& tu, cpp_cursor cur, unsigned last_offset)
-    {
-        assert(last_offset);
-        auto source = detail::tokenizer::read_source(tu, cur);
-
-        unsigned begin, end;
-        detail::tokenizer::read_range(tu, cur, begin, end);
-
-        // make relative
-        last_offset -= begin;
-
-        // find closing bracket
-        while (std::isspace(source[last_offset]))
-            ++last_offset;
-        assert(source[last_offset] == '>');
-        ++last_offset;
-
-        return last_offset;
-    }
 }
 
 cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit& tu, cpp_cursor cur,
@@ -301,8 +274,7 @@ cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit& tu
     auto result      = detail::make_cpp_ptr<cpp_function_template>(cur, parent);
     auto last_offset = parse_parameters(tu, *result, cur);
 
-    auto func =
-        cpp_function_base::try_parse(tu, cur, *result, get_template_offset(tu, cur, last_offset));
+    auto func = cpp_function_base::try_parse(tu, cur, *result, last_offset);
     assert(func);
     result->func_ = std::move(func);
     return result;
