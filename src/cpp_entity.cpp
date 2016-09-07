@@ -22,9 +22,8 @@ using namespace standardese;
 
 cpp_entity_ptr cpp_entity::try_parse(translation_unit& tu, cpp_cursor cur, const cpp_entity& parent)
 {
-    auto kind         = clang_getCursorKind(cur);
-    auto is_reference = kind != CXCursor_CXXBaseSpecifier && clang_isReference(kind);
-    if (is_reference || clang_isAttribute(kind))
+    auto kind = clang_getCursorKind(cur);
+    if (kind != CXCursor_CXXBaseSpecifier && !clang_isDeclaration(kind))
         return nullptr;
 
     switch (kind)

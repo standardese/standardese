@@ -42,9 +42,17 @@ namespace
     class policy : public bw::context_policies::default_preprocessing_hooks
     {
     public:
-        policy(const preprocessor& pre, cpp_file& file, std::string& include)
-        : pre_(&pre), file_(&file), include_(&include)
+        policy(const preprocessor& pre, cpp_file& file, std::string& preprocessed)
+        : pre_(&pre), file_(&file), preprocessed_(&preprocessed)
         {
+        }
+
+        template <class ContextT, class TokenT>
+        const TokenT& generated_token(const ContextT&, const TokenT& token)
+        {
+            if (token.is_valid())
+                *preprocessed_ += token.get_value().c_str();
+            return token;
         }
 
         template <class ContextT, class ContainerT>
@@ -93,12 +101,12 @@ namespace
             else
             {
                 // write include so that libclang can use it
-                *include_ += '#';
-                *include_ += include_next ? "include_next" : "include";
-                *include_ += is_system ? '<' : '"';
-                *include_ += file_name;
-                *include_ += is_system ? '>' : '"';
-                *include_ += '\n';
+                *preprocessed_ += '#';
+                *preprocessed_ += include_next ? "include_next" : "include";
+                *preprocessed_ += is_system ? '<' : '"';
+                *preprocessed_ += file_name;
+                *preprocessed_ += is_system ? '>' : '"';
+                *preprocessed_ += '\n';
 
                 return true;
             }
@@ -137,14 +145,24 @@ namespace
             if (is_function_like)
             {
                 str_params += '(';
+                auto needs_comma = false;
                 for (auto& token : parameters)
+                {
+                    if (needs_comma)
+                        str_params += ", ";
+                    else
+                        needs_comma = true;
                     str_params += token.get_value().c_str();
+                }
                 str_params += ')';
             }
 
             std::string str_def;
             for (auto& token : definition)
                 str_def += token.get_value().c_str();
+
+            // also write macro, so that it can be documented
+            *preprocessed_ += "#define " + str_name + str_params + ' ' + str_def + '\n';
 
             file_->add_entity(cpp_macro_definition::make(*file_, std::move(str_name),
                                                          std::move(str_params), std::move(str_def),
@@ -195,7 +213,7 @@ namespace
 
         const preprocessor* pre_;
         cpp_file*           file_;
-        std::string*        include_;
+        std::string*        preprocessed_;
 
         std::string include_guard_;
         unsigned    ifndef_line_ = 0;
@@ -250,19 +268,13 @@ namespace
 std::string preprocessor::preprocess(const compile_config& c, const char* full_path,
                                      const std::string& source, cpp_file& file) const
 {
-    std::string include;
-    context     cont(source.begin(), source.end(), full_path, policy(*this, file, include));
-    setup_context(cont, c);
-
     std::string preprocessed;
-    for (auto& token : cont)
-    {
-        preprocessed += token.get_value().c_str();
-        if (!include.empty())
-        {
-            preprocessed += include;
-            include.clear();
-        }
-    }
+
+    context cont(source.begin(), source.end(), full_path, policy(*this, file, preprocessed));
+    setup_context(cont, c);
+    for (auto iter = cont.begin(); iter != cont.end(); ++iter)
+        // do nothing, policy does it all
+        ;
+
     return preprocessed;
 }
