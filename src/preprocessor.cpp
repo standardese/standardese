@@ -78,6 +78,7 @@ namespace
         bool found_include_directive(const ContextT& ctx, std::string file_name, bool include_next)
         {
             bool is_system;
+            file_name = get_include_kind(file_name, is_system);
             if (use_include(ctx, file_name, is_system, include_next))
             {
                 if (ctx.get_iteration_depth() == 0)
@@ -169,18 +170,22 @@ namespace
         }
 
     private:
-        template <class ContextT>
-        bool use_include(const ContextT& ctx, std::string& file_name, bool& is_system,
-                         bool include_next)
+        std::string get_include_kind(std::string file_name, bool& is_system)
         {
-            if (include_next)
-                return false;
-
             assert(file_name[0] == '<' || file_name[0] == '"');
             is_system = file_name[0] == '<';
 
             file_name.erase(file_name.begin());
             file_name.pop_back();
+            return file_name;
+        }
+
+        template <class ContextT>
+        bool use_include(const ContextT& ctx, std::string file_name, bool is_system,
+                         bool include_next)
+        {
+            if (include_next)
+                return false;
 
             std::string dir;
             if (!ctx.find_include_file(file_name, dir, is_system, nullptr))
