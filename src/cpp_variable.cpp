@@ -41,8 +41,14 @@ namespace
 
                 // set name of the new type
                 assert(in_type);
-                detail::append_token(type_name, stream.peek().get_value());
-                stream.bump();
+                auto has_name = stream.peek().get_value() != "{";
+                if (has_name)
+                {
+                    detail::append_token(type_name, stream.peek().get_value());
+                    stream.bump();
+                }
+                else
+                    detail::append_token(type_name, "anonymous-type");
 
                 // skip type definition
                 detail::skip_bracket_count(stream, cur, "{", "}");
