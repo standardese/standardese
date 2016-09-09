@@ -358,7 +358,7 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 return '0';
             }
 
-            operator bar<decltype(int())>();
+            operator bar<decltype(int())>& ();
         };
     )";
 
@@ -392,10 +392,10 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 REQUIRE(op.get_signature() == "()");
                 REQUIRE(op.get_definition() == cpp_function_declaration);
             }
-            else if (op.get_name() == "operator const char &")
+            else if (op.get_name() == "operator const char&")
             {
                 ++count;
-                REQUIRE(op.get_target_type().get_name() == "const char &");
+                REQUIRE(op.get_target_type().get_name() == "const char&");
                 REQUIRE(op.is_explicit());
                 REQUIRE(!op.is_constexpr());
                 REQUIRE(!is_const(op.get_cv()));
@@ -420,10 +420,10 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
                 REQUIRE(op.get_signature() == "() const volatile &&");
                 REQUIRE(op.get_definition() == cpp_function_definition_normal);
             }
-            else if (op.get_name() == "operator bar<decltype(int())>")
+            else if (op.get_name() == "operator bar<decltype(int())>&")
             {
                 ++count;
-                REQUIRE(op.get_target_type().get_name() == "bar<decltype(int())>");
+                REQUIRE(op.get_target_type().get_name() == "bar<decltype(int())>&");
                 REQUIRE(!op.is_explicit());
                 REQUIRE(!op.is_constexpr());
                 REQUIRE(!is_const(op.get_cv()));

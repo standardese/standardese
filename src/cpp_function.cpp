@@ -214,11 +214,7 @@ namespace
                     was_opening_paren = false;
                     ++paren_count;
                 }
-                else
-                    was_opening_paren = false;
             }
-
-            assert(stream.peek().get_value() == "(");
         }
     }
 
@@ -593,37 +589,6 @@ cpp_member_function::cpp_member_function(cpp_cursor cur, const cpp_entity& paren
 {
 }
 
-namespace
-{
-    std::string parse_conversion_op_type(cpp_cursor cur)
-    {
-        if (clang_getCursorKind(cur) == CXCursor_ConversionFunction)
-        {
-            // parse name
-            std::string name = detail::parse_name(cur).c_str();
-
-            auto target_type_spelling =
-                name.substr(9); // take everything from type after "operator "
-            assert(target_type_spelling.front() != ' '); // no multiple whitespace
-
-            return target_type_spelling;
-        }
-        else if (clang_getCursorKind(cur) == CXCursor_FunctionTemplate)
-        {
-            // parsing
-            // template <typename T> operator T();
-            // yields a name of
-            // operator type-parameter-0-0
-            // so workaround by calculating name from the type spelling
-            auto target_type = clang_getCursorResultType(cur);
-            return detail::parse_name(target_type).c_str();
-        }
-
-        assert(false);
-        throw parse_error(source_location(cur), "internal error");
-    }
-}
-
 cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cursor cur,
                                                     const cpp_entity& parent,
                                                     unsigned          template_offset)
@@ -634,7 +599,6 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
     detail::tokenizer tokenizer(tu, cur);
     auto              stream = detail::make_stream(tokenizer);
 
-    auto type = parse_conversion_op_type(cur);
     skip_template_parameters(stream, template_offset);
 
     cpp_function_info        finfo;
@@ -662,14 +626,18 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
             stream.get();
     }
 
+    std::string type;
     // skip until parameters
     while (stream.peek().get_value() != "(" && stream.peek().get_value() != "<")
-        stream.bump();
+        detail::append_token(type, stream.get().get_value());
 
     std::string type_template_args;
     skip_template_arguments(stream, type_template_args, false);
     // template_args belong to the type name
     type += std::move(type_template_args);
+    // handle the rest until parameters
+    while (stream.peek().get_value() != "(")
+        detail::append_token(type, stream.get().get_value());
 
     auto variadic = false;
     skip_parameters(stream, cur, variadic);

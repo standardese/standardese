@@ -641,13 +641,13 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                         }
                         REQUIRE(size == 1u);
                     }
-                    else if (ptr->get_function().get_name() == "operator T *")
+                    else if (ptr->get_function().get_name() == "operator T*")
                     {
                         ++count;
                         REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// operator");
                         REQUIRE(dynamic_cast<const cpp_conversion_op*>(&ptr->get_function())
                                 != nullptr);
-                        REQUIRE(ptr->get_name() == "operator T *<T>");
+                        REQUIRE(ptr->get_name() == "operator T*<T>");
                         REQUIRE(ptr->get_signature() == "()");
 
                         auto size = 0u;
