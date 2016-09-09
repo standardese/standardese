@@ -48,9 +48,10 @@ namespace
         }
 
         template <class ContextT, class TokenT>
-        const TokenT& generated_token(const ContextT&, const TokenT& token)
+        const TokenT& generated_token(const ContextT& ctx, const TokenT& token)
         {
-            if (token.is_valid())
+            if (token.is_valid() && ctx.get_iteration_depth() == 0)
+                // only add main file tokens
                 *preprocessed_ += token.get_value().c_str();
             return token;
         }
@@ -87,29 +88,24 @@ namespace
         {
             bool is_system;
             file_name = get_include_kind(file_name, is_system);
-            if (use_include(ctx, file_name, is_system, include_next))
-            {
-                if (ctx.get_iteration_depth() == 0)
-                    // in the main file
-                    file_->add_entity(
-                        cpp_inclusion_directive::make(*file_, file_name,
-                                                      is_system ? cpp_inclusion_directive::system :
-                                                                  cpp_inclusion_directive::local,
-                                                      0));
-                return false;
-            }
-            else
-            {
-                // write include so that libclang can use it
-                *preprocessed_ += '#';
-                *preprocessed_ += include_next ? "include_next" : "include";
-                *preprocessed_ += is_system ? '<' : '"';
-                *preprocessed_ += file_name;
-                *preprocessed_ += is_system ? '>' : '"';
-                *preprocessed_ += '\n';
 
-                return true;
-            }
+            auto use = use_include(ctx, file_name, is_system, include_next);
+            if (use && ctx.get_iteration_depth() == 0)
+                file_->add_entity(
+                    cpp_inclusion_directive::make(*file_, file_name,
+                                                  is_system ? cpp_inclusion_directive::system :
+                                                              cpp_inclusion_directive::local,
+                                                  0));
+
+            // write include so that libclang can use it
+            *preprocessed_ += '#';
+            *preprocessed_ += include_next ? "include_next" : "include";
+            *preprocessed_ += is_system ? '<' : '"';
+            *preprocessed_ += file_name;
+            *preprocessed_ += is_system ? '>' : '"';
+            *preprocessed_ += '\n';
+
+            return !use; // only parse if used
         }
 
         template <class ContextT, class ParametersT, class DefinitionT>
@@ -128,6 +124,8 @@ namespace
                 {
                     // this is in the next line and has the same macro name
                     // treat it as include guard
+                    // need to write two newlines for the ifndef and the macro
+                    *preprocessed_ += "\n\n";
                     found_guard_ = true;
                     return;
                 }
@@ -224,6 +222,8 @@ namespace
         cpp_file*           file_;
         std::string*        preprocessed_;
 
+        unsigned header_count_;
+
         std::string include_guard_;
         unsigned    ifndef_line_ = 0;
         bool        found_guard_ = false;
@@ -236,10 +236,11 @@ namespace
     {
         // set language to C++11 preprecessor
         // inserts additional whitespace to separate tokens
-        // emits line directives
+        // do not emits line directives
         // preserve comments
         auto lang = bw::support_cpp | bw::support_option_variadics | bw::support_option_long_long
-                    | bw::support_option_insert_whitespace | bw::support_option_emit_line_directives
+                    | bw::support_option_insert_whitespace
+                    | ~bw::support_option_emit_line_directives
                     | bw::support_option_preserve_comments;
         cont.set_language(bw::language_support(lang));
 
@@ -285,7 +286,6 @@ std::string preprocessor::preprocess(const compile_config& c, const char* full_p
         // do nothing, policy does it all
         ;
 
-    throw 0;
     return preprocessed;
 }
 
