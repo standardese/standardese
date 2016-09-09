@@ -196,8 +196,6 @@ int main(int argc, char* argv[])
 
             auto generate = [&](const fs::path& p, const fs::path& relative) {
                 log->info("Generating documentation for {}...", p);
-                parser.get_preprocessor().add_preprocess_directory(
-                    p.parent_path().generic_string());
 
                 md_ptr<md_document> result;
                 try
@@ -225,6 +223,9 @@ int main(int argc, char* argv[])
             };
 
             assert(!input.empty());
+            for (auto& path : input)
+                parser.get_preprocessor().add_preprocess_directory(
+                    path.parent_path().generic_string());
             for (auto& path : input)
                 standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,
                                               blacklist_dotfiles, force_blacklist,

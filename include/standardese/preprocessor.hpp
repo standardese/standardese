@@ -10,6 +10,7 @@
 
 #include <standardese/cpp_entity.hpp>
 #include <standardese/noexcept.hpp>
+#include <iostream>
 
 namespace standardese
 {
@@ -140,15 +141,9 @@ namespace standardese
         std::string preprocess(const compile_config& c, const char* full_path,
                                const std::string& source, cpp_file& file) const;
 
-        void add_preprocess_directory(std::string dir)
-        {
-            preprocess_dirs_.insert(std::move(dir));
-        }
+        void add_preprocess_directory(std::string dir);
 
-        bool is_preprocess_directory(const std::string& dir) const STANDARDESE_NOEXCEPT
-        {
-            return preprocess_dirs_.count(dir) != 0;
-        }
+        bool is_preprocess_directory(const std::string& dir) const STANDARDESE_NOEXCEPT;
 
     private:
         std::unordered_set<std::string> preprocess_dirs_;

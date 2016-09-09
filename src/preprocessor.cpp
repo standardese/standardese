@@ -208,7 +208,16 @@ namespace
             std::string dir;
             if (!ctx.find_include_file(file_name, dir, is_system, nullptr))
                 return false;
-            return pre_->is_preprocess_directory(fs::path(dir).remove_filename().generic_string());
+
+            auto     dir_path = fs::path(dir);
+            fs::path cur_path;
+            for (auto part : dir_path)
+            {
+                cur_path /= part;
+                if (pre_->is_preprocess_directory(cur_path.generic_string()))
+                    return true;
+            }
+            return false;
         }
 
         const preprocessor* pre_;
@@ -276,5 +285,18 @@ std::string preprocessor::preprocess(const compile_config& c, const char* full_p
         // do nothing, policy does it all
         ;
 
+    throw 0;
     return preprocessed;
+}
+
+void preprocessor::add_preprocess_directory(std::string dir)
+{
+    auto path = fs::system_complete(dir);
+    preprocess_dirs_.insert(path.normalize().generic_string());
+}
+
+bool preprocessor::is_preprocess_directory(const std::string& dir) const STANDARDESE_NOEXCEPT
+{
+    auto path = fs::system_complete(dir);
+    return preprocess_dirs_.count(path.normalize().generic_string()) != 0;
 }
