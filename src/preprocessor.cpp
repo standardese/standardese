@@ -53,6 +53,8 @@ namespace
             if (token.is_valid() && ctx.get_iteration_depth() == 0)
                 // only add main file tokens
                 *preprocessed_ += token.get_value().c_str();
+            else if (!token.is_valid() && found_guard_)
+                *preprocessed_ += "#endif\n";
             return token;
         }
 
@@ -127,9 +129,9 @@ namespace
                     && name.get_value() == include_guard_.c_str())
                 {
                     // this is in the next line and has the same macro name
-                    // treat it as include guard
-                    // need to write two newlines for the ifndef and the macro
-                    *preprocessed_ += "\n\n";
+                    // treat it as include guard, but still need to write it
+                    *preprocessed_ += "#ifndef " + include_guard_ + "\n";
+                    *preprocessed_ += "#define " + include_guard_ + '\n';
                     found_guard_ = true;
                     return;
                 }
