@@ -362,6 +362,13 @@ namespace
                 {
                     auto spelling = stream.get().get_value();
                     detail::append_token(trailing_return_type, spelling);
+                    if (spelling == "decltype")
+                    {
+                        detail::append_token(trailing_return_type, "(");
+                        skip_bracket_count(stream, cur, "(", ")", [&](const char* str) {
+                            detail::append_token(trailing_return_type, str);
+                        });
+                    }
                 }
                 break;
             }

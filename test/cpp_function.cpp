@@ -50,7 +50,7 @@ auto h() noexcept(noexcept(e()))
     return 0;
 }
 
-auto i() -> decltype(auto);)";
+auto i() -> decltype(d() = '0');)";
 
     auto tu = parse(p, "cpp_function", code);
 
@@ -163,7 +163,7 @@ auto i() -> decltype(auto);)";
             else if (func.get_name() == "i")
             {
                 ++count;
-                REQUIRE(func.get_return_type().get_name() == "decltype(auto)");
+                REQUIRE(func.get_return_type().get_name() == "decltype(d()='0')");
                 REQUIRE(!func.is_constexpr());
                 REQUIRE(!func.is_variadic());
                 REQUIRE(func.get_noexcept() == "false");
