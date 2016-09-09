@@ -27,6 +27,7 @@
 #warning "Boost less than 1.55 isn't tested"
 #endif
 
+#include <standardese/detail/raw_comment.hpp>
 #include <standardese/config.hpp>
 #include <standardese/translation_unit.hpp>
 
@@ -50,10 +51,13 @@ namespace
         template <class ContextT, class TokenT>
         const TokenT& generated_token(const ContextT& ctx, const TokenT& token)
         {
-            if (token.is_valid() && ctx.get_iteration_depth() == 0)
+            if (token.is_valid() && ((token != bw::T_CCOMMENT && token != bw::T_CPPCOMMENT)
+                                     || detail::keep_comment(token.get_value().c_str()))
+                && ctx.get_iteration_depth() == 0)
                 // only add main file tokens
                 *preprocessed_ += token.get_value().c_str();
             else if (!token.is_valid() && found_guard_)
+                // last token, add end of include guard
                 *preprocessed_ += "#endif\n";
             return token;
         }

@@ -203,6 +203,11 @@ namespace
     }
 }
 
+bool detail::keep_comment(const char* comment)
+{
+    return get_comment_style(comment) != comment_style::none;
+}
+
 std::vector<detail::raw_comment> detail::read_comments(const std::string& source)
 {
     assert(source.back() == '\n');
