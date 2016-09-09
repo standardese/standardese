@@ -89,8 +89,9 @@ namespace
             bool is_system;
             file_name = get_include_kind(file_name, is_system);
 
-            auto use = use_include(ctx, file_name, is_system, include_next);
-            if (use && ctx.get_iteration_depth() == 0)
+            auto use          = use_include(ctx, file_name, is_system, include_next);
+            auto in_main_file = ctx.get_iteration_depth() == 0;
+            if (use && in_main_file)
                 file_->add_entity(
                     cpp_inclusion_directive::make(*file_, file_name,
                                                   is_system ? cpp_inclusion_directive::system :
@@ -98,12 +99,15 @@ namespace
                                                   0));
 
             // write include so that libclang can use it
-            *preprocessed_ += '#';
-            *preprocessed_ += include_next ? "include_next" : "include";
-            *preprocessed_ += is_system ? '<' : '"';
-            *preprocessed_ += file_name;
-            *preprocessed_ += is_system ? '>' : '"';
-            *preprocessed_ += '\n';
+            if (in_main_file)
+            {
+                *preprocessed_ += '#';
+                *preprocessed_ += include_next ? "include_next" : "include";
+                *preprocessed_ += is_system ? '<' : '"';
+                *preprocessed_ += file_name;
+                *preprocessed_ += is_system ? '>' : '"';
+                *preprocessed_ += '\n';
+            }
 
             return !use; // only parse if used
         }
