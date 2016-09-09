@@ -103,15 +103,13 @@ namespace
                 return CXChildVisit_Continue;
             });
 
-            if (!range_shrunk && get_token_after(tu.get_cxunit(), tu.get_cxfile(), end) == "=")
+            if (!range_shrunk && get_token_after(tu.get_cxunit(), tu.get_cxfile(), end) != ";")
             {
-                // we do not have a body and the next token is a '='
-                // look for the = delete that libclang is missing
+                // we do not have a body, but it is not a declaration either
                 do
                 {
                     end = get_next_location(tu.get_cxunit(), tu.get_cxfile(), end);
-                } while (get_token_after(tu.get_cxunit(), tu.get_cxfile(), end) != "delete");
-                end = get_next_location(tu.get_cxunit(), tu.get_cxfile(), end);
+                } while (get_token_after(tu.get_cxunit(), tu.get_cxfile(), end) != ";");
             }
         }
         else if (clang_getCursorKind(cur) == CXCursor_TemplateTypeParameter

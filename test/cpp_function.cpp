@@ -50,7 +50,7 @@ auto h() noexcept(noexcept(e()))
     return 0;
 }
 
-decltype(auto) i();)";
+auto i() -> decltype(auto);)";
 
     auto tu = parse(p, "cpp_function", code);
 
