@@ -122,7 +122,8 @@ namespace
         {
             qualified_name = false;
 
-            if (detail::skip_attribute(stream, cur) || detail::skip_if_token(stream, "extern"))
+            if (detail::skip_attribute(stream, cur) || detail::skip_if_token(stream, "extern")
+                || detail::skip_if_token(stream, "inline"))
                 // ignored
                 continue;
             else if (detail::skip_if_token(stream, "static"))
@@ -607,7 +608,7 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
     // handle prefix
     while (!detail::skip_if_token(stream, "operator"))
     {
-        if (detail::skip_attribute(stream, cur))
+        if (detail::skip_attribute(stream, cur) || detail::skip_if_token(stream, "inline"))
             continue;
         else if (detail::skip_if_token(stream, "explicit"))
             finfo.set_flag(cpp_explicit_conversion);
@@ -694,7 +695,7 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit& tu, cpp_cursor
     cpp_function_info info;
     while (!detail::skip_if_token(stream, name.c_str()))
     {
-        if (detail::skip_attribute(stream, cur))
+        if (detail::skip_attribute(stream, cur) || detail::skip_if_token(stream, "inline"))
             continue;
         else if (detail::skip_if_token(stream, "explicit"))
             info.set_flag(cpp_explicit_conversion);
@@ -787,15 +788,18 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor c
 
     cpp_function_info info;
     auto              virtual_flag = cpp_virtual_none;
-    if (detail::skip_if_token(stream, "virtual"))
-        virtual_flag = cpp_virtual_new;
-    else if (detail::skip_if_token(stream, "constexpr"))
-        info.set_flag(cpp_constexpr_fnc);
-
-    detail::skip_attribute(stream, cur);
+    while (!detail::skip_if_token(stream, "~"))
+    {
+        if (detail::skip_attribute(stream, cur) || detail::skip_if_token(stream, "inline"))
+            continue; // ignored
+        else if (detail::skip_if_token(stream, "virtual"))
+            virtual_flag = cpp_virtual_new;
+        else if (detail::skip_if_token(stream, "constexpr"))
+            info.set_flag(cpp_constexpr_fnc);
+    }
 
     // skip name and arguments
-    detail::skip(stream, cur, {"~", &name[1], "(", ")"});
+    detail::skip(stream, cur, {&name[1], "(", ")"});
 
     // parse suffix
     auto special_definition = false;

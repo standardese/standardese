@@ -41,7 +41,7 @@ int *c(int a = b(0)) = delete;
 
 const int e() noexcept(false);
 
-int (*f(int a))(volatile char&&);
+inline int (*f(int a))(volatile char&&);
 
 constexpr auto g() -> const char&&;
 
@@ -200,7 +200,7 @@ struct derived : base
 {
     virtual int& k() const override;
 
-    void m(int a = (j(), 0)) final;
+    inline void m(int a = (j(), 0)) final;
 
     derived& operator   =(const derived &a) = default;
 };)";
@@ -351,7 +351,7 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
         {
             [[noreturn]] operator    int() [[]]; // multiple whitespace
 
-            explicit __attribute__((foo)) operator const char&(void);
+            inline explicit __attribute__((foo)) operator const char&(void);
 
             constexpr explicit __attribute__((bar)) operator char() const volatile && noexcept
             {
@@ -455,7 +455,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
             explicit foo(int a = {}) {}
 
             /// c
-            constexpr foo(char c) noexcept;
+            inline constexpr foo(char c) noexcept;
 
             /// d
             foo(const foo &other) __attribute__(()) = default;
@@ -557,7 +557,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
 
         struct c
         {
-            ~c() noexcept(false);
+            inline ~c() noexcept(false);
         };
 
         struct d
