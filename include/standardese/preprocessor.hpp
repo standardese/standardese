@@ -14,7 +14,7 @@
 
 namespace standardese
 {
-    struct compile_config;
+    class compile_config;
     class cpp_file;
 
     class cpp_inclusion_directive : public cpp_entity

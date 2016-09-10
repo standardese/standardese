@@ -5,6 +5,7 @@
 #include <standardese/cpp_template.hpp>
 
 #include <cassert>
+#include <cctype>
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
