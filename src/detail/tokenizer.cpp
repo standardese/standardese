@@ -191,7 +191,7 @@ namespace
 detail::token_iterator detail::tokenizer::end() const STANDARDESE_NOEXCEPT
 {
     auto end = get_actual_end(get_cxunit(), tokens_, no_tokens_, end_offset_);
-    return token_iterator(nullptr, get_cxunit(), end);
+    return token_iterator(get_cxunit(), end);
 }
 
 namespace
@@ -235,7 +235,7 @@ void detail::skip(token_stream& stream, const cpp_cursor& cur, const char* value
     if (!*value)
         return;
 
-    auto& val = stream.peek();
+    auto val = stream.peek();
     if (val.get_value() != value)
         throw parse_error(source_location(cur), std::string("expected \'") + value + "\' got \'"
                                                     + val.get_value().c_str() + "\'");

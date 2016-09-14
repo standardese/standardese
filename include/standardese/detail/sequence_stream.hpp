@@ -40,7 +40,7 @@ namespace standardese
             {
             }
 
-            const value_type& peek() const
+            value_type peek() const
             {
                 if (cur_ == end_)
                     return out_of_range_;

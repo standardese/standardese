@@ -169,7 +169,7 @@ namespace
 
         for (; std::next(stream.get_iter()) != save; stream.bump_back())
         {
-            auto& str = stream.peek().get_value();
+            auto str = stream.peek().get_value();
 
             if (str == "final")
                 is_final = true;

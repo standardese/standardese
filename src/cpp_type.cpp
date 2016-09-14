@@ -69,7 +69,7 @@ namespace
             {
                 if (detail::skip_attribute(stream, cur))
                     continue;
-                auto& val = stream.peek().get_value();
+                auto val = stream.peek().get_value();
                 if (val != name.c_str())
                     detail::append_token(target_name, val);
 

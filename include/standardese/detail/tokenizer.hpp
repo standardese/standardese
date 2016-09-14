@@ -39,7 +39,12 @@ namespace standardese
 
             token(CXTranslationUnit tu, CXToken token);
 
-            const string& get_value() const STANDARDESE_NOEXCEPT
+            const token* operator->() const STANDARDESE_NOEXCEPT
+            {
+                return this;
+            }
+
+            string get_value() const STANDARDESE_NOEXCEPT
             {
                 return value_;
             }
@@ -63,16 +68,14 @@ namespace standardese
         class token_iterator : public std::iterator<std::bidirectional_iterator_tag, token>
         {
         public:
-            const token& operator*() const STANDARDESE_NOEXCEPT
+            token operator*() const STANDARDESE_NOEXCEPT
             {
-                token_ = token(tu_, *cx_token_);
-                return token_;
+                return token(tu_, *cx_token_);
             }
 
-            const token* operator->() const STANDARDESE_NOEXCEPT
+            token operator->() const STANDARDESE_NOEXCEPT
             {
-                token_ = token(tu_, *cx_token_);
-                return &token_;
+                return token(tu_, *cx_token_);
             }
 
             token_iterator& operator++() STANDARDESE_NOEXCEPT
@@ -114,20 +117,12 @@ namespace standardese
             }
 
         private:
-            token_iterator(std::nullptr_t, CXTranslationUnit tu,
-                           CXToken* token) STANDARDESE_NOEXCEPT : tu_(tu),
-                                                                  cx_token_(token)
-            {
-            }
-
             token_iterator(CXTranslationUnit tu, CXToken* token) STANDARDESE_NOEXCEPT
-                : token_(tu, *token),
-                  tu_(tu),
+                : tu_(tu),
                   cx_token_(token)
             {
             }
 
-            mutable token     token_;
             CXTranslationUnit tu_;
             CXToken*          cx_token_;
 

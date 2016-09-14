@@ -75,7 +75,7 @@ cpp_ptr<cpp_enum_value> cpp_enum_value::parse(translation_unit& tu, cpp_cursor c
                                      && (bracket_count != 0 || stream.peek().get_value() != "}");
              stream.bump())
         {
-            auto& str = stream.peek().get_value();
+            auto str = stream.peek().get_value();
             if (str == "{")
                 ++bracket_count;
             else if (str == "}")
@@ -103,11 +103,9 @@ namespace
         std::string underlying_type;
         if (stream.peek().get_value() == ":")
         {
-            stream.bump();
-
-            while (stream.peek().get_value() != ";")
+            for (stream.bump(); stream.peek().get_value() != ";"; stream.bump())
             {
-                auto& spelling = stream.get().get_value();
+                auto spelling = stream.peek().get_value();
 
                 if (spelling == "{")
                 {

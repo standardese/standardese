@@ -147,7 +147,7 @@ namespace
                     while (std::isspace(*ptr))
                         ++ptr;
 
-                    auto& spelling = stream.peek().get_value();
+                    auto spelling = stream.peek().get_value();
                     if (!std::isspace(spelling[0]))
                     {
                         auto res = std::strncmp(ptr, spelling.c_str(), spelling.length());
@@ -188,7 +188,7 @@ namespace
             auto was_opening_paren = false;
             for (auto paren_count = 0u; stream.get_iter() != save; stream.bump_back())
             {
-                auto& str = stream.peek().get_value();
+                auto str = stream.peek().get_value();
 
                 if (paren_count == unsigned(returns_function) && was_opening_paren && str == ">")
                 {
