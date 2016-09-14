@@ -151,21 +151,6 @@ namespace
             } while (get_token_after(tu.get_cxunit(), tu.get_cxfile(), end) != ";");
             end = get_next_location(tu.get_cxunit(), tu.get_cxfile(), end);
         }
-        else if (clang_getCursorKind(cur) == CXCursor_EnumDecl)
-        {
-            // verify that it catches the underlying type
-            auto is_enum_end = [](const string& spelling) {
-                return spelling == ";" || spelling == "{";
-            };
-            if (!is_enum_end(get_token_after(tu.get_cxunit(), tu.get_cxfile(), end)))
-            {
-                do
-                {
-                    end = get_next_location(tu.get_cxunit(), tu.get_cxfile(), end);
-                } while (!is_enum_end(get_token_after(tu.get_cxunit(), tu.get_cxfile(), end)));
-                end = get_next_location(tu.get_cxunit(), tu.get_cxfile(), end);
-            }
-        }
 
         clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
         if (range_shrunk)
