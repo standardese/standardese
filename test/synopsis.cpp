@@ -249,9 +249,11 @@ void func(int a, char* b, float c = .3);
 /// \exclude
 #define GENERATE(name) void name(int a);
 
+#ifndef FOO
 /// \param a
 /// \exclude
 GENERATE(foo)
+#endif
 
 #endif
 )";

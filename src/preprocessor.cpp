@@ -55,10 +55,10 @@ namespace
                                      || detail::keep_comment(token.get_value().c_str()))
                 && ctx.get_iteration_depth() == 0)
                 // only add main file tokens
-                *preprocessed_ += token.get_value().c_str();
+                append(token.get_value().c_str());
             else if (!token.is_valid() && found_guard_)
                 // last token, add end of include guard
-                *preprocessed_ += "#endif\n";
+                append("#endif\n");
             return token;
         }
 
@@ -107,12 +107,12 @@ namespace
             // write include so that libclang can use it
             if (in_main_file)
             {
-                *preprocessed_ += '#';
-                *preprocessed_ += include_next ? "include_next" : "include";
-                *preprocessed_ += is_system ? '<' : '"';
-                *preprocessed_ += file_name;
-                *preprocessed_ += is_system ? '>' : '"';
-                *preprocessed_ += '\n';
+                append('#');
+                append(include_next ? "include_next" : "include");
+                append(is_system ? '<' : '"');
+                append(file_name);
+                append(is_system ? '>' : '"');
+                append('\n');
             }
 
             return !use; // only parse if used
@@ -134,8 +134,8 @@ namespace
                 {
                     // this is in the next line and has the same macro name
                     // treat it as include guard, but still need to write it
-                    *preprocessed_ += "#ifndef " + include_guard_ + "\n";
-                    *preprocessed_ += "#define " + include_guard_ + '\n';
+                    append("#ifndef " + include_guard_ + "\n");
+                    append("#define " + include_guard_ + '\n');
                     found_guard_ = true;
                     return;
                 }
@@ -170,11 +170,11 @@ namespace
                 str_def += token.get_value().c_str();
 
             // also write macro, so that it can be documented
-            *preprocessed_ += "#define " + str_name + str_params + ' ' + str_def + '\n';
+            append("#define " + str_name + str_params + ' ' + str_def + '\n');
 
             file_->add_entity(cpp_macro_definition::make(*file_, std::move(str_name),
                                                          std::move(str_params), std::move(str_def),
-                                                         unsigned(name.get_position().get_line())));
+                                                         cur_line_));
         }
 
         template <class ContextT>
@@ -228,11 +228,26 @@ namespace
             return false;
         }
 
+        void append(char c)
+        {
+            if (c == '\n')
+                ++cur_line_;
+            *preprocessed_ += c;
+        }
+
+        void append(std::string str)
+        {
+            for (auto c : str)
+                if (c == '\n')
+                    ++cur_line_;
+            *preprocessed_ += std::move(str);
+        }
+
         const preprocessor* pre_;
         cpp_file*           file_;
         std::string*        preprocessed_;
 
-        unsigned header_count_;
+        unsigned header_count_, cur_line_ = 0;
 
         std::string include_guard_;
         unsigned    ifndef_line_ = 0;
