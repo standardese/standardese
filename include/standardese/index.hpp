@@ -22,6 +22,8 @@ namespace standardese
         // returns the short id
         // it doesn't require parameters
         std::string get_short_id(const std::string& id);
+
+        std::string escape_unique_name(const char* name);
     } // namespace detail
 
     class cpp_namespace;
