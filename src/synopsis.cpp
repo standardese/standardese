@@ -534,6 +534,9 @@ namespace
     void dispatch(const parser& p, code_block_writer& out, const cpp_entity& e, bool top_level,
                   const cpp_name& override_name)
     {
+        if (!top_level && !doc_entity(p, e, "").has_comment())
+            top_level = true;
+
         switch (e.get_entity_type())
         {
 #define STANDARDESE_DETAIL_HANDLE(name)                                                            \

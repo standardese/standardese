@@ -151,7 +151,9 @@ ____
     }
     SECTION("class")
     {
-        auto code     = R"(class foo
+        auto code     = R"(
+/// foo
+class foo
 {
 public:
     void a();
@@ -204,7 +206,9 @@ private:
     }
     SECTION("enum")
     {
-        auto code = R"(enum foo: unsigned int
+        auto code = R"(
+/// foo
+enum foo: unsigned int
 {
     a,
     b = 4,

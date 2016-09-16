@@ -142,6 +142,11 @@ namespace standardese
         }
 
     private:
+        bool is_semantic_parent() const STANDARDESE_NOEXCEPT override
+        {
+            return false;
+        }
+
         cpp_template_template_parameter(cpp_cursor cur, const cpp_entity& parent,
                                         cpp_template_ref def, bool is_variadic)
         : cpp_template_parameter(get_entity_type(), cur, parent, is_variadic),
