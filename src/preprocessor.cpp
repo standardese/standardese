@@ -232,7 +232,8 @@ namespace
         {
             if (c == '\n')
                 ++cur_line_;
-            *preprocessed_ += c;
+            else if (c != '\r')
+                *preprocessed_ += c;
         }
 
         void append(std::string str)

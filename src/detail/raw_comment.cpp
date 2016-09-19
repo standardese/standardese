@@ -55,9 +55,12 @@ namespace
         std::string content;
         for (; *ptr != '\n'; ++ptr)
             content += *ptr;
-
         assert(*ptr == '\n');
         ++cur_line;
+
+        while (is_whitespace(content.back()))
+            content.pop_back();
+
         return {std::move(content), 1, cur_line - 1};
     }
 
