@@ -237,7 +237,10 @@ C
     {
         // '$' == ' '
         // trailing space required for the C preprocessor
-        auto& comment = parse_comment(p, R"(/**
+        const char* source;
+        SECTION("C style")
+        {
+            source = R"(/**
 \effects A
 A
 \brief E
@@ -247,7 +250,36 @@ C
 \brief E
 \notes F\$
 \notes G
-*/)");
+*/)";
+        }
+        SECTION("C style continuation")
+        {
+            source = R"(/**
+* \effects A
+* A
+* \brief E
+* \requires B
+* C
+* \details D
+* \brief E
+* \notes F\$
+* \notes G
+*/)";
+        }
+        SECTION("C++ style")
+        {
+            source = R"(/// \effects A
+/// A
+/// \brief E
+/// \requires B
+/// C
+/// \details D
+/// \brief E
+/// \notes F\$
+/// \notes G)";
+        }
+
+        auto& comment = parse_comment(p, source);
 
         auto count = 0u;
         for (auto& child : comment.get_content())
