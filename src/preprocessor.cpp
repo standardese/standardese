@@ -232,16 +232,14 @@ namespace
         {
             if (c == '\n')
                 ++cur_line_;
-            else if (c != '\r')
+            if (c != '\r')
                 *preprocessed_ += c;
         }
 
-        void append(std::string str)
+        void append(const std::string& str)
         {
             for (auto c : str)
-                if (c == '\n')
-                    ++cur_line_;
-            *preprocessed_ += std::move(str);
+                append(c);
         }
 
         const preprocessor* pre_;

@@ -58,7 +58,7 @@ namespace
         assert(*ptr == '\n');
         ++cur_line;
 
-        while (is_whitespace(content.back()))
+        while (!content.empty() && is_whitespace(content.back()))
             content.pop_back();
 
         return {std::move(content), 1, cur_line - 1};
