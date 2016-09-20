@@ -29,6 +29,15 @@ namespace
 
     auto standards_initializer = (init_standards(), 0);
 
+    const char* flags[int(compile_flag::count)];
+
+    void init_flags()
+    {
+        flags[int(compile_flag::ms_extensions)] = "-fms-extensions";
+    }
+
+    auto flags_initializer = (init_flags(), 0);
+
     struct database_deleter
     {
         void operator()(CXCompilationDatabase db) const STANDARDESE_NOEXCEPT
@@ -139,6 +148,11 @@ compile_config::compile_config(cpp_standard standard, string commands_dir)
 
     if (standard != cpp_standard::count)
         flags_.push_back(standards[int(standard)]);
+
+#ifdef _MSC_VER
+    // automatically enable MS extensions on Windows builds
+    set_flag(compile_flag::ms_extensions);
+#endif
 }
 
 void compile_config::add_macro_definition(string def)
@@ -157,6 +171,11 @@ void compile_config::add_include(string path)
 {
     flags_.push_back("-I");
     flags_.push_back(std::move(path));
+}
+
+void compile_config::set_flag(compile_flag f)
+{
+    flags_.push_back(flags[int(f)]);
 }
 
 std::vector<const char*> compile_config::get_flags() const

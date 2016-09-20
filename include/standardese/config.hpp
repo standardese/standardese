@@ -25,6 +25,13 @@ namespace standardese
         count
     };
 
+    /// Set of "special" libclang flags.
+    enum class compile_flag
+    {
+        ms_extensions,
+        count,
+    };
+
     class compile_config
     {
     public:
@@ -35,6 +42,8 @@ namespace standardese
         void remove_macro_definition(string def);
 
         void add_include(string path);
+
+        void set_flag(compile_flag f);
 
         std::vector<const char*> get_flags() const;
 

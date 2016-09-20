@@ -60,6 +60,9 @@ namespace standardese_tool
             for (auto& val : undefs->second.as<std::vector<std::string>>())
                 result.remove_macro_definition(val);
 
+        if (map.count("compilation.ms_extensions"))
+            result.set_flag(compile_flag::ms_extensions);
+
         return result;
     }
 
