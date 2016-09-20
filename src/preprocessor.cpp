@@ -217,7 +217,7 @@ namespace
             if (!ctx.find_include_file(file_name, dir, is_system, nullptr))
                 return false;
 
-            auto     dir_path = fs::path(dir);
+            auto     dir_path = fs::system_complete(dir).normalize();
             fs::path cur_path;
             for (auto part : dir_path)
             {
@@ -315,12 +315,13 @@ std::string preprocessor::preprocess(const compile_config& c, const char* full_p
 
 void preprocessor::add_preprocess_directory(std::string dir)
 {
-    auto path = fs::system_complete(dir);
-    preprocess_dirs_.insert(path.normalize().generic_string());
+    auto path = fs::system_complete(dir).normalize().generic_string();
+    if (path.back() == '.')
+        path.pop_back();
+    preprocess_dirs_.insert(std::move(path));
 }
 
 bool preprocessor::is_preprocess_directory(const std::string& dir) const STANDARDESE_NOEXCEPT
 {
-    auto path = fs::system_complete(dir);
-    return preprocess_dirs_.count(path.normalize().generic_string()) != 0;
+    return preprocess_dirs_.count(dir) != 0;
 }
