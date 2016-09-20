@@ -55,6 +55,27 @@ const cpp_entity_registry& translation_unit::get_registry() const STANDARDESE_NO
     return parser_->get_entity_registry();
 }
 
+namespace
+{
+    bool handle_cursor(translation_unit& tu, cpp_cursor cur)
+    {
+        auto kind = clang_getCursorKind(cur);
+        if (kind == CXCursor_Namespace || kind == CXCursor_LinkageSpec)
+            // always handle those
+            return true;
+        else if (kind == CXCursor_StructDecl || kind == CXCursor_ClassDecl
+                 || kind == CXCursor_UnionDecl || kind == CXCursor_EnumDecl
+                 || kind == CXCursor_ClassTemplate
+                 || kind == CXCursor_ClassTemplatePartialSpecialization)
+            // handle those if this is a definition
+            return clang_isCursorDefinition(cur) != 0;
+
+        // otherwise, return if that is the canonical cursor
+        // or a full specialization
+        return cur == clang_getCanonicalCursor(cur) || is_full_specialization(tu, cur);
+    }
+}
+
 translation_unit::translation_unit(const parser& par, const char* path, cpp_file* file)
 : full_path_(path), file_(file), parser_(&par)
 {
@@ -70,10 +91,7 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
 
         try
         {
-            if (clang_getCursorKind(cur) == CXCursor_Namespace
-                || clang_getCursorKind(cur) == CXCursor_LinkageSpec
-                || is_full_specialization(*this, cur)
-                || cur == clang_getCanonicalCursor(cur)) // only parse the canonical cursor
+            if (handle_cursor(*this, cur))
             {
                 if (get_parser().get_logger()->level() <= spdlog::level::debug)
                 {
