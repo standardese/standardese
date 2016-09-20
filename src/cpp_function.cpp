@@ -5,10 +5,12 @@
 #include <standardese/cpp_function.hpp>
 
 #include <cassert>
+#include <cctype>
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/cpp_template.hpp>
+#include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -23,23 +25,20 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(translation_unit& 
     auto              name   = detail::parse_name(cur);
 
     std::string type_name, default_value;
-    for (auto in_type = true, qualified_name = false; stream.peek().get_value() != ";";)
+    for (auto in_type = true, qualified_name = false; !stream.done();)
     {
-        detail::skip_attribute(stream, cur);
-        if (!qualified_name && detail::skip_if_token(stream, name.c_str()))
+        if (detail::skip_attribute(stream, cur))
+            continue;
+        else if (!qualified_name && detail::skip_if_token(stream, name.c_str()))
             continue;
         else if (detail::skip_if_token(stream, "="))
             in_type = false;
         else
         {
             qualified_name = stream.peek().get_value() == "::";
-
-            (in_type ? type_name : default_value) += stream.get().get_value().c_str();
+            detail::append_token((in_type ? type_name : default_value), stream.get().get_value());
         }
     }
-
-    detail::erase_trailing_ws(type_name);
-    detail::erase_trailing_ws(default_value);
 
     return detail::make_cpp_ptr<cpp_function_parameter>(cur, parent,
                                                         cpp_type_ref(std::move(type_name),
@@ -49,8 +48,9 @@ cpp_ptr<cpp_function_parameter> cpp_function_parameter::parse(translation_unit& 
 
 cpp_name cpp_function_parameter::do_get_unique_name() const
 {
-    assert(has_parent() && is_function_like(get_parent().get_entity_type()));
-    return std::string(get_parent().get_unique_name().c_str()) + "." + get_name().c_str();
+    auto parent = get_semantic_parent();
+    assert(parent);
+    return std::string(parent->get_unique_name().c_str()) + "." + get_name().c_str();
 }
 
 cpp_ptr<cpp_function_base> cpp_function_base::try_parse(translation_unit& p, cpp_cursor cur,
@@ -80,44 +80,35 @@ cpp_ptr<cpp_function_base> cpp_function_base::try_parse(translation_unit& p, cpp
     return nullptr;
 }
 
-cpp_name cpp_function_base::get_scope() const
+bool cpp_function_base::is_templated() const STANDARDESE_NOEXCEPT
 {
-    assert(has_parent());
-    if (get_parent().get_entity_type() == cpp_entity::function_template_t
-        || get_parent().get_entity_type() == cpp_entity::function_template_specialization_t)
-        // function template doesn't add a new scope
-        return get_parent().get_scope();
-    return cpp_entity::get_scope();
+    return is_function_template(get_ast_parent().get_entity_type());
 }
 
 void cpp_function_base::set_template_specialization_name(cpp_name name)
 {
-    assert(get_parent().get_entity_type() == cpp_entity::function_template_specialization_t);
-    auto& non_const      = const_cast<cpp_entity&>(get_parent()); // save here
+    assert(get_ast_parent().get_entity_type() == cpp_entity::function_template_specialization_t);
+    auto& non_const      = const_cast<cpp_entity&>(get_ast_parent()); // save here
     auto& specialization = static_cast<cpp_function_template_specialization&>(non_const);
     specialization.name_ = std::string(detail::parse_name(get_cursor()).c_str()) + name.c_str();
 }
 
 cpp_name cpp_function_base::do_get_unique_name() const
 {
-    assert(has_parent());
-    if (is_function_template(get_parent().get_entity_type()))
-        return std::string(get_parent().get_unique_name().c_str()) + get_signature().c_str();
     return std::string(get_full_name().c_str()) + get_signature().c_str();
 }
 
 namespace
 {
-    void skip_template_parameter_declaration(detail::token_stream& stream, cpp_cursor cur)
+    void skip_template_parameters(detail::token_stream& stream, unsigned last_offset)
     {
         if (stream.peek().get_value() == "template")
         {
             stream.bump();
-            // it must be a specialization
-            detail::skip_whitespace(stream);
-            detail::skip(stream, cur, {"<", ">"});
+            detail::skip_if_token(stream, "<");
+            detail::skip_offset(stream, last_offset);
+            detail::skip_if_token(stream, ">");
         }
-        detail::skip_whitespace(stream);
     }
 
     std::string parse_member_function_prefix(detail::token_stream& stream, cpp_cursor cur,
@@ -131,9 +122,9 @@ namespace
         while (qualified_name || !detail::skip_if_token(stream, name.c_str()))
         {
             qualified_name = false;
-            detail::skip_attribute(stream, cur);
 
-            if (detail::skip_if_token(stream, "extern"))
+            if (detail::skip_attribute(stream, cur) || detail::skip_if_token(stream, "extern")
+                || detail::skip_if_token(stream, "inline"))
                 // ignored
                 continue;
             else if (detail::skip_if_token(stream, "static"))
@@ -156,13 +147,13 @@ namespace
                     while (std::isspace(*ptr))
                         ++ptr;
 
-                    auto& spelling = stream.peek().get_value();
+                    auto spelling = stream.peek().get_value();
                     if (!std::isspace(spelling[0]))
                     {
-                        auto res = std::strncmp(ptr, spelling.c_str(), spelling.size());
+                        auto res = std::strncmp(ptr, spelling.c_str(), spelling.length());
                         if (res != 0)
                             break;
-                        ptr += spelling.size();
+                        ptr += spelling.length();
                     }
 
                     stream.bump();
@@ -177,7 +168,7 @@ namespace
                 else if (spelling == "::")
                     qualified_name = true; // next name is qualified, can't be function name
 
-                return_type += spelling.c_str(); // part of return type
+                detail::append_token(return_type, spelling); // part of return type
             }
         }
 
@@ -190,24 +181,14 @@ namespace
         if (stream.peek().get_value() == "<")
         {
             // we need to skip all arguments of a template specialization
-            // for that, go to the end, add all tokens and go backwards until we're there
-            // the iterator isn't bidirectional, so we need to save all tokens
+            // for that, go to the end and go backwards until we're there
+            auto save = stream.get_iter();
+            stream.reset(stream.get_end());
 
-            std::vector<detail::token_stream::iterator> tokens;
-            for (; !stream.done(); stream.bump())
-            {
-                if (!std::isspace(stream.peek().get_value()[0]))
-                    tokens.push_back(stream.get_iter());
-            }
-            assert(tokens.back()->get_value() == ";" || tokens.back()->get_value() == ":"
-                   || tokens.back()->get_value() == "{");
-
-            auto paren_count       = 0u;
             auto was_opening_paren = false;
-            for (auto iter = tokens.rbegin(); iter != tokens.rend(); ++iter)
+            for (auto paren_count = 0u; stream.get_iter() != save; stream.bump_back())
             {
-                auto& token = *iter;
-                auto& str   = token->get_value();
+                auto str = stream.peek().get_value();
 
                 if (paren_count == unsigned(returns_function) && was_opening_paren && str == ">")
                 {
@@ -217,16 +198,17 @@ namespace
                     // this must be the end of the template arguments
 
                     // set specialization args
-                    stream.reset(tokens.front());
-                    while (stream.get_iter() != *iter.base())
-                        args += stream.get().get_value().c_str();
+                    auto end = stream.get_iter();
+                    stream.reset(save);
+                    while (stream.get_iter() != end)
+                        detail::append_token(args, stream.get().get_value());
+                    detail::append_token(args, stream.get().get_value());
                     break;
                 }
 
                 if (str == "(")
                 {
                     --paren_count;
-                    assert(std::next(iter) != tokens.rend());
                     was_opening_paren = true;
                 }
                 else if (str == ")")
@@ -234,11 +216,7 @@ namespace
                     was_opening_paren = false;
                     ++paren_count;
                 }
-                else
-                    was_opening_paren = false;
             }
-
-            assert(stream.peek().get_value() == "(");
         }
     }
 
@@ -261,8 +239,6 @@ namespace
 
     std::string parse_noexcept(detail::token_stream& stream)
     {
-        detail::skip_whitespace(stream);
-
         std::string expression;
         if (stream.peek().get_value() == "(")
         {
@@ -279,7 +255,7 @@ namespace
                     --bracket_count;
 
                 if (bracket_count != 0) // only when not last closing bracket
-                    expression += spelling.c_str();
+                    detail::append_token(expression, spelling);
             }
         }
         else
@@ -298,19 +274,17 @@ namespace
     {
         detail::skip_attribute(stream, cur);
 
-        if (stream.peek().get_value().size() > 1u)
+        if (stream.peek().get_value().length() > 1u)
             return false;
 
         auto c = stream.peek().get_value()[0];
         if (c == ':' || c == ';' || c == '{')
         {
-            detail::skip_whitespace(stream);
             is_special_definition = false;
             return true;
         }
         else if (c == '=')
         {
-            detail::skip_whitespace(stream);
             is_special_definition = true;
             return true;
         }
@@ -341,7 +315,7 @@ namespace
     {
         if (special_definition)
         {
-            detail::skip(stream, cur, {"="});
+            detail::skip(stream, cur, "=");
             return parse_special_definition(stream, cur);
         }
         else if (stream.peek().get_value() == "{" || stream.peek().get_value() == ":")
@@ -366,16 +340,18 @@ namespace
         while (!is_declaration_end(stream, cur, special_definition))
         {
             assert(!stream.done());
-            detail::skip_attribute(stream, cur);
 
-            if (detail::skip_if_token(stream, ")"))
+            if (detail::skip_attribute(stream, cur))
+                continue;
+            else if (detail::skip_if_token(stream, ")"))
             {
                 // return type was a function pointer
                 // now come the arguments
                 trailing_return_type += ")(";
 
-                skip_bracket_count(stream, cur, "(", ")",
-                                   [&](const char* str) { trailing_return_type += str; });
+                skip_bracket_count(stream, cur, "(", ")", [&](const char* str) {
+                    detail::append_token(trailing_return_type, str);
+                });
             }
             else if (detail::skip_if_token(stream, "->"))
             {
@@ -383,7 +359,14 @@ namespace
                 while (!is_declaration_end(stream, cur, special_definition))
                 {
                     auto spelling = stream.get().get_value();
-                    trailing_return_type += spelling.c_str();
+                    detail::append_token(trailing_return_type, spelling);
+                    if (spelling == "decltype")
+                    {
+                        detail::append_token(trailing_return_type, "(");
+                        skip_bracket_count(stream, cur, "(", ")", [&](const char* str) {
+                            detail::append_token(trailing_return_type, str);
+                        });
+                    }
                 }
                 break;
             }
@@ -433,10 +416,11 @@ namespace
     }
 
     cpp_type_ref parse_member_function(detail::token_stream& stream, cpp_cursor cur,
-                                       const cpp_name& name, std::string& template_args,
-                                       cpp_function_info& finfo, cpp_member_function_info& minfo)
+                                       unsigned template_offset, const cpp_name& name,
+                                       std::string& template_args, cpp_function_info& finfo,
+                                       cpp_member_function_info& minfo)
     {
-        skip_template_parameter_declaration(stream, cur);
+        skip_template_parameters(stream, template_offset);
         auto return_type = parse_member_function_prefix(stream, cur, name, finfo, minfo);
 
         skip_template_arguments(stream, template_args, is_function_ptr(return_type));
@@ -447,14 +431,10 @@ namespace
         if (variadic)
             finfo.set_flag(cpp_variadic_fnc);
 
-        return_type += parse_member_function_suffix(stream, cur, finfo, minfo);
+        detail::append_token(return_type, parse_member_function_suffix(stream, cur, finfo, minfo));
         if (return_type.empty())
-        {
             // we have a deduced return type
             return_type = "auto";
-        }
-        else
-            detail::erase_trailing_ws(return_type);
 
         if (finfo.noexcept_expression.empty())
             finfo.noexcept_expression = "false";
@@ -524,13 +504,14 @@ cpp_ptr<cpp_function> cpp_function::parse(translation_unit& tu, cpp_cursor cur,
            || clang_getTemplateCursorKind(cur) == CXCursor_FunctionDecl);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto              stream = detail::make_stream(tokenizer, template_offset);
+    auto              stream = detail::make_stream(tokenizer);
     auto              name   = detail::parse_name(cur);
 
     cpp_function_info        finfo;
     cpp_member_function_info minfo;
     std::string              template_args;
-    auto return_type = parse_member_function(stream, cur, name, template_args, finfo, minfo);
+    auto                     return_type =
+        parse_member_function(stream, cur, template_offset, name, template_args, finfo, minfo);
     if (is_virtual(minfo.virtual_flag))
         throw parse_error(source_location(cur), "virtual specifier on normal function");
     if (minfo.cv_qualifier != cpp_cv_none)
@@ -577,13 +558,14 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit& tu, cp
            || clang_getTemplateCursorKind(cur) == CXCursor_CXXMethod);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto              stream = detail::make_stream(tokenizer, template_offset);
+    auto              stream = detail::make_stream(tokenizer);
     auto              name   = detail::parse_name(cur);
 
     cpp_function_info        finfo;
     cpp_member_function_info minfo;
     std::string              template_args;
-    auto return_type = parse_member_function(stream, cur, name, template_args, finfo, minfo);
+    auto                     return_type =
+        parse_member_function(stream, cur, template_offset, name, template_args, finfo, minfo);
 
     auto result = detail::make_cpp_ptr<cpp_member_function>(cur, parent, std::move(return_type),
                                                             std::move(finfo), std::move(minfo));
@@ -609,37 +591,6 @@ cpp_member_function::cpp_member_function(cpp_cursor cur, const cpp_entity& paren
 {
 }
 
-namespace
-{
-    std::string parse_conversion_op_type(cpp_cursor cur)
-    {
-        if (clang_getCursorKind(cur) == CXCursor_ConversionFunction)
-        {
-            // parse name
-            std::string name = detail::parse_name(cur).c_str();
-
-            auto target_type_spelling =
-                name.substr(9); // take everything from type after "operator "
-            assert(target_type_spelling.front() != ' '); // no multiple whitespace
-
-            return target_type_spelling;
-        }
-        else if (clang_getCursorKind(cur) == CXCursor_FunctionTemplate)
-        {
-            // parsing
-            // template <typename T> operator T();
-            // yields a name of
-            // operator type-parameter-0-0
-            // so workaround by calculating name from the type spelling
-            auto target_type = clang_getCursorResultType(cur);
-            return detail::parse_name(target_type).c_str();
-        }
-
-        assert(false);
-        throw parse_error(source_location(cur), "internal error");
-    }
-}
-
 cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cursor cur,
                                                     const cpp_entity& parent,
                                                     unsigned          template_offset)
@@ -648,10 +599,9 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
            || clang_getTemplateCursorKind(cur) == CXCursor_ConversionFunction);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto              stream = detail::make_stream(tokenizer, template_offset);
+    auto              stream = detail::make_stream(tokenizer);
 
-    auto type = parse_conversion_op_type(cur);
-    skip_template_parameter_declaration(stream, cur);
+    skip_template_parameters(stream, template_offset);
 
     cpp_function_info        finfo;
     cpp_member_function_info minfo;
@@ -659,9 +609,9 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
     // handle prefix
     while (!detail::skip_if_token(stream, "operator"))
     {
-        detail::skip_attribute(stream, cur);
-
-        if (detail::skip_if_token(stream, "explicit"))
+        if (detail::skip_attribute(stream, cur) || detail::skip_if_token(stream, "inline"))
+            continue;
+        else if (detail::skip_if_token(stream, "explicit"))
             finfo.set_flag(cpp_explicit_conversion);
         else if (detail::skip_if_token(stream, "constexpr"))
             finfo.set_flag(cpp_constexpr_fnc);
@@ -678,14 +628,18 @@ cpp_ptr<cpp_conversion_op> cpp_conversion_op::parse(translation_unit& tu, cpp_cu
             stream.get();
     }
 
+    std::string type;
     // skip until parameters
     while (stream.peek().get_value() != "(" && stream.peek().get_value() != "<")
-        stream.bump();
+        detail::append_token(type, stream.get().get_value());
 
     std::string type_template_args;
     skip_template_arguments(stream, type_template_args, false);
     // template_args belong to the type name
     type += std::move(type_template_args);
+    // handle the rest until parameters
+    while (stream.peek().get_value() != "(")
+        detail::append_token(type, stream.get().get_value());
 
     auto variadic = false;
     skip_parameters(stream, cur, variadic);
@@ -732,8 +686,8 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit& tu, cpp_cursor
            || clang_getTemplateCursorKind(cur) == CXCursor_Constructor);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto              stream = detail::make_stream(tokenizer, template_offset);
-    skip_template_parameter_declaration(stream, cur);
+    auto              stream = detail::make_stream(tokenizer);
+    skip_template_parameters(stream, template_offset);
 
     std::string name = detail::parse_name(cur).c_str();
     detail::erase_template_args(name);
@@ -742,9 +696,9 @@ cpp_ptr<cpp_constructor> cpp_constructor::parse(translation_unit& tu, cpp_cursor
     cpp_function_info info;
     while (!detail::skip_if_token(stream, name.c_str()))
     {
-        detail::skip_attribute(stream, cur);
-
-        if (detail::skip_if_token(stream, "explicit"))
+        if (detail::skip_attribute(stream, cur) || detail::skip_if_token(stream, "inline"))
+            continue;
+        else if (detail::skip_if_token(stream, "explicit"))
             info.set_flag(cpp_explicit_conversion);
         else if (detail::skip_if_token(stream, "constexpr"))
             info.set_flag(cpp_constexpr_fnc);
@@ -828,31 +782,34 @@ cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor c
     assert(template_offset == 0u);
 
     detail::tokenizer tokenizer(tu, cur);
-    auto              stream = detail::make_stream(tokenizer, template_offset);
+    auto              stream = detail::make_stream(tokenizer);
 
     std::string name = detail::parse_name(cur).c_str();
     detail::erase_template_args(name);
 
     cpp_function_info info;
     auto              virtual_flag = cpp_virtual_none;
-    if (detail::skip_if_token(stream, "virtual"))
-        virtual_flag = cpp_virtual_new;
-    else if (detail::skip_if_token(stream, "constexpr"))
-        info.set_flag(cpp_constexpr_fnc);
-
-    detail::skip_attribute(stream, cur);
-    detail::skip_whitespace(stream);
+    while (!detail::skip_if_token(stream, "~"))
+    {
+        if (detail::skip_attribute(stream, cur) || detail::skip_if_token(stream, "inline"))
+            continue; // ignored
+        else if (detail::skip_if_token(stream, "virtual"))
+            virtual_flag = cpp_virtual_new;
+        else if (detail::skip_if_token(stream, "constexpr"))
+            info.set_flag(cpp_constexpr_fnc);
+    }
 
     // skip name and arguments
-    detail::skip(stream, cur, {"~", &name[1], "(", ")"});
+    detail::skip(stream, cur, {&name[1], "(", ")"});
 
     // parse suffix
     auto special_definition = false;
     while (!is_declaration_end(stream, cur, special_definition))
     {
         assert(!stream.done());
-        detail::skip_attribute(stream, cur);
 
+        if (detail::skip_attribute(stream, cur))
+            continue;
         if (detail::skip_if_token(stream, "final"))
             virtual_flag = cpp_virtual_final;
         else if (detail::skip_if_token(stream, "override"))

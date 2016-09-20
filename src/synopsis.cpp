@@ -9,13 +9,13 @@
 #include <standardese/cpp_enum.hpp>
 #include <standardese/cpp_function.hpp>
 #include <standardese/cpp_namespace.hpp>
-#include <standardese/cpp_preprocessor.hpp>
 #include <standardese/cpp_template.hpp>
 #include <standardese/cpp_type.hpp>
 #include <standardese/cpp_variable.hpp>
 #include <standardese/generator.hpp>
 #include <standardese/output.hpp>
 #include <standardese/parser.hpp>
+#include <standardese/preprocessor.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -68,7 +68,7 @@ bool entity_blacklist::is_blacklisted(documentation_t, const cpp_entity& e) cons
 
 bool entity_blacklist::is_blacklisted(synopsis_t, const cpp_entity& e) const
 {
-    for (auto cur = &e; cur; cur = cur->has_parent() ? &cur->get_parent() : nullptr)
+    for (auto cur = &e; cur; cur = cur->get_semantic_parent())
         if (::is_blacklisted(synopsis_blacklist_, *cur))
             return true;
 
@@ -94,23 +94,14 @@ namespace
     void do_write_synopsis(const parser&, code_block_writer& out, const cpp_inclusion_directive& i)
     {
         out << "#include ";
-
-        if (i.get_kind() == cpp_inclusion_directive::local)
-            out << '"';
-        else
-            out << '<';
-
+        out << (i.get_kind() == cpp_inclusion_directive::system ? '<' : '"');
         out << i.get_file_name();
-
-        if (i.get_kind() == cpp_inclusion_directive::local)
-            out << '"';
-        else
-            out << '>';
+        out << (i.get_kind() == cpp_inclusion_directive::system ? '>' : '"');
     }
 
     void do_write_synopsis(const parser&, code_block_writer& out, const cpp_macro_definition& m)
     {
-        out << "#define " << m.get_name() << m.get_argument_string() << ' ' << m.get_replacement();
+        out << "#define " << m.get_name() << m.get_parameter_string() << ' ' << m.get_replacement();
     }
 
     //=== namespace related ===//
@@ -191,6 +182,14 @@ namespace
             out << " = " << e.get_value();
     }
 
+    void do_write_synopsis(const parser&, code_block_writer& out,
+                           const cpp_expression_enum_value& e)
+    {
+        out << e.get_name();
+        if (e.is_explicitly_given())
+            out << " = " << e.get_value();
+    }
+
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_enum& e,
                            bool top_level)
     {
@@ -198,7 +197,7 @@ namespace
         if (e.is_scoped())
             out << "class ";
         out << e.get_name();
-        if (top_level)
+        if (e.get_name().empty() || top_level)
         {
             if (!e.get_underlying_type().get_name().empty())
                 out << newl << ": " << detail::get_ref_name(par, e.get_underlying_type());
@@ -241,11 +240,11 @@ namespace
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_class& c,
                            bool top_level, const cpp_name& override_name)
     {
-        detail::write_class_name(out, override_name.empty() ? c.get_name() : override_name,
-                                 c.get_class_type());
+        auto name = override_name.empty() ? c.get_name() : override_name;
+        detail::write_class_name(out, name, c.get_class_type());
 
         auto& blacklist = par.get_output_config().get_blacklist();
-        if (top_level)
+        if (name.empty() || top_level)
         {
             if (c.is_final())
                 out << " final";
@@ -307,11 +306,7 @@ namespace
     //=== variables ===//
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_variable& v)
     {
-        if (v.get_parent().get_entity_type() == cpp_entity::class_t
-            || v.get_parent().get_entity_type() == cpp_entity::class_template_t
-            || v.get_parent().get_entity_type() == cpp_entity::class_template_full_specialization_t
-            || v.get_parent().get_entity_type()
-                   == cpp_entity::class_template_partial_specialization_t)
+        if (v.get_ast_parent().get_entity_type() == cpp_entity::class_t)
             out << "static ";
 
         if (v.is_thread_local())
@@ -539,6 +534,9 @@ namespace
     void dispatch(const parser& p, code_block_writer& out, const cpp_entity& e, bool top_level,
                   const cpp_name& override_name)
     {
+        if (!top_level && !doc_entity(p, e, "").has_comment())
+            top_level = true;
+
         switch (e.get_entity_type())
         {
 #define STANDARDESE_DETAIL_HANDLE(name)                                                            \
@@ -563,6 +561,7 @@ namespace
 
             STANDARDESE_DETAIL_HANDLE(signed_enum_value)
             STANDARDESE_DETAIL_HANDLE(unsigned_enum_value)
+            STANDARDESE_DETAIL_HANDLE(expression_enum_value)
             STANDARDESE_DETAIL_HANDLE(enum)
 
             STANDARDESE_DETAIL_HANDLE(base_class)

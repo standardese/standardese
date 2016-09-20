@@ -128,7 +128,7 @@ namespace standardese
 
         void add_paramter(cpp_ptr<cpp_template_parameter> param)
         {
-            cpp_entity_container<cpp_template_parameter>::add_entity(std::move(param));
+            cpp_entity_container<cpp_template_parameter>::add_entity(this, std::move(param));
         }
 
         bool has_default_template() const STANDARDESE_NOEXCEPT
@@ -142,6 +142,11 @@ namespace standardese
         }
 
     private:
+        bool is_semantic_parent() const STANDARDESE_NOEXCEPT override
+        {
+            return false;
+        }
+
         cpp_template_template_parameter(cpp_cursor cur, const cpp_entity& parent,
                                         cpp_template_ref def, bool is_variadic)
         : cpp_template_parameter(get_entity_type(), cur, parent, is_variadic),
@@ -174,7 +179,7 @@ namespace standardese
 
         void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
         {
-            cpp_entity_container<cpp_template_parameter>::add_entity(std::move(param));
+            cpp_entity_container<cpp_template_parameter>::add_entity(this, std::move(param));
         }
 
         const cpp_entity_container<cpp_template_parameter>& get_template_parameters() const
@@ -263,7 +268,7 @@ namespace standardese
 
         void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
         {
-            cpp_entity_container<cpp_template_parameter>::add_entity(std::move(param));
+            cpp_entity_container<cpp_template_parameter>::add_entity(this, std::move(param));
         }
 
         void add_entity(cpp_entity_ptr ptr)
@@ -357,7 +362,7 @@ namespace standardese
 
         void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
         {
-            cpp_entity_container<cpp_template_parameter>::add_entity(std::move(param));
+            cpp_entity_container<cpp_template_parameter>::add_entity(this, std::move(param));
         }
 
         void add_entity(cpp_entity_ptr ptr)
@@ -421,7 +426,7 @@ namespace standardese
 
         void add_template_parameter(cpp_ptr<cpp_template_parameter> param)
         {
-            cpp_entity_container<cpp_template_parameter>::add_entity(std::move(param));
+            cpp_entity_container<cpp_template_parameter>::add_entity(this, std::move(param));
         }
 
         cpp_name get_name() const override;

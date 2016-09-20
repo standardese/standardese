@@ -33,7 +33,7 @@ TEST_CASE("cpp_entity", "[cpp]")
         // convenience
         void add_entity(test_entity* e)
         {
-            cpp_entity_container<cpp_entity>::add_entity(cpp_entity_ptr(e));
+            cpp_entity_container<cpp_entity>::add_entity(nullptr, cpp_entity_ptr(e));
         }
     };
 

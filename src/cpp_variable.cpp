@@ -8,6 +8,7 @@
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
+#include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -24,9 +25,7 @@ namespace
         std::string type_name;
         for (auto in_type = true, was_bitfield = false; stream.peek().get_value() != ";";)
         {
-            detail::skip_attribute(stream, cur);
-
-            if (detail::skip_if_token(stream, name.c_str())
+            if (detail::skip_attribute(stream, cur) || detail::skip_if_token(stream, name.c_str())
                 || detail::skip_if_token(stream, "extern")
                 || detail::skip_if_token(stream, "static"))
                 // ignore
@@ -42,8 +41,14 @@ namespace
 
                 // set name of the new type
                 assert(in_type);
-                type_name += stream.peek().get_value().c_str();
-                stream.bump();
+                auto has_name = stream.peek().get_value() != "{";
+                if (has_name)
+                {
+                    detail::append_token(type_name, stream.peek().get_value());
+                    stream.bump();
+                }
+                else
+                    detail::append_token(type_name, "anonymous-type");
 
                 // skip type definition
                 detail::skip_bracket_count(stream, cur, "{", "}");
@@ -58,16 +63,12 @@ namespace
             {
                 stream.bump();
                 was_bitfield = false;
-                detail::skip_whitespace(stream);
             }
             else if (detail::skip_if_token(stream, "="))
                 in_type = false;
             else
-                (in_type ? type_name : initializer) += stream.get().get_value().c_str();
+                detail::append_token((in_type ? type_name : initializer), stream.get().get_value());
         }
-
-        detail::erase_trailing_ws(type_name);
-        detail::erase_trailing_ws(initializer);
 
         return {std::move(type_name), clang_getCursorType(cur)};
     }

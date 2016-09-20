@@ -49,6 +49,8 @@ namespace standardese
         count,
     };
 
+    static_assert(unsigned(section_type::invalid) == unsigned(command_type::invalid), "");
+
     inline bool is_section(unsigned c) STANDARDESE_NOEXCEPT
     {
         return c < unsigned(section_type::count);
@@ -60,9 +62,14 @@ namespace standardese
         return section_type(c);
     }
 
+    inline bool is_command(unsigned c) STANDARDESE_NOEXCEPT
+    {
+        return c > unsigned(section_type::count) && c < unsigned(command_type::count);
+    }
+
     inline command_type make_command(unsigned c) STANDARDESE_NOEXCEPT
     {
-        assert(!is_section(c));
+        assert(is_command(c));
         return command_type(c);
     }
 } // namespace standardese

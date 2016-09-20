@@ -29,6 +29,15 @@ namespace
 
     auto standards_initializer = (init_standards(), 0);
 
+    const char* flags[int(compile_flag::count)];
+
+    void init_flags()
+    {
+        flags[int(compile_flag::ms_extensions)] = "-fms-extensions";
+    }
+
+    auto flags_initializer = (init_flags(), 0);
+
     struct database_deleter
     {
         void operator()(CXCompilationDatabase db) const STANDARDESE_NOEXCEPT
@@ -102,25 +111,31 @@ namespace
 
         return db_args;
     }
-}
+
+    // cmake sucks at string handling, so sometimes LIBCLANG_SYSTEM_INCLUDE_DIR isn't a string
+    // so we need to stringify it
+    // but if the argument was a string, libclang can't handle the double quotes
+    // so unstringify it then at runtime (you can't do that in the preprocessor...)
+    std::string unquote(const char* str)
+    {
+        if (str[0] == '"')
+        {
+            std::string res(str + 1);
+            res.pop_back();
+            return res;
+        }
+
+        return str;
+    }
 
 #define STANDARDESE_DETAIL_STRINGIFY_IMPL(x) #x
 #define STANDARDESE_DETAIL_STRINGIFY(x) STANDARDESE_DETAIL_STRINGIFY_IMPL(x)
+}
 
 compile_config::compile_config(cpp_standard standard, string commands_dir)
-: flags_{"-x", "c++", "-I", STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR)}
+: flags_{"-x", "c++", "-I", unquote(STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR))}
 {
     (void)standards_initializer;
-    // cmake sucks at string handling, so sometimes LIBCLANG_SYSTEM_INCLUDE_DIR isn't a string
-    // so we need to stringify it
-    // but if the argument was a string, libclang can't handle the double qoutes
-    // so unstringify it then at runtime (you can't do that in the preprocessor...)
-    if (flags_.back().c_str()[0] == '"')
-    {
-        std::string str = flags_.back().c_str() + 1;
-        str.pop_back();
-        flags_.back() = std::move(str);
-    }
 
     if (!commands_dir.empty())
     {
@@ -133,6 +148,11 @@ compile_config::compile_config(cpp_standard standard, string commands_dir)
 
     if (standard != cpp_standard::count)
         flags_.push_back(standards[int(standard)]);
+
+#ifdef _MSC_VER
+    // automatically enable MS extensions on Windows builds
+    set_flag(compile_flag::ms_extensions);
+#endif
 }
 
 void compile_config::add_macro_definition(string def)
@@ -153,6 +173,11 @@ void compile_config::add_include(string path)
     flags_.push_back(std::move(path));
 }
 
+void compile_config::set_flag(compile_flag f)
+{
+    flags_.push_back(flags[int(f)]);
+}
+
 std::vector<const char*> compile_config::get_flags() const
 {
     std::vector<const char*> result;
@@ -164,31 +189,7 @@ std::vector<const char*> compile_config::get_flags() const
     return result;
 }
 
-void compile_config::setup_context(detail::context& context) const
-{
-    for (auto iter = flags_.begin(); iter != flags_.end(); ++iter)
-    {
-        if (*iter == "-D")
-        {
-            ++iter;
-            context.add_macro_definition(*iter);
-        }
-        else if (*iter == "-U")
-        {
-            ++iter;
-            context.remove_macro_definition(*iter);
-        }
-        else if (iter->c_str()[0] == '-')
-        {
-            if (iter->c_str()[1] == 'D')
-                context.add_macro_definition(&(iter->c_str()[2]));
-            else if (iter->c_str()[1] == 'U')
-                context.remove_macro_definition(&(iter->c_str()[2]));
-        }
-    }
-}
-
-comment_config::comment_config() : cmd_char_('\\'), implicit_par_(false)
+comment_config::comment_config() : cmd_char_('\\')
 {
 #define STANDARDESE_DETAIL_SET(type) set_command(unsigned(section_type::type), #type);
 

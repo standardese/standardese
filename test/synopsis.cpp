@@ -108,7 +108,7 @@ TEST_CASE("synopsis")
     {
         auto code = R"(#define FOO something
 
-constexpr int a(char& c, int* ptr, ...) noexcept(noexcept(1 + 1));
+constexpr int a(char& c, int* ptr, ...) noexcept(noexcept(1+1));
 
 template <typename T, template <typename> typename D, int ... I>
 void b(T t);
@@ -151,7 +151,9 @@ ____
     }
     SECTION("class")
     {
-        auto code     = R"(class foo
+        auto code     = R"(
+/// foo
+class foo
 {
 public:
     void a();
@@ -204,7 +206,9 @@ private:
     }
     SECTION("enum")
     {
-        auto code = R"(enum foo: unsigned int
+        auto code = R"(
+/// foo
+enum foo: unsigned int
 {
     a,
     b = 4,
@@ -230,13 +234,36 @@ private:
     SECTION("function")
     {
         auto code = R"(
-/// \param c \exclude
+/// \param c
+/// \exclude
 void func(int a, char* b, float c = .3);
 )";
 
         auto synopsis = R"(void func(int a, char* b);)";
 
         auto tu = parse(p, "synopsis_function", code);
-        REQUIRE(get_synopsis(p, *tu.get_file().begin()) == synopsis);
+        REQUIRE(get_synopsis(p, tu.get_file()) == synopsis);
+    }
+    SECTION("extensive preprocessor")
+    {
+        auto code     = R"(
+#ifndef BAR
+#define BAR
+
+/// \exclude
+#define GENERATE(name) void name(int a);
+
+#ifndef FOO
+/// \param a
+/// \exclude
+GENERATE(foo)
+#endif
+
+#endif
+)";
+        auto synopsis = R"(void foo();)";
+
+        auto tu = parse(p, "synopsis_extensive_preprocessor", code);
+        REQUIRE(get_synopsis(p, tu.get_file()) == synopsis);
     }
 }

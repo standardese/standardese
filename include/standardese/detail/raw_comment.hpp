@@ -23,6 +23,8 @@ namespace standardese
             }
         };
 
+        bool keep_comment(const char* comment);
+
         std::vector<raw_comment> read_comments(const std::string& source);
     } // namespace detail
 } // namespace standardese

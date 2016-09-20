@@ -212,6 +212,7 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
         return "enumeration";
     case cpp_entity::signed_enum_value_t:
     case cpp_entity::unsigned_enum_value_t:
+    case cpp_entity::expression_enum_value_t:
         return "enumeration constant";
 
     case cpp_entity::variable_t:
@@ -285,7 +286,8 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
     if (!p.get_output_config().get_blacklist().is_set(entity_blacklist::require_comment)
         || doc.has_comment())
     {
-        auto anchor = md_anchor::make(*heading, doc.get_unique_name().c_str());
+        auto id     = detail::escape_unique_name(doc.get_unique_name().c_str());
+        auto anchor = md_anchor::make(*heading, id.c_str());
         heading->add_entity(std::move(anchor));
     }
     document.add_entity(std::move(heading));

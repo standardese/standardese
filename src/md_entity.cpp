@@ -98,6 +98,9 @@ md_container::md_container(md_entity::type t, cmark_node* node) STANDARDESE_NOEX
 
 md_entity& md_container::add_entity(md_entity_ptr entity)
 {
+    if (!entity)
+        return back();
+
     auto back = get_last();
     if (back && back->get_entity_type() == md_entity::text_t
         && entity->get_entity_type() == md_entity::text_t)

@@ -30,6 +30,7 @@ std::string get_text(const md_paragraph& paragraph)
 
 const comment& parse_comment(parser& p, std::string source)
 {
+    std::replace(source.begin(), source.end(), '$', ' ');
     auto  tu     = parse(p, "md_comment", (source + "\nint a;").c_str());
     auto& entity = *tu.get_file().begin();
 
@@ -72,6 +73,8 @@ TEST_CASE("md_comment", "[doc]")
             foo, //< End line style.
             bar, //< End line style.
             /// Continued.
+
+            /**/
 )";
 
         auto comments = detail::read_comments(source);
@@ -210,17 +213,17 @@ C
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
             INFO(get_text(paragraph));
 
-            if (get_text(paragraph) == " A A\nA A")
+            if (get_text(paragraph) == "A A\nA A")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::effects);
             }
-            else if (get_text(paragraph) == " B B")
+            else if (get_text(paragraph) == "B B")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::returns);
             }
-            else if (get_text(paragraph) == " C C")
+            else if (get_text(paragraph) == "C C")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::error_conditions);
@@ -230,19 +233,53 @@ C
         }
         REQUIRE(count == 3u);
     }
-    SECTION("merging")
+    SECTION("one paragraph")
     {
-        auto& comment = parse_comment(p, R"(/**
+        // '$' == ' '
+        // trailing space required for the C preprocessor
+        const char* source;
+        SECTION("C style")
+        {
+            source = R"(/**
 \effects A
-
-\effects A
-
+A
+\brief E
 \requires B
-
 C
-
 \details D
-*/)");
+\brief E
+\notes F\$
+\notes G
+*/)";
+        }
+        SECTION("C style continuation")
+        {
+            source = R"(/**
+* \effects A
+* A
+* \brief E
+* \requires B
+* C
+* \details D
+* \brief E
+* \notes F\$
+* \notes G
+*/)";
+        }
+        SECTION("C++ style")
+        {
+            source = R"(/// \effects A
+/// A
+/// \brief E
+/// \requires B
+/// C
+/// \details D
+/// \brief E
+/// \notes F\$
+/// \notes G)";
+        }
+
+        auto& comment = parse_comment(p, source);
 
         auto count = 0u;
         for (auto& child : comment.get_content())
@@ -251,30 +288,39 @@ C
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
             INFO('"' + get_text(paragraph) + '"');
 
-            if (get_text(paragraph) == " A A")
+            if (get_text(paragraph) == "A\nA")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::effects);
             }
-            else if (get_text(paragraph) == " B")
+            else if (get_text(paragraph) == "B\nC")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::requires);
-            }
-            else if (get_text(paragraph) == "C")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::details);
             }
             else if (get_text(paragraph) == "D")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::details);
             }
+            else if (get_text(paragraph) == "F")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::notes);
+            }
+            else if (get_text(paragraph) == "G")
+            {
+                ++count;
+                REQUIRE(paragraph.get_section_type() == section_type::notes);
+            }
             else
+            {
+                ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::brief);
+                REQUIRE(get_text(paragraph) == "E\nE");
+            }
         }
-        REQUIRE(count == 4u);
+        REQUIRE(count == 6u);
     }
     SECTION("commands")
     {
@@ -291,41 +337,12 @@ C
         {
             REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
             auto& paragraph = dynamic_cast<const md_paragraph&>(child);
+            INFO('"' << get_text(paragraph) << '"');
             REQUIRE(paragraph.get_section_type() == section_type::brief);
             REQUIRE(get_text(paragraph) == "Normal markup.");
             ++count;
         }
         REQUIRE(count == 1u);
-    }
-    SECTION("implicit paragraph")
-    {
-        p.get_comment_config().set_implicit_paragraph(true);
-
-        auto& comment = parse_comment(p, R"(
-/// \effects A
-/// \effects A
-/// \requires B)");
-
-        auto count = 0u;
-        for (auto& child : comment.get_content())
-        {
-            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
-            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
-
-            if (get_text(paragraph) == " A A")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::effects);
-            }
-            else if (get_text(paragraph) == " B")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::requires);
-            }
-            else
-                REQUIRE(paragraph.get_section_type() == section_type::brief);
-        }
-        REQUIRE(count == 2u);
     }
 }
 
@@ -375,9 +392,7 @@ TEST_CASE("comment-matching", "[doc]")
 
         /// c
         ///
-        /// \param d
-        /// d
-        ///
+        /// \param d d
         /// \param e
         /// \unique_name f
         void c(int d, int e);

@@ -54,28 +54,29 @@ namespace
 
             while (stream.peek().get_value() != ";")
             {
-                detail::skip_attribute(stream, cur);
-                target_name += stream.get().get_value().c_str();
+                if (detail::skip_attribute(stream, cur))
+                    continue;
+                detail::append_token(target_name, stream.get().get_value());
             }
         }
         else
         {
             assert(clang_getCursorKind(cur) == CXCursor_TypedefDecl);
 
-            skip(stream, cur, {"typedef"});
+            skip(stream, cur, "typedef");
 
             while (stream.peek().get_value() != ";")
             {
-                detail::skip_attribute(stream, cur);
-                auto& val = stream.peek().get_value();
+                if (detail::skip_attribute(stream, cur))
+                    continue;
+                auto val = stream.peek().get_value();
                 if (val != name.c_str())
-                    target_name += val.c_str();
+                    detail::append_token(target_name, val);
 
                 stream.bump();
             }
         }
 
-        detail::erase_trailing_ws(target_name);
         return target_name;
     }
 }
@@ -92,11 +93,8 @@ cpp_ptr<cpp_type_alias> cpp_type_alias::parse(translation_unit& tu, cpp_cursor c
     return detail::make_cpp_ptr<cpp_type_alias>(cur, parent, cpp_type_ref(name, type));
 }
 
-cpp_name cpp_type_alias::get_scope() const
+bool cpp_type_alias::is_templated() const STANDARDESE_NOEXCEPT
 {
-    assert(has_parent());
-    if (get_parent().get_entity_type() == cpp_entity::alias_template_t)
-        // parent is an alias template, so it doesn't add a new scope
-        return get_parent().get_scope();
-    return cpp_entity::get_scope();
+    assert(has_ast_parent());
+    return get_ast_parent().get_entity_type() == cpp_entity::alias_template_t;
 }

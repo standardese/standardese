@@ -1,5 +1,35 @@
 ## Upcoming
 
+## 0.2-2
+
+### Documentation
+
+* Simplify comment format: Now a special command can be at the beginning of each new line
+* Remove section merging as it has become unnecessary
+* Section is now active until paragraph end, another special command or hard line break
+
+### Library
+
+* Clarify AST vs semantic parent of `cpp_entity`
+* Change preprocessing: Now the entire file is preprocessed before passing it to libclang
+* Generate full synopsis for non-documented entities
+* Bugfixes, bugfixes and bugfixes
+
+### Tool
+
+* Remove `comment.implicit_paragraph` option, it is obsolete
+* Add `compilation.ms_extensions` option
+
+## 0.2-1
+
+### Buildsystem
+
+* Add pre-built binaries for Travis CI and Windows
+* Improve Travis dependency management
+* Improve Appveyor
+
+## 0.2
+
 ### Buildsystem
 
 * New method of handling external projects
@@ -10,7 +40,6 @@
 
 * Link to other entities via `[link-text](<> "unique-name")`, where `unique-name` is the name of the entity with all scopes and (template) parameters, `link-text` is the arbitrary text of the link and the literal `<>` denotes an empty URL.
  This can be abbreviated to `[unique-name]()` if you don't need a special text.
-
 * New commmand: `exclude` to exclude entites from the output via comment
 
 * New command: `unique_name` to override the unique name of an entity

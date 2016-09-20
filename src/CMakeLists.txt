@@ -21,7 +21,6 @@ set(header
         ../include/standardese/cpp_enum.hpp
         ../include/standardese/cpp_function.hpp
         ../include/standardese/cpp_namespace.hpp
-        ../include/standardese/cpp_preprocessor.hpp
         ../include/standardese/cpp_template.hpp
         ../include/standardese/cpp_type.hpp
         ../include/standardese/cpp_variable.hpp
@@ -30,12 +29,14 @@ set(header
         ../include/standardese/generator.hpp
         ../include/standardese/index.hpp
         ../include/standardese/md_blocks.hpp
+        ../include/standardese/md_custom.hpp
         ../include/standardese/md_entity.hpp
         ../include/standardese/md_inlines.hpp
         ../include/standardese/output.hpp
         ../include/standardese/output_format.hpp
         ../include/standardese/output_stream.hpp
         ../include/standardese/parser.hpp
+        ../include/standardese/preprocessor.hpp
         ../include/standardese/section.hpp
         ../include/standardese/string.hpp
         ../include/standardese/synopsis.hpp
@@ -53,7 +54,6 @@ set(src
         cpp_enum.cpp
         cpp_function.cpp
         cpp_namespace.cpp
-        cpp_preprocessor.cpp
         cpp_template.cpp
         cpp_type.cpp
         cpp_variable.cpp
@@ -62,12 +62,14 @@ set(src
         generator.cpp
         index.cpp
         md_blocks.cpp
+        md_custom.cpp
         md_entity.cpp
         md_inlines.cpp
         output.cpp
         output_format.cpp
         output_stream.cpp
         parser.cpp
+        preprocessor.cpp
         synopsis.cpp
         translation_unit.cpp)
 

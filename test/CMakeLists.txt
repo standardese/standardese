@@ -13,11 +13,11 @@ set(tests
         cpp_entity.cpp
         cpp_function.cpp
         cpp_namespace.cpp
-        cpp_preprocessor.cpp
         cpp_template.cpp
         cpp_type.cpp
         cpp_variable.cpp
         output.cpp
+        preprocessor.cpp
         synopsis.cpp)
 
 add_executable(standardese_test test.cpp test_parser.hpp ${tests})

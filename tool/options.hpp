@@ -60,6 +60,9 @@ namespace standardese_tool
             for (auto& val : undefs->second.as<std::vector<std::string>>())
                 result.remove_macro_definition(val);
 
+        if (map.count("compilation.ms_extensions"))
+            result.set_flag(compile_flag::ms_extensions);
+
         return result;
     }
 
@@ -116,6 +119,11 @@ namespace standardese_tool
         auto p = std::unique_ptr<standardese::parser>(new standardese::parser(log));
         detail::handle_unparsed_options(*p, cmd_result);
         detail::handle_unparsed_options(*p, file_result);
+
+        auto dirs = map.find("compilation.preprocess_dir");
+        if (dirs != map.end())
+            for (auto& dir : dirs->second.as<std::vector<std::string>>())
+                p->get_preprocessor().add_preprocess_directory(std::move(dir));
 
         return p;
     }

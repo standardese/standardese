@@ -31,7 +31,8 @@ namespace
             ptr += 3;
             return comment_style::cpp;
         }
-        else if (std::strncmp(ptr, "/**", 3) == 0 || std::strncmp(ptr, "/*!", 3) == 0)
+        else if (std::strncmp(ptr, "/**/", 4) != 0 // handle completely empty comment
+                 && (std::strncmp(ptr, "/**", 3) == 0 || std::strncmp(ptr, "/*!", 3) == 0))
         {
             ptr += 3;
             return comment_style::c;
@@ -54,9 +55,12 @@ namespace
         std::string content;
         for (; *ptr != '\n'; ++ptr)
             content += *ptr;
-
         assert(*ptr == '\n');
         ++cur_line;
+
+        while (!content.empty() && is_whitespace(content.back()))
+            content.pop_back();
+
         return {std::move(content), 1, cur_line - 1};
     }
 
@@ -132,8 +136,7 @@ namespace
         assert(ptr[-1] == '/');
         --ptr;
 
-        assert(!content.empty());
-        while (is_whitespace(content.back()))
+        while (!content.empty() && is_whitespace(content.back()))
             content.pop_back();
 
         return {std::move(content), lines, cur_line};
@@ -178,6 +181,34 @@ namespace
 
         return results;
     }
+
+    bool parse_line_directive(const char*& ptr, unsigned& cur_line)
+    {
+        auto line        = "#line";
+        auto line_length = std::strlen(line);
+        if (std::strncmp(ptr, line, line_length) != 0)
+            return false;
+
+        ptr += line_length;
+        while (is_whitespace(*ptr))
+            ++ptr;
+
+        std::string line_no;
+        while (!is_whitespace(*ptr))
+            line_no += *ptr++;
+        cur_line = static_cast<unsigned>(std::stoul(line_no));
+
+        while (*ptr != '\n')
+            // skip to end of line
+            ++ptr;
+
+        return true;
+    }
+}
+
+bool detail::keep_comment(const char* comment)
+{
+    return get_comment_style(comment) != comment_style::none;
 }
 
 std::vector<detail::raw_comment> detail::read_comments(const std::string& source)
@@ -198,6 +229,8 @@ std::vector<detail::raw_comment> detail::read_comments(const std::string& source
         }
         else if (*ptr == '\n')
             ++cur_line;
+
+        parse_line_directive(ptr, cur_line);
     }
 
     return normalize(comments);

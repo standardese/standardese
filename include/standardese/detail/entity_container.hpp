@@ -5,6 +5,7 @@
 #ifndef STANDARDESE_DETAIL_ENTITY_CONTAINER_HPP_INCLUDED
 #define STANDARDESE_DETAIL_ENTITY_CONTAINER_HPP_INCLUDED
 
+#include <cassert>
 #include <cstddef>
 #include <iterator>
 #include <type_traits>
@@ -22,7 +23,9 @@ namespace standardese
             static_assert(std::is_base_of<Base, T>::value, "T must be derived from Base");
 
         public:
-            ~entity_container() STANDARDESE_NOEXCEPT = default;
+            entity_container() STANDARDESE_NOEXCEPT : first_(nullptr), last_(nullptr)
+            {
+            }
 
             bool empty() const STANDARDESE_NOEXCEPT
             {
@@ -164,9 +167,7 @@ namespace standardese
             }
 
         protected:
-            entity_container() STANDARDESE_NOEXCEPT : first_(nullptr), last_(nullptr)
-            {
-            }
+            ~entity_container() STANDARDESE_NOEXCEPT = default;
 
             void add_entity(Ptr<Base> entity)
             {
@@ -183,6 +184,22 @@ namespace standardese
                     first_ = std::move(entity);
                     last_  = first_.get();
                 }
+            }
+
+            Ptr<Base> remove_entity_after(Base* base)
+            {
+                auto& next = base ? base->next_ : first_;
+                assert(next);
+
+                auto entity = std::move(next);
+                next        = std::move(entity->next_);
+                if (last_ == entity.get())
+                {
+                    assert(next == nullptr);
+                    last_ = base;
+                }
+
+                return std::move(entity);
             }
 
             Base* get_last() STANDARDESE_NOEXCEPT

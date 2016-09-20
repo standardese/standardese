@@ -9,6 +9,7 @@
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/cpp_template.hpp>
+#include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
 
 using namespace standardese;
@@ -92,9 +93,12 @@ const cpp_class* cpp_base_class::get_class(const cpp_entity_registry& registry) 
     return c;
 }
 
-cpp_name cpp_base_class::do_get_unique_name() const
+const cpp_entity* cpp_base_class::do_get_semantic_parent() const STANDARDESE_NOEXCEPT
 {
-    return std::string(get_parent().get_unique_name().c_str()) + "::" + get_name().c_str();
+    assert(has_ast_parent());
+    auto c = standardese::get_class(get_ast_parent());
+    assert(c);
+    return c->is_templated() ? &c->get_ast_parent() : c;
 }
 
 namespace
@@ -137,16 +141,13 @@ namespace
         {
             // skip class/struct/union/keyword
             stream.bump();
-            detail::skip_whitespace(stream);
             detail::skip_attribute(stream, cur);
-            detail::skip_whitespace(stream);
         }
-        detail::skip(stream, cur, {name.c_str()});
+        detail::skip(stream, cur, name.c_str());
 
         // we need to go backwards from the end
-        // but the iterator doesn't support that, so store them
-        std::vector<detail::token_stream::iterator> tokens;
-        for (; !stream.done(); stream.bump())
+        auto save = stream.get_iter();
+        for (auto in_template = false; !stream.done(); stream.bump())
         {
             if (stream.peek().get_value() == ";")
                 // end of class declaration
@@ -154,20 +155,21 @@ namespace
             else if (stream.peek().get_value() == ":")
                 // beginning of bases
                 break;
-            else if (stream.peek().get_value() == "{"
-                     && (tokens.empty() || *(tokens.back()->get_value().rbegin()) == '>'))
+            else if (stream.peek().get_value() == "{" && !in_template)
                 // beginning of class definition
                 // just rudimentary check against uniform initialization inside the args
                 break;
-            else if (!std::isspace(stream.peek().get_value()[0]))
-                tokens.push_back(stream.get_iter());
+            else if (stream.peek().get_value() == "<")
+                in_template = true;
+            else if (*std::prev(stream.peek().get_value().end()) == '>')
+                in_template = false;
         }
 
         is_final = false;
-        for (auto iter = tokens.rbegin(); iter != tokens.rend(); ++iter)
+
+        for (; std::next(stream.get_iter()) != save; stream.bump_back())
         {
-            auto& token = *iter;
-            auto& str   = token->get_value();
+            auto str = stream.peek().get_value();
 
             if (str == "final")
                 is_final = true;
@@ -175,11 +177,13 @@ namespace
             {
                 // end of template arguments
                 // concatenate them all
-                stream.reset(tokens.front());
+                auto end = stream.get_iter();
+                stream.reset(save);
+
                 specialization_name = name.c_str();
-                while (stream.get_iter() != *std::prev(iter.base()))
-                    specialization_name += stream.get().get_value().c_str();
-                specialization_name += '>';
+                while (stream.get_iter() != end)
+                    detail::append_token(specialization_name, stream.get().get_value());
+                detail::append_token(specialization_name, stream.get().get_value());
                 break;
             }
         }
@@ -220,27 +224,11 @@ cpp_ptr<cpp_class> cpp_class::parse(translation_unit& tu, cpp_cursor cur, const 
     return detail::make_cpp_ptr<cpp_class>(cur, parent, ctype, is_final);
 }
 
-namespace
+bool cpp_class::is_templated() const STANDARDESE_NOEXCEPT
 {
-    bool is_actually_template(const cpp_entity& e) STANDARDESE_NOEXCEPT
-    {
-        assert(e.has_parent());
-        // e actually is a template iff parent is template and same cursor
-        return is_type_template(e.get_parent().get_entity_type())
-               && e.get_parent().get_cursor() == e.get_cursor();
-    }
-}
-
-cpp_name cpp_class::get_scope() const
-{
-    // if template, don't add a new scope
-    return is_actually_template(*this) ? get_parent().get_scope() : cpp_entity::get_scope();
-}
-
-cpp_name cpp_class::do_get_unique_name() const
-{
-    // if template, return unique name of template
-    return is_actually_template(*this) ? get_parent().get_unique_name() : get_full_name();
+    assert(has_ast_parent());
+    return is_type_template(get_ast_parent().get_entity_type())
+           && get_ast_parent().get_cursor() == get_cursor();
 }
 
 bool standardese::is_base_of(const cpp_entity_registry& registry, const cpp_class& base,

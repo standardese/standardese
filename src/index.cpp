@@ -43,6 +43,19 @@ std::string detail::get_short_id(const std::string& id)
     return id.substr(0, open_paren) + id.substr(close_paren + 1);
 }
 
+std::string detail::escape_unique_name(const char* name)
+{
+    std::string result;
+    for (; *name; ++name)
+        if (*name == '<')
+            result += "__";
+        else if (*name == '>')
+            result += "__";
+        else
+            result += *name;
+    return result;
+}
+
 void index::register_entity(doc_entity entity) const
 {
     auto id       = detail::get_id(entity.get_unique_name().c_str());
@@ -155,7 +168,7 @@ std::string index::get_url(const std::string& unique_name, const char* extension
         return fmt::format("{}.{}", entity->get_output_name().c_str(), extension);
     else
         return fmt::format("{}.{}#{}", entity->get_output_name().c_str(), extension,
-                           entity->get_unique_name().c_str());
+                           detail::escape_unique_name(entity->get_unique_name().c_str()).c_str());
 }
 
 void index::namespace_member_impl(ns_member_cb cb, void* data)
@@ -170,8 +183,9 @@ void index::namespace_member_impl(ns_member_cb cb, void* data)
             || entity.get_entity_type() == cpp_entity::file_t)
             continue;
 
-        assert(entity.has_parent());
-        auto& parent      = entity.get_parent();
+        // use AST parent, we want the children of namespaces only
+        assert(entity.has_ast_parent());
+        auto& parent      = entity.get_ast_parent();
         auto  parent_type = parent.get_entity_type();
         if (parent_type == cpp_entity::namespace_t)
             cb(static_cast<const cpp_namespace*>(&parent), value.second, data);

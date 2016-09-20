@@ -39,7 +39,6 @@ std::vector<standardese::cpp_ptr<T>> parse_entity(standardese::translation_unit&
                                       }
                                       return CXChildVisit_Recurse;
                                   });
-
     return result;
 }
 

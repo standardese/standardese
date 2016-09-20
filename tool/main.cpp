@@ -19,6 +19,7 @@
 #include <standardese/index.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/output.hpp>
+#include <boost/wave/cpp_exceptions.hpp>
 
 #include "filesystem.hpp"
 #include "options.hpp"
@@ -104,13 +105,14 @@ int main(int argc, char* argv[])
              "adds an implicit #define before parsing")
             ("compilation.macro_undefinition,U", po::value<std::vector<std::string>>(),
              "adds an implicit #undef before parsing")
+            ("compilation.preprocess_dir,P", po::value<std::vector<std::string>>(),
+             "adds a directory whose contents will be preprocessed by standardese")
+            ("compilation.ms_extensions", "enable MSVC extension support (always active if compiled with MSVC)")
 
             ("comment.command_character", po::value<char>()->default_value('\\'),
              "character used to introduce special commands")
             ("comment.cmd_name_", po::value<std::string>(),
              "override name for the command following the name_ (e.g. comment.cmd_name_requires=require)")
-            ("comment.implicit_paragraph", po::value<bool>()->implicit_value(true)->default_value(false),
-             "whether or not each line in the documentation comment is one paragraph")
             ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""),
              "syntax is prefix=url, supports linking to a different URL for entities starting with prefix")
 
@@ -165,8 +167,6 @@ int main(int argc, char* argv[])
 
             parser.get_comment_config().set_command_character(
                 map.at("comment.command_character").as<char>());
-            parser.get_comment_config().set_implicit_paragraph(
-                map.at("comment.implicit_paragraph").as<bool>());
 
             parser.get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
 
@@ -225,6 +225,9 @@ int main(int argc, char* argv[])
 
             assert(!input.empty());
             for (auto& path : input)
+                parser.get_preprocessor().add_preprocess_directory(
+                    path.parent_path().generic_string());
+            for (auto& path : input)
                 standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,
                                               blacklist_dotfiles, force_blacklist,
                                               [&](const fs::path& p, const fs::path& relative) {
@@ -273,6 +276,13 @@ int main(int argc, char* argv[])
                 for (auto& f : futures)
                     f.wait();
             }
+        }
+        catch (boost::wave::cpp_exception& ex)
+        {
+            parser.get_logger()->critical("when parsing '{}' ({}:{}): {} (Boost.Wave)",
+                                          ex.get_related_name(), ex.file_name(), ex.line_no(),
+                                          boost::wave::preprocess_exception::error_text(
+                                              ex.get_errorcode()));
         }
         catch (std::exception& ex)
         {

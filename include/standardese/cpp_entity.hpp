@@ -53,6 +53,7 @@ namespace standardese
             enum_t,
             signed_enum_value_t,
             unsigned_enum_value_t,
+            expression_enum_value_t,
 
             variable_t,
             member_variable_t,
@@ -84,7 +85,7 @@ namespace standardese
         };
 
         static cpp_entity_ptr try_parse(translation_unit& tu, cpp_cursor cur,
-                                        const cpp_entity& parent);
+                                        const cpp_entity& ast_parent);
 
         cpp_entity(cpp_entity&&) = delete;
 
@@ -127,23 +128,36 @@ namespace standardese
             return cursor_;
         }
 
-        bool has_parent() const STANDARDESE_NOEXCEPT
+        bool has_ast_parent() const STANDARDESE_NOEXCEPT
         {
             return parent_ != nullptr;
         }
 
-        /// \returns The parent entity,
+        /// \returns The AST parent entity,
         /// that is the entity which owns the current one.
         /// \requires The entity has a parent.
-        const cpp_entity& get_parent() const STANDARDESE_NOEXCEPT
+        const cpp_entity& get_ast_parent() const STANDARDESE_NOEXCEPT
         {
             return *parent_;
         }
 
+        const cpp_entity* get_semantic_parent() const STANDARDESE_NOEXCEPT
+        {
+            auto cur = parent_;
+            while (cur && !cur->is_semantic_parent())
+                cur = cur->parent_;
+            return cur;
+        }
+
     protected:
-        cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent);
+        cpp_entity(type t, cpp_cursor cur, const cpp_entity& ast_parent);
 
         cpp_entity(type t, cpp_cursor cur);
+
+        void set_cursor(cpp_cursor cur) STANDARDESE_NOEXCEPT
+        {
+            cursor_ = cur;
+        }
 
     private:
         virtual cpp_name do_get_unique_name() const
@@ -151,13 +165,20 @@ namespace standardese
             return get_full_name();
         }
 
-        cpp_cursor         cursor_;
-        cpp_entity_ptr     next_;
-        const cpp_entity*  parent_;
-        type               t_;
+        virtual bool is_semantic_parent() const STANDARDESE_NOEXCEPT
+        {
+            return true;
+        }
+
+        cpp_cursor        cursor_;
+        cpp_entity_ptr    next_;
+        const cpp_entity* parent_;
+        type              t_;
 
         template <typename T, class Base, template <typename> class Ptr>
         friend class detail::entity_container;
+        template <typename T>
+        friend class cpp_entity_container;
     };
 
     inline bool is_preprocessor(cpp_entity::type t) STANDARDESE_NOEXCEPT
@@ -203,7 +224,27 @@ namespace standardese
     }
 
     template <class T>
-    using cpp_entity_container = detail::entity_container<T, cpp_entity, cpp_ptr>;
+    class cpp_entity_container : public detail::entity_container<T, cpp_entity, cpp_ptr>
+    {
+    protected:
+        cpp_entity_container() = default;
+
+        void add_entity(const cpp_entity* this_entity, cpp_entity_ptr entity)
+        {
+            if (this_entity
+                && (!entity->has_ast_parent() || &entity->get_ast_parent() != this_entity))
+                entity->parent_ = this_entity;
+            detail::entity_container<T, cpp_entity, cpp_ptr>::add_entity(std::move(entity));
+        }
+
+        cpp_entity_ptr remove_entity_after(cpp_entity* base)
+        {
+            auto entity =
+                detail::entity_container<T, cpp_entity, cpp_ptr>::remove_entity_after(base);
+            entity->parent_ = nullptr;
+            return std::move(entity);
+        }
+    };
 
     namespace detail
     {

@@ -15,11 +15,6 @@
 
 namespace standardese
 {
-    namespace detail
-    {
-        struct context;
-    } // namespace detail
-
     /// C++ standard to be used
     enum class cpp_standard
     {
@@ -28,6 +23,13 @@ namespace standardese
         cpp_11,
         cpp_14,
         count
+    };
+
+    /// Set of "special" libclang flags.
+    enum class compile_flag
+    {
+        ms_extensions,
+        count,
     };
 
     class compile_config
@@ -41,15 +43,22 @@ namespace standardese
 
         void add_include(string path);
 
-    private:
+        void set_flag(compile_flag f);
+
         std::vector<const char*> get_flags() const;
 
-        void setup_context(detail::context& context) const;
+        std::vector<string>::const_iterator begin() const
+        {
+            return flags_.begin();
+        }
 
+        std::vector<string>::const_iterator end() const
+        {
+            return flags_.end();
+        }
+
+    private:
         std::vector<string> flags_;
-
-        friend class translation_unit;
-        friend class parser;
     };
 
     enum class command_type : unsigned;
@@ -70,16 +79,6 @@ namespace standardese
             return cmd_char_;
         }
 
-        bool get_implicit_paragraph() const STANDARDESE_NOEXCEPT
-        {
-            return implicit_par_;
-        }
-
-        void set_implicit_paragraph(bool v) STANDARDESE_NOEXCEPT
-        {
-            implicit_par_ = v;
-        }
-
         void set_command(unsigned c, std::string command);
 
         unsigned get_command(const std::string& command) const;
@@ -89,7 +88,6 @@ namespace standardese
     private:
         std::map<std::string, unsigned> commands_;
         char cmd_char_;
-        bool implicit_par_;
     };
 
     class output_config

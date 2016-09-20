@@ -35,12 +35,12 @@ endforeach()
 
 find_path(LIBCLANG_INCLUDE_DIR "clang-c/Index.h" ${CLANG_INCLUDE_PATHS})
 if(NOT LIBCLANG_INCLUDE_DIR)
-    message(FATAL_ERROR "unable to find libclang include directory, please set LIBCLANG_INCLUDE_DIR by yourself")
+    message(FATAL_ERROR "unable to find libclang include directory, please set LIBCLANG_INCLUDE_DIR yourself")
 endif()
 
 find_library(LIBCLANG_LIBRARY "clang" ${CLANG_LIBRARY_PATHS})
 if(NOT LIBCLANG_LIBRARY)
-    message(FATAL_ERROR "unable to find libclang library, please set LIBCLANG_LIBRARY by yourself")
+    message(FATAL_ERROR "unable to find libclang library, please set LIBCLANG_LIBRARY yourself")
 endif()
 
 if(NOT LIBCLANG_SYSTEM_INCLUDE_DIR)
@@ -53,7 +53,7 @@ if(NOT LIBCLANG_SYSTEM_INCLUDE_DIR)
         endif()
     endforeach()
     if(NOT LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL)
-        message(FATAL_ERROR "${libclang_version} unable to find clang's system header files, please set LIBCLANG_SYSTEM_INCLUDE_DIR by yourself")
+        message(FATAL_ERROR "${libclang_version} unable to find clang's system header files, please set LIBCLANG_SYSTEM_INCLUDE_DIR yourself")
     endif()
 
     message(STATUS "Libclang version: ${libclang_version}")

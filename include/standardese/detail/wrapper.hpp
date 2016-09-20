@@ -30,6 +30,10 @@ namespace standardese
             static_assert(std::is_pointer<T>::value, "");
 
         public:
+            wrapper() STANDARDESE_NOEXCEPT : obj_(nullptr)
+            {
+            }
+
             wrapper(T obj) STANDARDESE_NOEXCEPT : obj_(obj)
             {
                 validate(obj_);

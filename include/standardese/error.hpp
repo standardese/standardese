@@ -82,6 +82,8 @@ namespace standardese
         severity        severity_;
     };
 
+    class md_entity;
+
     class comment_parse_error : public std::runtime_error
     {
     public:
@@ -89,6 +91,8 @@ namespace standardese
         : std::runtime_error(std::move(message)), line_(line), column_(column)
         {
         }
+
+        comment_parse_error(std::string message, const md_entity& entity);
 
         unsigned get_line() const STANDARDESE_NOEXCEPT
         {

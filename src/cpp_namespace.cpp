@@ -20,9 +20,9 @@ cpp_ptr<cpp_language_linkage> cpp_language_linkage::parse(translation_unit& tu, 
     detail::tokenizer tokenizer(tu, cur);
     auto              stream = detail::make_stream(tokenizer);
 
-    detail::skip(stream, cur, {"extern"});
+    detail::skip(stream, cur, "extern");
     auto   str = stream.get().get_value();
-    string name(str.c_str() + 1, str.size() - 2); // cut quotes
+    string name(str.c_str() + 1, str.length() - 2); // cut quotes
 
     return detail::make_cpp_ptr<cpp_language_linkage>(cur, parent, std::move(name));
 }
@@ -70,10 +70,9 @@ namespace
         std::string target;
         while (!stream.done())
             if (stream.peek().get_value() != ";")
-                target += stream.get().get_value().c_str();
+                detail::append_token(target, stream.get().get_value());
             else
                 stream.get();
-        detail::erase_trailing_ws(target);
         return target;
     }
 }
@@ -121,7 +120,7 @@ cpp_ptr<cpp_using_declaration> cpp_using_declaration::parse(translation_unit& tu
     detail::tokenizer tokenizer(tu, cur);
     auto              stream = detail::make_stream(tokenizer);
 
-    detail::skip(stream, cur, {"using"});
+    detail::skip(stream, cur, "using");
 
     auto target        = parse_target(stream);
     auto target_cursor = parse_target_cursor(cur);
