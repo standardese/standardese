@@ -163,6 +163,7 @@ namespace
 detail::tokenizer::tokenizer(const translation_unit& tu, cpp_cursor cur) : tu_(&tu)
 {
     clang_tokenize(get_cxunit(), get_extent(tu, cur, end_offset_, end_), &tokens_, &no_tokens_);
+    assert(tokens_);
 }
 
 detail::tokenizer::~tokenizer() STANDARDESE_NOEXCEPT
