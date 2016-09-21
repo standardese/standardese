@@ -109,7 +109,7 @@ namespace
                 append('\n');
             }
 
-            return !use; // only parse if used
+            return true; // never parse include
         }
 
         template <class ContextT, class ParametersT, class DefinitionT>

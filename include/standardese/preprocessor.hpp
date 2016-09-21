@@ -10,7 +10,6 @@
 
 #include <standardese/cpp_entity.hpp>
 #include <standardese/noexcept.hpp>
-#include <iostream>
 
 namespace standardese
 {
