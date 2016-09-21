@@ -73,19 +73,13 @@ namespace
         bool evaluated_conditional_expression(const ContextT& ctx, const TokenT& directive,
                                               const ContainerT& expression, bool value)
         {
-            if (found_guard_ || ctx.get_iteration_depth() != 0)
-                // already found, not in main file
-                return false;
-            else if (value || directive.get_value() != "#ifndef")
-                // invalid directive
-                return false;
-            else if (expression.size() > 1)
-                // more than one token in the expression
-                return false;
-
             // remember include guard
-            include_guard_ = expression.begin()->get_value().c_str();
-            ifndef_line_   = expression.begin()->get_position().get_line();
+            if (is_include_guard(ctx, directive, expression, value))
+            {
+                include_guard_ = expression.begin()->get_value().c_str();
+                ifndef_line_   = expression.begin()->get_position().get_line();
+            }
+
             return false;
         }
 
@@ -196,6 +190,22 @@ namespace
         }
 
     private:
+        template <class ContextT, class TokenT, class ContainerT>
+        bool is_include_guard(const ContextT& ctx, const TokenT& directive,
+                              const ContainerT& expression, bool value) const
+        {
+            if (found_guard_ || ctx.get_iteration_depth() != 0)
+                // already found, not in main file
+                return false;
+            else if (value || directive.get_value() != "#ifndef")
+                // invalid directive
+                return false;
+            else if (expression.size() > 1)
+                // more than one token in the expression
+                return false;
+            return true;
+        }
+
         std::string get_include_kind(std::string file_name, bool& is_system)
         {
             assert(file_name[0] == '<' || file_name[0] == '"');
@@ -274,12 +284,12 @@ namespace
             if (*iter == "-D")
             {
                 ++iter;
-                cont.add_macro_definition(iter->c_str());
+                cont.add_macro_definition(iter->c_str(), true);
             }
             else if (*iter == "-U")
             {
                 ++iter;
-                cont.remove_macro_definition(iter->c_str());
+                cont.remove_macro_definition(iter->c_str(), true);
             }
             else if (*iter == "-I")
             {
@@ -289,9 +299,9 @@ namespace
             else if (iter->c_str()[0] == '-')
             {
                 if (iter->c_str()[1] == 'D')
-                    cont.add_macro_definition(&(iter->c_str()[2]));
+                    cont.add_macro_definition(&(iter->c_str()[2]), true);
                 else if (iter->c_str()[1] == 'U')
-                    cont.remove_macro_definition(&(iter->c_str()[2]));
+                    cont.remove_macro_definition(&(iter->c_str()[2]), true);
                 else if (iter->c_str()[1] == 'I')
                     cont.add_include_path(&(iter->c_str()[2]));
             }
