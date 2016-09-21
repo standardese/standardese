@@ -80,9 +80,7 @@ namespace
                 buf.sbumpc();
                 buf.sbumpc();
             }
-            else if (buf.sgetc() == '\r')
-                buf.sbumpc();
-            else
+            else if (buf.sgetc() != '\r')
                 res += buf.sgetc();
         }
         assert(res.back() != '\n');

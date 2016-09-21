@@ -331,7 +331,7 @@ std::string preprocessor::preprocess(const compile_config& c, const char* full_p
 void preprocessor::add_preprocess_directory(std::string dir)
 {
     auto path = fs::system_complete(dir).normalize().generic_string();
-    if (path.back() == '.')
+    if (!path.empty() && path.back() == '.')
         path.pop_back();
     preprocess_dirs_.insert(std::move(path));
 }
