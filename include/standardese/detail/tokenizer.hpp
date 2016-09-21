@@ -23,7 +23,10 @@ namespace standardese
 {
     namespace detail
     {
-        CXFile get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset);
+        CXFile get_range(const translation_unit& tu, cpp_cursor cur, unsigned& begin_offset,
+                         unsigned& end_offset);
+
+        CXFile get_range(CXSourceRange extent, unsigned& begin_offset, unsigned& end_offset);
 
         class token
         {

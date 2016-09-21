@@ -9,22 +9,6 @@
 
 using namespace standardese;
 
-CXFile detail::get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset)
-{
-    auto source = clang_getCursorExtent(cur);
-    auto begin  = clang_getRangeStart(source);
-    auto end    = clang_getRangeEnd(source);
-
-    // translate location into offset and file
-    CXFile file  = nullptr;
-    begin_offset = 0u;
-    end_offset   = 0u;
-    clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
-    clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
-
-    return file;
-}
-
 namespace
 {
     unsigned get_token_offset(CXTranslationUnit tu, CXToken token)
@@ -158,6 +142,35 @@ namespace
 
         return clang_getRange(begin, end);
     }
+
+    CXSourceRange get_extent(const translation_unit& tu, cpp_cursor cur)
+    {
+        unsigned    unused;
+        const char* unused2;
+        return get_extent(tu, cur, unused, unused2);
+    }
+}
+
+CXFile detail::get_range(const translation_unit& tu, cpp_cursor cur, unsigned& begin_offset,
+                         unsigned& end_offset)
+{
+    auto source = get_extent(tu, cur);
+    return get_range(source, begin_offset, end_offset);
+}
+
+CXFile detail::get_range(CXSourceRange extent, unsigned& begin_offset, unsigned& end_offset)
+{
+    auto begin = clang_getRangeStart(extent);
+    auto end   = clang_getRangeEnd(extent);
+
+    // translate location into offset and file
+    CXFile file  = nullptr;
+    begin_offset = 0u;
+    end_offset   = 0u;
+    clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
+    clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
+
+    return file;
 }
 
 detail::tokenizer::tokenizer(const translation_unit& tu, cpp_cursor cur) : tu_(&tu)

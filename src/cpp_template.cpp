@@ -238,7 +238,7 @@ namespace
         });
 
         unsigned unused, end;
-        detail::get_range(last, unused, end);
+        detail::get_range(tu, last, unused, end);
         return end;
     }
 

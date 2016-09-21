@@ -51,7 +51,7 @@ namespace
     std::string get_macro(CXCursor cur)
     {
         unsigned begin, end;
-        auto     file = detail::get_range(cur, begin, end);
+        auto     file = detail::get_range(clang_getCursorExtent(cur), begin, end);
         if (!file)
             return "";
 
