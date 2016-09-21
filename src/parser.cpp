@@ -48,7 +48,7 @@ namespace
         return tu;
     }
 
-    std::string get_macro(CXTranslationUnit tu, CXCursor cur)
+    std::string get_macro(CXCursor cur)
     {
         unsigned begin, end;
         auto     file = detail::get_range(cur, begin, end);
@@ -92,12 +92,13 @@ namespace
         {
             if (res[i] == '/' && i + 1 != res.size() && res[i + 1] == '*')
             {
-                i += 2;
+                ++i;
                 need_closing = true;
             }
-            else if (res[i] == '*' && i + 1 != res.size() && res[i + 1] != '/')
+            else if (res[i] == '*' && i + 1 != res.size() && res[i + 1] == '/')
             {
-                i += 2;
+                ++i;
+                assert(need_closing);
                 need_closing = false;
             }
         }
@@ -131,7 +132,7 @@ namespace
                                     {
                                         // macro definition not in the main file,
                                         // make it available for libclang
-                                        auto macro = get_macro(data->tu, cur);
+                                        auto macro = get_macro(cur);
                                         if (!macro.empty())
                                             data->c->add_macro_definition(macro);
                                     }
