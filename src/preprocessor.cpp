@@ -280,32 +280,37 @@ namespace
 
         // add macros and include paths
         for (auto iter = c.begin(); iter != c.end(); ++iter)
-        {
-            if (*iter == "-D")
+            try
             {
-                ++iter;
-                cont.add_macro_definition(iter->c_str(), true);
+                if (*iter == "-D")
+                {
+                    ++iter;
+                    cont.add_macro_definition(iter->c_str(), true);
+                }
+                else if (*iter == "-U")
+                {
+                    ++iter;
+                    cont.remove_macro_definition(iter->c_str(), true);
+                }
+                else if (*iter == "-I")
+                {
+                    ++iter;
+                    cont.add_sysinclude_path(iter->c_str());
+                }
+                else if (iter->c_str()[0] == '-')
+                {
+                    if (iter->c_str()[1] == 'D')
+                        cont.add_macro_definition(&(iter->c_str()[2]), true);
+                    else if (iter->c_str()[1] == 'U')
+                        cont.remove_macro_definition(&(iter->c_str()[2]), true);
+                    else if (iter->c_str()[1] == 'I')
+                        cont.add_include_path(&(iter->c_str()[2]));
+                }
             }
-            else if (*iter == "-U")
+            catch (bw::cpp_exception& ex)
             {
-                ++iter;
-                cont.remove_macro_definition(iter->c_str(), true);
+                // ignore
             }
-            else if (*iter == "-I")
-            {
-                ++iter;
-                cont.add_sysinclude_path(iter->c_str());
-            }
-            else if (iter->c_str()[0] == '-')
-            {
-                if (iter->c_str()[1] == 'D')
-                    cont.add_macro_definition(&(iter->c_str()[2]), true);
-                else if (iter->c_str()[1] == 'U')
-                    cont.remove_macro_definition(&(iter->c_str()[2]), true);
-                else if (iter->c_str()[1] == 'I')
-                    cont.add_include_path(&(iter->c_str()[2]));
-            }
-        }
     }
 }
 

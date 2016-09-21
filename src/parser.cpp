@@ -7,6 +7,7 @@
 #include <fstream>
 #include <spdlog/sinks/null_sink.h>
 
+#include <standardese/detail/tokenizer.hpp>
 #include <standardese/preprocessor.hpp>
 #include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
@@ -28,6 +29,119 @@ namespace
         if (source.back() != '\n')
             source.push_back('\n');
         return source;
+    }
+
+    CXTranslationUnit get_cxunit_preprcoessing(CXIndex index, const compile_config& c,
+                                               const char* full_path)
+    {
+        auto args = c.get_flags();
+
+        CXTranslationUnit tu;
+        auto              error =
+            clang_parseTranslationUnit2(index, full_path, args.data(),
+                                        static_cast<int>(args.size()), nullptr, 0,
+                                        CXTranslationUnit_Incomplete
+                                            | CXTranslationUnit_DetailedPreprocessingRecord,
+                                        &tu);
+        if (error != CXError_Success)
+            throw libclang_error(error, "CXTranslationUnit (" + std::string(full_path) + ")");
+        return tu;
+    }
+
+    std::string get_macro(CXTranslationUnit tu, CXCursor cur)
+    {
+        unsigned begin, end;
+        auto     file = detail::get_range(cur, begin, end);
+        if (!file)
+            return "";
+
+        std::filebuf buf;
+        buf.open(string(clang_getFileName(file)).c_str(),
+                 std::ios_base::in | std::ios_base::binary);
+        assert(buf.is_open());
+        buf.pubseekpos(begin);
+
+        std::string res;
+        for (; buf.sgetc() != '(' && !std::isspace(buf.sgetc()); buf.sbumpc())
+            res += buf.sgetc();
+
+        if (buf.sgetc() == '(')
+        {
+            for (; buf.sgetc() != ')'; buf.sbumpc())
+                res += buf.sgetc();
+            res += buf.sbumpc();
+        }
+
+        res += '=';
+        for (; buf.sgetc() != '\n'; buf.sbumpc())
+        {
+            if (buf.sgetc() == '\\')
+            {
+                buf.sbumpc();
+                buf.sbumpc();
+            }
+            else if (buf.sgetc() == '\r')
+                buf.sbumpc();
+            else
+                res += buf.sgetc();
+        }
+        assert(res.back() != '\n');
+
+        auto need_closing = false;
+        for (auto i = 0u; i != res.size(); ++i)
+        {
+            if (res[i] == '/' && i + 1 != res.size() && res[i + 1] == '*')
+            {
+                i += 2;
+                need_closing = true;
+            }
+            else if (res[i] == '*' && i + 1 != res.size() && res[i + 1] != '/')
+            {
+                i += 2;
+                need_closing = false;
+            }
+        }
+
+        if (need_closing)
+            res += "*/";
+
+        return res;
+    }
+
+    compile_config get_preprocess_config(CXTranslationUnit preprocess_tu, const char* full_path,
+                                         compile_config c)
+    {
+        struct data_t
+        {
+            compile_config*   c;
+            CXTranslationUnit tu;
+            CXFile            file;
+        } data{&c, preprocess_tu, clang_getFile(preprocess_tu, full_path)};
+
+        clang_visitChildren(clang_getTranslationUnitCursor(preprocess_tu),
+                            [](CXCursor cur, CXCursor, CXClientData cdata) -> CXChildVisitResult {
+                                auto data = static_cast<data_t*>(cdata);
+
+                                if (clang_getCursorKind(cur) == CXCursor_MacroDefinition)
+                                {
+                                    CXFile f;
+                                    clang_getSpellingLocation(clang_getCursorLocation(cur), &f,
+                                                              nullptr, nullptr, nullptr);
+                                    if (!clang_File_isEqual(data->file, f))
+                                    {
+                                        // macro definition not in the main file,
+                                        // make it available for libclang
+                                        auto macro = get_macro(data->tu, cur);
+                                        if (!macro.empty())
+                                            data->c->add_macro_definition(macro);
+                                    }
+                                }
+
+                                return CXChildVisit_Continue;
+                            },
+                            &data);
+
+        return c;
     }
 
     CXTranslationUnit get_cxunit(CXIndex index, const compile_config& c, const char* full_path,
@@ -59,8 +173,14 @@ translation_unit parser::parse(const char* full_path, const compile_config& c,
     auto              file_ptr = file.get();
     files_.add_file(std::move(file));
 
+    // get all macro definitions from libclang
+    auto preprocess_tu     = get_cxunit_preprcoessing(index_.get(), c, full_path);
+    auto preprocess_config = get_preprocess_config(preprocess_tu, full_path, c);
+    clang_disposeTranslationUnit(preprocess_tu);
+
+    // now preprocess source code and parse it
     auto source       = read_source(full_path);
-    auto preprocessed = preprocessor_.preprocess(c, full_path, source, *file_ptr);
+    auto preprocessed = preprocessor_.preprocess(preprocess_config, full_path, source, *file_ptr);
     auto tu           = get_cxunit(index_.get(), c, full_path, preprocessed);
     parse_comments(*this, file_name, preprocessed);
 
