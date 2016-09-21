@@ -27,7 +27,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
 
         struct foo {};
 
-        using type_4 = const foo *;
+        using type_4 [[bar]] = const foo *;
 
         namespace ns
         {
