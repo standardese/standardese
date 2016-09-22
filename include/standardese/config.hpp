@@ -132,11 +132,22 @@ namespace standardese
             return hidden_name_;
         }
 
+        bool inline_documentation() const STANDARDESE_NOEXCEPT
+        {
+            return inline_doc_;
+        }
+
+        void set_inline_documentation(bool v) STANDARDESE_NOEXCEPT
+        {
+            inline_doc_ = v;
+        }
+
     private:
         entity_blacklist         blacklist_;
         std::vector<std::string> section_names_;
         std::string              hidden_name_;
         unsigned                 tab_width_;
+        bool                     inline_doc_;
     };
 } // namespace standardese
 

@@ -254,7 +254,8 @@ void comment_config::set_command(unsigned t, std::string command)
 output_config::output_config()
 : section_names_(std::size_t(section_type::count)),
   hidden_name_("implementation-defined"),
-  tab_width_(4u)
+  tab_width_(4u),
+  inline_doc_(true)
 {
 #define STANDARDESE_DETAIL_SET(type, name) section_names_[unsigned(section_type::type)] = name;
 
