@@ -223,6 +223,23 @@ namespace standardese
         return is_function_template(t) || is_type_template(t);
     }
 
+    inline bool is_template_parameter(cpp_entity::type t) STANDARDESE_NOEXCEPT
+    {
+        return t == cpp_entity::template_type_parameter_t
+               || t == cpp_entity::non_type_template_parameter_t
+               || t == cpp_entity::template_template_parameter_t;
+    }
+
+    inline bool is_parameter(cpp_entity::type t) STANDARDESE_NOEXCEPT
+    {
+        return t == cpp_entity::function_parameter_t || is_template_parameter(t);
+    }
+
+    inline bool is_member_variable(cpp_entity::type t) STANDARDESE_NOEXCEPT
+    {
+        return t == cpp_entity::member_variable_t || t == cpp_entity::bitfield_t;
+    }
+
     template <class T>
     class cpp_entity_container : public detail::entity_container<T, cpp_entity, cpp_ptr>
     {
