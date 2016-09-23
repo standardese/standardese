@@ -206,20 +206,74 @@ namespace
         return t == cpp_entity::base_class_t || is_parameter(t) || is_member_variable(t);
     }
 
+    void add_inline_item(md_list& list, const doc_entity& doc_e)
+    {
+        if (!doc_e.has_comment())
+            return;
+
+        auto item = md_list_item::make(list);
+
+        auto item_paragraph = md_paragraph::make(*item);
+        item_paragraph->add_entity(md_code::make(*item, doc_e.get_name().c_str()));
+        item_paragraph->add_entity(md_text::make(*item, " - "));
+        for (auto& container : doc_e.get_comment().get_content())
+        {
+            if (container.get_entity_type() != md_entity::paragraph_t)
+                continue;
+            for (auto& child : static_cast<const md_container&>(container))
+                item_paragraph->add_entity(child.clone(*item));
+        }
+        item->add_entity(std::move(item_paragraph));
+
+        list.add_entity(std::move(item));
+    }
+
+    void add_list(md_document& out, md_ptr<md_list> list, const char* name)
+    {
+        if (list->empty())
+            return;
+
+        auto paragraph = md_paragraph::make(out);
+        paragraph->add_entity(md_strong::make(*paragraph, name));
+        out.add_entity(std::move(paragraph));
+        out.add_entity(std::move(list));
+    }
+
     template <class Entity, class Container>
     void handle_container(const parser& p, const index& i, md_document& out, unsigned level,
                           const doc_entity& doc, const Container& container)
     {
-        auto  inline_doc = p.get_output_config().inline_documentation();
-        auto& blacklist  = p.get_output_config().get_blacklist();
+        auto  inline_doc      = p.get_output_config().inline_documentation();
+        auto& blacklist       = p.get_output_config().get_blacklist();
+        auto  extract_private = blacklist.is_set(entity_blacklist::extract_private);
         if (is_blacklisted(p, doc))
             return;
 
         generate_doc_entity(p, i, out, level, doc);
 
-        for_each_member(blacklist.is_set(entity_blacklist::extract_private),
-                        static_cast<const Entity&>(doc.get_cpp_entity()), container,
-                        [&](const cpp_entity& e) {
+        if (inline_doc)
+        {
+            auto parameters = md_list::make_bullet(out);
+            auto members    = md_list::make_bullet(out);
+            auto bases      = md_list::make_bullet(out);
+
+            for_each_member(extract_private, static_cast<const Entity&>(doc.get_cpp_entity()),
+                            container, [&](const cpp_entity& e) {
+                                if (is_parameter(e.get_entity_type()))
+                                    add_inline_item(*parameters, doc_entity(p, e, ""));
+                                else if (is_member_variable(e.get_entity_type()))
+                                    add_inline_item(*members, doc_entity(p, e, ""));
+                                else if (e.get_entity_type() == cpp_entity::base_class_t)
+                                    add_inline_item(*bases, doc_entity(p, e, ""));
+                            });
+
+            add_list(out, std::move(parameters), "Parameters:");
+            add_list(out, std::move(bases), "Bases:");
+            add_list(out, std::move(members), "Members:");
+        }
+
+        for_each_member(extract_private, static_cast<const Entity&>(doc.get_cpp_entity()),
+                        container, [&](const cpp_entity& e) {
                             if (!inline_doc || !is_inline_entity(e.get_entity_type()))
                                 dispatch(p, i, out, level + 1,
                                          doc_entity(p, e, doc.get_output_name()), true);
