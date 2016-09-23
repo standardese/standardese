@@ -245,6 +245,8 @@ C
 A
 \brief E
 \requires B
+B2
+\exclude
 C
 \details D
 \brief E
@@ -259,6 +261,8 @@ C
 * A
 * \brief E
 * \requires B
+* B2
+* \exclude
 * C
 * \details D
 * \brief E
@@ -272,6 +276,8 @@ C
 /// A
 /// \brief E
 /// \requires B
+/// B2
+/// \exclude
 /// C
 /// \details D
 /// \brief E
@@ -293,12 +299,12 @@ C
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::effects);
             }
-            else if (get_text(paragraph) == "B\nC")
+            else if (get_text(paragraph) == "B\nB2")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::requires);
             }
-            else if (get_text(paragraph) == "D")
+            else if (get_text(paragraph) == "D" || get_text(paragraph) == "C")
             {
                 ++count;
                 REQUIRE(paragraph.get_section_type() == section_type::details);
@@ -320,7 +326,7 @@ C
                 REQUIRE(get_text(paragraph) == "E\nE");
             }
         }
-        REQUIRE(count == 6u);
+        REQUIRE(count == 7u);
     }
     SECTION("commands")
     {

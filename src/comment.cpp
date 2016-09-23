@@ -443,8 +443,11 @@ namespace
         md_paragraph& new_paragraph()
         {
             assert(top().get_entity_type() == md_entity::paragraph_t);
-            pop();
-            push(md_paragraph::make(top()));
+            if (!top().empty())
+            {
+                pop();
+                push(md_paragraph::make(top()));
+            }
             return static_cast<md_paragraph&>(top());
         }
 
@@ -519,6 +522,8 @@ namespace
         }
         else if (is_command(command))
         {
+            stack.new_paragraph().set_section_type(section_type::details,
+                                                   ""); // terminate old paragraph
             switch (make_command(command))
             {
             case command_type::exclude:

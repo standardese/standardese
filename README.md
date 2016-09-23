@@ -304,7 +304,7 @@ There are two special sections, `brief` and `details`.
 They are not labeled in the output.
 
 Unlike for a *command* text following a *section* is included in the output.
-A *section* is active for the rest of the paragraph, a hard line break or until another special command is ecnountered.
+A *section* is active for the rest of the paragraph, a hard line break or until another special command is encountered.
 Any `brief` sections will be merged together automatically.
 
 If you don't specify a section for a paragraph, the first paragraph will be implictly `brief`, all others implictly `details`.
