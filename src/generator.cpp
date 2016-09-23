@@ -19,151 +19,6 @@
 
 using namespace standardese;
 
-namespace
-{
-    template <class Entity>
-    cpp_access_specifier_t get_default_access(const Entity&)
-    {
-        return cpp_public;
-    }
-
-    cpp_access_specifier_t get_default_access(const cpp_class& e)
-    {
-        return e.get_class_type() == cpp_class_t ? cpp_private : cpp_public;
-    }
-
-    cpp_access_specifier_t get_default_access(const cpp_class_template& e)
-    {
-        return get_default_access(e.get_class());
-    }
-
-    cpp_access_specifier_t get_default_access(const cpp_class_template_full_specialization& e)
-    {
-        return get_default_access(e.get_class());
-    }
-
-    cpp_access_specifier_t get_default_access(const cpp_class_template_partial_specialization& e)
-    {
-        return get_default_access(e.get_class());
-    }
-
-    bool has_comment(const doc_entity& e)
-    {
-        return e.has_comment() && !e.get_comment().empty();
-    }
-
-    bool requires_comment(const doc_entity& e)
-    {
-        return e.get_entity_type() != cpp_entity::file_t
-               && e.get_entity_type() != cpp_entity::namespace_t
-               && e.get_entity_type() != cpp_entity::language_linkage_t;
-    }
-
-    bool is_blacklisted(const parser& p, const doc_entity& e)
-    {
-        auto& blacklist = p.get_output_config().get_blacklist();
-        if (requires_comment(e) && blacklist.is_set(entity_blacklist::require_comment)
-            && !has_comment(e))
-            return true;
-        else if (blacklist.is_blacklisted(entity_blacklist::documentation, e.get_cpp_entity()))
-            return true;
-        else if (e.has_comment() && e.get_comment().is_excluded())
-            return true;
-
-        return false;
-    }
-
-    using standardese::index; // to force standardese::index instead of ::index
-
-    void dispatch(const parser& p, const index& i, md_document& output, unsigned level,
-                  const doc_entity& e, bool in_container);
-
-    template <class Entity, class Container>
-    void handle_container(const parser& p, const index& i, md_document& out, unsigned level,
-                          const doc_entity& doc, const Container& container)
-    {
-        if (is_blacklisted(p, doc))
-            return;
-
-        generate_doc_entity(p, i, out, level, doc);
-
-        auto  cur_access = get_default_access(static_cast<const Entity&>(doc.get_cpp_entity()));
-        auto& blacklist  = p.get_output_config().get_blacklist();
-        if (auto templ_params = get_template_parameters(doc.get_cpp_entity()))
-        {
-            for (auto& param : *templ_params)
-                dispatch(p, i, out, level + 1, doc_entity(p, param, doc.get_output_name()), true);
-        }
-
-        if (auto c = get_class(doc.get_cpp_entity()))
-        {
-            for (auto& base : c->get_bases())
-                dispatch(p, i, out, level + 1, doc_entity(p, base, doc.get_output_name()), true);
-        }
-
-        for (auto& child : container)
-        {
-            if (child.get_entity_type() == cpp_entity::access_specifier_t)
-                cur_access =
-                    static_cast<const cpp_access_specifier&>(static_cast<const cpp_entity&>(child))
-                        .get_access();
-            else if (blacklist.is_set(entity_blacklist::extract_private)
-                     || cur_access != cpp_private || detail::is_virtual(child))
-                dispatch(p, i, out, level + 1, doc_entity(p, child, doc.get_output_name()), true);
-        }
-
-        out.add_entity(md_thematic_break::make(out));
-    }
-
-    void dispatch(const parser& p, const index& i, md_document& output, unsigned level,
-                  const doc_entity& e, bool in_container)
-    {
-        if (is_blacklisted(p, e))
-            return;
-        else if (auto function = get_function(e.get_cpp_entity()))
-        {
-            handle_container<cpp_function_base>(p, i, output, level, e, function->get_parameters());
-            return;
-        }
-
-        switch (e.get_entity_type())
-        {
-        case cpp_entity::namespace_t:
-            for (auto& child : static_cast<const cpp_namespace&>(e.get_cpp_entity()))
-                dispatch(p, i, output, level, doc_entity(p, child, e.get_output_name()), false);
-            break;
-        case cpp_entity::language_linkage_t:
-            for (auto& child : static_cast<const cpp_language_linkage&>(e.get_cpp_entity()))
-                dispatch(p, i, output, level, doc_entity(p, child, e.get_output_name()), false);
-            break;
-
-#define STANDARDESE_DETAIL_HANDLE(name, ...)                                                       \
-    case cpp_entity::name##_t:                                                                     \
-        handle_container<cpp_##name>(p, i, output, level, e, static_cast<const cpp_##name&>(       \
-                                                                 e.get_cpp_entity()) __VA_ARGS__); \
-        break;
-
-#define STANDARDESE_DETAIL_NOTHING
-
-            STANDARDESE_DETAIL_HANDLE(class, STANDARDESE_DETAIL_NOTHING)
-            STANDARDESE_DETAIL_HANDLE(class_template, .get_class())
-            STANDARDESE_DETAIL_HANDLE(class_template_full_specialization, .get_class())
-            STANDARDESE_DETAIL_HANDLE(class_template_partial_specialization, .get_class())
-
-            STANDARDESE_DETAIL_HANDLE(enum, STANDARDESE_DETAIL_NOTHING)
-
-#undef STANDARDESE_DETAIL_HANDLE
-#undef STANDARDESE_DETAIL_NOTHING
-
-        default:
-            generate_doc_entity(p, i, output, level, e);
-            if (!in_container)
-                output.add_entity(md_thematic_break::make(output));
-            break;
-        }
-    }
-}
-
 md_ptr<md_document> md_document::make(std::string name)
 {
     return detail::make_md_ptr<md_document>(cmark_node_new(CMARK_NODE_DOCUMENT), std::move(name));
@@ -258,6 +113,168 @@ const char* standardese::get_entity_type_spelling(cpp_entity::type t)
     }
 
     return "should never get here";
+}
+
+namespace
+{
+    using standardese::index; // to force standardese::index instead of ::index
+
+    void dispatch(const parser& p, const index& i, md_document& output, unsigned level,
+                  const doc_entity& e, bool in_container);
+
+    template <class Entity>
+    cpp_access_specifier_t get_default_access(const Entity&)
+    {
+        return cpp_public;
+    }
+
+    cpp_access_specifier_t get_default_access(const cpp_class& e)
+    {
+        return e.get_class_type() == cpp_class_t ? cpp_private : cpp_public;
+    }
+
+    cpp_access_specifier_t get_default_access(const cpp_class_template& e)
+    {
+        return get_default_access(e.get_class());
+    }
+
+    cpp_access_specifier_t get_default_access(const cpp_class_template_full_specialization& e)
+    {
+        return get_default_access(e.get_class());
+    }
+
+    cpp_access_specifier_t get_default_access(const cpp_class_template_partial_specialization& e)
+    {
+        return get_default_access(e.get_class());
+    }
+
+    bool has_comment(const doc_entity& e)
+    {
+        return e.has_comment() && !e.get_comment().empty();
+    }
+
+    bool requires_comment(const doc_entity& e)
+    {
+        return e.get_entity_type() != cpp_entity::file_t
+               && e.get_entity_type() != cpp_entity::namespace_t
+               && e.get_entity_type() != cpp_entity::language_linkage_t;
+    }
+
+    bool is_blacklisted(const parser& p, const doc_entity& e)
+    {
+        auto& blacklist = p.get_output_config().get_blacklist();
+        if (requires_comment(e) && blacklist.is_set(entity_blacklist::require_comment)
+            && !has_comment(e))
+            return true;
+        else if (blacklist.is_blacklisted(entity_blacklist::documentation, e.get_cpp_entity()))
+            return true;
+        else if (e.has_comment() && e.get_comment().is_excluded())
+            return true;
+
+        return false;
+    }
+
+    template <class Entity, class Container, class Func>
+    void for_each_member(bool extract_private, const Entity& e, const Container& container, Func f)
+    {
+        if (auto templ_params = get_template_parameters(e))
+        {
+            for (auto& param : *templ_params)
+                f(param);
+        }
+
+        if (auto c = get_class(e))
+        {
+            for (auto& base : c->get_bases())
+                f(base);
+        }
+
+        auto cur_access = get_default_access(e);
+        for (auto& child : container)
+        {
+            if (child.get_entity_type() == cpp_entity::access_specifier_t)
+                cur_access =
+                    static_cast<const cpp_access_specifier&>(static_cast<const cpp_entity&>(child))
+                        .get_access();
+            else if (extract_private || cur_access != cpp_private || detail::is_virtual(child))
+                f(child);
+        }
+    }
+
+    bool is_inline_entity(cpp_entity::type t)
+    {
+        return t == cpp_entity::base_class_t || is_parameter(t) || is_member_variable(t);
+    }
+
+    template <class Entity, class Container>
+    void handle_container(const parser& p, const index& i, md_document& out, unsigned level,
+                          const doc_entity& doc, const Container& container)
+    {
+        auto  inline_doc = p.get_output_config().inline_documentation();
+        auto& blacklist  = p.get_output_config().get_blacklist();
+        if (is_blacklisted(p, doc))
+            return;
+
+        generate_doc_entity(p, i, out, level, doc);
+
+        for_each_member(blacklist.is_set(entity_blacklist::extract_private),
+                        static_cast<const Entity&>(doc.get_cpp_entity()), container,
+                        [&](const cpp_entity& e) {
+                            if (!inline_doc || !is_inline_entity(e.get_entity_type()))
+                                dispatch(p, i, out, level + 1,
+                                         doc_entity(p, e, doc.get_output_name()), true);
+                        });
+
+        out.add_entity(md_thematic_break::make(out));
+    }
+
+    void dispatch(const parser& p, const index& i, md_document& output, unsigned level,
+                  const doc_entity& e, bool in_container)
+    {
+        if (is_blacklisted(p, e))
+            return;
+        else if (auto function = get_function(e.get_cpp_entity()))
+        {
+            handle_container<cpp_function_base>(p, i, output, level, e, function->get_parameters());
+            return;
+        }
+
+        switch (e.get_entity_type())
+        {
+        case cpp_entity::namespace_t:
+            for (auto& child : static_cast<const cpp_namespace&>(e.get_cpp_entity()))
+                dispatch(p, i, output, level, doc_entity(p, child, e.get_output_name()), false);
+            break;
+        case cpp_entity::language_linkage_t:
+            for (auto& child : static_cast<const cpp_language_linkage&>(e.get_cpp_entity()))
+                dispatch(p, i, output, level, doc_entity(p, child, e.get_output_name()), false);
+            break;
+
+#define STANDARDESE_DETAIL_HANDLE(name, ...)                                                       \
+    case cpp_entity::name##_t:                                                                     \
+        handle_container<cpp_##name>(p, i, output, level, e, static_cast<const cpp_##name&>(       \
+                                                                 e.get_cpp_entity()) __VA_ARGS__); \
+        break;
+
+#define STANDARDESE_DETAIL_NOTHING
+
+            STANDARDESE_DETAIL_HANDLE(class, STANDARDESE_DETAIL_NOTHING)
+            STANDARDESE_DETAIL_HANDLE(class_template, .get_class())
+            STANDARDESE_DETAIL_HANDLE(class_template_full_specialization, .get_class())
+            STANDARDESE_DETAIL_HANDLE(class_template_partial_specialization, .get_class())
+
+            STANDARDESE_DETAIL_HANDLE(enum, STANDARDESE_DETAIL_NOTHING)
+
+#undef STANDARDESE_DETAIL_HANDLE
+#undef STANDARDESE_DETAIL_NOTHING
+
+        default:
+            generate_doc_entity(p, i, output, level, e);
+            if (!in_container)
+                output.add_entity(md_thematic_break::make(output));
+            break;
+        }
+    }
 }
 
 namespace
