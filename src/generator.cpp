@@ -206,9 +206,9 @@ namespace
         return t == cpp_entity::base_class_t || is_parameter(t) || is_member_variable(t);
     }
 
-    void add_inline_item(md_list& list, const doc_entity& doc_e)
+    void add_inline_item(const parser& p, md_list& list, const doc_entity& doc_e)
     {
-        if (!doc_e.has_comment())
+        if (is_blacklisted(p, doc_e))
             return;
 
         auto item = md_list_item::make(list);
@@ -216,10 +216,21 @@ namespace
         auto item_paragraph = md_paragraph::make(*item);
         item_paragraph->add_entity(md_code::make(*item, doc_e.get_name().c_str()));
         item_paragraph->add_entity(md_text::make(*item, " - "));
+
+        auto first = true;
         for (auto& container : doc_e.get_comment().get_content())
         {
             if (container.get_entity_type() != md_entity::paragraph_t)
+            {
+                p.get_logger()->warn("inline comment for entity '{}' has markup that is ignored.",
+                                     doc_e.get_full_name().c_str());
                 continue;
+            }
+            else if (first)
+                first = false;
+            else
+                item_paragraph->add_entity(md_soft_break::make(*item_paragraph));
+
             for (auto& child : static_cast<const md_container&>(container))
                 item_paragraph->add_entity(child.clone(*item));
         }
@@ -260,11 +271,11 @@ namespace
             for_each_member(extract_private, static_cast<const Entity&>(doc.get_cpp_entity()),
                             container, [&](const cpp_entity& e) {
                                 if (is_parameter(e.get_entity_type()))
-                                    add_inline_item(*parameters, doc_entity(p, e, ""));
+                                    add_inline_item(p, *parameters, doc_entity(p, e, ""));
                                 else if (is_member_variable(e.get_entity_type()))
-                                    add_inline_item(*members, doc_entity(p, e, ""));
+                                    add_inline_item(p, *members, doc_entity(p, e, ""));
                                 else if (e.get_entity_type() == cpp_entity::base_class_t)
-                                    add_inline_item(*bases, doc_entity(p, e, ""));
+                                    add_inline_item(p, *bases, doc_entity(p, e, ""));
                             });
 
             add_list(out, std::move(parameters), "Parameters:");
