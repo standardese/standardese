@@ -138,8 +138,8 @@ namespace
     {
         if (location.second == 1u)
             // entity is located at the first line of the file
-            // no comment possible
-            return comment_id("", 1u);
+            // only end-of-line comment possible
+            return comment_id(location.first, 1u);
         else if (name.empty())
             return comment_id(location.first, location.second - 1);
 
@@ -199,7 +199,8 @@ namespace
                 return false;
 
             auto e_id = create_location_id(e);
-            return e_id.line() - id.line() <= 1u && e_id.file_name() == id.file_name();
+            assert(id.line() >= e_id.line());
+            return id.line() - e_id.line() <= 1u && e_id.file_name() == id.file_name();
         }
         else if (id.is_inline_location())
         {
@@ -209,7 +210,8 @@ namespace
             assert(clang_Cursor_isNull(cur));
 
             auto e_id = create_location_id(e);
-            return e_id.line() - id.line() <= 1u && e_id.file_name() == id.file_name()
+            assert(id.line() >= e_id.line());
+            return id.line() - e_id.line() <= 1u && e_id.file_name() == id.file_name()
                    && inline_name_matches(e, id.inline_entity_name());
         }
 

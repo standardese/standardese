@@ -410,6 +410,8 @@ TEST_CASE("comment-matching", "[doc]")
         /// \base g g-base
         template <typename g>
         struct h : g {};
+
+        struct i {}; //< i
       )";
 
     auto tu = parse(p, "comment-matching", source);
