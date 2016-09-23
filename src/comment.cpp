@@ -224,8 +224,18 @@ namespace
                                            cpp_cursor cur = {})
     {
         auto iter = comments.lower_bound(id);
-        if (iter != comments.end() && matches(e, iter->first, cur))
+        if (iter != comments.end())
         {
+            // first try the next higher one, i.e. end of same line
+            // then try the actual match
+            ++iter;
+            if (iter == comments.end() || !matches(e, iter->first, cur))
+            {
+                --iter;
+                if (!matches(e, iter->first, cur))
+                    return nullptr;
+            }
+
             if (!iter->second.empty())
                 return &iter->second;
             // this command is only used for commands, look for a remote comment

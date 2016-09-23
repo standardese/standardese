@@ -412,6 +412,7 @@ TEST_CASE("comment-matching", "[doc]")
         struct h : g {};
 
         struct i {}; //< i
+        struct j {}; //< j
       )";
 
     auto tu = parse(p, "comment-matching", source);
