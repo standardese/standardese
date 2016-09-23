@@ -1,5 +1,18 @@
 ## Upcoming
 
+### Documentation
+
+* Fix termination of section by all special commands
+* Fix matching of end-of-line comments
+
+### Library
+
+* Parsing bugfixes
+
+### Tool
+
+* Add `output.inline_doc` option to enable inline documentation
+
 ## 0.2-2
 
 ### Documentation

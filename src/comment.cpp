@@ -138,8 +138,8 @@ namespace
     {
         if (location.second == 1u)
             // entity is located at the first line of the file
-            // no comment possible
-            return comment_id("", 1u);
+            // only end-of-line comment possible
+            return comment_id(location.first, 1u);
         else if (name.empty())
             return comment_id(location.first, location.second - 1);
 
@@ -199,7 +199,8 @@ namespace
                 return false;
 
             auto e_id = create_location_id(e);
-            return e_id.line() - id.line() <= 1u && e_id.file_name() == id.file_name();
+            assert(id.line() >= e_id.line());
+            return id.line() - e_id.line() <= 1u && e_id.file_name() == id.file_name();
         }
         else if (id.is_inline_location())
         {
@@ -209,7 +210,8 @@ namespace
             assert(clang_Cursor_isNull(cur));
 
             auto e_id = create_location_id(e);
-            return e_id.line() - id.line() <= 1u && e_id.file_name() == id.file_name()
+            assert(id.line() >= e_id.line());
+            return id.line() - e_id.line() <= 1u && e_id.file_name() == id.file_name()
                    && inline_name_matches(e, id.inline_entity_name());
         }
 
@@ -222,8 +224,18 @@ namespace
                                            cpp_cursor cur = {})
     {
         auto iter = comments.lower_bound(id);
-        if (iter != comments.end() && matches(e, iter->first, cur))
+        if (iter != comments.end())
         {
+            // first try the next higher one, i.e. end of same line
+            // then try the actual match
+            ++iter;
+            if (iter == comments.end() || !matches(e, iter->first, cur))
+            {
+                --iter;
+                if (!matches(e, iter->first, cur))
+                    return nullptr;
+            }
+
             if (!iter->second.empty())
                 return &iter->second;
             // this command is only used for commands, look for a remote comment
@@ -443,8 +455,11 @@ namespace
         md_paragraph& new_paragraph()
         {
             assert(top().get_entity_type() == md_entity::paragraph_t);
-            pop();
-            push(md_paragraph::make(top()));
+            if (!top().empty())
+            {
+                pop();
+                push(md_paragraph::make(top()));
+            }
             return static_cast<md_paragraph&>(top());
         }
 
@@ -519,6 +534,8 @@ namespace
         }
         else if (is_command(command))
         {
+            stack.new_paragraph().set_section_type(section_type::details,
+                                                   ""); // terminate old paragraph
             switch (make_command(command))
             {
             case command_type::exclude:
