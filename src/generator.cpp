@@ -206,14 +206,23 @@ namespace
         return t == cpp_entity::base_class_t || is_parameter(t) || is_member_variable(t);
     }
 
-    void add_inline_item(const parser& p, md_list& list, const doc_entity& doc_e)
+    md_ptr<md_anchor> get_anchor(const doc_entity& doc, const md_entity& parent)
+    {
+        auto id = detail::escape_unique_name(doc.get_unique_name().c_str());
+        return md_anchor::make(parent, id.c_str());
+    }
+
+    void add_inline_item(const parser& p, const index& i, md_list& list, const doc_entity& doc_e)
     {
         if (is_blacklisted(p, doc_e))
             return;
+        assert(doc_e.has_comment());
+        i.register_entity(doc_e);
 
         auto item = md_list_item::make(list);
 
         auto item_paragraph = md_paragraph::make(*item);
+        item_paragraph->add_entity(get_anchor(doc_e, *item_paragraph));
         item_paragraph->add_entity(md_code::make(*item, doc_e.get_name().c_str()));
         item_paragraph->add_entity(md_text::make(*item, " - "));
 
@@ -271,11 +280,13 @@ namespace
             for_each_member(extract_private, static_cast<const Entity&>(doc.get_cpp_entity()),
                             container, [&](const cpp_entity& e) {
                                 if (is_parameter(e.get_entity_type()))
-                                    add_inline_item(p, *parameters, doc_entity(p, e, ""));
+                                    add_inline_item(p, i, *parameters, doc_entity(p, e, ""));
                                 else if (is_member_variable(e.get_entity_type()))
-                                    add_inline_item(p, *members, doc_entity(p, e, ""));
+                                    add_inline_item(p, i, *members, doc_entity(p, e, ""));
                                 else if (e.get_entity_type() == cpp_entity::base_class_t)
-                                    add_inline_item(p, *bases, doc_entity(p, e, ""));
+                                    add_inline_item(p, i, *bases, doc_entity(p, e, ""));
+                                else
+                                    assert(!is_inline_entity(e.get_entity_type()));
                             });
 
             add_list(out, std::move(parameters), "Parameters:");
@@ -367,11 +378,7 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
     auto heading = make_heading(doc, document, level);
     if (!p.get_output_config().get_blacklist().is_set(entity_blacklist::require_comment)
         || doc.has_comment())
-    {
-        auto id     = detail::escape_unique_name(doc.get_unique_name().c_str());
-        auto anchor = md_anchor::make(*heading, id.c_str());
-        heading->add_entity(std::move(anchor));
-    }
+        heading->add_entity(get_anchor(doc, *heading));
     document.add_entity(std::move(heading));
 
     // write synopsis
