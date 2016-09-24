@@ -99,7 +99,7 @@ target_link_libraries(standardese PUBLIC ${LIBCLANG_LIBRARY})
 target_link_libraries(standardese PUBLIC libcmark_static)
 
 # link Boost
-find_package(Boost COMPONENTS wave filesystem system thread date_time chrono REQUIRED)
+find_package(Boost COMPONENTS filesystem system thread date_time chrono REQUIRED)
 target_include_directories(standardese PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${Boost_LIBRARIES})
 
