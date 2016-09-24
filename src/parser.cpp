@@ -78,32 +78,28 @@ namespace
             if (buf.sgetc() == '\\')
             {
                 buf.sbumpc();
+                if (buf.sgetc() == '\r')
+                    buf.sbumpc();
+
+                if (buf.sgetc() == '\n')
+                    buf.sbumpc();
+                else
+                    res += '\\';
+            }
+            else if (buf.sgetc() == '/')
+            {
                 buf.sbumpc();
+                if (buf.sgetc() == '/')
+                    break; // C++ comment, goes until the end of the line
+                else if (buf.sgetc() == '*')
+                    break; // C style comment, macro could continue but ignore that
+                else
+                    res += '/'; // normal '/' character
             }
             else if (buf.sgetc() != '\r')
                 res += buf.sgetc();
         }
         assert(res.back() != '\n');
-
-        auto need_closing = false;
-        for (auto i = 0u; i != res.size(); ++i)
-        {
-            if (res[i] == '/' && i + 1 != res.size() && res[i + 1] == '*')
-            {
-                ++i;
-                need_closing = true;
-            }
-            else if (res[i] == '*' && i + 1 != res.size() && res[i + 1] == '/')
-            {
-                ++i;
-                assert(need_closing);
-                need_closing = false;
-            }
-        }
-
-        if (need_closing)
-            res += "*/";
-
         return res;
     }
 
