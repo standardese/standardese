@@ -13,6 +13,9 @@ doc_entity::doc_entity(const parser& p, const cpp_entity& entity, string output_
   entity_(&entity),
   comment_(p.get_comment_registry().lookup_comment(p.get_entity_registry(), entity))
 {
+    if (entity.get_entity_type() == cpp_entity::file_t && comment_
+        && comment_->has_unique_name_override())
+        output_name_ = comment_->get_unique_name_override();
 }
 
 cpp_entity::type doc_entity::get_entity_type() const

@@ -2,6 +2,7 @@
 
 ### Documentation
 
+* Allow `unique_name` on files to override the output name
 * Fix termination of section by all special commands
 * Fix matching of end-of-line comments
 

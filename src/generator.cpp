@@ -394,11 +394,11 @@ void standardese::generate_doc_entity(const parser& p, const index& i, md_docume
 md_ptr<md_document> standardese::generate_doc_file(const parser& p, const index& i,
                                                    const cpp_file& f, std::string name)
 {
-    auto entity = doc_entity(p, f, name);
+    auto entity = doc_entity(p, f, std::move(name));
     if (is_blacklisted(p, entity))
         return nullptr;
 
-    auto doc = md_document::make(std::move(name));
+    auto doc = md_document::make(entity.get_output_name().c_str());
 
     generate_doc_entity(p, i, *doc, 1, entity);
 
