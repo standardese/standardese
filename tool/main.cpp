@@ -19,7 +19,6 @@
 #include <standardese/index.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/output.hpp>
-#include <boost/wave/cpp_exceptions.hpp>
 
 #include "filesystem.hpp"
 #include "options.hpp"
@@ -280,13 +279,6 @@ int main(int argc, char* argv[])
                 for (auto& f : futures)
                     f.wait();
             }
-        }
-        catch (boost::wave::cpp_exception& ex)
-        {
-            parser.get_logger()->critical("when parsing '{}' ({}:{}): {} (Boost.Wave)",
-                                          ex.get_related_name(), ex.file_name(), ex.line_no(),
-                                          boost::wave::preprocess_exception::error_text(
-                                              ex.get_errorcode()));
         }
         catch (std::exception& ex)
         {
