@@ -135,7 +135,12 @@ namespace standardese
         class tokenizer
         {
         public:
-            tokenizer(const translation_unit& tu, cpp_cursor cur);
+            tokenizer(CXTranslationUnit tu, CXFile file, cpp_cursor cur);
+
+            tokenizer(const translation_unit& tu, cpp_cursor cur)
+            : tokenizer(tu.get_cxunit(), tu.get_cxfile(), cur)
+            {
+            }
 
             ~tokenizer() STANDARDESE_NOEXCEPT;
 
@@ -153,7 +158,15 @@ namespace standardese
             // only necessary for template parameter
             bool need_unmunch() const STANDARDESE_NOEXCEPT;
 
-            CXTranslationUnit get_cxunit() const STANDARDESE_NOEXCEPT;
+            CXTranslationUnit get_cxunit() const STANDARDESE_NOEXCEPT
+            {
+                return tu_;
+            }
+
+            CXFile get_cxfile() const STANDARDESE_NOEXCEPT
+            {
+                return file_;
+            }
 
             token end_token() const STANDARDESE_NOEXCEPT
             {
@@ -161,10 +174,11 @@ namespace standardese
             }
 
         private:
-            const translation_unit* tu_;
-            CXToken*                tokens_;
-            unsigned                no_tokens_, end_offset_;
-            const char*             end_;
+            CXTranslationUnit tu_;
+            CXFile            file_;
+            CXToken*          tokens_;
+            unsigned          no_tokens_, end_offset_;
+            const char*       end_;
         };
 
         using token_stream = sequence_stream<token_iterator>;
