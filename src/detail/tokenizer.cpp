@@ -183,7 +183,8 @@ detail::tokenizer::tokenizer(CXTranslationUnit tu, CXFile file, cpp_cursor cur)
 
 detail::tokenizer::~tokenizer() STANDARDESE_NOEXCEPT
 {
-    clang_disposeTokens(get_cxunit(), tokens_, no_tokens_);
+    if (tokens_)
+        clang_disposeTokens(get_cxunit(), tokens_, no_tokens_);
 }
 
 namespace

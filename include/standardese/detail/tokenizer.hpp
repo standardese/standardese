@@ -68,7 +68,7 @@ namespace standardese
             unsigned    offset_;
         };
 
-        class token_iterator : public std::iterator<std::bidirectional_iterator_tag, token>
+        class token_iterator : public std::iterator<std::random_access_iterator_tag, token>
         {
         public:
             token operator*() const STANDARDESE_NOEXCEPT
@@ -107,6 +107,23 @@ namespace standardese
                 return tmp;
             }
 
+            token_iterator& operator+=(std::ptrdiff_t d) STANDARDESE_NOEXCEPT
+            {
+                cx_token_ += d;
+                return *this;
+            }
+
+            token_iterator& operator-=(std::ptrdiff_t d) STANDARDESE_NOEXCEPT
+            {
+                cx_token_ -= d;
+                return *this;
+            }
+
+            token operator[](std::ptrdiff_t d) const STANDARDESE_NOEXCEPT
+            {
+                return token(tu_, cx_token_[d]);
+            }
+
             friend bool operator==(const token_iterator& a,
                                    const token_iterator& b) STANDARDESE_NOEXCEPT
             {
@@ -117,6 +134,56 @@ namespace standardese
                                    const token_iterator& b) STANDARDESE_NOEXCEPT
             {
                 return !(a == b);
+            }
+
+            friend token_iterator operator+(const token_iterator& iter,
+                                            std::ptrdiff_t        d) STANDARDESE_NOEXCEPT
+            {
+                return token_iterator(iter.tu_, iter.cx_token_ + d);
+            }
+
+            friend token_iterator operator+(std::ptrdiff_t        d,
+                                            const token_iterator& iter) STANDARDESE_NOEXCEPT
+            {
+                return iter + d;
+            }
+
+            friend token_iterator operator-(const token_iterator& iter,
+                                            std::ptrdiff_t        d) STANDARDESE_NOEXCEPT
+            {
+                return token_iterator(iter.tu_, iter.cx_token_ - d);
+            }
+
+            friend token_iterator operator-(std::ptrdiff_t        d,
+                                            const token_iterator& iter) STANDARDESE_NOEXCEPT
+            {
+                return iter - d;
+            }
+
+            friend std::ptrdiff_t operator-(const token_iterator& a,
+                                            const token_iterator& b) STANDARDESE_NOEXCEPT
+            {
+                return a.cx_token_ - b.cx_token_;
+            }
+
+            friend bool operator<(const token_iterator& lhs, const token_iterator& rhs)
+            {
+                return lhs.cx_token_ < rhs.cx_token_;
+            }
+
+            friend bool operator>(const token_iterator& lhs, const token_iterator& rhs)
+            {
+                return rhs < lhs;
+            }
+
+            friend bool operator<=(const token_iterator& lhs, const token_iterator& rhs)
+            {
+                return !(rhs < lhs);
+            }
+
+            friend bool operator>=(const token_iterator& lhs, const token_iterator& rhs)
+            {
+                return !(lhs < rhs);
             }
 
         private:
@@ -142,9 +209,18 @@ namespace standardese
             {
             }
 
+            tokenizer(tokenizer&& other) STANDARDESE_NOEXCEPT : tu_(other.tu_),
+                                                                file_(other.file_),
+                                                                tokens_(other.tokens_),
+                                                                no_tokens_(other.no_tokens_),
+                                                                end_offset_(other.end_offset_),
+                                                                end_(other.end_)
+            {
+                other.tokens_ = nullptr;
+            }
+
             ~tokenizer() STANDARDESE_NOEXCEPT;
 
-            tokenizer(tokenizer&&) = delete;
             tokenizer& operator=(tokenizer&&) = delete;
 
             token_iterator begin() const STANDARDESE_NOEXCEPT
