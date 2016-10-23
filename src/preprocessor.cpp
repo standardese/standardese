@@ -16,7 +16,6 @@
 #warning "Boost less than 1.55 isn't tested"
 #endif
 
-#include <standardese/detail/tokenizer.hpp>
 #include <standardese/config.hpp>
 #include <standardese/error.hpp>
 #include <standardese/parser.hpp>
@@ -36,36 +35,36 @@ namespace fs = boost::filesystem;
 
 namespace
 {
-    std::string read_source(const char* full_path)
+    std::string get_command(const compile_config& c, const char* full_path)
     {
-        std::filebuf filebuf;
-        filebuf.open(full_path, std::ios_base::in);
-        assert(filebuf.is_open());
-
-        std::string source;
-        for (std::istreambuf_iterator<char> iter(&filebuf), end = {}; iter != end; ++iter)
+        std::string cmd("clang++ -E -C ");
+        for (auto flag : c.get_flags())
         {
-            // handle backslashes
-            if (*iter == '\\')
-            {
-                ++iter;
-                if (*iter == '\n')
-                    ++iter; // newline is escaped, ignore
-                else
-                    source += '\\'; // "normal" backslash
-            }
-            source += *iter;
+            cmd += flag;
+            cmd += ' ';
         }
-        if (source.back() != '\n')
-            source.push_back('\n');
-        return source;
+
+        cmd += full_path;
+        return cmd;
     }
 }
 
-std::string preprocessor::preprocess(const parser&, const compile_config& c,
+std::string preprocessor::preprocess(const parser& p, const compile_config& c,
                                      const char* full_path) const
 {
-    return read_source(full_path);
+    std::string preprocessed;
+
+    auto    cmd = get_command(c, full_path);
+    Process process(cmd, "", [&](const char* str, std::size_t n) { preprocessed.append(str, n); },
+                    [&](const char* str, std::size_t n) {
+                        p.get_logger()->error("[preprocessor] {}", std::string(str, n));
+                    });
+
+    auto exit_code = process.get_exit_status();
+    if (exit_code != 0)
+        throw process_error(cmd, exit_code);
+
+    return preprocessed;
 }
 
 void preprocessor::add_preprocess_directory(std::string dir)
