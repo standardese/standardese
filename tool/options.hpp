@@ -123,7 +123,7 @@ namespace standardese_tool
         auto dirs = map.find("compilation.preprocess_dir");
         if (dirs != map.end())
             for (auto& dir : dirs->second.as<std::vector<std::string>>())
-                p->get_preprocessor().add_preprocess_directory(std::move(dir));
+                p->get_preprocessor().whitelist_include_dir(std::move(dir));
 
         return p;
     }

@@ -19,6 +19,7 @@
 #include <standardese/config.hpp>
 #include <standardese/error.hpp>
 #include <standardese/parser.hpp>
+#include <standardese/translation_unit.hpp>
 
 // treat the tiny-process-library as header only
 #include <process.hpp>
@@ -159,7 +160,7 @@ namespace
 }
 
 std::string preprocessor::preprocess(const parser& p, const compile_config& c,
-                                     const char* full_path) const
+                                     const char* full_path, cpp_file& file) const
 {
     std::string preprocessed;
 
@@ -211,6 +212,15 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
                     else
                         preprocessed += '"';
                     preprocessed += '\n';
+
+                    // also add include
+                    if (is_whitelisted_directory(marker.file_name))
+                        file.add_entity(
+                            cpp_inclusion_directive::make(file, marker.file_name,
+                                                          marker.is_set(line_marker::system) ?
+                                                              cpp_inclusion_directive::system :
+                                                              cpp_inclusion_directive::local,
+                                                          marker.line));
                 }
             }
             else if (marker.is_set(line_marker::enter_old))
@@ -228,15 +238,36 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
     return preprocessed;
 }
 
-void preprocessor::add_preprocess_directory(std::string dir)
+void preprocessor::whitelist_include_dir(std::string dir)
 {
     auto path = fs::system_complete(dir).normalize().generic_string();
     if (!path.empty() && path.back() == '.')
         path.pop_back();
-    preprocess_dirs_.insert(std::move(path));
+    include_dirs_.insert(std::move(path));
 }
 
-bool preprocessor::is_preprocess_directory(const std::string& dir) const STANDARDESE_NOEXCEPT
+bool preprocessor::is_whitelisted_directory(std::string& dir) const STANDARDESE_NOEXCEPT
 {
-    return preprocess_dirs_.count(dir) != 0;
+    auto path = fs::system_complete(dir).normalize();
+
+    std::string result;
+    for (auto iter = path.begin(); iter != path.end(); ++iter)
+    {
+        result += iter->generic_string();
+        if (result.back() != '/')
+            result += '/';
+
+        if (include_dirs_.count(result))
+        {
+            dir.clear();
+            for (++iter; iter != path.end(); ++iter)
+            {
+                if (!dir.empty())
+                    dir += '/';
+                dir += iter->generic_string();
+            }
+            return true;
+        }
+    }
+    return false;
 }

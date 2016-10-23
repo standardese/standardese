@@ -105,7 +105,7 @@ int main(int argc, char* argv[])
             ("compilation.macro_undefinition,U", po::value<std::vector<std::string>>(),
              "adds an implicit #undef before parsing")
             ("compilation.preprocess_dir,P", po::value<std::vector<std::string>>(),
-             "adds a directory whose contents will be preprocessed by standardese")
+             "whitelists all includes to that directory so that they show up in the output")
             ("compilation.ms_extensions", "enable MSVC extension support (always active if compiled with MSVC)")
 
             ("comment.command_character", po::value<char>()->default_value('\\'),
@@ -228,7 +228,7 @@ int main(int argc, char* argv[])
 
             assert(!input.empty());
             for (auto& path : input)
-                parser.get_preprocessor().add_preprocess_directory(
+                parser.get_preprocessor().whitelist_include_dir(
                     path.parent_path().generic_string());
             for (auto& path : input)
                 standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,

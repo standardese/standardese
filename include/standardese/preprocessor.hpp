@@ -137,15 +137,15 @@ namespace standardese
     class preprocessor
     {
     public:
-        std::string preprocess(const parser& p, const compile_config& c,
-                               const char* full_path) const;
+        std::string preprocess(const parser& p, const compile_config& c, const char* full_path,
+                               cpp_file& file) const;
 
-        void add_preprocess_directory(std::string dir);
+        void whitelist_include_dir(std::string dir);
 
-        bool is_preprocess_directory(const std::string& dir) const STANDARDESE_NOEXCEPT;
+        bool is_whitelisted_directory(std::string& dir) const STANDARDESE_NOEXCEPT;
 
     private:
-        std::unordered_set<std::string> preprocess_dirs_;
+        std::unordered_set<std::string> include_dirs_;
     };
 } // namespace standardese
 

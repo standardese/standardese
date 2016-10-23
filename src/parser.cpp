@@ -45,8 +45,7 @@ translation_unit parser::parse(const char* full_path, const compile_config& c,
     auto              file_ptr = file.get();
     files_.add_file(std::move(file));
 
-    // now preprocess source code and parse it
-    auto preprocessed = preprocessor_.preprocess(*this, c, full_path);
+    auto preprocessed = preprocessor_.preprocess(*this, c, full_path, *file_ptr);
     auto tu           = get_cxunit(index_.get(), c, full_path, preprocessed);
     parse_comments(*this, file_name, preprocessed);
 
