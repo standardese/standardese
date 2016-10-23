@@ -16,6 +16,7 @@
 #warning "Boost less than 1.55 isn't tested"
 #endif
 
+#include <standardese/detail/tokenizer.hpp>
 #include <standardese/config.hpp>
 #include <standardese/error.hpp>
 #include <standardese/parser.hpp>
@@ -33,6 +34,57 @@
 using namespace standardese;
 
 namespace fs = boost::filesystem;
+
+cpp_ptr<standardese::cpp_macro_definition> cpp_macro_definition::parse(CXTranslationUnit tu,
+                                                                       CXFile file, cpp_cursor cur,
+                                                                       const cpp_entity& parent)
+{
+    detail::tokenizer tokenizer(tu, file, cur);
+
+    std::string name = tokenizer.begin()[0].get_value().c_str();
+
+    auto function_like = false;
+#if CINDEX_VERSION_MINOR >= 33
+    function_like = clang_Cursor_isMacroFunctionLike(cur);
+#else
+    // first token after name decides if it is function like
+    auto token = tokenizer.begin()[1];
+    if (token.get_value() == "(")
+    {
+        // it is an open parenthesis
+        // but could be part of the macro replacement
+        // so check if whitespace in between
+        auto name_token = *tokenizer.begin();
+        function_like =
+            (name_token.get_offset() + name_token.get_value().length() == token.get_offset());
+    }
+#endif
+
+    std::string params, replacement;
+    if (function_like)
+    {
+        params    = "(";
+        auto iter = tokenizer.begin() + 2; // 0 is name, 1 is open parenthesis
+        for (; iter->get_value() != ")"; ++iter)
+            detail::append_token(params, iter->get_value());
+        params += ")";
+
+        for (++iter; iter != tokenizer.end(); ++iter)
+            detail::append_token(replacement, iter->get_value());
+    }
+    else
+    {
+        for (auto iter = tokenizer.begin() + 1; iter != tokenizer.end(); ++iter)
+            detail::append_token(replacement, iter->get_value());
+    }
+
+    auto     loc = clang_getCursorLocation(cur);
+    unsigned line;
+    clang_getSpellingLocation(loc, nullptr, &line, nullptr, nullptr);
+
+    return detail::make_cpp_ptr<cpp_macro_definition>(parent, std::move(name), std::move(params),
+                                                      std::move(replacement), line);
+}
 
 namespace
 {
@@ -157,6 +209,33 @@ namespace
 
         return result;
     }
+
+    CXTranslationUnit get_cxunit(CXIndex index, const compile_config& c, const char* full_path)
+    {
+        auto args = c.get_flags();
+
+        CXTranslationUnit tu;
+        auto              error =
+            clang_parseTranslationUnit2(index, full_path, args.data(),
+                                        static_cast<int>(args.size()), nullptr, 0,
+                                        CXTranslationUnit_Incomplete
+                                            | CXTranslationUnit_DetailedPreprocessingRecord,
+                                        &tu);
+        if (error != CXError_Success)
+            throw libclang_error(error, "CXTranslationUnit (" + std::string(full_path) + ")");
+        return tu;
+    }
+
+    void add_macros(const parser& p, const compile_config& c, const char* full_path, cpp_file& file)
+    {
+        detail::tu_wrapper tu(get_cxunit(p.get_cxindex(), c, full_path));
+        auto               cxfile = clang_getFile(tu.get(), full_path);
+        detail::visit_tu(tu.get(), cxfile, [&](cpp_cursor cur, cpp_cursor) {
+            if (clang_getCursorKind(cur) == CXCursor_MacroDefinition)
+                file.add_entity(cpp_macro_definition::parse(tu.get(), cxfile, cur, file));
+            return CXChildVisit_Continue;
+        });
+    }
 }
 
 std::string preprocessor::preprocess(const parser& p, const compile_config& c,
@@ -235,6 +314,7 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
             write_char = true;
     }
 
+    add_macros(p, c, full_path, file);
     return preprocessed;
 }
 

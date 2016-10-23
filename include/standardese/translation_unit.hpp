@@ -43,11 +43,6 @@ namespace standardese
             cpp_entity_container<cpp_entity>::add_entity(this, std::move(e));
         }
 
-        void remove_entity_after(cpp_entity* e)
-        {
-            cpp_entity_container<cpp_entity>::remove_entity_after(e);
-        }
-
         cpp_name get_name() const override
         {
             return path_.c_str();

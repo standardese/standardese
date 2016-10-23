@@ -82,14 +82,9 @@ namespace standardese
             return cpp_entity::macro_definition_t;
         }
 
-        static cpp_ptr<cpp_macro_definition> make(const cpp_entity& parent, std::string name,
-                                                  std::string params, std::string replacement,
-                                                  unsigned line)
-        {
-            return detail::make_cpp_ptr<cpp_macro_definition>(parent, std::move(name),
-                                                              std::move(params),
-                                                              std::move(replacement), line);
-        }
+        static cpp_ptr<standardese::cpp_macro_definition> parse(CXTranslationUnit tu, CXFile file,
+                                                                cpp_cursor        cur,
+                                                                const cpp_entity& parent);
 
         cpp_name get_name() const override
         {
