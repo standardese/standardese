@@ -225,6 +225,11 @@ Inside the comment you can use arbitrary\* Markdown\* in the documentation comme
 > Inline HTML that isn't a raw HTML block will be treated as literal text.
 > This allows writing `vector<T>` without markup or escaping in the comment, for example.
 
+* Note: CommonMark allows hard line breaks with a backslash at the end of the line.
+But the C preprocessor uses a backslash to combine multiple lines into one.
+For that reason you cannot use a backslash there,
+instead you can use a forward slash. *
+
 #### Linking
 
 To link to an entity, use the syntax `[link-text](<> "unique-name")` (a CommonMark link with empty URL and a title of `unique-name`). If you don't want a special `link-text`, this can be shortened to `[unique-name]()` (a CommonMark link with empty URL and the name of an entity as text).
@@ -315,17 +320,12 @@ If you don't specify a section for a paragraph, the first paragraph will be impl
 /// This is implictly details.
 /// \effects This is effects.
 /// This is still effects.
-/// \returns This is returns.\ 
+/// \returns This is returns./
 /// Due to the hard break this is details again.
 ///
 /// \notes This is notes.
 /// \notes This is a different notes.
 ```
-
-* Note: if the last character of any line in the source code - even comments - is a backslash,
-the C preprocessor will merge it with the following line.
-To prevent that, you need to put whitespace after the backslash.
-CommonMark will still treat it as a hard line break, but the preprocessor won't. *
 
 ---
 
