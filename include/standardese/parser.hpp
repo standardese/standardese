@@ -126,6 +126,11 @@ namespace standardese
             return preprocessor_;
         }
 
+        CXIndex get_cxindex() const STANDARDESE_NOEXCEPT
+        {
+            return index_.get();
+        }
+
     private:
         struct deleter
         {

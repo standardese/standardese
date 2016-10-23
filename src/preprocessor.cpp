@@ -4,18 +4,8 @@
 
 #include <standardese/preprocessor.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(push)
-// 'sprintf' : format string '%ld' requires an argument of type 'long', but variadic argument 1 has type 'size_t'
-#pragma warning(disable : 4477)
-#endif
-
 #include <boost/filesystem.hpp>
 #include <boost/version.hpp>
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 #if (BOOST_VERSION / 100000) != 1
 #error "require Boost 1.x"
@@ -25,9 +15,10 @@
 #warning "Boost less than 1.55 isn't tested"
 #endif
 
-#include <standardese/detail/raw_comment.hpp>
+#include <standardese/detail/tokenizer.hpp>
 #include <standardese/config.hpp>
-#include <standardese/translation_unit.hpp>
+#include <standardese/error.hpp>
+#include <standardese/parser.hpp>
 
 using namespace standardese;
 
@@ -35,12 +26,36 @@ namespace fs = boost::filesystem;
 
 namespace
 {
+    std::string read_source(const char* full_path)
+    {
+        std::filebuf filebuf;
+        filebuf.open(full_path, std::ios_base::in);
+        assert(filebuf.is_open());
+
+        std::string source;
+        for (std::istreambuf_iterator<char> iter(&filebuf), end = {}; iter != end; ++iter)
+        {
+            // handle backslashes
+            if (*iter == '\\')
+            {
+                ++iter;
+                if (*iter == '\n')
+                    ++iter; // newline is escaped, ignore
+                else
+                    source += '\\'; // "normal" backslash
+            }
+            source += *iter;
+        }
+        if (source.back() != '\n')
+            source.push_back('\n');
+        return source;
+    }
 }
 
-std::string preprocessor::preprocess(const compile_config& c, const char* full_path,
-                                     const std::string& source, cpp_file& file) const
+std::string preprocessor::preprocess(const parser& p, const compile_config& c,
+                                     const char* full_path) const
 {
-    return source;
+    return read_source(full_path);
 }
 
 void preprocessor::add_preprocess_directory(std::string dir)

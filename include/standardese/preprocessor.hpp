@@ -137,8 +137,8 @@ namespace standardese
     class preprocessor
     {
     public:
-        std::string preprocess(const compile_config& c, const char* full_path,
-                               const std::string& source, cpp_file& file) const;
+        std::string preprocess(const parser& p, const compile_config& c,
+                               const char* full_path) const;
 
         void add_preprocess_directory(std::string dir);
 
