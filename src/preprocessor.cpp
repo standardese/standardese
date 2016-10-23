@@ -4,6 +4,7 @@
 
 #include <standardese/preprocessor.hpp>
 
+#include <boost/config.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/version.hpp>
 
@@ -19,6 +20,15 @@
 #include <standardese/config.hpp>
 #include <standardese/error.hpp>
 #include <standardese/parser.hpp>
+
+// treat the tiny-process-library as header only
+#include <process.hpp>
+#include <process.cpp>
+#ifdef BOOST_WINDOWS
+#include <process_win.cpp>
+#else
+#include <process_unix.cpp>
+#endif
 
 using namespace standardese;
 
@@ -52,7 +62,7 @@ namespace
     }
 }
 
-std::string preprocessor::preprocess(const parser& p, const compile_config& c,
+std::string preprocessor::preprocess(const parser&, const compile_config& c,
                                      const char* full_path) const
 {
     return read_source(full_path);

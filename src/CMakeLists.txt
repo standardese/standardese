@@ -103,6 +103,9 @@ find_package(Boost COMPONENTS filesystem system thread date_time chrono REQUIRED
 target_include_directories(standardese PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${Boost_LIBRARIES})
 
+# use tiny-process-library
+target_include_directories(standardese PRIVATE ${TINY_PROCESS_LIBRARY_INCLUDE_DIR})
+
 # install library
 install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")
 install(FILES ${header} DESTINATION "${include_dest}/standardese")
