@@ -47,6 +47,115 @@ namespace
         cmd += full_path;
         return cmd;
     }
+
+    std::string get_full_preprocess_output(const parser& p, const compile_config& c,
+                                           const char* full_path)
+    {
+        std::string preprocessed;
+
+        auto    cmd = get_command(c, full_path);
+        Process process(cmd, "",
+                        [&](const char* str, std::size_t n) { preprocessed.append(str, n); },
+                        [&](const char* str, std::size_t n) {
+                            p.get_logger()->error("[preprocessor] {}", std::string(str, n));
+                        });
+
+        auto exit_code = process.get_exit_status();
+        if (exit_code != 0)
+            throw process_error(cmd, exit_code);
+
+        return preprocessed;
+    }
+
+    struct line_marker
+    {
+        enum flag_t
+        {
+            enter_new = 1, // flag 1
+            enter_old = 2, // flag 2
+            system    = 4, // flag 3
+        };
+
+        std::string file_name;
+        unsigned    line, flags;
+
+        line_marker() : line(0u), flags(0u)
+        {
+        }
+
+        void set_flag(flag_t f)
+        {
+            flags |= f;
+        }
+
+        bool is_set(flag_t f) const
+        {
+            return (flags & f) != 0;
+        }
+    };
+
+    // preprocessor line marker
+    // format: # <line> "<file-name>" <flags>
+    // flag 1 - start of a new file
+    // flag 2 - returning to previous file
+    // flag 3 - system header
+    // flag 4 is irrelevant
+    line_marker parse_line_marker(const char*& ptr)
+    {
+        line_marker result;
+
+        assert(*ptr == '#');
+        ++ptr;
+
+        while (*ptr == ' ')
+            ++ptr;
+
+        std::string line;
+        while (std::isdigit(*ptr))
+            line += *ptr++;
+        result.line = unsigned(std::stoi(line));
+
+        while (*ptr == ' ')
+            ++ptr;
+
+        assert(*ptr == '"');
+        ++ptr;
+
+        std::string file_name;
+        while (*ptr != '"')
+            file_name += *ptr++;
+        ++ptr;
+        result.file_name = std::move(file_name);
+
+        while (*ptr == ' ')
+            ++ptr;
+
+        while (*ptr != '\n')
+        {
+            if (*ptr == ' ')
+                ++ptr;
+
+            switch (*ptr)
+            {
+            case '1':
+                result.set_flag(line_marker::enter_new);
+                break;
+            case '2':
+                result.set_flag(line_marker::enter_old);
+                break;
+            case '3':
+                result.set_flag(line_marker::system);
+                break;
+            case '4':
+                break;
+            default:
+                assert(false);
+            }
+            ++ptr;
+        }
+
+        return result;
+    }
 }
 
 std::string preprocessor::preprocess(const parser& p, const compile_config& c,
@@ -54,15 +163,67 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
 {
     std::string preprocessed;
 
-    auto    cmd = get_command(c, full_path);
-    Process process(cmd, "", [&](const char* str, std::size_t n) { preprocessed.append(str, n); },
-                    [&](const char* str, std::size_t n) {
-                        p.get_logger()->error("[preprocessor] {}", std::string(str, n));
-                    });
+    auto full_preprocessed = get_full_preprocess_output(p, c, full_path);
+    auto file_depth        = 0;
+    auto was_newl = true, in_c_comment = false, write_char = true;
+    for (auto ptr = full_preprocessed.c_str(); *ptr; ++ptr)
+    {
+        if (*ptr == '\n')
+        {
+            was_newl = true;
+        }
+        else if (in_c_comment && ptr[0] == '*' && ptr[1] == '/')
+        {
+            in_c_comment = false;
+            was_newl     = false;
+        }
+        else if (*ptr == '/' && ptr[1] == '*')
+        {
+            in_c_comment = true;
+            was_newl     = false;
+        }
+        else if (was_newl && !in_c_comment && *ptr == '#' && ptr[1] != 'p')
+        {
+            auto marker = parse_line_marker(ptr);
+            assert(*ptr == '\n');
 
-    auto exit_code = process.get_exit_status();
-    if (exit_code != 0)
-        throw process_error(cmd, exit_code);
+            if (marker.file_name == full_path)
+            {
+                assert(file_depth <= 1);
+                file_depth = 0;
+                write_char = false;
+            }
+            else if (marker.is_set(line_marker::enter_new))
+            {
+                ++file_depth;
+                if (file_depth == 1 && marker.file_name != "<built-in>"
+                    && marker.file_name != "<command line>")
+                {
+                    // write include
+                    preprocessed += "#include ";
+                    if (marker.is_set(line_marker::system))
+                        preprocessed += '<';
+                    else
+                        preprocessed += '"';
+                    preprocessed += marker.file_name;
+                    if (marker.is_set(line_marker::system))
+                        preprocessed += '>';
+                    else
+                        preprocessed += '"';
+                    preprocessed += '\n';
+                }
+            }
+            else if (marker.is_set(line_marker::enter_old))
+                --file_depth;
+        }
+        else
+            was_newl = false;
+
+        if (file_depth == 0 && write_char)
+            preprocessed += *ptr;
+        else if (file_depth == 0)
+            write_char = true;
+    }
 
     return preprocessed;
 }
