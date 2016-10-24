@@ -130,10 +130,16 @@ namespace
 
 #define STANDARDESE_DETAIL_STRINGIFY_IMPL(x) #x
 #define STANDARDESE_DETAIL_STRINGIFY(x) STANDARDESE_DETAIL_STRINGIFY_IMPL(x)
+
+    std::string get_clang_binary_default()
+    {
+        return unquote(STANDARDESE_DETAIL_STRINGIFY(CLANG_BINARY));
+    }
 }
 
 compile_config::compile_config(cpp_standard standard, string commands_dir)
-: flags_{"-x", "c++", "-I", unquote(STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR))}
+: flags_{"-x", "c++", "-I", unquote(STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR))},
+  clang_binary_(get_clang_binary_default())
 {
     (void)standards_initializer;
 

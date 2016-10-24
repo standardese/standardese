@@ -63,6 +63,10 @@ namespace standardese_tool
         if (map.count("compilation.ms_extensions"))
             result.set_flag(compile_flag::ms_extensions);
 
+        auto binary = map.find("compilation.clang_binary");
+        if (binary != map.end())
+            result.set_clang_binary(binary->second.as<std::string>());
+
         return result;
     }
 
@@ -123,7 +127,7 @@ namespace standardese_tool
         auto dirs = map.find("compilation.preprocess_dir");
         if (dirs != map.end())
             for (auto& dir : dirs->second.as<std::vector<std::string>>())
-                p->get_preprocessor().add_preprocess_directory(std::move(dir));
+                p->get_preprocessor().whitelist_include_dir(std::move(dir));
 
         return p;
     }

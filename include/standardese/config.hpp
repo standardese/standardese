@@ -45,6 +45,16 @@ namespace standardese
 
         void set_flag(compile_flag f);
 
+        void set_clang_binary(std::string path)
+        {
+            clang_binary_ = std::move(path);
+        }
+
+        const std::string& get_clang_binary() const
+        {
+            return clang_binary_;
+        }
+
         std::vector<const char*> get_flags() const;
 
         std::vector<string>::const_iterator begin() const
@@ -59,6 +69,7 @@ namespace standardese
 
     private:
         std::vector<string> flags_;
+        std::string         clang_binary_;
     };
 
     enum class command_type : unsigned;

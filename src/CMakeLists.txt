@@ -85,7 +85,8 @@ target_compile_definitions(standardese PUBLIC
                                 STANDARDESE=1
                                 STANDARDESE_VERSION_MAJOR=${STANDARDESE_VERSION_MAJOR}
                                 STANDARDESE_VERSION_MINOR=${STANDARDESE_VERSION_MINOR}
-                                LIBCLANG_SYSTEM_INCLUDE_DIR="${LIBCLANG_SYSTEM_INCLUDE_DIR}")
+                                LIBCLANG_SYSTEM_INCLUDE_DIR="${LIBCLANG_SYSTEM_INCLUDE_DIR}"
+                                CLANG_BINARY="${CLANG_BINARY}")
 
 # add threading support
 find_package(Threads REQUIRED)
@@ -99,9 +100,12 @@ target_link_libraries(standardese PUBLIC ${LIBCLANG_LIBRARY})
 target_link_libraries(standardese PUBLIC libcmark_static)
 
 # link Boost
-find_package(Boost COMPONENTS wave filesystem system thread date_time chrono REQUIRED)
+find_package(Boost COMPONENTS filesystem system thread date_time chrono REQUIRED)
 target_include_directories(standardese PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${Boost_LIBRARIES})
+
+# use tiny-process-library
+target_include_directories(standardese PRIVATE ${TINY_PROCESS_LIBRARY_INCLUDE_DIR})
 
 # install library
 install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")

@@ -248,6 +248,7 @@ void func(int a, char* b, float c = .3);
     {
         auto code     = R"(
 #ifndef BAR
+/// \exclude
 #define BAR
 
 /// \exclude

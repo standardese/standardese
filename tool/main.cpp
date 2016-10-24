@@ -19,7 +19,6 @@
 #include <standardese/index.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/output.hpp>
-#include <boost/wave/cpp_exceptions.hpp>
 
 #include "filesystem.hpp"
 #include "options.hpp"
@@ -106,8 +105,10 @@ int main(int argc, char* argv[])
             ("compilation.macro_undefinition,U", po::value<std::vector<std::string>>(),
              "adds an implicit #undef before parsing")
             ("compilation.preprocess_dir,P", po::value<std::vector<std::string>>(),
-             "adds a directory whose contents will be preprocessed by standardese")
+             "whitelists all includes to that directory so that they show up in the output")
             ("compilation.ms_extensions", "enable MSVC extension support (always active if compiled with MSVC)")
+            ("compilation.clang_binary", po::value<std::string>(),
+             "path to clang++ binary")
 
             ("comment.command_character", po::value<char>()->default_value('\\'),
              "character used to introduce special commands")
@@ -229,7 +230,7 @@ int main(int argc, char* argv[])
 
             assert(!input.empty());
             for (auto& path : input)
-                parser.get_preprocessor().add_preprocess_directory(
+                parser.get_preprocessor().whitelist_include_dir(
                     path.parent_path().generic_string());
             for (auto& path : input)
                 standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,
@@ -280,13 +281,6 @@ int main(int argc, char* argv[])
                 for (auto& f : futures)
                     f.wait();
             }
-        }
-        catch (boost::wave::cpp_exception& ex)
-        {
-            parser.get_logger()->critical("when parsing '{}' ({}:{}): {} (Boost.Wave)",
-                                          ex.get_related_name(), ex.file_name(), ex.line_no(),
-                                          boost::wave::preprocess_exception::error_text(
-                                              ex.get_errorcode()));
         }
         catch (std::exception& ex)
         {

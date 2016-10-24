@@ -23,6 +23,12 @@ install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/comp.generated/standardese DESTINA
 #
 # add libclang
 #
+find_program(CLANG_BINARY "clang++" "/usr/bin" "/usr/local/bin")
+if(NOT CLANG_BINARY)
+    message(WARNING "unable to find clang binary, please set CLANG_BINARY yourself or pass --compilation.clang_binary")
+    set(CLANG_BINARY "clang++")
+endif()
+
 set(CLANG_INCLUDE_PATHS "/usr/include/" "/usr/local/include")
 set(CLANG_LIBRARY_PATHS "/usr/lib" "/usr/local/lib")
 
@@ -111,4 +117,16 @@ else()
 
     # install fake target
     install(TARGETS libcmark_static EXPORT standardese DESTINATION ${lib_dir})
+endif()
+
+#
+# add tiny-process-library
+#
+if((NOT TINY_PROCESS_LIBRARY_INCLUDE_DIR) OR (NOT EXISTS TINY_PROCESS_LIBRARY_INCLUDE_DIR))
+    message("Unable to find tiny-process-library, cloning...")
+    execute_process(COMMAND git submodule update --init -- external/tiny-process-library
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    set(TINY_PROCESS_LIBRARY_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/tiny-process-library
+        CACHE PATH "tiny-process-library include directory")
+    # treat as header only library and include source files
 endif()

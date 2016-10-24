@@ -82,14 +82,9 @@ namespace standardese
             return cpp_entity::macro_definition_t;
         }
 
-        static cpp_ptr<cpp_macro_definition> make(const cpp_entity& parent, std::string name,
-                                                  std::string params, std::string replacement,
-                                                  unsigned line)
-        {
-            return detail::make_cpp_ptr<cpp_macro_definition>(parent, std::move(name),
-                                                              std::move(params),
-                                                              std::move(replacement), line);
-        }
+        static cpp_ptr<standardese::cpp_macro_definition> parse(CXTranslationUnit tu, CXFile file,
+                                                                cpp_cursor        cur,
+                                                                const cpp_entity& parent);
 
         cpp_name get_name() const override
         {
@@ -137,15 +132,15 @@ namespace standardese
     class preprocessor
     {
     public:
-        std::string preprocess(const compile_config& c, const char* full_path,
-                               const std::string& source, cpp_file& file) const;
+        std::string preprocess(const parser& p, const compile_config& c, const char* full_path,
+                               cpp_file& file) const;
 
-        void add_preprocess_directory(std::string dir);
+        void whitelist_include_dir(std::string dir);
 
-        bool is_preprocess_directory(const std::string& dir) const STANDARDESE_NOEXCEPT;
+        bool is_whitelisted_directory(std::string& dir) const STANDARDESE_NOEXCEPT;
 
     private:
-        std::unordered_set<std::string> preprocess_dirs_;
+        std::unordered_set<std::string> include_dirs_;
     };
 } // namespace standardese
 

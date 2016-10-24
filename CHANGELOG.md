@@ -5,14 +5,17 @@
 * Allow `unique_name` on files to override the output name
 * Fix termination of section by all special commands
 * Fix matching of end-of-line comments
+* Change hard line break character to a forward slash
 
 ### Library
 
 * Parsing bugfixes
+* Use clang as preprocessor instead of Boost.Wave
 
 ### Tool
 
 * Add `output.inline_doc` option to enable inline documentation
+* Add `compilation.clang_binary` option to control clang binary used as preprocessor
 
 ## 0.2-2
 

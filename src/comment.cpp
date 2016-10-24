@@ -199,8 +199,12 @@ namespace
                 return false;
 
             auto e_id = create_location_id(e);
+            if (id.file_name() != e_id.file_name())
+                // wrong file
+                return false;
+
             assert(id.line() >= e_id.line());
-            return id.line() - e_id.line() <= 1u && e_id.file_name() == id.file_name();
+            return id.line() - e_id.line() <= 1u;
         }
         else if (id.is_inline_location())
         {
@@ -210,9 +214,12 @@ namespace
             assert(clang_Cursor_isNull(cur));
 
             auto e_id = create_location_id(e);
+            if (id.file_name() != e_id.file_name())
+                // wrong file
+                return false;
+
             assert(id.line() >= e_id.line());
-            return id.line() - e_id.line() <= 1u && e_id.file_name() == id.file_name()
-                   && inline_name_matches(e, id.inline_entity_name());
+            return id.line() - e_id.line() <= 1u && inline_name_matches(e, id.inline_entity_name());
         }
 
         assert(e.get_entity_type() == cpp_entity::file_t);

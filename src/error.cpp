@@ -5,6 +5,7 @@
 #include <standardese/error.hpp>
 
 #include <cmark.h>
+#include <spdlog/fmt/fmt.h>
 
 #include <standardese/cpp_cursor.hpp>
 #include <standardese/md_entity.hpp>
@@ -36,6 +37,12 @@ namespace
 
 libclang_error::libclang_error(CXErrorCode error, std::string type)
 : std::runtime_error(std::string(type) + ": " + to_string(error))
+{
+}
+
+process_error::process_error(std::string cmd, int exit_code)
+: std::runtime_error(
+      fmt::format("Command '{}' failed with exit code '{}'", std::move(cmd), exit_code))
 {
 }
 

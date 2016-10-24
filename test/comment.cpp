@@ -30,7 +30,6 @@ std::string get_text(const md_paragraph& paragraph)
 
 const comment& parse_comment(parser& p, std::string source)
 {
-    std::replace(source.begin(), source.end(), '$', ' ');
     auto  tu     = parse(p, "md_comment", (source + "\nint a;").c_str());
     auto& entity = *tu.get_file().begin();
 
@@ -235,8 +234,6 @@ C
     }
     SECTION("one paragraph")
     {
-        // '$' == ' '
-        // trailing space required for the C preprocessor
         const char* source;
         SECTION("C style")
         {
@@ -250,7 +247,7 @@ B2
 C
 \details D
 \brief E
-\notes F\$
+\notes F/
 \notes G
 */)";
         }
@@ -266,7 +263,7 @@ C
 * C
 * \details D
 * \brief E
-* \notes F\$
+* \notes F/
 * \notes G
 */)";
         }
@@ -281,7 +278,7 @@ C
 /// C
 /// \details D
 /// \brief E
-/// \notes F\$
+/// \notes F/
 /// \notes G)";
         }
 

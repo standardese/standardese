@@ -88,7 +88,10 @@ If it isn't found, set the CMake variable `LIBCLANG_INCLUDE_DIR` to the folder w
 `LIBCLANG_LIBRARY` to the library binary and `LIBCLANG_SYSTEM_INCLUDE_DIR` where the system include files are located,
 under a normal (Linux) installation it is `/usr/lib/clang/<version>/include`.
 
-The library requires Boost.Wave (at least 1.55) and the tool requires Boost.ProgramOptions and Boost.Filesystem.
+It also requires a path to the `clang++` binary.
+If that isn't found while building, you need to specify it with the option `compilation.clang_binary`.
+
+The library requires Boost.Filesystem (at least 1.55) and the tool requires Boost.ProgramOptions.
 By default, Boost libraries are linked dynamically (except for Boost.ProgramOptions which is always linked statically),
 but if you wish to link them statically, just add `-DBoost_USE_STATIC_LIBS=ON` to the cmake command.
 
@@ -225,6 +228,11 @@ Inside the comment you can use arbitrary\* Markdown\* in the documentation comme
 > Inline HTML that isn't a raw HTML block will be treated as literal text.
 > This allows writing `vector<T>` without markup or escaping in the comment, for example.
 
+* Note: CommonMark allows hard line breaks with a backslash at the end of the line.
+But the C preprocessor uses a backslash to combine multiple lines into one.
+For that reason you cannot use a backslash there,
+instead you can use a forward slash. *
+
 #### Linking
 
 To link to an entity, use the syntax `[link-text](<> "unique-name")` (a CommonMark link with empty URL and a title of `unique-name`). If you don't want a special `link-text`, this can be shortened to `[unique-name]()` (a CommonMark link with empty URL and the name of an entity as text).
@@ -315,17 +323,12 @@ If you don't specify a section for a paragraph, the first paragraph will be impl
 /// This is implictly details.
 /// \effects This is effects.
 /// This is still effects.
-/// \returns This is returns.\ 
+/// \returns This is returns./
 /// Due to the hard break this is details again.
 ///
 /// \notes This is notes.
 /// \notes This is a different notes.
 ```
-
-* Note: if the last character of any line in the source code - even comments - is a backslash,
-the C preprocessor will merge it with the following line.
-To prevent that, you need to put whitespace after the backslash.
-CommonMark will still treat it as a hard line break, but the preprocessor won't. *
 
 ---
 

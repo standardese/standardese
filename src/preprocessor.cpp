@@ -4,20 +4,9 @@
 
 #include <standardese/preprocessor.hpp>
 
-#ifdef _MSC_VER
-#pragma warning(push)
-// 'sprintf' : format string '%ld' requires an argument of type 'long', but variadic argument 1 has type 'size_t'
-#pragma warning(disable : 4477)
-#endif
-
-#include <boost/wave/cpplexer/cpp_lex_iterator.hpp>
-#include <boost/wave/cpplexer/cpp_lex_token.hpp>
-#include <boost/wave.hpp>
+#include <boost/config.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/version.hpp>
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 #if (BOOST_VERSION / 100000) != 1
 #error "require Boost 1.x"
@@ -27,316 +16,338 @@
 #warning "Boost less than 1.55 isn't tested"
 #endif
 
-#include <standardese/detail/raw_comment.hpp>
+#include <standardese/detail/tokenizer.hpp>
 #include <standardese/config.hpp>
+#include <standardese/error.hpp>
+#include <standardese/parser.hpp>
 #include <standardese/translation_unit.hpp>
 
+// treat the tiny-process-library as header only
+#include <process.hpp>
+#include <process.cpp>
+#ifdef BOOST_WINDOWS
+#include <process_win.cpp>
+#else
+#include <process_unix.cpp>
+#endif
+
 using namespace standardese;
-namespace bw = boost::wave;
+
 namespace fs = boost::filesystem;
+
+cpp_ptr<standardese::cpp_macro_definition> cpp_macro_definition::parse(CXTranslationUnit tu,
+                                                                       CXFile file, cpp_cursor cur,
+                                                                       const cpp_entity& parent)
+{
+    detail::tokenizer tokenizer(tu, file, cur);
+
+    std::string name = tokenizer.begin()[0].get_value().c_str();
+
+    auto function_like = false;
+#if CINDEX_VERSION_MINOR >= 33
+    function_like = clang_Cursor_isMacroFunctionLike(cur);
+#else
+    // first token after name decides if it is function like
+    auto token = tokenizer.begin()[1];
+    if (token.get_value() == "(")
+    {
+        // it is an open parenthesis
+        // but could be part of the macro replacement
+        // so check if whitespace in between
+        auto name_token = *tokenizer.begin();
+        function_like =
+            (name_token.get_offset() + name_token.get_value().length() == token.get_offset());
+    }
+#endif
+
+    std::string params, replacement;
+    if (function_like)
+    {
+        params    = "(";
+        auto iter = tokenizer.begin() + 2; // 0 is name, 1 is open parenthesis
+        for (; iter->get_value() != ")"; ++iter)
+            detail::append_token(params, iter->get_value());
+        params += ")";
+
+        for (++iter; iter != tokenizer.end(); ++iter)
+            detail::append_token(replacement, iter->get_value());
+    }
+    else
+    {
+        for (auto iter = tokenizer.begin() + 1; iter != tokenizer.end(); ++iter)
+            detail::append_token(replacement, iter->get_value());
+    }
+
+    auto     loc = clang_getCursorLocation(cur);
+    unsigned line;
+    clang_getSpellingLocation(loc, nullptr, &line, nullptr, nullptr);
+
+    return detail::make_cpp_ptr<cpp_macro_definition>(parent, std::move(name), std::move(params),
+                                                      std::move(replacement), line);
+}
 
 namespace
 {
-    using input_iterator = std::string::const_iterator;
-    using token_iterator = bw::cpplexer::lex_iterator<bw::cpplexer::lex_token<>>;
-
-    class policy : public bw::context_policies::default_preprocessing_hooks
+    std::string get_command(const compile_config& c, const char* full_path)
     {
-    public:
-        policy(const preprocessor& pre, cpp_file& file, std::string& preprocessed)
-        : pre_(&pre), file_(&file), preprocessed_(&preprocessed)
+        std::string cmd(c.get_clang_binary() + " -E -C ");
+        for (auto& flag : c)
+        {
+            cmd += flag.c_str();
+            cmd += ' ';
+        }
+
+        cmd += full_path;
+        return cmd;
+    }
+
+    std::string get_full_preprocess_output(const parser& p, const compile_config& c,
+                                           const char* full_path)
+    {
+        std::string preprocessed;
+
+        auto    cmd = get_command(c, full_path);
+        Process process(cmd, "",
+                        [&](const char* str, std::size_t n) { preprocessed.append(str, n); },
+                        [&](const char* str, std::size_t n) {
+                            p.get_logger()->error("[preprocessor] {}", std::string(str, n));
+                        });
+
+        auto exit_code = process.get_exit_status();
+        if (exit_code != 0)
+            throw process_error(cmd, exit_code);
+
+        return preprocessed;
+    }
+
+    struct line_marker
+    {
+        enum flag_t
+        {
+            enter_new = 1, // flag 1
+            enter_old = 2, // flag 2
+            system    = 4, // flag 3
+        };
+
+        std::string file_name;
+        unsigned    line, flags;
+
+        line_marker() : line(0u), flags(0u)
         {
         }
 
-        template <class ContextT, class TokenT>
-        const TokenT& generated_token(const ContextT& ctx, const TokenT& token)
+        void set_flag(flag_t f)
         {
-            if (token.is_valid() && ((token != bw::T_CCOMMENT && token != bw::T_CPPCOMMENT)
-                                     || detail::keep_comment(token.get_value().c_str()))
-                && ctx.get_iteration_depth() == 0)
-                // only add main file tokens
-                append(token.get_value().c_str());
-            else if (!token.is_valid() && found_guard_)
-                // last token, add end of include guard
-                append("#endif\n");
-            return token;
+            flags |= f;
         }
 
-        template <class ContextT, class ContainerT>
-        bool found_warning_directive(const ContextT&, const ContainerT&)
+        bool is_set(flag_t f) const
         {
-            // ignore warnings
-            return true;
+            return (flags & f) != 0;
         }
-
-        template <class ContextT, class TokenT, class ContainerT>
-        bool evaluated_conditional_expression(const ContextT& ctx, const TokenT& directive,
-                                              const ContainerT& expression, bool value)
-        {
-            // remember include guard
-            if (is_include_guard(ctx, directive, expression, value))
-            {
-                include_guard_ = expression.begin()->get_value().c_str();
-                ifndef_line_   = expression.begin()->get_position().get_line();
-            }
-
-            return false;
-        }
-
-        template <class ContextT>
-        bool found_include_directive(const ContextT& ctx, std::string file_name, bool include_next)
-        {
-            bool is_system;
-            file_name = get_include_kind(file_name, is_system);
-
-            auto use          = use_include(ctx, file_name, is_system, include_next);
-            auto in_main_file = ctx.get_iteration_depth() == 0;
-            if (use && in_main_file)
-                file_->add_entity(
-                    cpp_inclusion_directive::make(*file_, file_name,
-                                                  is_system ? cpp_inclusion_directive::system :
-                                                              cpp_inclusion_directive::local,
-                                                  0));
-
-            // write include so that libclang can use it
-            if (in_main_file)
-            {
-                append('#');
-                append(include_next ? "include_next" : "include");
-                append(is_system ? '<' : '"');
-                append(file_name);
-                append(is_system ? '>' : '"');
-                append('\n');
-            }
-
-            return true; // never parse include
-        }
-
-        template <class ContextT, class ParametersT, class DefinitionT>
-        void defined_macro(const ContextT& ctx, const bw::cpplexer::lex_token<>& name,
-                           bool is_function_like, const ParametersT& parameters,
-                           const DefinitionT& definition, bool is_predefined)
-        {
-            if (is_predefined || ctx.get_iteration_depth() != 0)
-                // not in the main file
-                return;
-            else if (!found_guard_ && !include_guard_.empty())
-            {
-                // include guard not found, but encountered directive
-                if (name.get_position().get_line() == ifndef_line_ + 1
-                    && name.get_value() == include_guard_.c_str())
-                {
-                    // this is in the next line and has the same macro name
-                    // treat it as include guard, but still need to write it
-                    append("#ifndef " + include_guard_ + "\n");
-                    append("#define " + include_guard_ + '\n');
-                    found_guard_ = true;
-                    return;
-                }
-                else
-                {
-                    // reset state, not include guard
-                    include_guard_.clear();
-                    ifndef_line_ = 0;
-                }
-            }
-
-            std::string str_name = name.get_value().c_str();
-
-            std::string str_params;
-            if (is_function_like)
-            {
-                str_params += '(';
-                auto needs_comma = false;
-                for (auto& token : parameters)
-                {
-                    if (needs_comma)
-                        str_params += ", ";
-                    else
-                        needs_comma = true;
-                    str_params += token.get_value().c_str();
-                }
-                str_params += ')';
-            }
-
-            std::string str_def;
-            for (auto& token : definition)
-                str_def += token.get_value().c_str();
-
-            // also write macro, so that it can be documented
-            append("#define " + str_name + str_params + ' ' + str_def + '\n');
-
-            file_->add_entity(cpp_macro_definition::make(*file_, std::move(str_name),
-                                                         std::move(str_params), std::move(str_def),
-                                                         cur_line_));
-        }
-
-        template <class ContextT>
-        void undefined_macro(const ContextT& ctx, const bw::cpplexer::lex_token<>& name)
-        {
-            if (ctx.get_iteration_depth() != 0)
-                // not in the main file
-                return;
-
-            auto prev = static_cast<cpp_entity*>(nullptr);
-            for (auto& entity : *file_)
-            {
-                if (entity.get_name() == name.get_value().c_str())
-                    break;
-                prev = &entity;
-            }
-
-            file_->remove_entity_after(prev);
-        }
-
-    private:
-        template <class ContextT, class TokenT, class ContainerT>
-        bool is_include_guard(const ContextT& ctx, const TokenT& directive,
-                              const ContainerT& expression, bool value) const
-        {
-            if (found_guard_ || ctx.get_iteration_depth() != 0)
-                // already found, not in main file
-                return false;
-            else if (value || directive.get_value() != "#ifndef")
-                // invalid directive
-                return false;
-            else if (expression.size() > 1)
-                // more than one token in the expression
-                return false;
-            return true;
-        }
-
-        std::string get_include_kind(std::string file_name, bool& is_system)
-        {
-            assert(file_name[0] == '<' || file_name[0] == '"');
-            is_system = file_name[0] == '<';
-
-            file_name.erase(file_name.begin());
-            file_name.pop_back();
-            return file_name;
-        }
-
-        template <class ContextT>
-        bool use_include(const ContextT& ctx, std::string file_name, bool is_system,
-                         bool include_next)
-        {
-            if (include_next)
-                return false;
-
-            std::string dir;
-            if (!ctx.find_include_file(file_name, dir, is_system, nullptr))
-                return false;
-
-            auto     dir_path = fs::system_complete(dir).normalize();
-            fs::path cur_path;
-            for (auto part : dir_path)
-            {
-                cur_path /= part;
-                if (pre_->is_preprocess_directory(cur_path.generic_string()))
-                    return true;
-            }
-            return false;
-        }
-
-        void append(char c)
-        {
-            if (c == '\n')
-                ++cur_line_;
-            if (c != '\r')
-                *preprocessed_ += c;
-        }
-
-        void append(const std::string& str)
-        {
-            for (auto c : str)
-                append(c);
-        }
-
-        const preprocessor* pre_;
-        cpp_file*           file_;
-        std::string*        preprocessed_;
-
-        unsigned header_count_, cur_line_ = 0;
-
-        std::string include_guard_;
-        unsigned    ifndef_line_ = 0;
-        bool        found_guard_ = false;
     };
 
-    using context = bw::context<input_iterator, token_iterator,
-                                bw::iteration_context_policies::load_file_to_string, policy>;
-
-    void setup_context(context& cont, const compile_config& c)
+    // preprocessor line marker
+    // format: # <line> "<file-name>" <flags>
+    // flag 1 - start of a new file
+    // flag 2 - returning to previous file
+    // flag 3 - system header
+    // flag 4 is irrelevant
+    line_marker parse_line_marker(const char*& ptr)
     {
-        // set language to C++11 preprecessor
-        // inserts additional whitespace to separate tokens
-        // do not emits line directives
-        // preserve comments
-        auto lang = bw::support_cpp | bw::support_option_variadics | bw::support_option_long_long
-                    | bw::support_option_insert_whitespace
-                    | ~bw::support_option_emit_line_directives
-                    | bw::support_option_preserve_comments;
-        cont.set_language(bw::language_support(lang));
+        line_marker result;
 
-        // add macros and include paths
-        for (auto iter = c.begin(); iter != c.end(); ++iter)
-            try
+        assert(*ptr == '#');
+        ++ptr;
+
+        while (*ptr == ' ')
+            ++ptr;
+
+        std::string line;
+        while (std::isdigit(*ptr))
+            line += *ptr++;
+        result.line = unsigned(std::stoi(line));
+
+        while (*ptr == ' ')
+            ++ptr;
+
+        assert(*ptr == '"');
+        ++ptr;
+
+        std::string file_name;
+        while (*ptr != '"')
+            file_name += *ptr++;
+        ++ptr;
+        result.file_name = std::move(file_name);
+
+        while (*ptr == ' ')
+            ++ptr;
+
+        while (*ptr != '\n')
+        {
+            if (*ptr == ' ')
+                ++ptr;
+
+            switch (*ptr)
             {
-                if (*iter == "-D")
-                {
-                    ++iter;
-                    cont.add_macro_definition(iter->c_str(), true);
-                }
-                else if (*iter == "-U")
-                {
-                    ++iter;
-                    cont.remove_macro_definition(iter->c_str(), true);
-                }
-                else if (*iter == "-I")
-                {
-                    ++iter;
-                    cont.add_sysinclude_path(iter->c_str());
-                }
-                else if (iter->c_str()[0] == '-')
-                {
-                    if (iter->c_str()[1] == 'D')
-                        cont.add_macro_definition(&(iter->c_str()[2]), true);
-                    else if (iter->c_str()[1] == 'U')
-                        cont.remove_macro_definition(&(iter->c_str()[2]), true);
-                    else if (iter->c_str()[1] == 'I')
-                        cont.add_include_path(&(iter->c_str()[2]));
-                }
+            case '1':
+                result.set_flag(line_marker::enter_new);
+                break;
+            case '2':
+                result.set_flag(line_marker::enter_old);
+                break;
+            case '3':
+                result.set_flag(line_marker::system);
+                break;
+            case '4':
+                break;
+            default:
+                assert(false);
             }
-            catch (bw::cpp_exception& ex)
-            {
-                // ignore
-            }
+            ++ptr;
+        }
+
+        return result;
+    }
+
+    CXTranslationUnit get_cxunit(CXIndex index, const compile_config& c, const char* full_path)
+    {
+        auto args = c.get_flags();
+
+        CXTranslationUnit tu;
+        auto              error =
+            clang_parseTranslationUnit2(index, full_path, args.data(),
+                                        static_cast<int>(args.size()), nullptr, 0,
+                                        CXTranslationUnit_Incomplete
+                                            | CXTranslationUnit_DetailedPreprocessingRecord,
+                                        &tu);
+        if (error != CXError_Success)
+            throw libclang_error(error, "CXTranslationUnit (" + std::string(full_path) + ")");
+        return tu;
+    }
+
+    void add_macros(const parser& p, const compile_config& c, const char* full_path, cpp_file& file)
+    {
+        detail::tu_wrapper tu(get_cxunit(p.get_cxindex(), c, full_path));
+        auto               cxfile = clang_getFile(tu.get(), full_path);
+        detail::visit_tu(tu.get(), cxfile, [&](cpp_cursor cur, cpp_cursor) {
+            if (clang_getCursorKind(cur) == CXCursor_MacroDefinition)
+                file.add_entity(cpp_macro_definition::parse(tu.get(), cxfile, cur, file));
+            return CXChildVisit_Continue;
+        });
     }
 }
 
-std::string preprocessor::preprocess(const compile_config& c, const char* full_path,
-                                     const std::string& source, cpp_file& file) const
+std::string preprocessor::preprocess(const parser& p, const compile_config& c,
+                                     const char* full_path, cpp_file& file) const
 {
     std::string preprocessed;
 
-    context cont(source.begin(), source.end(), full_path, policy(*this, file, preprocessed));
-    setup_context(cont, c);
-    for (auto iter = cont.begin(); iter != cont.end(); ++iter)
-        // do nothing, policy does it all
-        ;
+    auto full_preprocessed = get_full_preprocess_output(p, c, full_path);
+    auto file_depth        = 0;
+    auto was_newl = true, in_c_comment = false, write_char = true;
+    for (auto ptr = full_preprocessed.c_str(); *ptr; ++ptr)
+    {
+        if (*ptr == '\n')
+        {
+            was_newl = true;
+        }
+        else if (in_c_comment && ptr[0] == '*' && ptr[1] == '/')
+        {
+            in_c_comment = false;
+            was_newl     = false;
+        }
+        else if (*ptr == '/' && ptr[1] == '*')
+        {
+            in_c_comment = true;
+            was_newl     = false;
+        }
+        else if (was_newl && !in_c_comment && *ptr == '#' && ptr[1] != 'p')
+        {
+            auto marker = parse_line_marker(ptr);
+            assert(*ptr == '\n');
 
+            if (marker.file_name == full_path)
+            {
+                assert(file_depth <= 1);
+                file_depth = 0;
+                write_char = false;
+            }
+            else if (marker.is_set(line_marker::enter_new))
+            {
+                ++file_depth;
+                if (file_depth == 1 && marker.file_name != "<built-in>"
+                    && marker.file_name != "<command line>")
+                {
+                    // write include
+                    preprocessed += "#include ";
+                    if (marker.is_set(line_marker::system))
+                        preprocessed += '<';
+                    else
+                        preprocessed += '"';
+                    preprocessed += marker.file_name;
+                    if (marker.is_set(line_marker::system))
+                        preprocessed += '>';
+                    else
+                        preprocessed += '"';
+                    preprocessed += '\n';
+
+                    // also add include
+                    if (is_whitelisted_directory(marker.file_name))
+                        file.add_entity(
+                            cpp_inclusion_directive::make(file, marker.file_name,
+                                                          marker.is_set(line_marker::system) ?
+                                                              cpp_inclusion_directive::system :
+                                                              cpp_inclusion_directive::local,
+                                                          marker.line));
+                }
+            }
+            else if (marker.is_set(line_marker::enter_old))
+                --file_depth;
+        }
+        else
+            was_newl = false;
+
+        if (file_depth == 0 && write_char)
+            preprocessed += *ptr;
+        else if (file_depth == 0)
+            write_char = true;
+    }
+
+    add_macros(p, c, full_path, file);
     return preprocessed;
 }
 
-void preprocessor::add_preprocess_directory(std::string dir)
+void preprocessor::whitelist_include_dir(std::string dir)
 {
     auto path = fs::system_complete(dir).normalize().generic_string();
     if (!path.empty() && path.back() == '.')
         path.pop_back();
-    preprocess_dirs_.insert(std::move(path));
+    include_dirs_.insert(std::move(path));
 }
 
-bool preprocessor::is_preprocess_directory(const std::string& dir) const STANDARDESE_NOEXCEPT
+bool preprocessor::is_whitelisted_directory(std::string& dir) const STANDARDESE_NOEXCEPT
 {
-    return preprocess_dirs_.count(dir) != 0;
+    auto path = fs::system_complete(dir).normalize();
+
+    std::string result;
+    for (auto iter = path.begin(); iter != path.end(); ++iter)
+    {
+        result += iter->generic_string();
+        if (result.back() != '/')
+            result += '/';
+
+        if (include_dirs_.count(result))
+        {
+            dir.clear();
+            for (++iter; iter != path.end(); ++iter)
+            {
+                if (!dir.empty())
+                    dir += '/';
+                dir += iter->generic_string();
+            }
+            return true;
+        }
+    }
+    return false;
 }
