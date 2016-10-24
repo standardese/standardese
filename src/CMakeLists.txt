@@ -85,7 +85,8 @@ target_compile_definitions(standardese PUBLIC
                                 STANDARDESE=1
                                 STANDARDESE_VERSION_MAJOR=${STANDARDESE_VERSION_MAJOR}
                                 STANDARDESE_VERSION_MINOR=${STANDARDESE_VERSION_MINOR}
-                                LIBCLANG_SYSTEM_INCLUDE_DIR="${LIBCLANG_SYSTEM_INCLUDE_DIR}")
+                                LIBCLANG_SYSTEM_INCLUDE_DIR="${LIBCLANG_SYSTEM_INCLUDE_DIR}"
+                                CLANG_BINARY="${CLANG_BINARY}")
 
 # add threading support
 find_package(Threads REQUIRED)

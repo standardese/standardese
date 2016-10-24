@@ -63,6 +63,10 @@ namespace standardese_tool
         if (map.count("compilation.ms_extensions"))
             result.set_flag(compile_flag::ms_extensions);
 
+        auto binary = map.find("compilation.clang_binary");
+        if (binary != map.end())
+            result.set_clang_binary(binary->second.as<std::string>());
+
         return result;
     }
 

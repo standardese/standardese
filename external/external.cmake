@@ -23,6 +23,12 @@ install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/comp.generated/standardese DESTINA
 #
 # add libclang
 #
+find_program(CLANG_BINARY "clang++" "/usr/bin" "/usr/local/bin")
+if(NOT CLANG_BINARY)
+    message(WARNING "unable to find clang binary, please set CLANG_BINARY yourself or pass --compilation.clang_binary")
+    set(CLANG_BINARY "clang++")
+endif()
+
 set(CLANG_INCLUDE_PATHS "/usr/include/" "/usr/local/include")
 set(CLANG_LIBRARY_PATHS "/usr/lib" "/usr/local/lib")
 

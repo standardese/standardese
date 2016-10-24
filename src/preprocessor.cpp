@@ -90,10 +90,10 @@ namespace
 {
     std::string get_command(const compile_config& c, const char* full_path)
     {
-        std::string cmd("clang++ -E -C ");
-        for (auto flag : c.get_flags())
+        std::string cmd(c.get_clang_binary() + " -E -C ");
+        for (auto& flag : c)
         {
-            cmd += flag;
+            cmd += flag.c_str();
             cmd += ' ';
         }
 

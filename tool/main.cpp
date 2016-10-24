@@ -107,6 +107,8 @@ int main(int argc, char* argv[])
             ("compilation.preprocess_dir,P", po::value<std::vector<std::string>>(),
              "whitelists all includes to that directory so that they show up in the output")
             ("compilation.ms_extensions", "enable MSVC extension support (always active if compiled with MSVC)")
+            ("compilation.clang_binary", po::value<std::string>(),
+             "path to clang++ binary")
 
             ("comment.command_character", po::value<char>()->default_value('\\'),
              "character used to introduce special commands")
