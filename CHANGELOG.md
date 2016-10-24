@@ -9,10 +9,12 @@
 ### Library
 
 * Parsing bugfixes
+* Use clang as preprocessor instead of Boost.Wave
 
 ### Tool
 
 * Add `output.inline_doc` option to enable inline documentation
+* Add `compilation.clang_binary` option to control clang binary used as preprocessor
 
 ## 0.2-2
 
