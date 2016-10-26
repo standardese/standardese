@@ -8,6 +8,7 @@
 # LLVM_DIR - top-level path
 # LIBCLANG_LIBRARY - path to the libclang library
 # LIBCLANG_INCLUDE_DIR - path to the libclang include directory# LIBCLANG_SYSTEM_INCLUDE_DIR - path to the clang system header files
+# CLANG_BINARY - path to the clang++ binary
 # it listens to:
 # LLVM_VERSION - the version of LLVM to use, default is 3.8.0
 
@@ -29,6 +30,7 @@ if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     export LIBCLANG_LIBRARY=$LLVM_DIR/lib/libclang.so.${LLVM_VERSION%.*}
     export LIBCLANG_INCLUDE_DIR=$LLVM_DIR/include
     export LIBCLANG_SYSTEM_INCLUDE_DIR=$LLVM_DIR/lib/clang/$LLVM_VERSION/include
+    export CLANG_BINARY=$LLVM_DIR/bin/clang++
 
     export LD_LIBRARY_PATH=$LLVM_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
 elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
@@ -42,6 +44,7 @@ elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     export LIBCLANG_LIBRARY=$LLVM_DIR/lib/libclang.dylib
     export LIBCLANG_INCLUDE_DIR=$LLVM_DIR/include
     export LIBCLANG_SYSTEM_INCLUDE_DIR=$LLVM_DIR/lib/clang/$LLVM_VERSION/include
+    export CLANG_BINARY=$LLVM_DIR/bin/clang++
 
     export DYLD_LIBRARY_PATH=$LLVM_DIR/lib${DYLD_LIBRARY_PATH:+:$DY_LD_LIBRARY_PATH}
 else
