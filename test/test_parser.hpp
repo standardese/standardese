@@ -7,6 +7,8 @@
 
 #include <fstream>
 
+#include <spdlog/spdlog.h>
+
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_namespace.hpp>
 #include <standardese/parser.hpp>
@@ -56,5 +58,7 @@ void for_each(const standardese::cpp_entity& e, Func f)
     else
         f(e);
 }
+
+extern const std::shared_ptr<spdlog::logger> test_logger;
 
 #endif // STANDARDESE_TEST_PARSER_HPP_INCLUDED

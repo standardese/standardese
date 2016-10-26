@@ -22,7 +22,7 @@ std::size_t no_parameters(const cpp_function_base& base)
 
 TEST_CASE("cpp_function", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(void a(int x, const char *ptr = nullptr);
 
@@ -183,7 +183,7 @@ auto i() -> decltype(d() = '0');)";
 
 TEST_CASE("cpp_member_function", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(struct base
 {
@@ -341,7 +341,7 @@ struct derived : base
 
 TEST_CASE("cpp_conversion_op", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         template <typename T>
@@ -443,7 +443,7 @@ TEST_CASE("cpp_conversion_op", "[cpp]")
 
 TEST_CASE("cpp_constructor", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         struct foo
@@ -542,7 +542,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
 
 TEST_CASE("cpp_destructor", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         struct a
@@ -672,7 +672,7 @@ TEST_CASE("cpp_destructor", "[cpp]")
 
 TEST_CASE("implicit virtual", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
             struct base_a

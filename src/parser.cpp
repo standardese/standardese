@@ -4,9 +4,6 @@
 
 #include <standardese/parser.hpp>
 
-#include <fstream>
-#include <spdlog/sinks/null_sink.h>
-
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/preprocessor.hpp>
 #include <standardese/error.hpp>
@@ -53,11 +50,6 @@ translation_unit parser::parse(const char* full_path, const compile_config& c,
     file_ptr->set_cursor(clang_getTranslationUnitCursor(tu));
 
     return translation_unit(*this, full_path, file_ptr);
-}
-
-parser::parser()
-: parser(std::make_shared<spdlog::logger>("null", std::make_shared<spdlog::sinks::null_sink_mt>()))
-{
 }
 
 parser::parser(std::shared_ptr<spdlog::logger> logger)

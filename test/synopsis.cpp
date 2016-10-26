@@ -101,7 +101,7 @@ std::string get_synopsis(const standardese::translation_unit& tu)
 
 TEST_CASE("synopsis")
 {
-    parser p;
+    parser p(test_logger);
     REQUIRE(p.get_output_config().get_tab_width() == 4);
 
     SECTION("top-level")

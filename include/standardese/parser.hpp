@@ -65,8 +65,6 @@ namespace standardese
     class parser
     {
     public:
-        parser();
-
         explicit parser(std::shared_ptr<spdlog::logger> logger);
 
         parser(parser&&)      = delete;

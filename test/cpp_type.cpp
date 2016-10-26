@@ -17,7 +17,7 @@ using namespace standardese;
 
 TEST_CASE("cpp_type_alias", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         using type_1 = unsigned int;
@@ -123,7 +123,7 @@ TEST_CASE("cpp_type_alias", "[cpp]")
 
 TEST_CASE("cpp_enum", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         enum ignore_me : int;
@@ -319,7 +319,7 @@ TEST_CASE("cpp_enum", "[cpp]")
 
 TEST_CASE("cpp_class", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     // no need to test member functions here
     auto code = R"(

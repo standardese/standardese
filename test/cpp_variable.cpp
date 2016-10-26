@@ -13,7 +13,7 @@ using namespace standardese;
 
 TEST_CASE("cpp_variable", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         extern char a;
@@ -127,7 +127,7 @@ TEST_CASE("cpp_variable", "[cpp]")
 
 TEST_CASE("cpp_member_variable and cpp_bitfield", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         struct foo

@@ -15,7 +15,7 @@ using namespace standardese;
 
 TEST_CASE("cpp_template_type_parameter", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         template <typename A, typename B = decltype(0)>
@@ -104,7 +104,7 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
 
 TEST_CASE("cpp_non_type_template_parameter", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         template <int A, int B = 0>
@@ -190,7 +190,7 @@ TEST_CASE("cpp_non_type_template_parameter", "[cpp]")
 
 TEST_CASE("cpp_template_template_parameter", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         template <template <typename> class A>
@@ -376,7 +376,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
 // parsing just forwards
 TEST_CASE("cpp_function_template and specialization", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         /// a
@@ -680,7 +680,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
 
 TEST_CASE("cpp_class_template", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         template <typename T>
@@ -952,7 +952,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
 
 TEST_CASE("cpp_alias_template", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
             /// a

@@ -12,7 +12,7 @@ using namespace standardese;
 
 TEST_CASE("cpp_macro_definition", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         #include <iostream>

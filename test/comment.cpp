@@ -40,7 +40,7 @@ const comment& parse_comment(parser& p, std::string source)
 
 TEST_CASE("md_comment", "[doc]")
 {
-    parser p;
+    parser p(test_logger);
 
     SECTION("comment styles")
     {
@@ -371,7 +371,7 @@ std::string get_text(const doc_entity& e)
 
 TEST_CASE("comment-matching", "[doc]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto source = R"(
         /// a
