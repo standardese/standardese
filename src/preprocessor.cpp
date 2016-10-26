@@ -108,7 +108,12 @@ namespace
 
         auto    cmd = get_command(c, full_path);
         Process process(cmd, "",
-                        [&](const char* str, std::size_t n) { preprocessed.append(str, n); },
+                        [&](const char* str, std::size_t n) {
+                            preprocessed.reserve(preprocessed.size() + n);
+                            for (auto end = str + n; str != end; ++str)
+                                if (*str != '\r')
+                                    preprocessed.push_back(*str);
+                        },
                         [&](const char* str, std::size_t n) {
                             p.get_logger()->error("[preprocessor] {}", std::string(str, n));
                         });
