@@ -62,7 +62,7 @@ namespace
             content.pop_back();
 
         // translate forward slash to backslash
-        if (content.back() == '/')
+        if (!content.empty() && content.back() == '/')
             content.back() = '\\';
 
         return {std::move(content), 1, cur_line - 1};
