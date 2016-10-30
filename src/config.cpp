@@ -185,7 +185,7 @@ void compile_config::set_flag(compile_flag f)
 void compile_config::set_msvc_compatibility_version(unsigned version)
 {
     if (version != 0u)
-        flags_.push_back(fmt::format("-fms-compatility-version={}", version));
+        flags_.push_back(fmt::format("-fms-compatibility-version={}", version));
 }
 
 std::vector<const char*> compile_config::get_flags() const
