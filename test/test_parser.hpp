@@ -15,15 +15,25 @@
 #include <standardese/string.hpp>
 #include <standardese/translation_unit.hpp>
 
-inline standardese::translation_unit parse(
-    standardese::parser& p, const char* name, const char* code,
-    const standardese::compile_config& c = standardese::cpp_standard::cpp_14)
+inline standardese::compile_config get_compile_config()
+{
+    standardese::compile_config c(standardese::cpp_standard::cpp_14);
+#ifdef _MSC_VER
+    c.set_flag(standardese::compile_flag::ms_compatibility);
+    c.set_flag(standardese::compile_flag::ms_extensions);
+    c.set_msvc_compatibility_version(_MSC_VER / 100u);
+#endif
+    return c;
+}
+
+inline standardese::translation_unit parse(standardese::parser& p, const char* name,
+                                           const char* code)
 {
     std::ofstream file(name);
     file << code;
     file.close();
 
-    return p.parse(name, c);
+    return p.parse(name, get_compile_config());
 }
 
 template <typename T>
