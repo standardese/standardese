@@ -47,7 +47,7 @@ namespace standardese_tool
     inline unsigned default_msvc_version() noexcept
     {
 #ifdef _MSC_VER
-        return _MSC_VER;
+        return _MSC_VER / 100u;
 #else
         return 0u;
 #endif
