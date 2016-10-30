@@ -29,11 +29,12 @@ namespace
 
     auto standards_initializer = (init_standards(), 0);
 
-    const char* flags[int(compile_flag::count)];
+    const char* flags[int(compile_flag::count)] = {};
 
     void init_flags()
     {
-        flags[int(compile_flag::ms_extensions)] = "-fms-extensions";
+        flags[int(compile_flag::ms_extensions)]    = "-fms-extensions";
+        flags[int(compile_flag::ms_compatibility)] = "-fms-compatibility";
     }
 
     auto flags_initializer = (init_flags(), 0);
@@ -154,11 +155,6 @@ compile_config::compile_config(cpp_standard standard, string commands_dir)
 
     if (standard != cpp_standard::count)
         flags_.push_back(standards[int(standard)]);
-
-#ifdef _MSC_VER
-    // automatically enable MS extensions on Windows builds
-    set_flag(compile_flag::ms_extensions);
-#endif
 }
 
 void compile_config::add_macro_definition(string def)
@@ -181,7 +177,15 @@ void compile_config::add_include(string path)
 
 void compile_config::set_flag(compile_flag f)
 {
-    flags_.push_back(flags[int(f)]);
+    auto str = flags[int(f)];
+    assert(str);
+    flags_.push_back(str);
+}
+
+void compile_config::set_msvc_compatibility_version(unsigned version)
+{
+    if (version != 0u)
+        flags_.push_back(fmt::format("-fms-compatility-version={}", version));
 }
 
 std::vector<const char*> compile_config::get_flags() const

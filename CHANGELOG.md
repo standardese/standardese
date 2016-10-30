@@ -16,6 +16,7 @@
 
 * Add `output.inline_doc` option to enable inline documentation
 * Add `compilation.clang_binary` option to control clang binary used as preprocessor
+* Add `compilation.ms_compatibility` option to give more control over MSVC compatibility as well as tweaked `compilation.ms_extensions`
 
 ## 0.2-2
 

@@ -106,7 +106,12 @@ int main(int argc, char* argv[])
              "adds an implicit #undef before parsing")
             ("compilation.preprocess_dir,P", po::value<std::vector<std::string>>(),
              "whitelists all includes to that directory so that they show up in the output")
-            ("compilation.ms_extensions", "enable MSVC extension support (always active if compiled with MSVC)")
+            ("compilation.ms_extensions",
+             po::value<bool>()->implicit_value(true)->default_value(standardese_tool::default_msvc_comp()),
+             "enable/disable MSVC extension support (-fms-extensions)")
+            ("compilation.ms_compatibility",
+             po::value<unsigned>()->default_value(standardese_tool::default_msvc_version()),
+             "set MSVC compatibility version to fake, 0 to disable (-fms-compatibility[-version])")
             ("compilation.clang_binary", po::value<std::string>(),
              "path to clang++ binary")
 

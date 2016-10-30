@@ -35,6 +35,24 @@ namespace standardese_tool
         }
     } // namespace detail
 
+    inline bool default_msvc_comp() noexcept
+    {
+#ifdef _MSC_VER
+        return true;
+#else
+        return false;
+#endif
+    }
+
+    inline unsigned default_msvc_version() noexcept
+    {
+#ifdef _MSC_VER
+        return _MSC_VER;
+#else
+        return 0u;
+#endif
+    }
+
     inline standardese::compile_config parse_config(
         const boost::program_options::variables_map& map)
     {
@@ -60,8 +78,14 @@ namespace standardese_tool
             for (auto& val : undefs->second.as<std::vector<std::string>>())
                 result.remove_macro_definition(val);
 
-        if (map.count("compilation.ms_extensions"))
+        if (map.at("compilation.ms_extensions").as<bool>())
             result.set_flag(compile_flag::ms_extensions);
+
+        if (auto version = map.at("compilation.ms_compatibility").as<unsigned>())
+        {
+            result.set_flag(compile_flag::ms_compatibility);
+            result.set_msvc_compatibility_version(version);
+        }
 
         auto binary = map.find("compilation.clang_binary");
         if (binary != map.end())

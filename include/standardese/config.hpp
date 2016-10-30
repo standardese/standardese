@@ -28,6 +28,7 @@ namespace standardese
     /// Set of "special" libclang flags.
     enum class compile_flag
     {
+        ms_compatibility,
         ms_extensions,
         count,
     };
@@ -44,6 +45,9 @@ namespace standardese
         void add_include(string path);
 
         void set_flag(compile_flag f);
+
+        // major version number
+        void set_msvc_compatibility_version(unsigned version);
 
         void set_clang_binary(std::string path)
         {
