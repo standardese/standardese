@@ -50,7 +50,7 @@ if(NOT LIBCLANG_LIBRARY)
 endif()
 
 if(NOT LIBCLANG_SYSTEM_INCLUDE_DIR)
-    foreach(version "3.8.1" "3.8.0" "3.7.1")
+    foreach(version "3.9.0" "3.8.1" "3.8.0" "3.7.1")
         find_path(LIBCLANG_SYSTEM_INCLUDE_DIR_IMPL "clang/${version}/include" ${CLANG_LIBRARY_PATHS})
         set(libclang_version ${version})
 
