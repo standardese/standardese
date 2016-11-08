@@ -110,17 +110,17 @@ TEST_CASE("synopsis")
 
 constexpr int a(char& c, int* ptr, ...) noexcept(noexcept(1+1));
 
-template <typename T, template <typename> typename D, int ... I>
+template <class T, template <class> class D, int ... I>
 void b(T t);
 
-template <typename ... T>
+template <class ... T>
 void c(T&&... ts);
 
 int var = 32;
 
 using type = int;
 
-template <typename T>
+template <class T>
 using identity = T;)";
 
         auto tu = parse(p, "synopsis_toplevel", code);

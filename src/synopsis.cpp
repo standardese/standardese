@@ -405,7 +405,7 @@ namespace
     void do_write_synopsis(const parser& par, code_block_writer& out,
                            const cpp_template_type_parameter& p)
     {
-        out << "typename";
+        out << "class";
         if (p.is_variadic())
             out << " ...";
         if (!p.get_name().empty())
@@ -431,7 +431,7 @@ namespace
             return true;
         });
 
-        out << "> typename";
+        out << "> class";
         if (p.is_variadic())
             out << " ...";
         if (!p.get_name().empty())
