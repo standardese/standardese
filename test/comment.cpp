@@ -8,10 +8,12 @@
 
 #include <standardese/detail/raw_comment.hpp>
 #include <standardese/cpp_function.hpp>
+#include <standardese/cpp_template.hpp>
+#include <standardese/doc_entity.hpp>
+#include <standardese/index.hpp>
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_inlines.hpp>
 #include <standardese/parser.hpp>
-#include <standardese/cpp_template.hpp>
 
 #include "test_parser.hpp"
 
@@ -414,33 +416,32 @@ TEST_CASE("comment-matching", "[doc]")
 
     auto tu = parse(p, "comment-matching", source);
 
-    REQUIRE(get_text(doc_entity(p, tu.get_file(), "")) == "file");
-    for (auto& entity : tu.get_file())
+    standardese::index i;
+    auto               file = doc_file::parse(p, i, "", tu.get_file());
+
+    REQUIRE(get_text(*file) == "file");
+    for (auto& entity : *file)
     {
         INFO(entity.get_name().c_str());
-        REQUIRE(get_text(doc_entity(p, entity, "")) == entity.get_name().c_str());
+        REQUIRE(get_text(entity) == entity.get_name().c_str());
 
-        if (is_function_like(entity.get_entity_type()))
+        if (is_function_like(entity.get_cpp_entity_type()))
         {
-            auto& func = static_cast<const cpp_function_base&>(entity);
-            for (auto& param : func.get_parameters())
+            for (auto& param : static_cast<doc_container_cpp_entity&>(entity))
             {
                 INFO(param.get_name().c_str());
-                REQUIRE(get_text(doc_entity(p, param, "")) == param.get_name().c_str());
+                REQUIRE(get_text(param) == param.get_name().c_str());
             }
         }
-        else if (entity.get_entity_type() == cpp_entity::class_template_t)
+        else if (entity.get_cpp_entity_type() == cpp_entity::class_template_t)
         {
-            auto& templ = static_cast<const cpp_class_template&>(entity);
-            for (auto& param : templ.get_template_parameters())
+            for (auto& child : static_cast<doc_container_cpp_entity&>(entity))
             {
-                INFO(param.get_name().c_str());
-                REQUIRE(get_text(doc_entity(p, param, "")) == "g-param");
-            }
-            for (auto& base : templ.get_class().get_bases())
-            {
-                INFO(base.get_name().c_str());
-                REQUIRE(get_text(doc_entity(p, base, "")) == "g-base");
+                INFO(child.get_name().c_str());
+                if (child.get_cpp_entity_type() == cpp_entity::base_class_t)
+                    REQUIRE(get_text(child) == "g-base");
+                else
+                    REQUIRE(get_text(child) == "g-param");
             }
         }
     }

@@ -31,6 +31,40 @@ namespace standardese
 
         friend detail::md_ptr_access;
     };
+
+    class md_document final : public md_container
+    {
+    public:
+        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return md_entity::document_t;
+        }
+
+        static md_ptr<md_document> make(std::string name);
+
+        md_entity_ptr clone() const
+        {
+            return do_clone(nullptr);
+        }
+
+        const std::string& get_output_name() const STANDARDESE_NOEXCEPT
+        {
+            return name_;
+        }
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
+    private:
+        md_document(cmark_node* node, std::string name)
+        : md_container(get_entity_type(), node), name_(std::move(name))
+        {
+        }
+
+        std::string name_;
+
+        friend detail::md_ptr_access;
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_MD_CUSTOM_HPP_INCLUDED

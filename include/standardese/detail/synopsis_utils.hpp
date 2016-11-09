@@ -6,6 +6,7 @@
 #define STANDARDESE_DETAIL_SYNOPSIS_UTILS_HPP_INCLUDED
 
 #include <standardese/cpp_type.hpp>
+#include <standardese/doc_entity.hpp>
 #include <standardese/parser.hpp>
 #include <standardese/output.hpp>
 
@@ -19,15 +20,16 @@ namespace standardese
 {
     namespace detail
     {
+        inline bool is_blacklisted(const parser& p, const doc_entity& e)
+        {
+            return p.get_output_config().get_blacklist().is_blacklisted(entity_blacklist::synopsis,
+                                                                        e);
+        }
+
         inline bool is_blacklisted(const parser& p, const cpp_entity& e)
         {
-            auto& blacklist = p.get_output_config().get_blacklist();
-            if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
-                return true;
-            auto comment = p.get_comment_registry().lookup_comment(p.get_entity_registry(), e);
-            if (comment && comment->is_excluded())
-                return true;
-            return false;
+            return p.get_output_config().get_blacklist().is_blacklisted(entity_blacklist::synopsis,
+                                                                        e);
         }
 
         template <CXCursorKind Kind>
@@ -65,43 +67,25 @@ namespace standardese
             return ref.get_name();
         }
 
-        template <class Container, typename T, typename Func>
-        void write_range(code_block_writer& out, const Container& cont, T sep, Func f)
-        {
-            auto need = false;
-            for (auto& e : cont)
-            {
-                if (need)
-                    out << sep;
-
-                need = f(out, e);
-            }
-
-            out.remove_trailing_line();
-        }
-
         void write_type_value_default(const parser& par, code_block_writer& out,
                                       const cpp_type_ref& type, const cpp_name& name,
                                       const std::string& def = "", bool variadic = false);
 
+        void write_template_parameters(const parser& par, code_block_writer& out,
+                                       const doc_container_cpp_entity& cont);
+
         void write_class_name(code_block_writer& out, const cpp_name& name, int class_type);
-
-        void write_bases(const parser& par, code_block_writer& out, const cpp_class& c,
-                         bool extract_private);
-
-        void write_parameters(const parser& par, code_block_writer& out, const cpp_function_base& f,
-                              const cpp_name& override_name);
-
-        void write_noexcept(code_block_writer& out, const cpp_function_base& f);
-
-        void write_definition(code_block_writer& out, const cpp_function_base& f);
-
-        void write_cv_ref(code_block_writer& out, int cv, int ref);
+        void write_bases(const parser& par, code_block_writer& out,
+                         const doc_container_cpp_entity& cont, const cpp_class& c);
 
         void write_prefix(code_block_writer& out, int virtual_flag, bool constexpr_f,
                           bool explicit_f = false);
-
+        void write_parameters(const parser& par, code_block_writer& out,
+                              const doc_container_cpp_entity& cont, const cpp_function_base& f);
+        void write_cv_ref(code_block_writer& out, int cv, int ref);
+        void write_noexcept(code_block_writer& out, const cpp_function_base& f);
         void write_override_final(code_block_writer& out, int virtual_flag);
+        void write_definition(code_block_writer& out, const cpp_function_base& f);
     }
 } // namespace standardese::detail
 

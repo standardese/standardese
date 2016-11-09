@@ -43,7 +43,7 @@ namespace standardese
                 iter->second = std::move(url);
         }
 
-        void register_entity(doc_entity entity) const;
+        void register_entity(const doc_entity& entity) const;
 
         const doc_entity* try_lookup(const std::string& unique_name) const;
 
@@ -55,15 +55,15 @@ namespace standardese
         template <typename Func>
         void for_each_file(Func f)
         {
-            for (auto iter : files_)
-                f(iter->second.second);
+            for (auto& iter : files_)
+                f(*iter->second.second);
         }
 
-        // void(const cpp_namespace* ns, const doc_entity& member)
+        // void(const doc_entity* ns, const doc_entity& member)
         template <typename Func>
         void for_each_namespace_member(Func f)
         {
-            auto cb = [](const cpp_namespace* ns, const doc_entity& e, void* data) {
+            auto cb = [](const doc_entity* ns, const doc_entity& e, void* data) {
                 auto& func = *static_cast<Func*>(data);
                 func(ns, e);
             };
@@ -71,12 +71,12 @@ namespace standardese
         }
 
     private:
-        using ns_member_cb = void(const cpp_namespace*, const doc_entity&, void*);
+        using ns_member_cb = void(const doc_entity*, const doc_entity&, void*);
 
         void namespace_member_impl(ns_member_cb cb, void* data);
 
         mutable std::mutex mutex_;
-        mutable std::map<std::string, std::pair<bool, doc_entity>> entities_;
+        mutable std::map<std::string, std::pair<bool, const doc_entity*>> entities_;
         mutable std::vector<decltype(entities_)::const_iterator> files_;
 
         std::unordered_map<std::string, std::string> external_;

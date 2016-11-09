@@ -6,6 +6,7 @@
 
 #include <standardese/cpp_class.hpp>
 #include <standardese/cpp_function.hpp>
+#include <standardese/cpp_template.hpp>
 
 using namespace standardese;
 
@@ -63,9 +64,42 @@ void detail::write_type_value_default(const parser& par, code_block_writer& out,
         out << " = " << def;
 }
 
+void detail::write_template_parameters(const parser& par, code_block_writer& out,
+                                       const doc_container_cpp_entity& cont)
+{
+    assert(is_template(cont.get_cpp_entity_type()));
+
+    out << "template <";
+
+    auto first = true;
+    for (auto& child : cont)
+    {
+        if (!is_template_parameter(child.get_cpp_entity_type()))
+        {
+            if (first)
+                // no template parameter yet
+                continue;
+            else
+                // all template parameters handled
+                break;
+        }
+        else if (!is_blacklisted(par, child))
+        {
+            if (first)
+                first = false;
+            else
+                out << ", ";
+
+            detail::synopsis_access::do_generate_synopsis(child, par, out, false);
+        }
+    }
+
+    out << ">" << newl;
+}
+
 void detail::write_class_name(code_block_writer& out, const cpp_name& name, int class_type)
 {
-    switch (class_type)
+    switch (static_cast<cpp_class_type>(class_type))
     {
     case cpp_struct_t:
         out << "struct ";
@@ -80,17 +114,16 @@ void detail::write_class_name(code_block_writer& out, const cpp_name& name, int 
     out << name;
 }
 
-void detail::write_bases(const parser& par, code_block_writer& out, const cpp_class& c,
-                         bool extract_private)
+void detail::write_bases(const parser& par, code_block_writer& out,
+                         const doc_container_cpp_entity& cont, const cpp_class& c)
 {
     auto comma = false;
-    for (auto& base : c.get_bases())
+    for (auto& child : cont)
     {
-        if (!extract_private && base.get_access() == cpp_private)
+        if (child.get_cpp_entity_type() != cpp_entity::base_class_t || is_blacklisted(par, child))
             continue;
-        auto comment = par.get_comment_registry().lookup_comment(par.get_entity_registry(), base);
-        if (comment && comment->is_excluded())
-            continue;
+        auto& doc_e = static_cast<const doc_cpp_entity&>(child);
+        auto& base  = static_cast<const cpp_base_class&>(doc_e.get_cpp_entity());
 
         if (comma)
             out << ", ";
@@ -122,29 +155,31 @@ void detail::write_bases(const parser& par, code_block_writer& out, const cpp_cl
         out << newl;
 }
 
-void detail::write_parameters(const parser& par, code_block_writer& out, const cpp_function_base& f,
-                              const cpp_name& override_name)
+void detail::write_parameters(const parser& par, code_block_writer& out,
+                              const doc_container_cpp_entity& cont, const cpp_function_base& f)
+
 {
-    if (override_name.empty())
-        out << f.get_name();
+    if (cont.get_cpp_entity_type() == cpp_entity::function_template_specialization_t)
+        out << cont.get_cpp_entity().get_name() << '(';
     else
-        out << override_name;
-    out << '(';
+        out << f.get_name() << '(';
 
     auto need = false;
-    for (auto& p : f.get_parameters())
+    for (auto& child : cont)
     {
-        if (is_blacklisted(par, p))
+        if (child.get_cpp_entity_type() != cpp_entity::function_parameter_t
+            || is_blacklisted(par, child))
             continue;
-        else if (need)
-        {
+        auto& doc_e = static_cast<const doc_cpp_entity&>(child);
+        auto& p     = static_cast<const cpp_function_parameter&>(doc_e.get_cpp_entity());
+
+        if (need)
             out << ", ";
-            need = false;
-        }
+        else
+            need = true;
 
         detail::write_type_value_default(par, out, p.get_type(), p.get_name(),
                                          p.get_default_value());
-        need = true;
     }
 
     if (f.is_variadic())

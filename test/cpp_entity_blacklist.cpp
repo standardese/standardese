@@ -2,14 +2,16 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
-#include <standardese/synopsis.hpp>
+#include <standardese/cpp_entity_blacklist.hpp>
 
 #include <catch.hpp>
 
 #include "test_parser.hpp"
 
+#include <standardese/doc_entity.hpp>
 #include <standardese/generator.hpp>
-#include <standardese/md_blocks.hpp>
+#include <standardese/index.hpp>
+#include <standardese/output.hpp>
 
 using namespace standardese;
 
@@ -84,19 +86,36 @@ TEST_CASE("entity_blacklist")
     }
 }
 
-std::string get_synopsis(const parser& p, const cpp_entity& e)
+std::string get_synopsis(const parser& p, const doc_entity& e)
 {
-    auto doc = md_document::make("");
-    write_synopsis(p, *doc, doc_entity(p, e, ""));
-
-    REQUIRE(doc->begin()->get_entity_type() == md_entity::code_block_t);
-    auto& code_block = dynamic_cast<md_code_block&>(*doc->begin());
-    return code_block.get_string();
+    auto              doc = md_document::make("");
+    code_block_writer cb(*doc);
+    e.generate_synopsis(p, cb);
+    return cb.get_code_block()->get_string();
 }
 
-std::string get_synopsis(const standardese::translation_unit& tu)
+std::string get_synopsis(const parser& p, const doc_file& file, const cpp_entity& e)
 {
-    return get_synopsis(tu.get_parser(), tu.get_file());
+    // don't support nesting
+    for (auto& doc_e : file)
+        if (&static_cast<doc_cpp_entity&>(doc_e).get_cpp_entity() == &e)
+            return get_synopsis(p, doc_e);
+    REQUIRE(false);
+    return "";
+}
+
+std::string get_synopsis(const translation_unit& tu, const cpp_entity& e)
+{
+    standardese::index i;
+    auto               file = doc_file::parse(tu.get_parser(), i, "", tu.get_file());
+    return get_synopsis(tu.get_parser(), *file, e);
+}
+
+std::string get_synopsis(const translation_unit& tu)
+{
+    standardese::index i;
+    auto               file = doc_file::parse(tu.get_parser(), i, "", tu.get_file());
+    return get_synopsis(tu.get_parser(), *file);
 }
 
 TEST_CASE("synopsis")
@@ -202,7 +221,7 @@ private:
 
         auto tu = parse(p, "synopsis_class", code);
         REQUIRE(get_synopsis(tu) == "class foo;");
-        REQUIRE(get_synopsis(p, *tu.get_file().begin()) == synopsis);
+        REQUIRE(get_synopsis(tu, *tu.get_file().begin()) == synopsis);
     }
     SECTION("enum")
     {
@@ -224,12 +243,12 @@ enum foo: unsigned int
     a,
     b = 4,
     c,
-    d,
+    d
 };)";
 
         auto tu = parse(p, "synopsis_enum", code);
         REQUIRE(get_synopsis(tu) == "enum foo;");
-        REQUIRE(get_synopsis(p, *tu.get_file().begin()) == synopsis);
+        REQUIRE(get_synopsis(tu, *tu.get_file().begin()) == synopsis);
     }
     SECTION("function")
     {
@@ -242,7 +261,7 @@ void func(int a, char* b, float c = .3);
         auto synopsis = R"(void func(int a, char* b);)";
 
         auto tu = parse(p, "synopsis_function", code);
-        REQUIRE(get_synopsis(p, tu.get_file()) == synopsis);
+        REQUIRE(get_synopsis(tu) == synopsis);
     }
     SECTION("extensive preprocessor")
     {
@@ -265,6 +284,6 @@ GENERATE(foo)
         auto synopsis = R"(void foo();)";
 
         auto tu = parse(p, "synopsis_extensive_preprocessor", code);
-        REQUIRE(get_synopsis(p, tu.get_file()) == synopsis);
+        REQUIRE(get_synopsis(tu) == synopsis);
     }
 }

@@ -11,7 +11,7 @@
 
 #include <standardese/noexcept.hpp>
 #include <standardese/string.hpp>
-#include <standardese/synopsis.hpp>
+#include <standardese/cpp_entity_blacklist.hpp>
 
 namespace standardese
 {

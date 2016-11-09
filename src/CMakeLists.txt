@@ -17,6 +17,7 @@ set(header
         ../include/standardese/cpp_class.hpp
         ../include/standardese/cpp_cursor.hpp
         ../include/standardese/cpp_entity.hpp
+        ../include/standardese/cpp_entity_blacklist.hpp
         ../include/standardese/cpp_entity_registry.hpp
         ../include/standardese/cpp_enum.hpp
         ../include/standardese/cpp_function.hpp
@@ -39,7 +40,6 @@ set(header
         ../include/standardese/preprocessor.hpp
         ../include/standardese/section.hpp
         ../include/standardese/string.hpp
-        ../include/standardese/synopsis.hpp
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
@@ -51,6 +51,7 @@ set(src
         config.cpp
         cpp_class.cpp
         cpp_entity.cpp
+        cpp_entity_blacklist.cpp
         cpp_enum.cpp
         cpp_function.cpp
         cpp_namespace.cpp
@@ -70,7 +71,6 @@ set(src
         output_stream.cpp
         parser.cpp
         preprocessor.cpp
-        synopsis.cpp
         translation_unit.cpp)
 
 add_library(standardese ${detail_header} ${header} ${src})

@@ -200,15 +200,15 @@ int main(int argc, char* argv[])
             log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
             log->debug("Using cmark version: {}", CMARK_VERSION_STRING);
 
-            standardese::index                            index;
-            standardese_tool::thread_pool                 pool(map.at("jobs").as<unsigned>());
-            std::vector<std::future<md_ptr<md_document>>> futures;
+            standardese::index            index;
+            standardese_tool::thread_pool pool(map.at("jobs").as<unsigned>());
+            std::vector<std::future<standardese::documentation>> futures;
             futures.reserve(input.size());
 
             auto generate = [&](const fs::path& p, const fs::path& relative) {
                 log->info("Generating documentation for {}...", p);
 
-                md_ptr<md_document> result;
+                standardese::documentation result(nullptr);
                 try
                 {
                     std::string output_name;
@@ -246,17 +246,17 @@ int main(int argc, char* argv[])
                                                                                 relative));
                                               });
 
-            std::vector<md_ptr<md_document>> documents;
+            std::vector<documentation> documentations;
             for (auto& f : futures)
             {
                 auto doc = f.get();
-                if (doc)
-                    documents.push_back(std::move(doc));
+                if (doc.document)
+                    documentations.push_back(std::move(doc));
             }
 
             log->info("Generating indices...");
-            documents.push_back(generate_file_index(index));
-            documents.push_back(generate_entity_index(index));
+            documentations.push_back(documentation(generate_file_index(index)));
+            documentations.push_back(documentation(generate_entity_index(index)));
 
             config.set_external(index);
             for (auto& format : formats)
@@ -272,16 +272,17 @@ int main(int argc, char* argv[])
                 }
 
                 std::vector<std::future<void>> futures;
-                futures.reserve(documents.size());
+                futures.reserve(documentations.size());
 
                 output out(index, prefix, *format);
-                for (auto& document : documents)
+                for (auto& doc : documentations)
                     futures.push_back(
                         standardese_tool::add_job(pool,
-                                                  [&](const md_document& doc) {
-                                                      out.render(log, doc, config.link_extension());
+                                                  [&](const md_document& document) {
+                                                      out.render(log, document,
+                                                                 config.link_extension());
                                                   },
-                                                  std::ref(*document)));
+                                                  std::ref(*doc.document)));
 
                 for (auto& f : futures)
                     f.wait();

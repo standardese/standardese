@@ -50,3 +50,19 @@ md_section::md_section(const md_entity& parent, const std::string& section_text)
     auto buffer_text = md_text::make(*this, section_text.empty() ? "" : ": ");
     add_entity(std::move(buffer_text));
 }
+
+md_ptr<md_document> md_document::make(std::string name)
+{
+    return detail::make_md_ptr<md_document>(cmark_node_new(CMARK_NODE_DOCUMENT), std::move(name));
+}
+
+md_entity_ptr md_document::do_clone(const md_entity* parent) const
+{
+    assert(!parent);
+    (void)parent;
+
+    auto result = make(name_);
+    for (auto& child : *this)
+        result->add_entity(child.clone(*result));
+    return std::move(result);
+}

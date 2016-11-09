@@ -6,6 +6,8 @@
 
 #include <catch.hpp>
 
+#include <standardese/doc_entity.hpp>
+
 #include "test_parser.hpp"
 
 using namespace standardese;
@@ -80,7 +82,7 @@ TEST_CASE("cpp_macro_definition", "[cpp]")
             REQUIRE(macro.get_replacement() == "0");
         }
         else if (e.get_name() == "test")
-            REQUIRE(doc_entity(p, e, "").has_comment());
+            REQUIRE(p.get_comment_registry().lookup_comment(p.get_entity_registry(), e) != nullptr);
         else
             REQUIRE(false);
     }

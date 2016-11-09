@@ -192,6 +192,17 @@ namespace standardese
                || t == cpp_entity::bitfield_t;
     }
 
+    inline bool is_member_variable(cpp_entity::type t) STANDARDESE_NOEXCEPT
+    {
+        return t == cpp_entity::member_variable_t || t == cpp_entity::bitfield_t;
+    }
+
+    inline bool is_enum_value(cpp_entity::type t) STANDARDESE_NOEXCEPT
+    {
+        return t == cpp_entity::signed_enum_value_t || t == cpp_entity::unsigned_enum_value_t
+               || t == cpp_entity::expression_enum_value_t;
+    }
+
     inline bool is_type(cpp_entity::type t) STANDARDESE_NOEXCEPT
     {
         return t == cpp_entity::enum_t || t == cpp_entity::class_t || t == cpp_entity::type_alias_t;
@@ -233,11 +244,6 @@ namespace standardese
     inline bool is_parameter(cpp_entity::type t) STANDARDESE_NOEXCEPT
     {
         return t == cpp_entity::function_parameter_t || is_template_parameter(t);
-    }
-
-    inline bool is_member_variable(cpp_entity::type t) STANDARDESE_NOEXCEPT
-    {
-        return t == cpp_entity::member_variable_t || t == cpp_entity::bitfield_t;
     }
 
     template <class T>

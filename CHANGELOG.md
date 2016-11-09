@@ -11,6 +11,7 @@
 
 * Parsing bugfixes
 * Use clang as preprocessor instead of Boost.Wave
+* Rewrote generation and synopsis to allow more advanced output
 
 ### Tool
 
