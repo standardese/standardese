@@ -90,7 +90,19 @@ namespace
             return "function template";
 
         case cpp_entity::class_t:
-            return "class";
+        {
+            switch (static_cast<const cpp_class&>(e).get_class_type())
+            {
+            case cpp_class_t:
+                return "class";
+            case cpp_struct_t:
+                return "struct";
+            case cpp_union_t:
+                return "union";
+            }
+            assert(false);
+            return "weird class type - should not get here";
+        }
         case cpp_entity::class_template_t:
         case cpp_entity::class_template_full_specialization_t:
         case cpp_entity::class_template_partial_specialization_t:
@@ -105,6 +117,7 @@ namespace
             break;
         }
 
+        assert(false);
         return "should never get here";
     }
 
