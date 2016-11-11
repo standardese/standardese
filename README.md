@@ -14,7 +14,7 @@ The library aims at becoming *the* documentation frontend that can be easily ext
 It parses C++ code with the help of [libclang](http://clang.llvm.org/doxygen/group__CINDEX.html) and provides access to it.
 
 The tool drives the library to generate documentation for user-specified files.
-It currently only supports Markdown as an output format but might be extended in the future.
+It supports a couple of output formats including Markdown and HTML as well as experimental Latex and Man pages.
 
 Read more in the introductory [blog post](http://foonathan.github.io/blog/2016/05/06/standardese-nextgen-doxygen.html).
 
@@ -290,6 +290,33 @@ It is as if the entity never existed in the first place.
 /// \unique_name foo
 void bar(int a, int c);
 ```
+
+* `group {name}` - Add the entity to a member group.
+A member group consists of multiple entities that are direct members of the same entity (i.e. class, file, namespace,...) which will be grouped together in the output.
+For example:
+```cpp
+/// \group foo
+/// This is in the group `foo`.
+/// Because this is the first entity in the group, it will be the "master".
+/// the group comment will be this comment, the group unique name will be this unique name, ...
+void func();
+
+/// \group foo
+/// This entity will be added to the same group.
+/// As it is not the first occurence of the group,
+/// this comment here will be ignored.
+/// But you can still use commands to modify this entity.
+void func(int);
+
+/// This entity is not part of the group.
+void func(char);
+
+/// \group foo
+/// But this one is (again, comment ignored).
+void func(short);
+```
+This will write the synopsis of all group members together and use the documentation text of the first entity.
+The group name only needs to be unique for one given scope.
 
 * `entity {unique-name}` - In a comment without a corresponding entity, names the entity to document:
 ```cpp

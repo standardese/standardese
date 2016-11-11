@@ -52,10 +52,13 @@ namespace
         paragraph.add_entity(std::move(link));
 
         // add brief comment to it
-        if (e.has_comment() && !e.get_comment().get_content().get_brief().empty())
+        auto comment = e.has_comment() ? &e.get_comment() : nullptr;
+        if (e.has_parent() && e.get_parent().get_entity_type() == doc_entity::member_group_t)
+            comment = &e.get_parent().get_comment();
+        if (comment && !comment->get_content().get_brief().empty())
         {
             paragraph.add_entity(md_text::make(paragraph, " - "));
-            for (auto& child : e.get_comment().get_content().get_brief())
+            for (auto& child : comment->get_content().get_brief())
                 paragraph.add_entity(child.clone(paragraph));
         }
     }

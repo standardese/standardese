@@ -151,6 +151,12 @@ namespace
 
         return result;
     }
+
+    std::string format_url(const doc_entity& entity, const char* extension)
+    {
+        return fmt::format("{}.{}#{}", entity.get_file_name().c_str(), extension,
+                           detail::escape_unique_name(entity.get_unique_name().c_str()).c_str());
+    }
 }
 
 std::string index::get_url(const std::string& unique_name, const char* extension) const
@@ -166,9 +172,15 @@ std::string index::get_url(const std::string& unique_name, const char* extension
 
     if (entity->get_cpp_entity_type() == cpp_entity::file_t)
         return fmt::format("{}.{}", entity->get_file_name().c_str(), extension);
+    else if (entity->has_comment() && entity->get_comment().in_member_group())
+    {
+        assert(entity->has_parent()
+               && entity->get_parent().get_entity_type() == doc_entity::member_group_t);
+        // format url to member group
+        return format_url(entity->get_parent(), extension);
+    }
     else
-        return fmt::format("{}.{}#{}", entity->get_file_name().c_str(), extension,
-                           detail::escape_unique_name(entity->get_unique_name().c_str()).c_str());
+        return format_url(*entity, extension);
 }
 
 void index::namespace_member_impl(ns_member_cb cb, void* data)
@@ -183,12 +195,17 @@ void index::namespace_member_impl(ns_member_cb cb, void* data)
             || entity.get_cpp_entity_type() == cpp_entity::file_t)
             continue;
 
-        // use AST parent, we want the children of namespaces only
         assert(entity.has_parent());
-        auto& parent      = entity.get_parent();
-        auto  parent_type = parent.get_cpp_entity_type();
+        auto* parent = &entity.get_parent();
+        if (parent->get_entity_type() == doc_entity::member_group_t)
+        {
+            assert(parent->has_parent());
+            parent = &parent->get_parent();
+        }
+
+        auto parent_type = parent->get_cpp_entity_type();
         if (parent_type == cpp_entity::namespace_t)
-            cb(&parent, entity, data);
+            cb(parent, entity, data);
         else if (parent_type == cpp_entity::file_t)
             cb(nullptr, entity, data);
     }

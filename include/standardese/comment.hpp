@@ -161,27 +161,12 @@ namespace standardese
     class comment
     {
     public:
-        comment() : content_(md_comment::make()), excluded_(false)
+        comment() : content_(md_comment::make()), group_id_(0u), excluded_(false)
         {
             assert(content_);
         }
 
         bool empty() const STANDARDESE_NOEXCEPT;
-
-        bool has_unique_name_override() const STANDARDESE_NOEXCEPT
-        {
-            return !get_unique_name_override().empty();
-        }
-
-        const std::string& get_unique_name_override() const STANDARDESE_NOEXCEPT
-        {
-            return unique_name_override_;
-        }
-
-        void set_unique_name_override(std::string name)
-        {
-            unique_name_override_ = std::move(name);
-        }
 
         const md_comment& get_content() const STANDARDESE_NOEXCEPT
         {
@@ -198,6 +183,36 @@ namespace standardese
             content_ = std::move(content);
         }
 
+        bool has_unique_name_override() const STANDARDESE_NOEXCEPT
+        {
+            return !get_unique_name_override().empty();
+        }
+
+        const std::string& get_unique_name_override() const STANDARDESE_NOEXCEPT
+        {
+            return unique_name_override_;
+        }
+
+        void set_unique_name_override(std::string name)
+        {
+            unique_name_override_ = std::move(name);
+        }
+
+        bool in_member_group() const STANDARDESE_NOEXCEPT
+        {
+            return group_id_ != 0u;
+        }
+
+        std::size_t member_group_id() const STANDARDESE_NOEXCEPT
+        {
+            return group_id_;
+        }
+
+        void add_to_member_group(std::size_t group_id)
+        {
+            group_id_ = group_id;
+        }
+
         bool is_excluded() const STANDARDESE_NOEXCEPT
         {
             return excluded_;
@@ -211,6 +226,7 @@ namespace standardese
     private:
         std::string        unique_name_override_;
         md_ptr<md_comment> content_;
+        std::size_t        group_id_;
         bool               excluded_;
     };
 

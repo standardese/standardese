@@ -527,6 +527,13 @@ namespace
         const parser*                 parser_;
     };
 
+    std::size_t get_group_id(const char* name)
+    {
+        using hash = std::hash<std::string>;
+        auto res   = hash{}(name);
+        return res == 0u ? 19937u : res; // must not be 0
+    }
+
     bool parse_command(const parser& p, container_stack& stack, md_entity_ptr text_entity)
     {
         assert(text_entity->get_entity_type() == md_entity::text_t);
@@ -555,6 +562,10 @@ namespace
                 break;
             case command_type::unique_name:
                 stack.info().comment.set_unique_name_override(read_argument(text, command_str));
+                break;
+            case command_type::group:
+                stack.info().comment.add_to_member_group(
+                    get_group_id(read_argument(text, command_str)));
                 break;
             case command_type::entity:
                 if (!stack.info().entity_name.empty())

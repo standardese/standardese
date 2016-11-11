@@ -262,8 +262,8 @@ namespace
         {
             if (container.get_entity_type() != md_entity::paragraph_t)
             {
-                p.get_logger()->warn("inline comment for entity '{}' has markup that is ignored.",
-                                     doc_e.get_cpp_entity().get_full_name().c_str());
+                p.get_logger()->warn("Inline comment for entity '{}' has markup that is ignored.",
+                                     doc_e.get_unique_name().c_str());
                 continue;
             }
             else if (first)
@@ -928,11 +928,60 @@ doc_container_cpp_entity::doc_container_cpp_entity(const doc_entity* parent, con
     assert(is_container_entity(e));
 }
 
+doc_ptr<doc_member_group> doc_member_group::make(const doc_entity& parent, const comment& c)
+{
+    return detail::make_doc_ptr<doc_member_group>(&parent, c);
+}
+
+std::size_t doc_member_group::group_id() const STANDARDESE_NOEXCEPT
+{
+    return get_comment().member_group_id();
+}
+
+void doc_member_group::do_generate_documentation(const parser& p, md_document& doc,
+                                                 unsigned level) const
+{
+    assert(!empty());
+
+    if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
+    {
+        auto& cpp_e = static_cast<const doc_cpp_entity&>(*begin());
+        doc.add_entity(make_heading(cpp_e, doc, level));
+    }
+    else
+    {
+        auto heading = md_heading::make(doc, level);
+        heading->add_entity(md_text::make(*heading, "Member group"));
+        doc.add_entity(std::move(heading));
+    }
+
+    code_block_writer out(doc);
+    do_generate_synopsis(p, out, true);
+    doc.add_entity(out.get_code_block());
+
+    doc.add_entity(get_comment().get_content().clone(doc));
+}
+
+void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& out,
+                                            bool top_level) const
+{
+    auto first = true;
+    for (auto& child : *this)
+    {
+        if (first)
+            first = false;
+        else
+            out << blankl;
+
+        detail::synopsis_access::do_generate_synopsis(child, p, out, top_level);
+    }
+}
+
 namespace
 {
     bool has_comment(const comment* c)
     {
-        return c && !c->empty();
+        return c && (!c->empty() || c->in_member_group());
     }
 
     bool requires_comment(const cpp_entity& e)
@@ -991,6 +1040,39 @@ namespace
         return nullptr;
     }
 
+    void handle_group(const parser& p, doc_container_cpp_entity& parent, doc_entity_ptr entity)
+    {
+        doc_member_group* group = nullptr;
+        for (auto& child : parent)
+        {
+            if (child.get_entity_type() == doc_entity::member_group_t)
+            {
+                auto& g = static_cast<doc_member_group&>(child);
+                if (g.group_id() == entity->get_comment().member_group_id())
+                {
+                    group = &g;
+                    break;
+                }
+            }
+        }
+
+        if (group)
+        {
+            if (entity->has_comment() && !entity->get_comment().empty())
+                p.get_logger()->warn("Comment for entity '{}' has documentation text that is "
+                                     "ignored because it is in a group.",
+                                     entity->get_unique_name().c_str());
+            group->add_entity(std::move(entity));
+        }
+        else
+        {
+            // need a new group
+            auto group = doc_member_group::make(parent, entity->get_comment());
+            group->add_entity(std::move(entity));
+            parent.add_entity(std::move(group));
+        }
+    }
+
     void handle_child(const parser& p, const index& i, doc_container_cpp_entity& parent,
                       const cpp_entity& e, cpp_access_specifier_t cur_access)
     {
@@ -998,7 +1080,10 @@ namespace
         if (!entity)
             return;
         i.register_entity(*entity);
-        parent.add_entity(std::move(entity));
+        if (entity->has_comment() && entity->get_comment().in_member_group())
+            handle_group(p, parent, std::move(entity));
+        else
+            parent.add_entity(std::move(entity));
     }
 
     void handle_children(const parser& p, const index& i, doc_container_cpp_entity& cont)
@@ -1101,7 +1186,10 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
         if (!entity)
             continue;
         i.register_entity(*entity);
-        res->file_->add_entity(std::move(entity));
+        if (entity->has_comment() && entity->get_comment().in_member_group())
+            handle_group(p, *res->file_, std::move(entity));
+        else
+            res->file_->add_entity(std::move(entity));
     }
 
     return res;
