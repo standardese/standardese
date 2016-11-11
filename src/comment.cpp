@@ -608,17 +608,15 @@ namespace
                 }
                 break;
             case command_type::entity:
-                if (!stack.info().entity_name.empty())
-                    throw comment_parse_error(fmt::format("Comment target already set to {}",
-                                                          stack.info().entity_name.c_str()),
-                                              text);
+                if (!first)
+                    throw comment_parse_error("entity comment not first", text);
+                assert(stack.info().entity_name.empty());
                 stack.info().entity_name = read_argument(text, command_str);
                 break;
             case command_type::file:
-                if (!stack.info().entity_name.empty())
-                    throw comment_parse_error(fmt::format("Comment target already set to {}",
-                                                          stack.info().entity_name.c_str()),
-                                              text);
+                if (!first)
+                    throw comment_parse_error("first comment not first", text);
+                assert(stack.info().entity_name.empty());
                 stack.info().entity_name = stack.info().file_name;
                 break;
             case command_type::param:
