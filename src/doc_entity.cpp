@@ -262,8 +262,8 @@ namespace
         {
             if (container.get_entity_type() != md_entity::paragraph_t)
             {
-                p.get_logger()->warn("inline comment for entity '{}' has markup that is ignored.",
-                                     doc_e.get_cpp_entity().get_full_name().c_str());
+                p.get_logger()->warn("Inline comment for entity '{}' has markup that is ignored.",
+                                     doc_e.get_unique_name().c_str());
                 continue;
             }
             else if (first)
@@ -1040,7 +1040,7 @@ namespace
         return nullptr;
     }
 
-    void handle_group(doc_container_cpp_entity& parent, doc_entity_ptr entity)
+    void handle_group(const parser& p, doc_container_cpp_entity& parent, doc_entity_ptr entity)
     {
         doc_member_group* group = nullptr;
         for (auto& child : parent)
@@ -1057,7 +1057,13 @@ namespace
         }
 
         if (group)
+        {
+            if (entity->has_comment() && !entity->get_comment().empty())
+                p.get_logger()->warn("Comment for entity '{}' has documentation text that is "
+                                     "ignored because it is in a group.",
+                                     entity->get_unique_name().c_str());
             group->add_entity(std::move(entity));
+        }
         else
         {
             // need a new group
@@ -1075,7 +1081,7 @@ namespace
             return;
         i.register_entity(*entity);
         if (entity->has_comment() && entity->get_comment().in_member_group())
-            handle_group(parent, std::move(entity));
+            handle_group(p, parent, std::move(entity));
         else
             parent.add_entity(std::move(entity));
     }
@@ -1181,7 +1187,7 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
             continue;
         i.register_entity(*entity);
         if (entity->has_comment() && entity->get_comment().in_member_group())
-            handle_group(*res->file_, std::move(entity));
+            handle_group(p, *res->file_, std::move(entity));
         else
             res->file_->add_entity(std::move(entity));
     }
