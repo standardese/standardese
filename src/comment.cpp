@@ -570,6 +570,9 @@ namespace
                 stack.info().comment.add_to_member_group(
                     get_group_id(read_argument(text, command_str)));
                 break;
+            case command_type::module:
+                stack.info().comment.set_module(read_argument(text, command_str));
+                break;
             case command_type::entity:
                 if (!stack.info().entity_name.empty())
                     throw comment_parse_error(fmt::format("Comment target already set to {}",
