@@ -84,6 +84,24 @@ namespace standardese
         }
     };
 
+    enum cpp_operator_kind
+    {
+        cpp_operator_none,
+        cpp_operator,
+
+        cpp_assignment_operator,
+        cpp_copy_assignment_operator,
+        cpp_move_assignment_operator,
+
+        cpp_comparison_operator,
+        cpp_subscript_operator,
+        cpp_function_call_operator,
+        cpp_user_defined_literal,
+
+        cpp_output_operator,
+        cpp_input_operator
+    };
+
     // common stuff for all functions
     class cpp_function_base : public cpp_entity,
                               private cpp_entity_container<cpp_function_parameter>
@@ -142,6 +160,8 @@ namespace standardese
         virtual cpp_name get_signature() const = 0;
 
         bool is_templated() const STANDARDESE_NOEXCEPT;
+
+        cpp_operator_kind get_operator_kind() const;
 
     protected:
         cpp_function_base(cpp_entity::type t, cpp_cursor cur, const cpp_entity& parent,

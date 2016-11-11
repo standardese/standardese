@@ -101,6 +101,104 @@ cpp_name cpp_function_base::do_get_unique_name() const
 
 namespace
 {
+    enum copy_or_move
+    {
+        copy_func,
+        move_func,
+        normal_func
+    };
+
+    copy_or_move get_func_kind(const cpp_function_parameter& param, const cpp_entity& c)
+    {
+        auto class_cur  = c.get_cursor();
+        auto param_type = param.get_type().get_cxtype();
+        if (param_type.kind == CXType_LValueReference)
+        {
+            param_type = clang_getPointeeType(param_type);
+            if (class_cur == clang_getTypeDeclaration(param_type))
+                return copy_func;
+        }
+        else if (param_type.kind == CXType_RValueReference)
+        {
+            param_type = clang_getPointeeType(param_type);
+            if (class_cur == clang_getTypeDeclaration(param_type))
+                return move_func;
+        }
+        // wrong type kind
+        return normal_func;
+    }
+
+    bool is_io_operator(const cpp_function_base& func, const char* name)
+    {
+        assert(func.get_parameters().begin() != func.get_parameters().end());
+        auto first = func.get_parameters().begin();
+
+        if (std::strstr(first->get_type().get_name().c_str(), name) == nullptr)
+            return false;
+
+        cpp_name return_type("");
+        if (func.get_entity_type() == cpp_entity::function_t)
+            return_type = static_cast<const cpp_function&>(func).get_return_type().get_name();
+        else if (func.get_entity_type() == cpp_entity::member_function_t)
+            return_type =
+                static_cast<const cpp_member_function&>(func).get_return_type().get_name();
+        else
+            assert(false);
+        return std::strstr(return_type.c_str(), name) != nullptr;
+    }
+}
+
+cpp_operator_kind cpp_function_base::get_operator_kind() const
+{
+    static const char operator_keyword[] = "operator";
+
+    auto name = get_name();
+    if (std::strncmp(name.c_str(), operator_keyword, sizeof(operator_keyword) - 1) != 0)
+        return cpp_operator_none;
+
+    auto ptr = name.c_str() + sizeof(operator_keyword) - 1;
+    while (std::isspace(*ptr))
+        ++ptr;
+
+    if (std::strcmp(ptr, "=") == 0)
+    {
+        if (is_templated())
+            return cpp_assignment_operator;
+
+        assert(has_ast_parent() && get_ast_parent().get_entity_type() == cpp_entity::class_t);
+        auto kind = get_func_kind(*get_parameters().begin(), get_ast_parent());
+        switch (kind)
+        {
+        case copy_func:
+            return cpp_copy_assignment_operator;
+        case move_func:
+            return cpp_move_assignment_operator;
+        case normal_func:
+            break;
+        }
+
+        return cpp_assignment_operator;
+    }
+    else if (std::strcmp(ptr, "==") == 0 || std::strcmp(ptr, "!=") == 0
+             || std::strcmp(ptr, "<") == 0 || std::strcmp(ptr, ">") == 0
+             || std::strcmp(ptr, "<=") == 0 || std::strcmp(ptr, ">=") == 0)
+        return cpp_comparison_operator;
+    else if (std::strcmp(ptr, "[]") == 0)
+        return cpp_subscript_operator;
+    else if (std::strcmp(ptr, "()") == 0)
+        return cpp_function_call_operator;
+    else if (std::strncmp(ptr, "\"\"", 2) == 0)
+        return cpp_user_defined_literal;
+    else if (std::strcmp(ptr, "<<") == 0 && is_io_operator(*this, "ostream"))
+        return cpp_output_operator;
+    else if (std::strcmp(ptr, ">>") == 0 && is_io_operator(*this, "istream"))
+        return cpp_input_operator;
+
+    return cpp_operator;
+}
+
+namespace
+{
     void skip_template_parameters(detail::token_stream& stream, unsigned last_offset)
     {
         if (stream.peek().get_value() == "template")
@@ -798,23 +896,17 @@ cpp_constructor_type cpp_constructor::get_ctor_type() const
         return cpp_other_ctor;
 
     assert(has_ast_parent() && get_ast_parent().get_entity_type() == cpp_entity::class_t);
-    auto class_cur  = get_ast_parent().get_cursor();
-    auto param_type = get_parameters().begin()->get_type().get_cxtype();
-    if (param_type.kind == CXType_LValueReference)
+    auto kind = get_func_kind(*get_parameters().begin(), get_ast_parent());
+    switch (kind)
     {
-        param_type = clang_getPointeeType(param_type);
-        if (class_cur == clang_getTypeDeclaration(param_type))
-            return cpp_copy_ctor;
-        return cpp_other_ctor;
+    case copy_func:
+        return cpp_copy_ctor;
+    case move_func:
+        return cpp_move_ctor;
+    case normal_func:
+        break;
     }
-    else if (param_type.kind == CXType_RValueReference)
-    {
-        param_type = clang_getPointeeType(param_type);
-        if (class_cur == clang_getTypeDeclaration(param_type))
-            return cpp_move_ctor;
-        return cpp_other_ctor;
-    }
-    // wrong type kind
+
     return cpp_other_ctor;
 #endif
 }

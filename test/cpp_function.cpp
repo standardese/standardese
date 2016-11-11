@@ -7,6 +7,8 @@
 #include <catch.hpp>
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/cpp_class.hpp>
+#include <standardese/cpp_function.hpp>
+#include <standardese/cpp_template.hpp>
 
 #include "test_parser.hpp"
 
@@ -328,6 +330,7 @@ struct derived : base
                     REQUIRE(func.get_definition() == cpp_function_definition_defaulted);
                     REQUIRE(no_parameters(func) == 1u);
                     REQUIRE(func.get_signature() == "(const derived &)");
+                    REQUIRE(func.get_operator_kind() == cpp_copy_assignment_operator);
                 }
                 else
                     REQUIRE(false);
@@ -337,6 +340,99 @@ struct derived : base
             REQUIRE(false);
     });
     REQUIRE(count == 7u);
+}
+
+TEST_CASE("operators", "[cpp]")
+{
+    parser p(test_logger);
+
+    auto code = R"(
+        #include <iosfwd>
+
+        /// a
+        void func();
+
+        struct foo
+        {
+            /// a
+            template <typename T>
+            void operator=(T);
+
+            /// b
+            void operator=(const foo&);
+
+            /// c
+            void operator=(foo&&);
+
+            /// d
+            void operator[](std::size_t);
+
+            /// e
+            void operator()(int, int);
+        };
+
+        /// b
+        void operator+(const foo&, const foo&);
+
+        /// c
+        foo operator""_bar(const char*, std::size_t);
+
+        /// d
+        std::ostream& operator<<(std::ostream&, foo);
+
+        /// e
+        std::istream& operator>>(std::istream&, foo);
+
+        /// f
+        bool operator<<(foo, foo);
+)";
+
+    auto tu    = parse(p, "operators", code);
+    auto count = 0u;
+    for_each(tu.get_file(), [&](const cpp_entity& e) {
+        if (e.get_entity_type() == cpp_entity::class_t)
+        {
+            for (auto& child : static_cast<const cpp_class&>(e))
+            {
+                auto& func = *get_function(child);
+
+                ++count;
+                if (detail::parse_comment(child.get_cursor()) == "/// a")
+                    REQUIRE(func.get_operator_kind() == cpp_assignment_operator);
+                else if (detail::parse_comment(child.get_cursor()) == "/// b")
+                    REQUIRE(func.get_operator_kind() == cpp_copy_assignment_operator);
+                else if (detail::parse_comment(child.get_cursor()) == "/// c")
+                    REQUIRE(func.get_operator_kind() == cpp_move_assignment_operator);
+                else if (detail::parse_comment(child.get_cursor()) == "/// d")
+                    REQUIRE(func.get_operator_kind() == cpp_subscript_operator);
+                else if (detail::parse_comment(child.get_cursor()) == "/// e")
+                    REQUIRE(func.get_operator_kind() == cpp_function_call_operator);
+                else
+                    REQUIRE(false);
+            }
+        }
+        else
+        {
+            ++count;
+            auto& func = dynamic_cast<const cpp_function_base&>(e);
+            if (detail::parse_comment(e.get_cursor()) == "/// a")
+                REQUIRE(func.get_operator_kind() == cpp_operator_none);
+            else if (detail::parse_comment(e.get_cursor()) == "/// b")
+                REQUIRE(func.get_operator_kind() == cpp_operator);
+            else if (detail::parse_comment(e.get_cursor()) == "/// c")
+                REQUIRE(func.get_operator_kind() == cpp_user_defined_literal);
+            else if (detail::parse_comment(e.get_cursor()) == "/// d")
+                REQUIRE(func.get_operator_kind() == cpp_output_operator);
+            else if (detail::parse_comment(e.get_cursor()) == "/// e")
+                REQUIRE(func.get_operator_kind() == cpp_input_operator);
+            else if (detail::parse_comment(e.get_cursor()) == "/// f")
+                REQUIRE(func.get_operator_kind() == cpp_operator);
+            else
+                REQUIRE(false);
+        }
+    });
+
+    REQUIRE(count == 11u);
 }
 
 TEST_CASE("cpp_conversion_op", "[cpp]")

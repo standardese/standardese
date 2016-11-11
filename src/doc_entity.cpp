@@ -72,7 +72,38 @@ namespace
             return "parameter";
         case cpp_entity::function_t:
         case cpp_entity::member_function_t:
+        {
+            auto& func = static_cast<const cpp_function_base&>(e);
+            switch (func.get_operator_kind())
+            {
+            case cpp_operator_none:
+                break;
+            case cpp_operator:
+                return "operator";
+
+            case cpp_assignment_operator:
+                return "assignment operator";
+            case cpp_copy_assignment_operator:
+                return "copy assignment operator";
+            case cpp_move_assignment_operator:
+                return "move assignment operator";
+
+            case cpp_comparison_operator:
+                return "comparison operator";
+            case cpp_subscript_operator:
+                return "array subscript operator";
+            case cpp_function_call_operator:
+                return "function call operator";
+            case cpp_user_defined_literal:
+                return "user defined literal";
+
+            case cpp_output_operator:
+                return "output operator";
+            case cpp_input_operator:
+                return "input operator";
+            }
             return "function";
+        }
         case cpp_entity::conversion_op_t:
             return "conversion operator";
         case cpp_entity::constructor_t:
