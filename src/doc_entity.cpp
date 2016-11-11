@@ -1130,11 +1130,15 @@ namespace
 doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string output_name,
                                   const cpp_file& f)
 {
-    auto res = detail::make_doc_ptr<doc_file>(std::move(output_name),
-                                              detail::make_doc_ptr<doc_container_cpp_entity>(
-                                                  nullptr, f,
-                                                  p.get_comment_registry()
-                                                      .lookup_comment(p.get_entity_registry(), f)));
+    auto file_ptr =
+        detail::make_doc_ptr<doc_container_cpp_entity>(nullptr, f,
+                                                       p.get_comment_registry()
+                                                           .lookup_comment(p.get_entity_registry(),
+                                                                           f));
+    if (file_ptr->has_comment() && file_ptr->get_comment().has_unique_name_override())
+        output_name = file_ptr->get_comment().get_unique_name_override();
+
+    auto res = detail::make_doc_ptr<doc_file>(std::move(output_name), std::move(file_ptr));
     res->file_->set_parent(res.get());
 
     for (auto& child : f)

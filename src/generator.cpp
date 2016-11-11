@@ -15,9 +15,9 @@ using namespace standardese;
 standardese::documentation standardese::generate_doc_file(const parser& p, const index& i,
                                                           const cpp_file& f, std::string name)
 {
-    auto file = doc_file::parse(p, i, name, f);
+    auto file = doc_file::parse(p, i, std::move(name), f);
 
-    auto doc = md_document::make(std::move(name));
+    auto doc = md_document::make(file->get_file_name().c_str());
     file->generate_documentation(p, *doc);
     return {std::move(file), std::move(doc)};
 }
