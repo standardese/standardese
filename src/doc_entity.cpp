@@ -1166,6 +1166,7 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
         else
             res->file_->add_entity(std::move(entity));
     }
+    i.register_entity(*res->file_);
 
     return res;
 }

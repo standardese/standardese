@@ -22,24 +22,6 @@ standardese::documentation standardese::generate_doc_file(const parser& p, const
     return {std::move(file), std::move(doc)};
 }
 
-md_ptr<md_document> standardese::generate_file_index(index& i, std::string name)
-{
-    auto doc = md_document::make(std::move(name));
-
-    auto list = md_list::make(*doc, md_list_type::bullet, md_list_delimiter::none, 0, false);
-    i.for_each_file([&](const doc_entity& e) {
-        auto& paragraph = make_list_item_paragraph(*list);
-
-        auto link = md_link::make(paragraph, "", e.get_unique_name().c_str());
-        link->add_entity(md_text::make(*link, e.get_name().c_str()));
-        paragraph.add_entity(std::move(link));
-
-    });
-    doc->add_entity(std::move(list));
-
-    return doc;
-}
-
 namespace
 {
     void make_index_item(md_list& list, const doc_entity& e, bool full_name)
@@ -63,17 +45,57 @@ namespace
         }
     }
 
-    md_ptr<md_list_item> make_group_item(const md_list& list, const char* name)
+    md_ptr<md_list_item> make_group_item(const md_list& list, const char* name, unsigned level,
+                                         bool code, const md_paragraph* brief)
     {
         auto item = md_list_item::make(list);
 
-        auto paragraph = md_paragraph::make(*item);
-        paragraph->add_entity(md_code::make(*item, name));
-        item->add_entity(std::move(paragraph));
-        item->add_entity(md_list::make_bullet(*paragraph));
+        md_ptr<md_container> heading;
+        if (level == 0u)
+            heading = md_paragraph::make(*item);
+        else
+            heading = md_heading::make(*item, level);
+
+        // add name
+        if (code)
+            heading->add_entity(md_code::make(*item, name));
+        else
+            heading->add_entity(md_text::make(*item, name));
+
+        // add brief
+        if (brief && !brief->empty())
+        {
+            heading->add_entity(md_text::make(*heading, " - "));
+            for (auto& child : *brief)
+                heading->add_entity(child.clone(*heading));
+        }
+
+        item->add_entity(std::move(heading));
+
+        // add list
+        item->add_entity(md_list::make_bullet(*heading));
 
         return item;
     }
+}
+
+md_ptr<md_document> standardese::generate_file_index(index& i, std::string name)
+{
+    auto doc = md_document::make(std::move(name));
+
+    auto list = md_list::make(*doc, md_list_type::bullet, md_list_delimiter::none, 0, false);
+    auto size = 0u;
+    i.for_each_file([&](const doc_entity& e) {
+        make_index_item(*list, e, false);
+        ++size;
+    });
+
+    assert(size != 0u);
+    if (size == 1u)
+        return nullptr;
+
+    doc->add_entity(std::move(list));
+    return doc;
 }
 
 md_ptr<md_document> standardese::generate_entity_index(index& i, std::string name)
@@ -91,7 +113,9 @@ md_ptr<md_document> standardese::generate_entity_index(index& i, std::string nam
             auto iter    = ns_lists.find(ns_name.c_str());
             if (iter == ns_lists.end())
             {
-                auto item = make_group_item(*list, ns_name.c_str());
+                auto brief =
+                    ns->has_comment() ? &ns->get_comment().get_content().get_brief() : nullptr;
+                auto item = make_group_item(*list, ns_name.c_str(), 0u, true, brief);
                 iter      = ns_lists.emplace(ns_name.c_str(), std::move(item)).first;
             }
 
@@ -122,7 +146,7 @@ md_ptr<md_document> standardese::generate_module_index(index& i, std::string nam
         auto  iter        = module_lists.find(module_name);
         if (iter == module_lists.end())
         {
-            auto item = make_group_item(*list, module_name.c_str());
+            auto item = make_group_item(*list, module_name.c_str(), 2u, false, nullptr);
             iter      = module_lists.emplace(module_name, std::move(item)).first;
         }
 
@@ -130,6 +154,9 @@ md_ptr<md_document> standardese::generate_module_index(index& i, std::string nam
         assert(std::next(item.begin())->get_entity_type() == md_entity::list_t);
         make_index_item(static_cast<md_list&>(*std::next(item.begin())), e, true);
     });
+
+    if (module_lists.empty())
+        return nullptr;
 
     for (auto& p : module_lists)
         list->add_entity(std::move(p.second));

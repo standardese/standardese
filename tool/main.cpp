@@ -277,13 +277,14 @@ int main(int argc, char* argv[])
 
                 output out(index, prefix, *format);
                 for (auto& doc : documentations)
-                    futures.push_back(
-                        standardese_tool::add_job(pool,
-                                                  [&](const md_document& document) {
-                                                      out.render(log, document,
-                                                                 config.link_extension());
-                                                  },
-                                                  std::ref(*doc.document)));
+                    if (doc.document)
+                        futures.push_back(
+                            standardese_tool::add_job(pool,
+                                                      [&](const md_document& document) {
+                                                          out.render(log, document,
+                                                                     config.link_extension());
+                                                      },
+                                                      std::ref(*doc.document)));
 
                 for (auto& f : futures)
                     f.wait();
