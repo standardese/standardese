@@ -982,7 +982,7 @@ namespace
         {
             auto container = detail::make_doc_ptr<doc_container_cpp_entity>(&parent, e, comment);
             handle_children(p, i, *container);
-            return container;
+            return std::move(container);
         }
         else
             assert(e.get_entity_type() == cpp_entity::invalid_t

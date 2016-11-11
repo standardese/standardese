@@ -348,6 +348,7 @@ TEST_CASE("operators", "[cpp]")
 
     auto code = R"(
         #include <iosfwd>
+        #include <cstddef>
 
         /// a
         void func();

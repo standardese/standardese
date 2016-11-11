@@ -19,6 +19,8 @@ namespace standardese
         doc_ptr<doc_file>   file;
         md_ptr<md_document> document;
 
+        documentation() = default;
+
         documentation(doc_ptr<doc_file> f, md_ptr<md_document> doc)
         : file(std::move(f)), document(std::move(doc))
         {
