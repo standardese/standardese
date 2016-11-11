@@ -257,6 +257,7 @@ int main(int argc, char* argv[])
             log->info("Generating indices...");
             documentations.push_back(documentation(generate_file_index(index)));
             documentations.push_back(documentation(generate_entity_index(index)));
+            documentations.push_back(documentation(generate_module_index(index)));
 
             config.set_external(index);
             for (auto& format : formats)

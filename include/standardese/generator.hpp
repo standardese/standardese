@@ -5,6 +5,8 @@
 #ifndef STANDARDESE_GENERATOR_HPP_INCLUDED
 #define STANDARDESE_GENERATOR_HPP_INCLUDED
 
+#include <vector>
+
 #include <standardese/doc_entity.hpp>
 #include <standardese/md_custom.hpp>
 #include <standardese/translation_unit.hpp>
@@ -37,6 +39,8 @@ namespace standardese
     md_ptr<md_document> generate_file_index(index& i, std::string name = "standardese_files");
 
     md_ptr<md_document> generate_entity_index(index& i, std::string name = "standardese_entities");
+
+    md_ptr<md_document> generate_module_index(index& i, std::string name = "standardese_modules");
 } // namespace standardese
 
 #endif // STANDARDESE_GENERATOR_HPP_INCLUDED

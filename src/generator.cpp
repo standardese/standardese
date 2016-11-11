@@ -63,12 +63,12 @@ namespace
         }
     }
 
-    md_ptr<md_list_item> make_namespace_item(const md_list& list, const cpp_name& ns_name)
+    md_ptr<md_list_item> make_group_item(const md_list& list, const char* name)
     {
         auto item = md_list_item::make(list);
 
         auto paragraph = md_paragraph::make(*item);
-        paragraph->add_entity(md_code::make(*item, ns_name.c_str()));
+        paragraph->add_entity(md_code::make(*item, name));
         item->add_entity(std::move(paragraph));
         item->add_entity(md_list::make_bullet(*paragraph));
 
@@ -91,7 +91,7 @@ md_ptr<md_document> standardese::generate_entity_index(index& i, std::string nam
             auto iter    = ns_lists.find(ns_name.c_str());
             if (iter == ns_lists.end())
             {
-                auto item = make_namespace_item(*list, ns_name);
+                auto item = make_group_item(*list, ns_name.c_str());
                 iter      = ns_lists.emplace(ns_name.c_str(), std::move(item)).first;
             }
 
@@ -102,6 +102,36 @@ md_ptr<md_document> standardese::generate_entity_index(index& i, std::string nam
     });
 
     for (auto& p : ns_lists)
+        list->add_entity(std::move(p.second));
+    doc->add_entity(std::move(list));
+
+    return doc;
+}
+
+md_ptr<md_document> standardese::generate_module_index(index& i, std::string name)
+{
+    auto doc  = md_document::make(std::move(name));
+    auto list = md_list::make_bullet(*doc);
+
+    std::map<std::string, md_ptr<md_list_item>> module_lists;
+    i.for_each_namespace_member([&](const doc_entity*, const doc_entity& e) {
+        if (!e.in_module())
+            return;
+
+        auto& module_name = e.get_module();
+        auto  iter        = module_lists.find(module_name);
+        if (iter == module_lists.end())
+        {
+            auto item = make_group_item(*list, module_name.c_str());
+            iter      = module_lists.emplace(module_name, std::move(item)).first;
+        }
+
+        auto& item = *iter->second;
+        assert(std::next(item.begin())->get_entity_type() == md_entity::list_t);
+        make_index_item(static_cast<md_list&>(*std::next(item.begin())), e);
+    });
+
+    for (auto& p : module_lists)
         list->add_entity(std::move(p.second));
     doc->add_entity(std::move(list));
 
