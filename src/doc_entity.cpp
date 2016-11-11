@@ -36,7 +36,7 @@ const std::string& doc_entity::get_module() const STANDARDESE_NOEXCEPT
     static std::string empty;
     if (has_comment() && get_comment().in_module())
         return get_comment().get_module();
-    return has_parent() ? empty : get_parent().get_module();
+    return has_parent() ? get_parent().get_module() : empty;
 }
 
 cpp_name doc_entity::do_get_file_name() const

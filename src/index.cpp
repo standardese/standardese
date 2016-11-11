@@ -196,6 +196,7 @@ void index::namespace_member_impl(ns_member_cb cb, void* data)
         auto& value = pair.second;
         if (value.first)
             continue; // ignore short names
+
         auto& entity = *value.second;
         if (entity.get_cpp_entity_type() == cpp_entity::namespace_t
             || entity.get_cpp_entity_type() == cpp_entity::file_t)
