@@ -37,7 +37,25 @@ cpp_name cpp_template_parameter::do_get_unique_name() const
 {
     auto parent = get_semantic_parent();
     assert(parent);
-    return std::string(parent->get_unique_name().c_str()) + "." + get_name().c_str();
+
+    std::string name = get_name().c_str();
+    if (name.empty())
+    {
+        auto i      = 0u;
+        auto params = get_template_parameters(*parent);
+        assert(params);
+        for (auto& param : *params)
+        {
+            if (&param == this)
+                break;
+            else
+                ++i;
+        }
+
+        name = std::to_string(i);
+    }
+
+    return std::string(parent->get_unique_name().c_str()) + "." + name;
 }
 
 cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translation_unit& tu,

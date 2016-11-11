@@ -12,7 +12,6 @@
 #include <standardese/cpp_template.hpp>
 #include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
-#include <clang-c/Index.h>
 
 using namespace standardese;
 
@@ -51,7 +50,25 @@ cpp_name cpp_function_parameter::do_get_unique_name() const
 {
     auto parent = get_semantic_parent();
     assert(parent);
-    return std::string(parent->get_unique_name().c_str()) + "." + get_name().c_str();
+
+    std::string name = get_name().c_str();
+    if (name.empty())
+    {
+        auto i    = 0u;
+        auto func = get_function(*parent);
+        assert(func);
+        for (auto& param : func->get_parameters())
+        {
+            if (&param == this)
+                break;
+            else
+                ++i;
+        }
+
+        name = std::to_string(i);
+    }
+
+    return std::string(parent->get_unique_name().c_str()) + "." + name;
 }
 
 cpp_ptr<cpp_function_base> cpp_function_base::try_parse(translation_unit& p, cpp_cursor cur,
