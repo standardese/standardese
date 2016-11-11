@@ -234,11 +234,12 @@ cpp_name doc_cpp_entity::do_get_unique_name() const
     return entity_->get_unique_name();
 }
 
-cpp_name doc_cpp_entity::do_get_index_name() const
+cpp_name doc_cpp_entity::do_get_index_name(bool full_name) const
 {
     if (get_cpp_entity_type() == cpp_entity::namespace_t)
         return entity_->get_full_name();
-    auto name = std::string(entity_->get_name().c_str());
+    auto name =
+        std::string(full_name ? entity_->get_full_name().c_str() : entity_->get_name().c_str());
     if (auto func = get_function(*entity_))
         name += func->get_signature().c_str();
     return name;

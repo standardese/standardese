@@ -42,13 +42,13 @@ md_ptr<md_document> standardese::generate_file_index(index& i, std::string name)
 
 namespace
 {
-    void make_index_item(md_list& list, const doc_entity& e)
+    void make_index_item(md_list& list, const doc_entity& e, bool full_name)
     {
         auto& paragraph = make_list_item_paragraph(list);
 
         // add link to entity
         auto link = md_link::make(paragraph, "", e.get_unique_name().c_str());
-        link->add_entity(md_text::make(*link, e.get_index_name().c_str()));
+        link->add_entity(md_text::make(*link, e.get_index_name(full_name).c_str()));
         paragraph.add_entity(std::move(link));
 
         // add brief comment to it
@@ -84,10 +84,10 @@ md_ptr<md_document> standardese::generate_entity_index(index& i, std::string nam
     std::map<std::string, md_ptr<md_list_item>> ns_lists;
     i.for_each_namespace_member([&](const doc_entity* ns, const doc_entity& e) {
         if (!ns)
-            make_index_item(*list, e);
+            make_index_item(*list, e, false);
         else
         {
-            auto ns_name = ns->get_index_name();
+            auto ns_name = ns->get_index_name(false);
             auto iter    = ns_lists.find(ns_name.c_str());
             if (iter == ns_lists.end())
             {
@@ -97,7 +97,7 @@ md_ptr<md_document> standardese::generate_entity_index(index& i, std::string nam
 
             auto& item = *iter->second;
             assert(std::next(item.begin())->get_entity_type() == md_entity::list_t);
-            make_index_item(static_cast<md_list&>(*std::next(item.begin())), e);
+            make_index_item(static_cast<md_list&>(*std::next(item.begin())), e, false);
         }
     });
 
@@ -128,7 +128,7 @@ md_ptr<md_document> standardese::generate_module_index(index& i, std::string nam
 
         auto& item = *iter->second;
         assert(std::next(item.begin())->get_entity_type() == md_entity::list_t);
-        make_index_item(static_cast<md_list&>(*std::next(item.begin())), e);
+        make_index_item(static_cast<md_list&>(*std::next(item.begin())), e, true);
     });
 
     for (auto& p : module_lists)
