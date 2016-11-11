@@ -6,6 +6,7 @@
 * Fix termination of section by all special commands
 * Fix matching of end-of-line comments
 * Change hard line break character to a forward slash
+* Improved documentation headings
 
 ### Library
 
