@@ -30,7 +30,7 @@ if(NOT CLANG_BINARY)
 endif()
 
 set(CLANG_INCLUDE_PATHS "/usr/include/" "/usr/local/include")
-set(CLANG_LIBRARY_PATHS "/usr/lib" "/usr/local/lib")
+set(CLANG_LIBRARY_PATHS "/usr/lib" "/usr/local/lib" "/usr/lib64")
 
 # libclang headers and libs are installed in /usr/lib/llvm-<version> in Ubuntu.
 file(GLOB LLVM_DIRS /usr/lib/llvm-*)
