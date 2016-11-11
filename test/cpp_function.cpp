@@ -463,6 +463,9 @@ TEST_CASE("cpp_constructor", "[cpp]")
             /// e
             foo(char *ptr) noexcept(false)
             : foo(0) {}
+
+            /// f
+            constexpr foo(foo &&other, int i = 0);
         };
     )";
 
@@ -488,6 +491,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_deleted);
                 REQUIRE(ctor.get_signature() == "()");
+                REQUIRE(ctor.get_ctor_type() == cpp_default_ctor);
             }
             else if (detail::parse_comment(ctor.get_cursor()) == "/// b")
             {
@@ -499,6 +503,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
                 REQUIRE(ctor.get_signature() == "(int)");
+                REQUIRE(ctor.get_ctor_type() == cpp_default_ctor);
             }
             else if (detail::parse_comment(ctor.get_cursor()) == "/// c")
             {
@@ -510,6 +515,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_declaration);
                 REQUIRE(ctor.get_signature() == "(char)");
+                REQUIRE(ctor.get_ctor_type() == cpp_other_ctor);
             }
             else if (detail::parse_comment(ctor.get_cursor()) == "/// d")
             {
@@ -521,6 +527,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_defaulted);
                 REQUIRE(ctor.get_signature() == "(const foo &)");
+                REQUIRE(ctor.get_ctor_type() == cpp_copy_ctor);
             }
             else if (detail::parse_comment(ctor.get_cursor()) == "/// e")
             {
@@ -532,12 +539,25 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_definition_normal);
                 REQUIRE(ctor.get_signature() == "(char *)");
+                REQUIRE(ctor.get_ctor_type() == cpp_other_ctor);
+            }
+            else if (detail::parse_comment(ctor.get_cursor()) == "/// f")
+            {
+                ++count;
+                REQUIRE(no_parameters(ctor) == 2u);
+                REQUIRE(ctor.is_constexpr());
+                REQUIRE(!ctor.is_explicit());
+                REQUIRE(ctor.get_noexcept() == "false");
+                REQUIRE(!ctor.explicit_noexcept());
+                REQUIRE(ctor.get_definition() == cpp_function_declaration);
+                REQUIRE(ctor.get_signature() == "(foo &&,int)");
+                REQUIRE(ctor.get_ctor_type() == cpp_move_ctor);
             }
             else
                 REQUIRE(false);
         }
     });
-    REQUIRE(count == 5u);
+    REQUIRE(count == 6u);
 }
 
 TEST_CASE("cpp_destructor", "[cpp]")

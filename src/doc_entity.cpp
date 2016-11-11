@@ -76,7 +76,21 @@ namespace
         case cpp_entity::conversion_op_t:
             return "conversion operator";
         case cpp_entity::constructor_t:
+        {
+            auto& ctor = static_cast<const cpp_constructor&>(e);
+            switch (ctor.get_ctor_type())
+            {
+            case cpp_default_ctor:
+                return "default constructor";
+            case cpp_copy_ctor:
+                return "copy constructor";
+            case cpp_move_ctor:
+                return "move constructor";
+            case cpp_other_ctor:
+                break;
+            }
             return "constructor";
+        }
         case cpp_entity::destructor_t:
             return "destructor";
 

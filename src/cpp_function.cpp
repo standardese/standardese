@@ -12,6 +12,7 @@
 #include <standardese/cpp_template.hpp>
 #include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
+#include <clang-c/Index.h>
 
 using namespace standardese;
 
@@ -772,6 +773,50 @@ cpp_name cpp_constructor::get_name() const
 cpp_constructor::cpp_constructor(cpp_cursor cur, const cpp_entity& parent, cpp_function_info info)
 : cpp_function_base(get_entity_type(), cur, parent, std::move(info))
 {
+}
+
+cpp_constructor_type cpp_constructor::get_ctor_type() const
+{
+#if CINDEX_VERSION_MINOR >= 34
+    if (clang_CXXConstructor_isDefaultConstructor(get_cursor()))
+        return cpp_default_ctor;
+    else if (clang_CXXConstructor_isCopyConstructor(get_cursor()))
+        return cpp_copy_ctor;
+    else if (clang_CXXConstructor_isMoveConstructor(get_cursor()))
+        return cpp_move_ctor;
+    return cpp_other_ctor;
+#else
+    if (get_parameters().empty() || get_parameters().begin()->has_default_value())
+        // all parameters have defaults
+        return cpp_default_ctor;
+    else if (is_templated())
+        // template can't be copy or move
+        return cpp_other_ctor;
+    else if (std::next(get_parameters().begin()) != get_parameters().end()
+             && !std::next(get_parameters().begin())->has_default_value())
+        // more than one parameter and not default
+        return cpp_other_ctor;
+
+    assert(has_ast_parent() && get_ast_parent().get_entity_type() == cpp_entity::class_t);
+    auto class_cur  = get_ast_parent().get_cursor();
+    auto param_type = get_parameters().begin()->get_type().get_cxtype();
+    if (param_type.kind == CXType_LValueReference)
+    {
+        param_type = clang_getPointeeType(param_type);
+        if (class_cur == clang_getTypeDeclaration(param_type))
+            return cpp_copy_ctor;
+        return cpp_other_ctor;
+    }
+    else if (param_type.kind == CXType_RValueReference)
+    {
+        param_type = clang_getPointeeType(param_type);
+        if (class_cur == clang_getTypeDeclaration(param_type))
+            return cpp_move_ctor;
+        return cpp_other_ctor;
+    }
+    // wrong type kind
+    return cpp_other_ctor;
+#endif
 }
 
 cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor cur,

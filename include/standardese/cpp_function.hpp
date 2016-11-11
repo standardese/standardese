@@ -349,6 +349,14 @@ namespace standardese
         friend detail::cpp_ptr_access;
     };
 
+    enum cpp_constructor_type
+    {
+        cpp_default_ctor,
+        cpp_copy_ctor,
+        cpp_move_ctor,
+        cpp_other_ctor
+    };
+
     class cpp_constructor final : public cpp_function_base
     {
     public:
@@ -367,6 +375,8 @@ namespace standardese
         {
             return signature_;
         }
+
+        cpp_constructor_type get_ctor_type() const;
 
     private:
         cpp_constructor(cpp_cursor cur, const cpp_entity& parent, cpp_function_info info);
