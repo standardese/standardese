@@ -321,13 +321,29 @@ void func(short);
 This will write the synopsis of all group members together and use the documentation text of the first entity.
 The group name only needs to be unique for one given scope.
 
-* `entity {unique-name}` - In a comment without a corresponding entity, names the entity to document:
+* `module {name}` - Add the entity to a module.
+A module is just a way to group entities together,
+it will be inherited by all children.
+There is no need to define a module, but if you do,
+simply use the command in first place of a module and you can add documentation for it:
+```cpp
+/// This is an entity in the module 'bar'.
+/// \module bar
+void foo();
+
+/// \module bar
+/// This is the documentation for the module 'bar',
+/// because the command was the first one.
+```
+
+* `entity {unique-name}` - If put in the first place of a comment, names the entity to document,
+this allows "remote" comments:
 ```cpp
 void foo();
 
+/// \entity foo
 /// This comment has no corresponding entity.
 /// But the command specifies the entity it will belong to.
-/// \entity foo
 ```
 It also mixes with `unique_name` as you might expect.
 
