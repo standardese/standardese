@@ -360,15 +360,6 @@ namespace
           inline_comment(false)
         {
         }
-
-        explicit comment_info(string entity_name)
-        : file_name(""),
-          entity_name(std::move(entity_name)),
-          begin_line(0u),
-          end_line(0u),
-          inline_comment(false)
-        {
-        }
     };
 
     void register_comment(const parser& p, comment_info& info)
@@ -508,8 +499,12 @@ namespace
             if (!container.empty())
             {
                 if (stack_.empty())
+                {
+                    if (container.ptr->get_entity_type() == md_entity::paragraph_t)
+                        set_implicit_section(static_cast<md_paragraph&>(*container.ptr), *info_);
                     info_->comment.get_content().add_entity(
                         container.ptr->clone(info_->comment.get_content()));
+                }
                 else
                     top().add_entity(std::move(container.ptr));
             }
@@ -523,6 +518,17 @@ namespace
         }
 
     private:
+        void set_implicit_section(md_paragraph& paragraph, comment_info& info)
+        {
+            if (paragraph.get_section_type() == section_type::invalid)
+            {
+                if (info.comment.empty())
+                    paragraph.set_section_type(section_type::brief, "");
+                else
+                    paragraph.set_section_type(section_type::details, "");
+            }
+        }
+
         struct container
         {
             md_ptr<md_container> ptr;
@@ -575,8 +581,7 @@ namespace
         }
         else if (is_command(command))
         {
-            stack.new_paragraph().set_section_type(section_type::details,
-                                                   ""); // terminate old paragraph
+            stack.new_paragraph(); // terminate old paragraph
             switch (make_command(command))
             {
             case command_type::exclude:
@@ -595,24 +600,11 @@ namespace
             case command_type::module:
                 if (!first)
                     stack.info().comment.set_module(read_argument(text, command_str));
-                else // module comment
+                else
                 {
-                    // remove command
-                    remove_command_string(text, command_str);
-
-                    // read + remove name
-                    std::string name;
-                    for (auto ptr = text.get_string(); *ptr && !std::isspace(*ptr); ++ptr)
-                        name += *ptr;
-                    remove_argument_string(text, name);
-
-                    comment_info module_info(std::move(name));
-                    if (*text.get_string())
-                        // non-empty text, add to brief
-                        module_info.comment.get_content().get_brief().add_entity(
-                            std::move(text_entity));
-
-                    stack.push(std::move(module_info));
+                    // module comment
+                    assert(stack.info().entity_name.empty());
+                    stack.info().entity_name = read_argument(text, command_str);
                 }
                 break;
             case command_type::entity:
@@ -698,8 +690,7 @@ namespace
         md_iter iter(cmark_iter_new(root.get()));
 
         container_stack stack(p, info);
-        auto            first_paragraph = true, added_section = false;
-        auto            first = true;
+        auto            first_content = true;
         for (auto ev = CMARK_EVENT_NONE; (ev = cmark_iter_next(iter.get())) != CMARK_EVENT_DONE;)
         {
             auto node = cmark_iter_get_node(iter.get());
@@ -714,51 +705,32 @@ namespace
                     auto  entity = md_entity::try_parse(node, parent);
                     if (is_container(entity->get_entity_type()))
                     {
-                        if (entity->get_entity_type() == md_entity::paragraph_t)
-                        {
-                            auto& paragraph = static_cast<md_paragraph&>(*entity);
-                            if (paragraph.get_section_type() == section_type::invalid)
-                                paragraph.set_section_type(first_paragraph ? section_type::brief :
-                                                                             section_type::details,
-                                                           "");
-                            first_paragraph = false;
-                        }
-                        else
-                            first = false;
-
+                        if (entity->get_entity_type() != md_entity::paragraph_t)
+                            first_content = false; // allow paragraph
                         stack.push(std::move(entity));
                     }
                     else if (entity->get_entity_type() == md_entity::line_break_t
                              && stack.top().get_entity_type() == md_entity::paragraph_t)
                     {
                         // terminate current paragraph
-                        auto& paragraph = stack.new_paragraph();
-                        paragraph.set_section_type(first_paragraph ? section_type::brief :
-                                                                     section_type::details,
-                                                   "");
-                        first_paragraph = false;
-                        first           = false;
+                        stack.new_paragraph();
+                        first_content = false;
                     }
                     else if (entity->get_entity_type() == md_entity::text_t)
                     {
-                        added_section |= parse_command(p, stack, first, std::move(entity));
-                        first = false;
+                        parse_command(p, stack, first_content, std::move(entity));
+                        first_content = false;
                     }
                     else if (entity->get_entity_type() == md_entity::soft_break_t)
                         stack.add_soft_break(std::move(entity));
                     else
                     {
                         stack.top().add_entity(std::move(entity));
-                        first = false;
+                        first_content = false;
                     }
                 }
                 else if (ev == CMARK_EVENT_EXIT)
-                {
                     stack.pop();
-                    // reset first_paragraph if brief paragraph was empty
-                    first_paragraph =
-                        !added_section && stack.info().comment.get_content().get_brief().empty();
-                }
                 else
                     assert(false);
             }
