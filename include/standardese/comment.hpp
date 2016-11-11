@@ -273,6 +273,8 @@ namespace standardese
         const comment* lookup_comment(const cpp_entity_registry& registry,
                                       const cpp_entity&          e) const;
 
+        const comment* lookup_comment(const std::string& module) const;
+
     private:
         mutable std::mutex mutex_;
         mutable std::map<comment_id, comment, detail::comment_compare> comments_;

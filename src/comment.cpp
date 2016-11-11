@@ -304,6 +304,18 @@ const comment* comment_registry::lookup_comment(const cpp_entity_registry& regis
     return nullptr;
 }
 
+const comment* comment_registry::lookup_comment(const std::string& module) const
+{
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    auto id   = comment_id(module);
+    auto iter = comments_.find(id);
+    if (iter != comments_.end())
+        return &iter->second;
+
+    return nullptr;
+}
+
 namespace
 {
     struct node_deleter
@@ -345,6 +357,15 @@ namespace
           entity_name(""),
           begin_line(begin_line),
           end_line(end_line),
+          inline_comment(false)
+        {
+        }
+
+        explicit comment_info(string entity_name)
+        : file_name(""),
+          entity_name(std::move(entity_name)),
+          begin_line(0u),
+          end_line(0u),
           inline_comment(false)
         {
         }
@@ -534,7 +555,8 @@ namespace
         return res == 0u ? 19937u : res; // must not be 0
     }
 
-    bool parse_command(const parser& p, container_stack& stack, md_entity_ptr text_entity)
+    bool parse_command(const parser& p, container_stack& stack, bool first,
+                       md_entity_ptr text_entity)
     {
         assert(text_entity->get_entity_type() == md_entity::text_t);
         auto& text = static_cast<md_text&>(*text_entity);
@@ -571,7 +593,27 @@ namespace
                     get_group_id(read_argument(text, command_str)));
                 break;
             case command_type::module:
-                stack.info().comment.set_module(read_argument(text, command_str));
+                if (!first)
+                    stack.info().comment.set_module(read_argument(text, command_str));
+                else // module comment
+                {
+                    // remove command
+                    remove_command_string(text, command_str);
+
+                    // read + remove name
+                    std::string name;
+                    for (auto ptr = text.get_string(); *ptr && !std::isspace(*ptr); ++ptr)
+                        name += *ptr;
+                    remove_argument_string(text, name);
+
+                    comment_info module_info(std::move(name));
+                    if (*text.get_string())
+                        // non-empty text, add to brief
+                        module_info.comment.get_content().get_brief().add_entity(
+                            std::move(text_entity));
+
+                    stack.push(std::move(module_info));
+                }
                 break;
             case command_type::entity:
                 if (!stack.info().entity_name.empty())
@@ -657,6 +699,7 @@ namespace
 
         container_stack stack(p, info);
         auto            first_paragraph = true, added_section = false;
+        auto            first = true;
         for (auto ev = CMARK_EVENT_NONE; (ev = cmark_iter_next(iter.get())) != CMARK_EVENT_DONE;)
         {
             auto node = cmark_iter_get_node(iter.get());
@@ -680,6 +723,9 @@ namespace
                                                            "");
                             first_paragraph = false;
                         }
+                        else
+                            first = false;
+
                         stack.push(std::move(entity));
                     }
                     else if (entity->get_entity_type() == md_entity::line_break_t
@@ -691,13 +737,20 @@ namespace
                                                                      section_type::details,
                                                    "");
                         first_paragraph = false;
+                        first           = false;
                     }
                     else if (entity->get_entity_type() == md_entity::text_t)
-                        added_section |= parse_command(p, stack, std::move(entity));
+                    {
+                        added_section |= parse_command(p, stack, first, std::move(entity));
+                        first = false;
+                    }
                     else if (entity->get_entity_type() == md_entity::soft_break_t)
                         stack.add_soft_break(std::move(entity));
                     else
+                    {
                         stack.top().add_entity(std::move(entity));
+                        first = false;
+                    }
                 }
                 else if (ev == CMARK_EVENT_EXIT)
                 {

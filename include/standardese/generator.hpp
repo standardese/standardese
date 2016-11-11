@@ -40,7 +40,8 @@ namespace standardese
 
     md_ptr<md_document> generate_entity_index(index& i, std::string name = "standardese_entities");
 
-    md_ptr<md_document> generate_module_index(index& i, std::string name = "standardese_modules");
+    md_ptr<md_document> generate_module_index(const parser& p, index& i,
+                                              std::string name = "standardese_modules");
 } // namespace standardese
 
 #endif // STANDARDESE_GENERATOR_HPP_INCLUDED

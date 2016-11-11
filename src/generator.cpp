@@ -132,7 +132,7 @@ md_ptr<md_document> standardese::generate_entity_index(index& i, std::string nam
     return doc;
 }
 
-md_ptr<md_document> standardese::generate_module_index(index& i, std::string name)
+md_ptr<md_document> standardese::generate_module_index(const parser& p, index& i, std::string name)
 {
     auto doc  = md_document::make(std::move(name));
     auto list = md_list::make_bullet(*doc);
@@ -146,8 +146,10 @@ md_ptr<md_document> standardese::generate_module_index(index& i, std::string nam
         auto  iter        = module_lists.find(module_name);
         if (iter == module_lists.end())
         {
-            auto item = make_group_item(*list, module_name.c_str(), 2u, false, nullptr);
-            iter      = module_lists.emplace(module_name, std::move(item)).first;
+            auto comment = p.get_comment_registry().lookup_comment(module_name);
+            auto brief   = comment ? &comment->get_content().get_brief() : nullptr;
+            auto item    = make_group_item(*list, module_name.c_str(), 2u, false, brief);
+            iter         = module_lists.emplace(module_name, std::move(item)).first;
         }
 
         auto& item = *iter->second;
