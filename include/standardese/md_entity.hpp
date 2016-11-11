@@ -40,6 +40,8 @@ namespace standardese
             heading_t,
             thematic_break_t,
 
+            inline_documentation_t,
+
             _end_block,
             _begin_inline = _end_block,
 

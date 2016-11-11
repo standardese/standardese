@@ -9,6 +9,7 @@
 
 #include <standardese/detail/entity_container.hpp>
 #include <standardese/cpp_entity.hpp>
+#include "md_custom.hpp"
 
 namespace standardese
 {
@@ -123,7 +124,8 @@ namespace standardese
         virtual void do_generate_documentation(const parser& p, md_document& doc,
                                                unsigned level) const = 0;
 
-        virtual void do_generate_documentation_inline(const parser&, md_list&) const
+        virtual void do_generate_documentation_inline(const parser&,
+                                                      standardese::md_inline_documentation&) const
         {
         }
 
@@ -222,7 +224,8 @@ namespace standardese
         void do_generate_synopsis(const parser& p, code_block_writer& out,
                                   bool top_level) const override;
 
-        void do_generate_documentation_inline(const parser& p, md_list& list) const override;
+        void do_generate_documentation_inline(
+            const parser& p, standardese::md_inline_documentation& doc) const override;
 
     private:
         doc_inline_cpp_entity(const doc_entity* parent, const cpp_entity& e, const comment* c);

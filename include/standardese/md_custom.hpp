@@ -32,6 +32,32 @@ namespace standardese
         friend detail::md_ptr_access;
     };
 
+    class md_inline_documentation final : public md_container
+    {
+    public:
+        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return md_entity::inline_documentation_t;
+        }
+
+        static md_ptr<md_inline_documentation> make(const md_entity&   parent,
+                                                    const std::string& heading);
+
+        // adds the contents of all paragraphs in container
+        // returns false if any child was not a paragraph
+        bool add_item(const char* name, const char* id, const md_container& container);
+
+        bool empty() const STANDARDESE_NOEXCEPT;
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
+    private:
+        md_inline_documentation(const md_entity& parent);
+
+        friend detail::md_ptr_access;
+    };
+
     class md_document final : public md_container
     {
     public:

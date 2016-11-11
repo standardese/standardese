@@ -242,53 +242,14 @@ void doc_inline_cpp_entity::do_generate_documentation(const parser& p, md_docume
     do_generate_documentation_base(p, doc, level);
 }
 
-namespace
-{
-    md_ptr<md_list_item> get_inline_item(const parser& p, const doc_inline_cpp_entity& doc_e,
-                                         const md_entity& parent)
-    {
-        assert(doc_e.has_comment());
-        auto item = md_list_item::make(parent);
-
-        // generate "heading"
-        auto item_paragraph = md_paragraph::make(*item);
-        item_paragraph->add_entity(get_anchor(doc_e, *item_paragraph));
-        item_paragraph->add_entity(md_code::make(*item, doc_e.get_cpp_entity().get_name().c_str()));
-        item_paragraph->add_entity(md_text::make(*item, " - "));
-
-        // generate content
-        auto first = true;
-        for (auto& container : doc_e.get_comment().get_content())
-        {
-            if (container.get_entity_type() != md_entity::paragraph_t)
-            {
-                p.get_logger()->warn("Inline comment for entity '{}' has markup that is ignored.",
-                                     doc_e.get_unique_name().c_str());
-                continue;
-            }
-            else if (first)
-                first = false;
-            else
-                item_paragraph->add_entity(md_soft_break::make(*item_paragraph));
-
-            for (auto& child : static_cast<const md_container&>(container))
-                item_paragraph->add_entity(child.clone(*item));
-        }
-        item->add_entity(std::move(item_paragraph));
-
-        return item;
-    }
-}
-
-void doc_inline_cpp_entity::do_generate_documentation_inline(const parser& p, md_list& list) const
+void doc_inline_cpp_entity::do_generate_documentation_inline(const parser&            p,
+                                                             md_inline_documentation& doc) const
 {
     assert(p.get_output_config().inline_documentation());
     if (has_comment())
-    {
-        // inline documentation with comment
-        auto item = get_inline_item(p, *this, list);
-        list.add_entity(std::move(item));
-    }
+        doc.add_item(get_name().c_str(),
+                     detail::escape_unique_name(get_unique_name().c_str()).c_str(),
+                     get_comment().get_content());
 }
 
 namespace
@@ -649,20 +610,6 @@ doc_leave_cpp_entity::doc_leave_cpp_entity(const doc_entity* parent, const cpp_e
     assert(is_leave_entity(e));
 }
 
-namespace
-{
-    void add_list(md_document& doc, md_ptr<md_list> list, const char* name)
-    {
-        if (list->empty())
-            return;
-
-        auto paragraph = md_paragraph::make(doc);
-        paragraph->add_entity(md_strong::make(*paragraph, name));
-        doc.add_entity(std::move(paragraph));
-        doc.add_entity(std::move(list));
-    }
-}
-
 void doc_container_cpp_entity::do_generate_documentation(const parser& p, md_document& doc,
                                                          unsigned level) const
 {
@@ -672,10 +619,10 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, md_doc
     // add inline entity comments
     if (p.get_output_config().inline_documentation())
     {
-        auto parameters  = md_list::make_bullet(doc);
-        auto bases       = md_list::make_bullet(doc);
-        auto members     = md_list::make_bullet(doc);
-        auto enum_values = md_list::make_bullet(doc);
+        auto parameters  = md_inline_documentation::make(doc, "Parameters");
+        auto bases       = md_inline_documentation::make(doc, "Bases");
+        auto members     = md_inline_documentation::make(doc, "Members");
+        auto enum_values = md_inline_documentation::make(doc, "Enum values");
 
         for (auto& child : *this)
         {
@@ -691,10 +638,14 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, md_doc
                 assert(!is_inline_entity(child.get_cpp_entity_type()));
         }
 
-        add_list(doc, std::move(parameters), "Parameters:");
-        add_list(doc, std::move(bases), "Bases:");
-        add_list(doc, std::move(members), "Members:");
-        add_list(doc, std::move(enum_values), "Enum values:");
+        if (!parameters->empty())
+            doc.add_entity(std::move(parameters));
+        if (!bases->empty())
+            doc.add_entity(std::move(bases));
+        if (!members->empty())
+            doc.add_entity(std::move(members));
+        if (!enum_values->empty())
+            doc.add_entity(std::move(enum_values));
     }
 
     // add documentation for other children
