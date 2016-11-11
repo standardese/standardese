@@ -26,6 +26,28 @@ void detail::synopsis_access::do_generate_synopsis(const doc_entity& e, const pa
     e.do_generate_synopsis(p, out, top_level);
 }
 
+bool doc_entity::in_module() const STANDARDESE_NOEXCEPT
+{
+    return !get_module().empty();
+}
+
+const std::string& doc_entity::get_module() const STANDARDESE_NOEXCEPT
+{
+    static std::string empty;
+    if (has_comment() && get_comment().in_module())
+        return get_comment().get_module();
+    return has_parent() ? empty : get_parent().get_module();
+}
+
+cpp_name doc_entity::do_get_file_name() const
+{
+    auto cur = this;
+    while (cur->parent_)
+        cur = cur->parent_;
+    assert(cur->get_cpp_entity_type() == cpp_entity::file_t);
+    return cur->do_get_file_name();
+}
+
 namespace
 {
     const char* get_entity_type_spelling(const cpp_entity& e)
@@ -220,15 +242,6 @@ cpp_name doc_cpp_entity::do_get_index_name() const
     if (auto func = get_function(*entity_))
         name += func->get_signature().c_str();
     return name;
-}
-
-cpp_name doc_entity::do_get_file_name() const
-{
-    auto cur = this;
-    while (cur->parent_)
-        cur = cur->parent_;
-    assert(cur->get_cpp_entity_type() == cpp_entity::file_t);
-    return cur->do_get_file_name();
 }
 
 cpp_name doc_entity::get_unique_name() const

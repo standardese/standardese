@@ -103,6 +103,10 @@ namespace standardese
             return *comment_;
         }
 
+        bool in_module() const STANDARDESE_NOEXCEPT;
+
+        const std::string& get_module() const STANDARDESE_NOEXCEPT;
+
         void generate_synopsis(const parser& p, code_block_writer& out) const
         {
             do_generate_synopsis(p, out, true);
