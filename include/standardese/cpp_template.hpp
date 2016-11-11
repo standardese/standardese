@@ -20,6 +20,12 @@ namespace standardese
         static cpp_ptr<cpp_template_parameter> try_parse(translation_unit& tu, cpp_cursor cur,
                                                          const cpp_entity& parent);
 
+        enum cpp_keyword_kind
+        {
+            cpp_typename,
+            cpp_class
+        };
+
         bool is_variadic() const STANDARDESE_NOEXCEPT
         {
             return variadic_;
@@ -59,15 +65,22 @@ namespace standardese
             return default_;
         }
 
+        cpp_keyword_kind get_keyword() const STANDARDESE_NOEXCEPT
+        {
+            return keyword_;
+        }
+
     private:
-        cpp_template_type_parameter(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref def,
-                                    bool is_variadic)
+        cpp_template_type_parameter(cpp_cursor cur, const cpp_entity& parent,
+                                    cpp_keyword_kind keyword, cpp_type_ref def, bool is_variadic)
         : cpp_template_parameter(get_entity_type(), cur, parent, is_variadic),
-          default_(std::move(def))
+          default_(std::move(def)),
+          keyword_(keyword)
         {
         }
 
-        cpp_type_ref default_;
+        cpp_type_ref     default_;
+        cpp_keyword_kind keyword_;
 
         friend detail::cpp_ptr_access;
     };
@@ -141,6 +154,11 @@ namespace standardese
             return default_;
         }
 
+        cpp_keyword_kind get_keyword() const STANDARDESE_NOEXCEPT
+        {
+            return keyword_;
+        }
+
     private:
         bool is_semantic_parent() const STANDARDESE_NOEXCEPT override
         {
@@ -148,13 +166,16 @@ namespace standardese
         }
 
         cpp_template_template_parameter(cpp_cursor cur, const cpp_entity& parent,
-                                        cpp_template_ref def, bool is_variadic)
+                                        cpp_keyword_kind keyword, cpp_template_ref def,
+                                        bool is_variadic)
         : cpp_template_parameter(get_entity_type(), cur, parent, is_variadic),
-          default_(std::move(def))
+          default_(std::move(def)),
+          keyword_(keyword)
         {
         }
 
         cpp_template_ref default_;
+        cpp_keyword_kind keyword_;
 
         friend detail::cpp_ptr_access;
     };

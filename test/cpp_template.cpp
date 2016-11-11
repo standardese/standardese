@@ -52,6 +52,7 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
             ++count;
             REQUIRE(!param->is_variadic());
             REQUIRE(!param->has_default_type());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_typename);
         }
         else if (param->get_name() == "B")
         {
@@ -59,18 +60,21 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
             REQUIRE(!param->is_variadic());
             REQUIRE(param->has_default_type());
             REQUIRE(param->get_default_type().get_name() == "decltype(0)");
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_typename);
         }
         else if (param->get_name() == "C")
         {
             ++count;
             REQUIRE(param->is_variadic());
             REQUIRE(!param->has_default_type());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_typename);
         }
         else if (param->get_name() == "D")
         {
             ++count;
             REQUIRE(param->is_variadic());
             REQUIRE(!param->has_default_type());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
         }
         else if (param->get_name() == "E")
         {
@@ -79,6 +83,7 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
             REQUIRE(param->has_default_type());
             REQUIRE(param->get_default_type().get_name() == "s");
             // bug: REQUIRE(param->get_default_type().get_full_name() == "ns::s");
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
         }
         else if (param->get_name() == "F")
         {
@@ -87,6 +92,7 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
             REQUIRE(param->has_default_type());
             REQUIRE(param->get_default_type().get_name() == "ns::s");
             // bug: REQUIRE(param->get_default_type().get_full_name() == "ns::s");
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_typename);
         }
         else if (param->get_name() == "G")
         {
@@ -95,6 +101,7 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
             REQUIRE(param->has_default_type());
             REQUIRE(param->get_default_type().get_name() == "s1<int>");
             // bug: REQUIRE(param->get_default_type().get_full_name() == "s1<int, int>");
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_typename);
         }
         else
             REQUIRE(false);
@@ -231,6 +238,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             ++count;
             REQUIRE(!param->is_variadic());
             REQUIRE(!param->has_default_template());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
 
             auto size = 0u;
             for (auto& e : *param)
@@ -248,6 +256,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             REQUIRE(param->has_default_template());
             REQUIRE(param->get_default_template().get_name() == "s2");
             REQUIRE(param->get_default_template().get_full_name() == "s2");
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
 
             auto size = 0u;
             for (auto& e : *param)
@@ -276,6 +285,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             REQUIRE(param->has_default_template());
             REQUIRE(param->get_default_template().get_name() == "s");
             REQUIRE(param->get_default_template().get_full_name() == "ns::s");
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
 
             auto size = 0u;
             for (auto& e : *param)
@@ -302,6 +312,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             ++count;
             REQUIRE(param->is_variadic());
             REQUIRE(!param->has_default_template());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
 
             auto size = 0u;
             for (auto& e : *param)
@@ -317,6 +328,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             ++count;
             REQUIRE(param->is_variadic());
             REQUIRE(!param->has_default_template());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
 
             auto size = 0u;
             for (auto& e : *param)
@@ -343,6 +355,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             ++count;
             REQUIRE(!param->is_variadic());
             REQUIRE(!param->has_default_template());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
 
             auto size = 0u;
             for (auto& e : *param)

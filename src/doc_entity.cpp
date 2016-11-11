@@ -322,7 +322,13 @@ namespace
     void do_write_synopsis_template_param(const parser& p, code_block_writer& out,
                                           const cpp_template_type_parameter& param)
     {
-        out << "typename";
+        if (param.get_keyword() == cpp_template_parameter::cpp_typename)
+            out << "typename";
+        else if (param.get_keyword() == cpp_template_parameter::cpp_class)
+            out << "class";
+        else
+            assert(false);
+
         if (param.is_variadic())
             out << " ...";
         if (!param.get_name().empty())
@@ -356,7 +362,15 @@ namespace
             do_write_synopsis_template_param(p, out, child);
         }
 
-        out << "> typename";
+        out << "> ";
+
+        if (param.get_keyword() == cpp_template_parameter::cpp_typename)
+            out << "typename";
+        else if (param.get_keyword() == cpp_template_parameter::cpp_class)
+            out << "class";
+        else
+            assert(false);
+
         if (param.is_variadic())
             out << " ...";
         if (!param.get_name().empty())
