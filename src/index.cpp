@@ -195,12 +195,17 @@ void index::namespace_member_impl(ns_member_cb cb, void* data)
             || entity.get_cpp_entity_type() == cpp_entity::file_t)
             continue;
 
-        // use AST parent, we want the children of namespaces only
         assert(entity.has_parent());
-        auto& parent      = entity.get_parent();
-        auto  parent_type = parent.get_cpp_entity_type();
+        auto* parent = &entity.get_parent();
+        if (parent->get_entity_type() == doc_entity::member_group_t)
+        {
+            assert(parent->has_parent());
+            parent = &parent->get_parent();
+        }
+
+        auto parent_type = parent->get_cpp_entity_type();
         if (parent_type == cpp_entity::namespace_t)
-            cb(&parent, entity, data);
+            cb(parent, entity, data);
         else if (parent_type == cpp_entity::file_t)
             cb(nullptr, entity, data);
     }
