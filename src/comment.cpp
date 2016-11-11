@@ -563,6 +563,9 @@ namespace
             case command_type::unique_name:
                 stack.info().comment.set_unique_name_override(read_argument(text, command_str));
                 break;
+            case command_type::synopsis:
+                stack.info().comment.set_synopsis_override(read_argument(text, command_str));
+                break;
             case command_type::group:
                 stack.info().comment.add_to_member_group(
                     get_group_id(read_argument(text, command_str)));

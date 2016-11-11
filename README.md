@@ -291,6 +291,9 @@ It is as if the entity never existed in the first place.
 void bar(int a, int c);
 ```
 
+* `synopsis {string}` - Overrides the synopsis in the output.
+You can pass any string that will be rendered instead of the actual synopsis.
+
 * `group {name}` - Add the entity to a member group.
 A member group consists of multiple entities that are direct members of the same entity (i.e. class, file, namespace,...) which will be grouped together in the output.
 For example:

@@ -3,6 +3,7 @@
 ### Documentation
 
 * Add `group` command and implement member groups
+* Add `synopsis` command to override the synopsis
 * Allow `unique_name` on files to override the output name
 * Fix termination of section by all special commands
 * Fix matching of end-of-line comments

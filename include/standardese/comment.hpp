@@ -198,6 +198,21 @@ namespace standardese
             unique_name_override_ = std::move(name);
         }
 
+        bool has_synopsis_override() const STANDARDESE_NOEXCEPT
+        {
+            return !synopsis_override_.empty();
+        }
+
+        const std::string& get_synopsis_override() const STANDARDESE_NOEXCEPT
+        {
+            return synopsis_override_;
+        }
+
+        void set_synopsis_override(std::string synopsis)
+        {
+            synopsis_override_ = std::move(synopsis);
+        }
+
         bool in_member_group() const STANDARDESE_NOEXCEPT
         {
             return group_id_ != 0u;
@@ -225,6 +240,7 @@ namespace standardese
 
     private:
         std::string        unique_name_override_;
+        std::string        synopsis_override_;
         md_ptr<md_comment> content_;
         std::size_t        group_id_;
         bool               excluded_;

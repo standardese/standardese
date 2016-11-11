@@ -197,7 +197,10 @@ void doc_cpp_entity::do_generate_documentation_base(const parser& p, md_document
     doc.add_entity(make_heading(*this, doc, level));
 
     code_block_writer out(doc);
-    do_generate_synopsis(p, out, true);
+    if (has_comment() && get_comment().has_synopsis_override())
+        out << get_comment().get_synopsis_override();
+    else
+        do_generate_synopsis(p, out, true);
     doc.add_entity(out.get_code_block());
 
     if (has_comment())
@@ -907,7 +910,10 @@ void doc_member_group::do_generate_documentation(const parser& p, md_document& d
     }
 
     code_block_writer out(doc);
-    do_generate_synopsis(p, out, true);
+    if (get_comment().has_synopsis_override())
+        out << get_comment().get_synopsis_override();
+    else
+        do_generate_synopsis(p, out, true);
     doc.add_entity(out.get_code_block());
 
     doc.add_entity(get_comment().get_content().clone(doc));
