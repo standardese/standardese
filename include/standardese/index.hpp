@@ -70,6 +70,14 @@ namespace standardese
             namespace_member_impl(cb, &f);
         }
 
+        // void(const std::string&)
+        template <typename Func>
+        void for_each_module(Func f)
+        {
+            for (auto& m : modules_)
+                f(m);
+        }
+
     private:
         using ns_member_cb = void(const doc_entity*, const doc_entity&, void*);
 
@@ -78,6 +86,7 @@ namespace standardese
         mutable std::mutex mutex_;
         mutable std::map<std::string, std::pair<bool, const doc_entity*>> entities_;
         mutable std::vector<decltype(entities_)::const_iterator> files_;
+        mutable std::vector<std::string>                         modules_;
 
         std::unordered_map<std::string, std::string> external_;
     };

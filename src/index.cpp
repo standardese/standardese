@@ -91,6 +91,12 @@ void index::register_entity(const doc_entity& entity) const
                                     [](value_type a, value_type b) { return a->first < b->first; });
         files_.insert(pos, pair.first);
     }
+
+    if (entity.in_module())
+    {
+        auto pos = std::lower_bound(modules_.begin(), modules_.end(), entity.get_module());
+        modules_.insert(pos, entity.get_module());
+    }
 }
 
 const doc_entity* index::try_lookup(const std::string& unique_name) const
@@ -190,6 +196,7 @@ void index::namespace_member_impl(ns_member_cb cb, void* data)
         auto& value = pair.second;
         if (value.first)
             continue; // ignore short names
+
         auto& entity = *value.second;
         if (entity.get_cpp_entity_type() == cpp_entity::namespace_t
             || entity.get_cpp_entity_type() == cpp_entity::file_t)

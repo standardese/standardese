@@ -2,23 +2,26 @@
 
 ### Documentation
 
-* Add `group` command and implement member groups
 * Add `synopsis` command to override the synopsis
+* Add `group` command to group documentation together
+* Add `module` command as a way to categorize entities
 * Allow `unique_name` on files to override the output name
+* *Breaking:* Change hard line break character to a forward slash
+* *Breaking:* Require `entity` and `file` command to be first in a comment
+* Improve documentation headings
 * Fix termination of section by all special commands
 * Fix matching of end-of-line comments
-* Change hard line break character to a forward slash
-* Improved documentation headings
 
 ### Library
 
 * Parsing bugfixes
 * Use clang as preprocessor instead of Boost.Wave
-* Rewrote generation and synopsis to allow more advanced output
+* Rewrite generation and synopsis to allow more advanced output
 
 ### Tool
 
 * Add `output.inline_doc` option to enable inline documentation
+* Add `output.show_modules` option to enable/disable showing the module of an entity in the output
 * Add `compilation.clang_binary` option to control clang binary used as preprocessor
 * Add `compilation.ms_compatibility` option to give more control over MSVC compatibility as well as tweaked `compilation.ms_extensions`
 

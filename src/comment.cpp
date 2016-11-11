@@ -304,6 +304,18 @@ const comment* comment_registry::lookup_comment(const cpp_entity_registry& regis
     return nullptr;
 }
 
+const comment* comment_registry::lookup_comment(const std::string& module) const
+{
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    auto id   = comment_id(module);
+    auto iter = comments_.find(id);
+    if (iter != comments_.end())
+        return &iter->second;
+
+    return nullptr;
+}
+
 namespace
 {
     struct node_deleter
@@ -487,8 +499,12 @@ namespace
             if (!container.empty())
             {
                 if (stack_.empty())
+                {
+                    if (container.ptr->get_entity_type() == md_entity::paragraph_t)
+                        set_implicit_section(static_cast<md_paragraph&>(*container.ptr), *info_);
                     info_->comment.get_content().add_entity(
                         container.ptr->clone(info_->comment.get_content()));
+                }
                 else
                     top().add_entity(std::move(container.ptr));
             }
@@ -502,6 +518,17 @@ namespace
         }
 
     private:
+        void set_implicit_section(md_paragraph& paragraph, comment_info& info)
+        {
+            if (paragraph.get_section_type() == section_type::invalid)
+            {
+                if (info.comment.empty())
+                    paragraph.set_section_type(section_type::brief, "");
+                else
+                    paragraph.set_section_type(section_type::details, "");
+            }
+        }
+
         struct container
         {
             md_ptr<md_container> ptr;
@@ -534,7 +561,8 @@ namespace
         return res == 0u ? 19937u : res; // must not be 0
     }
 
-    bool parse_command(const parser& p, container_stack& stack, md_entity_ptr text_entity)
+    bool parse_command(const parser& p, container_stack& stack, bool first,
+                       md_entity_ptr text_entity)
     {
         assert(text_entity->get_entity_type() == md_entity::text_t);
         auto& text = static_cast<md_text&>(*text_entity);
@@ -553,8 +581,7 @@ namespace
         }
         else if (is_command(command))
         {
-            stack.new_paragraph().set_section_type(section_type::details,
-                                                   ""); // terminate old paragraph
+            stack.new_paragraph(); // terminate old paragraph
             switch (make_command(command))
             {
             case command_type::exclude:
@@ -570,18 +597,26 @@ namespace
                 stack.info().comment.add_to_member_group(
                     get_group_id(read_argument(text, command_str)));
                 break;
+            case command_type::module:
+                if (!first)
+                    stack.info().comment.set_module(read_argument(text, command_str));
+                else
+                {
+                    // module comment
+                    assert(stack.info().entity_name.empty());
+                    stack.info().entity_name = read_argument(text, command_str);
+                }
+                break;
             case command_type::entity:
-                if (!stack.info().entity_name.empty())
-                    throw comment_parse_error(fmt::format("Comment target already set to {}",
-                                                          stack.info().entity_name.c_str()),
-                                              text);
+                if (!first)
+                    throw comment_parse_error("entity comment not first", text);
+                assert(stack.info().entity_name.empty());
                 stack.info().entity_name = read_argument(text, command_str);
                 break;
             case command_type::file:
-                if (!stack.info().entity_name.empty())
-                    throw comment_parse_error(fmt::format("Comment target already set to {}",
-                                                          stack.info().entity_name.c_str()),
-                                              text);
+                if (!first)
+                    throw comment_parse_error("first comment not first", text);
+                assert(stack.info().entity_name.empty());
                 stack.info().entity_name = stack.info().file_name;
                 break;
             case command_type::param:
@@ -653,7 +688,7 @@ namespace
         md_iter iter(cmark_iter_new(root.get()));
 
         container_stack stack(p, info);
-        auto            first_paragraph = true, added_section = false;
+        auto            first_content = true;
         for (auto ev = CMARK_EVENT_NONE; (ev = cmark_iter_next(iter.get())) != CMARK_EVENT_DONE;)
         {
             auto node = cmark_iter_get_node(iter.get());
@@ -668,41 +703,32 @@ namespace
                     auto  entity = md_entity::try_parse(node, parent);
                     if (is_container(entity->get_entity_type()))
                     {
-                        if (entity->get_entity_type() == md_entity::paragraph_t)
-                        {
-                            auto& paragraph = static_cast<md_paragraph&>(*entity);
-                            if (paragraph.get_section_type() == section_type::invalid)
-                                paragraph.set_section_type(first_paragraph ? section_type::brief :
-                                                                             section_type::details,
-                                                           "");
-                            first_paragraph = false;
-                        }
+                        if (entity->get_entity_type() != md_entity::paragraph_t)
+                            first_content = false; // allow paragraph
                         stack.push(std::move(entity));
                     }
                     else if (entity->get_entity_type() == md_entity::line_break_t
                              && stack.top().get_entity_type() == md_entity::paragraph_t)
                     {
                         // terminate current paragraph
-                        auto& paragraph = stack.new_paragraph();
-                        paragraph.set_section_type(first_paragraph ? section_type::brief :
-                                                                     section_type::details,
-                                                   "");
-                        first_paragraph = false;
+                        stack.new_paragraph();
+                        first_content = false;
                     }
                     else if (entity->get_entity_type() == md_entity::text_t)
-                        added_section |= parse_command(p, stack, std::move(entity));
+                    {
+                        parse_command(p, stack, first_content, std::move(entity));
+                        first_content = false;
+                    }
                     else if (entity->get_entity_type() == md_entity::soft_break_t)
                         stack.add_soft_break(std::move(entity));
                     else
+                    {
                         stack.top().add_entity(std::move(entity));
+                        first_content = false;
+                    }
                 }
                 else if (ev == CMARK_EVENT_EXIT)
-                {
                     stack.pop();
-                    // reset first_paragraph if brief paragraph was empty
-                    first_paragraph =
-                        !added_section && stack.info().comment.get_content().get_brief().empty();
-                }
                 else
                     assert(false);
             }

@@ -26,6 +26,28 @@ void detail::synopsis_access::do_generate_synopsis(const doc_entity& e, const pa
     e.do_generate_synopsis(p, out, top_level);
 }
 
+bool doc_entity::in_module() const STANDARDESE_NOEXCEPT
+{
+    return !get_module().empty();
+}
+
+const std::string& doc_entity::get_module() const STANDARDESE_NOEXCEPT
+{
+    static std::string empty;
+    if (has_comment() && get_comment().in_module())
+        return get_comment().get_module();
+    return has_parent() ? get_parent().get_module() : empty;
+}
+
+cpp_name doc_entity::do_get_file_name() const
+{
+    auto cur = this;
+    while (cur->parent_)
+        cur = cur->parent_;
+    assert(cur->get_cpp_entity_type() == cpp_entity::file_t);
+    return cur->do_get_file_name();
+}
+
 namespace
 {
     const char* get_entity_type_spelling(const cpp_entity& e)
@@ -173,7 +195,7 @@ namespace
     }
 
     md_ptr<md_heading> make_heading(const doc_cpp_entity& e, const md_entity& parent,
-                                    unsigned level)
+                                    unsigned level, bool show_module)
     {
         auto heading = md_heading::make(parent, level);
 
@@ -185,6 +207,11 @@ namespace
         auto code = md_code::make(*heading, e.get_cpp_entity().get_full_name().c_str());
         heading->add_entity(std::move(code));
 
+        if (show_module && e.has_comment() && e.get_comment().in_module())
+            heading->add_entity(
+                md_text::make(*heading,
+                              fmt::format(" [{}]", e.get_comment().get_module()).c_str()));
+
         heading->add_entity(get_anchor(e, *heading));
 
         return heading;
@@ -194,7 +221,7 @@ namespace
 void doc_cpp_entity::do_generate_documentation_base(const parser& p, md_document& doc,
                                                     unsigned level) const
 {
-    doc.add_entity(make_heading(*this, doc, level));
+    doc.add_entity(make_heading(*this, doc, level, p.get_output_config().show_module()));
 
     code_block_writer out(doc);
     if (has_comment() && get_comment().has_synopsis_override())
@@ -212,23 +239,15 @@ cpp_name doc_cpp_entity::do_get_unique_name() const
     return entity_->get_unique_name();
 }
 
-cpp_name doc_cpp_entity::do_get_index_name() const
+cpp_name doc_cpp_entity::do_get_index_name(bool full_name) const
 {
     if (get_cpp_entity_type() == cpp_entity::namespace_t)
         return entity_->get_full_name();
-    auto name = std::string(entity_->get_name().c_str());
+    auto name =
+        std::string(full_name ? entity_->get_full_name().c_str() : entity_->get_name().c_str());
     if (auto func = get_function(*entity_))
         name += func->get_signature().c_str();
     return name;
-}
-
-cpp_name doc_entity::do_get_file_name() const
-{
-    auto cur = this;
-    while (cur->parent_)
-        cur = cur->parent_;
-    assert(cur->get_cpp_entity_type() == cpp_entity::file_t);
-    return cur->do_get_file_name();
 }
 
 cpp_name doc_entity::get_unique_name() const
@@ -900,7 +919,7 @@ void doc_member_group::do_generate_documentation(const parser& p, md_document& d
     if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
     {
         auto& cpp_e = static_cast<const doc_cpp_entity&>(*begin());
-        doc.add_entity(make_heading(cpp_e, doc, level));
+        doc.add_entity(make_heading(cpp_e, doc, level, p.get_output_config().show_module()));
     }
     else
     {
@@ -1152,6 +1171,7 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
         else
             res->file_->add_entity(std::move(entity));
     }
+    i.register_entity(*res->file_);
 
     return res;
 }

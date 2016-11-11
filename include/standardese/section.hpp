@@ -37,10 +37,11 @@ namespace standardese
         invalid = unsigned(section_type::count),
 
         exclude,
-
         unique_name,
         synopsis,
+
         group,
+        module,
 
         entity,
         file,

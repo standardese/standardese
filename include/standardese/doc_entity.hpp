@@ -68,9 +68,9 @@ namespace standardese
             return do_get_name();
         }
 
-        cpp_name get_index_name() const
+        cpp_name get_index_name(bool full_name) const
         {
-            return do_get_index_name();
+            return do_get_index_name(full_name);
         }
 
         cpp_name get_file_name() const
@@ -103,6 +103,10 @@ namespace standardese
             return *comment_;
         }
 
+        bool in_module() const STANDARDESE_NOEXCEPT;
+
+        const std::string& get_module() const STANDARDESE_NOEXCEPT;
+
         void generate_synopsis(const parser& p, code_block_writer& out) const
         {
             do_generate_synopsis(p, out, true);
@@ -133,20 +137,13 @@ namespace standardese
                                           bool top_level) const = 0;
 
     private:
-        virtual cpp_name do_get_name() const        = 0;
-        virtual cpp_name do_get_unique_name() const = 0;
-
-        virtual cpp_name do_get_index_name() const
-        {
-            return do_get_name();
-        }
+        virtual cpp_name do_get_name() const                     = 0;
+        virtual cpp_name do_get_unique_name() const              = 0;
+        virtual cpp_name do_get_index_name(bool full_name) const = 0;
 
         virtual cpp_name do_get_file_name() const;
 
-        virtual cpp_entity::type do_get_cpp_entity_type() const STANDARDESE_NOEXCEPT
-        {
-            return cpp_entity::invalid_t;
-        }
+        virtual cpp_entity::type do_get_cpp_entity_type() const STANDARDESE_NOEXCEPT = 0;
 
         doc_entity_ptr    next_;
         const doc_entity* parent_;
@@ -203,7 +200,7 @@ namespace standardese
 
         cpp_name do_get_unique_name() const override;
 
-        cpp_name do_get_index_name() const override;
+        cpp_name do_get_index_name(bool full_name) const override;
 
         cpp_entity::type do_get_cpp_entity_type() const STANDARDESE_NOEXCEPT override
         {
@@ -325,9 +322,19 @@ namespace standardese
             return begin()->do_get_name();
         }
 
+        cpp_name do_get_index_name(bool full_name) const override
+        {
+            return begin()->do_get_index_name(full_name);
+        }
+
         cpp_name do_get_unique_name() const override
         {
             return begin()->do_get_unique_name();
+        }
+
+        cpp_entity::type do_get_cpp_entity_type() const STANDARDESE_NOEXCEPT override
+        {
+            return begin()->do_get_cpp_entity_type();
         }
 
         doc_member_group(const doc_entity* parent, const comment& c)
@@ -372,6 +379,11 @@ namespace standardese
         cpp_name do_get_unique_name() const override
         {
             return file_->get_unique_name();
+        }
+
+        cpp_name do_get_index_name(bool full_name) const override
+        {
+            return file_->get_index_name(full_name);
         }
 
         cpp_name do_get_file_name() const override

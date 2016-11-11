@@ -223,7 +223,10 @@ comment_config::comment_config() : cmd_char_('\\')
     STANDARDESE_DETAIL_SET(exclude)
     STANDARDESE_DETAIL_SET(unique_name)
     STANDARDESE_DETAIL_SET(synopsis)
+
     STANDARDESE_DETAIL_SET(group)
+    STANDARDESE_DETAIL_SET(module)
+
     STANDARDESE_DETAIL_SET(entity)
     STANDARDESE_DETAIL_SET(file)
     STANDARDESE_DETAIL_SET(param)
@@ -267,7 +270,8 @@ output_config::output_config()
 : section_names_(std::size_t(section_type::count)),
   hidden_name_("implementation-defined"),
   tab_width_(4u),
-  inline_doc_(true)
+  inline_doc_(true),
+  show_module_(true)
 {
 #define STANDARDESE_DETAIL_SET(type, name) section_names_[unsigned(section_type::type)] = name;
 

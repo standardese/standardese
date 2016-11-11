@@ -134,7 +134,9 @@ int main(int argc, char* argv[])
             ("output.width", po::value<unsigned>()->default_value(terminal_width),
              "the width of the output (used in e.g. commonmark format)")
             ("output.inline_doc", po::value<bool>()->default_value(true)->implicit_value(true),
-             "whether or not some entity documentation (parameters etc.) will be shown inline");
+             "whether or not some entity documentation (parameters etc.) will be shown inline")
+            ("output.show_modules", po::value<bool>()->default_value(true)->implicit_value(true),
+            "whether or not the module of an entity is shown in the documentation");
     // clang-format on
 
     standardese_tool::configuration config;
@@ -179,6 +181,7 @@ int main(int argc, char* argv[])
             parser.get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
             parser.get_output_config().set_inline_documentation(
                 map.at("output.inline_doc").as<bool>());
+            parser.get_output_config().set_show_module(map.at("output.show_modules").as<bool>());
 
             auto input              = map.at("input-files").as<std::vector<fs::path>>();
             auto blacklist_ext      = map.at("input.blacklist_ext").as<std::vector<std::string>>();
@@ -257,6 +260,7 @@ int main(int argc, char* argv[])
             log->info("Generating indices...");
             documentations.push_back(documentation(generate_file_index(index)));
             documentations.push_back(documentation(generate_entity_index(index)));
+            documentations.push_back(documentation(generate_module_index(parser, index)));
 
             config.set_external(index);
             for (auto& format : formats)
@@ -276,13 +280,14 @@ int main(int argc, char* argv[])
 
                 output out(index, prefix, *format);
                 for (auto& doc : documentations)
-                    futures.push_back(
-                        standardese_tool::add_job(pool,
-                                                  [&](const md_document& document) {
-                                                      out.render(log, document,
-                                                                 config.link_extension());
-                                                  },
-                                                  std::ref(*doc.document)));
+                    if (doc.document)
+                        futures.push_back(
+                            standardese_tool::add_job(pool,
+                                                      [&](const md_document& document) {
+                                                          out.render(log, document,
+                                                                     config.link_extension());
+                                                      },
+                                                      std::ref(*doc.document)));
 
                 for (auto& f : futures)
                     f.wait();
