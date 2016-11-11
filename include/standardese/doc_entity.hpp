@@ -40,6 +40,13 @@ namespace standardese
     class doc_entity
     {
     public:
+        enum type
+        {
+            file_t,
+            cpp_entity_t,
+            member_group_t,
+        };
+
         doc_entity(const doc_entity&) = delete;
         doc_entity(doc_entity&&)      = delete;
 
@@ -47,6 +54,11 @@ namespace standardese
 
         doc_entity& operator=(const doc_entity&) = delete;
         doc_entity& operator=(doc_entity&&) = delete;
+
+        type get_entity_type() const STANDARDESE_NOEXCEPT
+        {
+            return t_;
+        }
 
         cpp_name get_unique_name() const;
 
@@ -96,9 +108,10 @@ namespace standardese
         }
 
     protected:
-        doc_entity(const doc_entity* parent, const comment* c) STANDARDESE_NOEXCEPT
+        doc_entity(type t, const doc_entity* parent, const comment* c) STANDARDESE_NOEXCEPT
             : parent_(parent),
-              comment_(c)
+              comment_(c),
+              t_(t)
         {
         }
 
@@ -136,10 +149,12 @@ namespace standardese
         doc_entity_ptr    next_;
         const doc_entity* parent_;
         const comment*    comment_;
+        type              t_;
 
         template <class T, class Base, template <typename> class Ptr>
         friend class detail::entity_container;
         friend class doc_container_cpp_entity;
+        friend class doc_member_group;
         friend struct detail::synopsis_access;
     };
 
@@ -174,7 +189,7 @@ namespace standardese
                                             unsigned level) const;
 
         doc_cpp_entity(const doc_entity* parent, const cpp_entity& e, const comment* c)
-        : doc_entity(parent, c), entity_(&e)
+        : doc_entity(doc_entity::cpp_entity_t, parent, c), entity_(&e)
         {
         }
 
@@ -278,6 +293,48 @@ namespace standardese
         friend class doc_file;
     };
 
+    class doc_member_group final : public doc_entity, public doc_entity_container<doc_entity>
+    {
+    public:
+        static doc_ptr<doc_member_group> make(const doc_entity& parent, const comment& c);
+
+        void add_entity(doc_entity_ptr e)
+        {
+            if (e)
+            {
+                e->set_parent(this);
+                doc_entity_container<doc_entity>::add_entity(std::move(e));
+            }
+        }
+
+        std::size_t group_id() const STANDARDESE_NOEXCEPT;
+
+    protected:
+        void do_generate_documentation(const parser& p, md_document& doc,
+                                       unsigned level) const override;
+
+        void do_generate_synopsis(const parser& p, code_block_writer& out,
+                                  bool top_level) const override;
+
+    private:
+        cpp_name do_get_name() const override
+        {
+            return begin()->do_get_name();
+        }
+
+        cpp_name do_get_unique_name() const override
+        {
+            return begin()->do_get_unique_name();
+        }
+
+        doc_member_group(const doc_entity* parent, const comment& c)
+        : doc_entity(doc_cpp_entity::member_group_t, parent, &c)
+        {
+        }
+
+        friend detail::doc_ptr_access;
+    };
+
     class doc_file final : public doc_entity
     {
     public:
@@ -325,7 +382,7 @@ namespace standardese
         }
 
         doc_file(std::string output_name, doc_ptr<doc_container_cpp_entity> f)
-        : doc_entity(nullptr, f->has_comment() ? &f->get_comment() : nullptr),
+        : doc_entity(doc_entity::file_t, nullptr, f->has_comment() ? &f->get_comment() : nullptr),
           file_(std::move(f)),
           output_name_(output_name)
         {
