@@ -195,7 +195,7 @@ namespace
     }
 
     md_ptr<md_heading> make_heading(const doc_cpp_entity& e, const md_entity& parent,
-                                    unsigned level)
+                                    unsigned level, bool show_module)
     {
         auto heading = md_heading::make(parent, level);
 
@@ -207,6 +207,11 @@ namespace
         auto code = md_code::make(*heading, e.get_cpp_entity().get_full_name().c_str());
         heading->add_entity(std::move(code));
 
+        if (show_module && e.has_comment() && e.get_comment().in_module())
+            heading->add_entity(
+                md_text::make(*heading,
+                              fmt::format(" [{}]", e.get_comment().get_module()).c_str()));
+
         heading->add_entity(get_anchor(e, *heading));
 
         return heading;
@@ -216,7 +221,7 @@ namespace
 void doc_cpp_entity::do_generate_documentation_base(const parser& p, md_document& doc,
                                                     unsigned level) const
 {
-    doc.add_entity(make_heading(*this, doc, level));
+    doc.add_entity(make_heading(*this, doc, level, p.get_output_config().show_module()));
 
     code_block_writer out(doc);
     if (has_comment() && get_comment().has_synopsis_override())
@@ -914,7 +919,7 @@ void doc_member_group::do_generate_documentation(const parser& p, md_document& d
     if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
     {
         auto& cpp_e = static_cast<const doc_cpp_entity&>(*begin());
-        doc.add_entity(make_heading(cpp_e, doc, level));
+        doc.add_entity(make_heading(cpp_e, doc, level, p.get_output_config().show_module()));
     }
     else
     {

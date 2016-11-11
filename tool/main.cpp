@@ -134,7 +134,9 @@ int main(int argc, char* argv[])
             ("output.width", po::value<unsigned>()->default_value(terminal_width),
              "the width of the output (used in e.g. commonmark format)")
             ("output.inline_doc", po::value<bool>()->default_value(true)->implicit_value(true),
-             "whether or not some entity documentation (parameters etc.) will be shown inline");
+             "whether or not some entity documentation (parameters etc.) will be shown inline")
+            ("output.show_modules", po::value<bool>()->default_value(true)->implicit_value(true),
+            "whether or not the module of an entity is shown in the documentation");
     // clang-format on
 
     standardese_tool::configuration config;
@@ -179,6 +181,7 @@ int main(int argc, char* argv[])
             parser.get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
             parser.get_output_config().set_inline_documentation(
                 map.at("output.inline_doc").as<bool>());
+            parser.get_output_config().set_show_module(map.at("output.show_modules").as<bool>());
 
             auto input              = map.at("input-files").as<std::vector<fs::path>>();
             auto blacklist_ext      = map.at("input.blacklist_ext").as<std::vector<std::string>>();

@@ -157,12 +157,23 @@ namespace standardese
             inline_doc_ = v;
         }
 
+        bool show_module() const STANDARDESE_NOEXCEPT
+        {
+            return show_module_;
+        }
+
+        void set_show_module(bool v) STANDARDESE_NOEXCEPT
+        {
+            show_module_ = v;
+        }
+
     private:
         entity_blacklist         blacklist_;
         std::vector<std::string> section_names_;
         std::string              hidden_name_;
         unsigned                 tab_width_;
         bool                     inline_doc_;
+        bool                     show_module_;
     };
 } // namespace standardese
 
