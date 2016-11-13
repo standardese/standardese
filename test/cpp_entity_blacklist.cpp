@@ -121,6 +121,7 @@ std::string get_synopsis(const translation_unit& tu)
 TEST_CASE("synopsis")
 {
     parser p(test_logger);
+    p.get_output_config().set_flag(output_flag::show_macro_replacement);
     REQUIRE(p.get_output_config().get_tab_width() == 4);
 
     SECTION("top-level")
