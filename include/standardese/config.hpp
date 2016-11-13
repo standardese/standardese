@@ -105,6 +105,12 @@ namespace standardese
         char cmd_char_;
     };
 
+    enum class output_flag : unsigned
+    {
+        inline_documentation = 1,
+        show_modules         = 2,
+    };
+
     class output_config
     {
     public:
@@ -147,24 +153,22 @@ namespace standardese
             return hidden_name_;
         }
 
-        bool inline_documentation() const STANDARDESE_NOEXCEPT
+        void set_flag(output_flag f) STANDARDESE_NOEXCEPT
         {
-            return inline_doc_;
+            flags_ |= unsigned(f);
         }
 
-        void set_inline_documentation(bool v) STANDARDESE_NOEXCEPT
+        void set_flag(output_flag f, bool value) STANDARDESE_NOEXCEPT
         {
-            inline_doc_ = v;
+            if (value)
+                set_flag(f);
+            else
+                flags_ &= ~unsigned(f);
         }
 
-        bool show_module() const STANDARDESE_NOEXCEPT
+        bool is_set(output_flag f) const STANDARDESE_NOEXCEPT
         {
-            return show_module_;
-        }
-
-        void set_show_module(bool v) STANDARDESE_NOEXCEPT
-        {
-            show_module_ = v;
+            return (flags_ & unsigned(f)) > 0u;
         }
 
     private:
@@ -172,8 +176,7 @@ namespace standardese
         std::vector<std::string> section_names_;
         std::string              hidden_name_;
         unsigned                 tab_width_;
-        bool                     inline_doc_;
-        bool                     show_module_;
+        unsigned                 flags_;
     };
 } // namespace standardese
 

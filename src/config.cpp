@@ -270,8 +270,7 @@ output_config::output_config()
 : section_names_(std::size_t(section_type::count)),
   hidden_name_("implementation-defined"),
   tab_width_(4u),
-  inline_doc_(true),
-  show_module_(true)
+  flags_(0u)
 {
 #define STANDARDESE_DETAIL_SET(type, name) section_names_[unsigned(section_type::type)] = name;
 
