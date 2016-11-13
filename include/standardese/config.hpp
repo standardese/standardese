@@ -107,8 +107,9 @@ namespace standardese
 
     enum class output_flag : unsigned
     {
-        inline_documentation = 1,
-        show_modules         = 2,
+        inline_documentation   = 1,
+        show_modules           = 2,
+        show_macro_replacement = 4
     };
 
     class output_config

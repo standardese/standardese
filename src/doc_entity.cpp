@@ -545,9 +545,12 @@ namespace
         out << (i.get_kind() == cpp_inclusion_directive::system ? '>' : '"');
     }
 
-    void do_write_synopsis(const parser&, code_block_writer& out, const cpp_macro_definition& m)
+    void do_write_synopsis(const parser&, code_block_writer& out, const cpp_macro_definition& m,
+                           bool show_replacement)
     {
-        out << "#define " << m.get_name() << m.get_parameter_string() << ' ' << m.get_replacement();
+        out << "#define " << m.get_name() << m.get_parameter_string();
+        if (show_replacement)
+            out << ' ' << m.get_replacement();
     }
 }
 
@@ -556,7 +559,8 @@ void doc_leave_cpp_entity::do_generate_synopsis(const parser& p, code_block_writ
     switch (get_cpp_entity_type())
     {
     case cpp_entity::macro_definition_t:
-        do_write_synopsis(p, out, static_cast<const cpp_macro_definition&>(get_cpp_entity()));
+        do_write_synopsis(p, out, static_cast<const cpp_macro_definition&>(get_cpp_entity()),
+                          p.get_output_config().is_set(output_flag::show_macro_replacement));
         break;
     case cpp_entity::inclusion_directive_t:
         do_write_synopsis(p, out, static_cast<const cpp_inclusion_directive&>(get_cpp_entity()));
