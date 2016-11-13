@@ -64,6 +64,13 @@ namespace standardese
             stream_.remove_trailing_line();
         }
 
+        code_block_writer& fill(std::size_t size, char c)
+        {
+            for (std::size_t i = 0u; i != size; ++i)
+                stream_.write_char(c);
+            return *this;
+        }
+
         code_block_writer& operator<<(const char* str)
         {
             stream_.write_str(str, std::strlen(str));
@@ -88,12 +95,8 @@ namespace standardese
             return *this;
         }
 
-        code_block_writer& operator<<(long long value)
-        {
-            return *this << std::to_string(value);
-        }
-
-        code_block_writer& operator<<(unsigned long long value)
+        template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+        code_block_writer& operator<<(T value)
         {
             return *this << std::to_string(value);
         }

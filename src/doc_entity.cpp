@@ -948,12 +948,20 @@ void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& 
                                             bool top_level) const
 {
     auto first = true;
+    auto i     = 0u;
     for (auto& child : *this)
     {
         if (first)
             first = false;
         else
             out << blankl;
+
+        ++i;
+        if (top_level && p.get_output_config().is_set(output_flag::show_group_member_id))
+        {
+            out << '(' << i << ')';
+            out.fill(p.get_output_config().get_tab_width(), ' ');
+        }
 
         detail::synopsis_access::do_generate_synopsis(child, p, out, top_level);
     }

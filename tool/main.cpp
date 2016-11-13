@@ -137,6 +137,8 @@ int main(int argc, char* argv[])
              "whether or not some entity documentation (parameters etc.) will be shown inline")
             ("output.show_macro_replacement", po::value<bool>()->default_value(false)->implicit_value(true),
              "whether or not the replacement of macros will be shown")
+            ("output.show_group_member_id", po::value<bool>()->default_value(true)->implicit_value(true),
+             "whether or not to show the index of member group members in the synopsis")
             ("output.show_modules", po::value<bool>()->default_value(true)->implicit_value(true),
             "whether or not the module of an entity is shown in the documentation");
     // clang-format on
@@ -187,6 +189,8 @@ int main(int argc, char* argv[])
                                                 map.at("output.show_modules").as<bool>());
             parser.get_output_config().set_flag(output_flag::show_macro_replacement,
                                                 map.at("output.show_macro_replacement").as<bool>());
+            parser.get_output_config().set_flag(output_flag::show_group_member_id,
+                                                map.at("output.show_group_member_id").as<bool>());
 
             auto input              = map.at("input-files").as<std::vector<fs::path>>();
             auto blacklist_ext      = map.at("input.blacklist_ext").as<std::vector<std::string>>();

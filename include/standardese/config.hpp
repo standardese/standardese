@@ -109,7 +109,8 @@ namespace standardese
     {
         inline_documentation   = 1,
         show_modules           = 2,
-        show_macro_replacement = 4
+        show_macro_replacement = 4,
+        show_group_member_id   = 8
     };
 
     class output_config

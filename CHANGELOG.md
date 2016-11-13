@@ -23,6 +23,7 @@
 * Add `output.inline_doc` option to enable inline documentation
 * Add `output.show_modules` option to enable/disable showing the module of an entity in the output
 * Add `output.show_macro_replacement` option to enable/disable showing the macro replacement in the synopsis
+* Add `output.show_group_member_id` option to enable/disable showing an integral id for members of a member group
 * Add `compilation.clang_binary` option to control clang binary used as preprocessor
 * Add `compilation.ms_compatibility` option to give more control over MSVC compatibility as well as tweaked `compilation.ms_extensions`
 
