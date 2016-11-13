@@ -2,8 +2,8 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
-#ifndef STANDARDESE_PREPROCESSOR_HPP_INCLUDED
-#define STANDARDESE_PREPROCESSOR_HPP_INCLUDED
+#ifndef STANDARDESE_CPP_PREPROCESSOR_HPP_INCLUDED
+#define STANDARDESE_CPP_PREPROCESSOR_HPP_INCLUDED
 
 #include <string>
 #include <unordered_set>
@@ -144,4 +144,4 @@ namespace standardese
     };
 } // namespace standardese
 
-#endif // STANDARDESE_DETAIL_PREPROCESSOR_HPP_INCLUDED
+#endif // STANDARDESE_CPP_PREPROCESSOR_HPP_INCLUDED

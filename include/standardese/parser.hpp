@@ -17,7 +17,7 @@
 #include <standardese/config.hpp>
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_entity_registry.hpp>
-#include <standardese/preprocessor.hpp>
+#include <standardese/cpp_preprocessor.hpp>
 
 #if CINDEX_VERSION_MAJOR != 0
 #error "require libclang version 0.x"

@@ -22,6 +22,7 @@ set(header
         ../include/standardese/cpp_enum.hpp
         ../include/standardese/cpp_function.hpp
         ../include/standardese/cpp_namespace.hpp
+        ../include/standardese/cpp_preprocessor.hpp
         ../include/standardese/cpp_template.hpp
         ../include/standardese/cpp_type.hpp
         ../include/standardese/cpp_variable.hpp
@@ -37,7 +38,6 @@ set(header
         ../include/standardese/output_format.hpp
         ../include/standardese/output_stream.hpp
         ../include/standardese/parser.hpp
-        ../include/standardese/preprocessor.hpp
         ../include/standardese/section.hpp
         ../include/standardese/string.hpp
         ../include/standardese/translation_unit.hpp)

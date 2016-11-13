@@ -5,7 +5,7 @@
 #include <standardese/parser.hpp>
 
 #include <standardese/detail/tokenizer.hpp>
-#include <standardese/preprocessor.hpp>
+#include <standardese/cpp_preprocessor.hpp>
 #include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
 
