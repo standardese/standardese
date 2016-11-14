@@ -171,22 +171,11 @@ namespace standardese_tool
                       boost::program_options::variables_map map)
         : parser(std::move(p)), compile_config(std::move(c)), map(std::move(map))
         {
+            using namespace standardese;
+
             auto width = this->map.at("output.width").as<unsigned>();
             for (auto& format_str : this->map.at("output.format").as<std::vector<std::string>>())
-            {
-                if (format_str == "commonmark")
-                    formats.emplace_back(new standardese::output_format_markdown(width));
-                else if (format_str == "latex")
-                    formats.emplace_back(new standardese::output_format_latex(width));
-                else if (format_str == "man")
-                    formats.emplace_back(new standardese::output_format_man(width));
-                else if (format_str == "html")
-                    formats.emplace_back(new standardese::output_format_html);
-                else if (format_str == "xml")
-                    formats.emplace_back(new standardese::output_format_xml);
-                else
-                    throw std::invalid_argument("unknown format '" + format_str + "'");
-            }
+                formats.emplace_back(make_output_format(format_str, width));
         }
 
         const char* link_extension() const
