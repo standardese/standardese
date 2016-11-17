@@ -254,9 +254,9 @@ enum foo: unsigned int
     SECTION("function")
     {
         auto code = R"(
-/// \param c
+/// \param 2
 /// \exclude
-void func(int a, char* b, float c = .3);
+void func(int a, char* b, float = .3);
 )";
 
         auto synopsis = R"(void func(int a, char* b);)";

@@ -262,7 +262,9 @@ void doc_inline_cpp_entity::do_generate_documentation(const parser& p, md_docume
                                                       unsigned level) const
 {
     assert(!p.get_output_config().is_set(output_flag::inline_documentation));
-    do_generate_documentation_base(p, doc, level);
+
+    if (has_comment())
+        do_generate_documentation_base(p, doc, level);
 }
 
 void doc_inline_cpp_entity::do_generate_documentation_inline(const parser&            p,

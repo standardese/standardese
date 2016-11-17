@@ -155,6 +155,19 @@ namespace
         return create_location_id(e.get_entity_type(), loc);
     }
 
+    cpp_name get_inline_name(const cpp_entity& e)
+    {
+        auto name = e.get_name();
+        if (!name.empty())
+            return name;
+        assert(is_parameter(e.get_entity_type()));
+        auto unique_name = e.get_unique_name();
+        for (auto ptr = unique_name.c_str(); *ptr; ++ptr)
+            if (*ptr == '.')
+                return ++ptr;
+        return "";
+    }
+
     comment_id create_location_id(const cpp_entity& e)
     {
         if (e.get_entity_type() == cpp_entity::file_t)
@@ -167,22 +180,23 @@ namespace
         auto& parent    = get_inline_parent(e);
         auto  is_inline = &parent != &e;
         return create_location_id(e.get_entity_type(), get_location(parent.get_cursor()),
-                                  is_inline ? e.get_name() : "");
+                                  is_inline ? get_inline_name(e) : "");
     }
 
     bool inline_name_matches(const cpp_entity& e, const string& name)
     {
+        auto e_name = get_inline_name(e);
         if (e.get_entity_type() == cpp_entity::base_class_t)
         {
             if (std::strncmp(name.c_str(), "::", 2) != 0)
                 return false;
-            return std::strcmp(e.get_name().c_str(), name.c_str() + 2) == 0;
+            return std::strcmp(e_name.c_str(), name.c_str() + 2) == 0;
         }
         else
         {
             if (std::strncmp(name.c_str(), ".", 1) != 0)
                 return false;
-            return std::strcmp(e.get_name().c_str(), name.c_str() + 1) == 0;
+            return std::strcmp(e_name.c_str(), name.c_str() + 1) == 0;
         }
     }
 
