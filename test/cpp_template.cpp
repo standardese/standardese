@@ -455,7 +455,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             if (ptr->get_function().get_name() == "a")
             {
                 ++count;
-                REQUIRE(ptr->get_name() == "a<A>");
+                REQUIRE(ptr->get_name() == "a");
                 REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// a");
                 REQUIRE(ptr->get_signature() == "(A)");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
@@ -479,7 +479,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             else if (ptr->get_function().get_name() == "b")
             {
                 ++count;
-                REQUIRE(ptr->get_name() == "b<A, B>");
+                REQUIRE(ptr->get_name() == "b");
                 REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// b");
                 REQUIRE(ptr->get_signature() == "(B)");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
@@ -510,7 +510,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             else if (ptr->get_function().get_name() == "c")
             {
                 ++count;
-                REQUIRE(ptr->get_name() == "c<val>");
+                REQUIRE(ptr->get_name() == "c");
                 REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// c");
                 REQUIRE(ptr->get_signature() == "()");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
@@ -534,7 +534,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             else if (ptr->get_function().get_name() == "d")
             {
                 ++count;
-                REQUIRE(ptr->get_name() == "d<A>");
+                REQUIRE(ptr->get_name() == "d");
                 REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// d");
                 REQUIRE(ptr->get_signature() == "()");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
@@ -612,7 +612,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                         REQUIRE(dynamic_cast<const cpp_member_function*>(&ptr->get_function())
                                 != nullptr);
                         REQUIRE(!ptr->get_function().is_variadic());
-                        REQUIRE(ptr->get_name() == "c<A...>");
+                        REQUIRE(ptr->get_name() == "c");
                         REQUIRE(ptr->get_signature() == "(A...)");
 
                         auto size = 0u;
@@ -636,7 +636,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                         REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// foo");
                         REQUIRE(dynamic_cast<const cpp_constructor*>(&ptr->get_function())
                                 != nullptr);
-                        REQUIRE(ptr->get_name() == "foo<A>");
+                        REQUIRE(ptr->get_name() == "foo");
                         REQUIRE(ptr->get_signature() == "(A)");
 
                         auto size = 0u;
@@ -660,7 +660,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                         REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// operator");
                         REQUIRE(dynamic_cast<const cpp_conversion_op*>(&ptr->get_function())
                                 != nullptr);
-                        REQUIRE(ptr->get_name() == "operator T*<T>");
+                        REQUIRE(ptr->get_name() == "operator T*");
                         REQUIRE(ptr->get_signature() == "()");
 
                         auto size = 0u;

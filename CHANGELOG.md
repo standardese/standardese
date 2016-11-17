@@ -8,6 +8,7 @@
 * Allow `unique_name` on files to override the output name
 * *Breaking:* Change hard line break character to a forward slash
 * *Breaking:* Require `entity` and `file` command to be first in a comment
+* *Breaking:* Remove template parameters for function template unique name
 * Improve documentation headings
 * Fix termination of section by all special commands
 * Fix matching of end-of-line comments

@@ -317,7 +317,7 @@ cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit& tu
 
 cpp_name cpp_function_template::get_name() const
 {
-    return get_template_name(func_->get_name().c_str(), *this);
+    return func_->get_name();
 }
 
 cpp_name cpp_function_template::get_signature() const

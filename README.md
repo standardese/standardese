@@ -240,7 +240,7 @@ In either case `standardese` will insert the correct URL by searching for the en
 
 The `unique-name` of an entity is the name with all scopes, i.e. `foo::bar::baz`.
 
-* For templates you need to append all parameters, i.e. `foo<A, B, C>`.
+* For templates (but not function templates) you need to append all parameters, i.e. `foo<A, B, C>`.
 
 * For functions you need to append the signature (parameter types and cv and ref qualifier), i.e. `func()`, `bar(int,char)` or `type::foo() const &&`. If the signature is `()`, you can omit it.
 
