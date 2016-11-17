@@ -639,42 +639,54 @@ doc_leave_cpp_entity::doc_leave_cpp_entity(const doc_entity* parent, const cpp_e
     assert(is_leave_entity(e));
 }
 
+namespace
+{
+    bool require_comment_for_doc(cpp_entity::type t)
+    {
+        return t == cpp_entity::namespace_t || t == cpp_entity::language_linkage_t;
+    }
+}
+
 void doc_container_cpp_entity::do_generate_documentation(const parser& p, md_document& doc,
                                                          unsigned level) const
 {
-    // generate heading + synopsis + comment
-    do_generate_documentation_base(p, doc, level);
-
-    // add inline entity comments
-    if (p.get_output_config().is_set(output_flag::inline_documentation))
+    auto generate_doc = !require_comment_for_doc(get_cpp_entity_type()) || has_comment();
+    if (generate_doc)
     {
-        auto parameters  = md_inline_documentation::make(doc, "Parameters");
-        auto bases       = md_inline_documentation::make(doc, "Bases");
-        auto members     = md_inline_documentation::make(doc, "Members");
-        auto enum_values = md_inline_documentation::make(doc, "Enum values");
+        // generate heading + synopsis + comment
+        do_generate_documentation_base(p, doc, level);
 
-        for (auto& child : *this)
+        // add inline entity comments
+        if (p.get_output_config().is_set(output_flag::inline_documentation))
         {
-            if (is_parameter(child.get_cpp_entity_type()))
-                child.do_generate_documentation_inline(p, *parameters);
-            else if (child.get_cpp_entity_type() == cpp_entity::base_class_t)
-                child.do_generate_documentation_inline(p, *bases);
-            else if (is_member_variable(child.get_cpp_entity_type()))
-                child.do_generate_documentation_inline(p, *members);
-            else if (is_enum_value(child.get_cpp_entity_type()))
-                child.do_generate_documentation_inline(p, *enum_values);
-            else
-                assert(!is_inline_entity(child.get_cpp_entity_type()));
-        }
+            auto parameters  = md_inline_documentation::make(doc, "Parameters");
+            auto bases       = md_inline_documentation::make(doc, "Bases");
+            auto members     = md_inline_documentation::make(doc, "Members");
+            auto enum_values = md_inline_documentation::make(doc, "Enum values");
 
-        if (!parameters->empty())
-            doc.add_entity(std::move(parameters));
-        if (!bases->empty())
-            doc.add_entity(std::move(bases));
-        if (!members->empty())
-            doc.add_entity(std::move(members));
-        if (!enum_values->empty())
-            doc.add_entity(std::move(enum_values));
+            for (auto& child : *this)
+            {
+                if (is_parameter(child.get_cpp_entity_type()))
+                    child.do_generate_documentation_inline(p, *parameters);
+                else if (child.get_cpp_entity_type() == cpp_entity::base_class_t)
+                    child.do_generate_documentation_inline(p, *bases);
+                else if (is_member_variable(child.get_cpp_entity_type()))
+                    child.do_generate_documentation_inline(p, *members);
+                else if (is_enum_value(child.get_cpp_entity_type()))
+                    child.do_generate_documentation_inline(p, *enum_values);
+                else
+                    assert(!is_inline_entity(child.get_cpp_entity_type()));
+            }
+
+            if (!parameters->empty())
+                doc.add_entity(std::move(parameters));
+            if (!bases->empty())
+                doc.add_entity(std::move(bases));
+            if (!members->empty())
+                doc.add_entity(std::move(members));
+            if (!enum_values->empty())
+                doc.add_entity(std::move(enum_values));
+        }
     }
 
     // add documentation for other children
@@ -684,7 +696,7 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, md_doc
         if (p.get_output_config().is_set(output_flag::inline_documentation)
             && is_inline_entity(child.get_cpp_entity_type()))
             continue;
-        child.do_generate_documentation(p, doc, level + 1);
+        child.do_generate_documentation(p, doc, generate_doc ? level + 1 : level);
         any_child = true;
     }
 
