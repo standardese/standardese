@@ -1204,11 +1204,6 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
     return res;
 }
 
-void doc_file::generate_documentation(const parser& p, md_document& doc) const
-{
-    do_generate_documentation(p, doc, 1u);
-}
-
 void doc_file::do_generate_documentation(const parser& p, md_document& doc, unsigned level) const
 {
     file_->do_generate_documentation(p, doc, level);

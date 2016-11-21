@@ -121,6 +121,9 @@ namespace standardese
     class md_document;
     class index;
 
+    void resolve_urls(const std::shared_ptr<spdlog::logger>& logger, const index& i,
+                      md_document& document, const char* extension);
+
     using path = std::string;
 
     class output

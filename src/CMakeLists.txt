@@ -40,6 +40,7 @@ set(header
         ../include/standardese/parser.hpp
         ../include/standardese/section.hpp
         ../include/standardese/string.hpp
+        ../include/standardese/template_processor.hpp
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
@@ -71,6 +72,7 @@ set(src
         output_stream.cpp
         parser.cpp
         preprocessor.cpp
+        template_processor.cpp
         translation_unit.cpp)
 
 add_library(standardese ${detail_header} ${header} ${src})

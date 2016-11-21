@@ -44,13 +44,11 @@ namespace
     }
 }
 
-void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_document& doc,
-                    const char* output_extension)
+void standardese::resolve_urls(const std::shared_ptr<spdlog::logger>& logger, const index& i,
+                               md_document& document, const char* extension)
 {
-    auto document = md_ptr<md_document>(static_cast<md_document*>(doc.clone().release()));
-
     std::vector<md_link*> links;
-    get_empty_links(links, *document);
+    get_empty_links(links, document);
 
     for (auto link : links)
     {
@@ -58,8 +56,7 @@ void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_docu
         if (!str)
             continue;
 
-        auto destination =
-            index_->get_url(str, output_extension ? output_extension : format_->extension());
+        auto destination = i.get_url(str, extension);
         if (destination.empty())
         {
             logger->warn("unable to resolve link to an entity named '{}'", str);
@@ -67,6 +64,14 @@ void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_docu
         }
         link->set_destination(destination.c_str());
     }
+}
+
+void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_document& doc,
+                    const char* output_extension)
+{
+    auto document = md_ptr<md_document>(static_cast<md_document*>(doc.clone().release()));
+    resolve_urls(logger, *index_, *document,
+                 output_extension ? output_extension : format_->extension());
 
     file_output output(prefix_ + document->get_output_name() + '.' + format_->extension());
     format_->render(output, *document);

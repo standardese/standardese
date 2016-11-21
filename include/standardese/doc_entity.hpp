@@ -112,6 +112,11 @@ namespace standardese
             do_generate_synopsis(p, out, true);
         }
 
+        void generate_documentation(const parser& p, md_document& doc) const
+        {
+            do_generate_documentation(p, doc, 1u);
+        }
+
     protected:
         doc_entity(type t, const doc_entity* parent, const comment* c) STANDARDESE_NOEXCEPT
             : parent_(parent),
@@ -350,8 +355,6 @@ namespace standardese
     public:
         static doc_ptr<doc_file> parse(const parser& p, const index& i, std::string output_name,
                                        const cpp_file& f);
-
-        void generate_documentation(const parser& p, md_document& doc) const;
 
         doc_entity_container<doc_entity>::iterator begin() const
         {
