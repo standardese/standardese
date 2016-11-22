@@ -38,6 +38,8 @@ namespace standardese
         };
     } // namespace detail
 
+    using doc_entity_container = detail::entity_container<doc_entity, doc_entity, doc_ptr>;
+
     class doc_entity
     {
     public:
@@ -106,6 +108,26 @@ namespace standardese
         bool in_module() const STANDARDESE_NOEXCEPT;
 
         const std::string& get_module() const STANDARDESE_NOEXCEPT;
+
+        virtual doc_entity_container::iterator begin() STANDARDESE_NOEXCEPT
+        {
+            return doc_entity_container::iterator{};
+        }
+
+        virtual doc_entity_container::iterator end() STANDARDESE_NOEXCEPT
+        {
+            return doc_entity_container::iterator{};
+        }
+
+        virtual doc_entity_container::const_iterator begin() const STANDARDESE_NOEXCEPT
+        {
+            return doc_entity_container::const_iterator{};
+        }
+
+        virtual doc_entity_container::const_iterator end() const STANDARDESE_NOEXCEPT
+        {
+            return doc_entity_container::const_iterator{};
+        }
 
         void generate_synopsis(const parser& p, code_block_writer& out) const
         {
@@ -266,22 +288,38 @@ namespace standardese
         friend detail::doc_ptr_access;
     };
 
-    template <class Entity>
-    using doc_entity_container = detail::entity_container<Entity, doc_entity, doc_ptr>;
-
-    class doc_container_cpp_entity final : public doc_cpp_entity,
-                                           public doc_entity_container<doc_entity>
+    class doc_container_cpp_entity final : public doc_cpp_entity, private doc_entity_container
     {
     public:
         void add_entity(doc_entity_ptr e)
         {
             if (e)
-                doc_entity_container<doc_entity>::add_entity(std::move(e));
+                doc_entity_container::add_entity(std::move(e));
         }
 
         bool empty() const STANDARDESE_NOEXCEPT
         {
-            return doc_entity_container<doc_entity>::empty();
+            return doc_entity_container::empty();
+        }
+
+        doc_entity_container::iterator begin() STANDARDESE_NOEXCEPT override
+        {
+            return doc_entity_container::begin();
+        }
+
+        doc_entity_container::iterator end() STANDARDESE_NOEXCEPT override
+        {
+            return doc_entity_container::end();
+        }
+
+        doc_entity_container::const_iterator begin() const STANDARDESE_NOEXCEPT override
+        {
+            return doc_entity_container::begin();
+        }
+
+        doc_entity_container::const_iterator end() const STANDARDESE_NOEXCEPT override
+        {
+            return doc_entity_container::end();
         }
 
     protected:
@@ -298,7 +336,7 @@ namespace standardese
         friend class doc_file;
     };
 
-    class doc_member_group final : public doc_entity, public doc_entity_container<doc_entity>
+    class doc_member_group final : public doc_entity, doc_entity_container
     {
     public:
         static doc_ptr<doc_member_group> make(const doc_entity& parent, const comment& c);
@@ -308,8 +346,28 @@ namespace standardese
             if (e)
             {
                 e->set_parent(this);
-                doc_entity_container<doc_entity>::add_entity(std::move(e));
+                doc_entity_container::add_entity(std::move(e));
             }
+        }
+
+        doc_entity_container::iterator begin() STANDARDESE_NOEXCEPT override
+        {
+            return doc_entity_container::begin();
+        }
+
+        doc_entity_container::iterator end() STANDARDESE_NOEXCEPT override
+        {
+            return doc_entity_container::end();
+        }
+
+        doc_entity_container::const_iterator begin() const STANDARDESE_NOEXCEPT override
+        {
+            return doc_entity_container::begin();
+        }
+
+        doc_entity_container::const_iterator end() const STANDARDESE_NOEXCEPT override
+        {
+            return doc_entity_container::end();
         }
 
         std::size_t group_id() const STANDARDESE_NOEXCEPT;
@@ -324,22 +382,22 @@ namespace standardese
     private:
         cpp_name do_get_name() const override
         {
-            return begin()->do_get_name();
+            return doc_entity_container::begin()->do_get_name();
         }
 
         cpp_name do_get_index_name(bool full_name) const override
         {
-            return begin()->do_get_index_name(full_name);
+            return doc_entity_container::begin()->do_get_index_name(full_name);
         }
 
         cpp_name do_get_unique_name() const override
         {
-            return begin()->do_get_unique_name();
+            return doc_entity_container::begin()->do_get_unique_name();
         }
 
         cpp_entity::type do_get_cpp_entity_type() const STANDARDESE_NOEXCEPT override
         {
-            return begin()->do_get_cpp_entity_type();
+            return doc_entity_container::begin()->do_get_cpp_entity_type();
         }
 
         doc_member_group(const doc_entity* parent, const comment& c)
@@ -356,14 +414,24 @@ namespace standardese
         static doc_ptr<doc_file> parse(const parser& p, const index& i, std::string output_name,
                                        const cpp_file& f);
 
-        doc_entity_container<doc_entity>::iterator begin() const
+        doc_entity_container::iterator begin() STANDARDESE_NOEXCEPT override
         {
             return file_->begin();
         }
 
-        doc_entity_container<doc_entity>::iterator end() const
+        doc_entity_container::iterator end() STANDARDESE_NOEXCEPT override
         {
             return file_->end();
+        }
+
+        doc_entity_container::const_iterator begin() const STANDARDESE_NOEXCEPT override
+        {
+            return static_cast<const doc_entity&>(*file_).begin();
+        }
+
+        doc_entity_container::const_iterator end() const STANDARDESE_NOEXCEPT override
+        {
+            return static_cast<const doc_entity&>(*file_).end();
         }
 
     protected:

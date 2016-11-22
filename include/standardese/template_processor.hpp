@@ -18,6 +18,9 @@ namespace standardese
         generate_synopsis,
         generate_doc_text,
 
+        for_each,
+        end,
+
         count,
         invalid = count
     };

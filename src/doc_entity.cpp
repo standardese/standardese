@@ -935,9 +935,9 @@ void doc_member_group::do_generate_documentation(const parser& p, md_document& d
 {
     assert(!empty());
 
-    if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
+    if (doc_entity_container::begin()->get_entity_type() == doc_entity::cpp_entity_t)
     {
-        auto& cpp_e = static_cast<const doc_cpp_entity&>(*begin());
+        auto& cpp_e = static_cast<const doc_cpp_entity&>(*doc_entity_container::begin());
         doc.add_entity(make_heading(cpp_e, doc, level,
                                     p.get_output_config().is_set(output_flag::show_modules)));
     }
@@ -963,7 +963,7 @@ void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& 
 {
     auto first = true;
     auto i     = 0u;
-    for (auto& child : *this)
+    for (auto& child : static_cast<const doc_entity_container&>(*this))
     {
         if (first)
             first = false;
