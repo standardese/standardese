@@ -491,6 +491,40 @@ namespace
 
         return output.get_string();
     }
+
+    bool get_if_value(const stack& s, const template_config& config, const doc_entity* entity,
+                      const char*& ptr, const char* last)
+    {
+        auto op = read_arg(ptr, last);
+        switch (config.get_operation(op))
+        {
+        case template_if_operation::name:
+        {
+            auto name = read_arg(ptr, last);
+            return entity->get_unique_name() == name.c_str();
+        }
+        case template_if_operation::first_child:
+        {
+            auto name  = read_arg(ptr, last);
+            auto other = s.lookup_var(name);
+            if (!other || other->begin() == other->end())
+                return false;
+            return entity == &*other->begin();
+        }
+        case template_if_operation::has_children:
+            return entity->begin() != entity->end();
+        case template_if_operation::inline_entity:
+            return s.get_parser().get_output_config().is_set(output_flag::inline_documentation)
+                   && is_inline_cpp_entity(entity->get_cpp_entity_type());
+        case template_if_operation::member_group:
+            return entity->get_entity_type() == doc_entity::member_group_t;
+        case template_if_operation::invalid:
+            s.get_parser().get_logger()->warn("unknown if operation '{}'", op);
+            break;
+        }
+
+        return false;
+    }
 }
 
 std::string standardese::process_template(const parser& p, const index& i,
@@ -553,40 +587,7 @@ std::string standardese::process_template(const parser& p, const index& i,
             auto entity = s.lookup_var(read_arg(ptr, last));
             if (!entity)
                 break;
-
-            auto op = read_arg(ptr, last);
-            switch (config.get_operation(op))
-            {
-            case template_if_operation::name:
-            {
-                auto name = read_arg(ptr, last);
-                s.push_if(entity->get_unique_name() == name.c_str());
-                break;
-            }
-            case template_if_operation::first_child:
-            {
-                auto name  = read_arg(ptr, last);
-                auto other = s.lookup_var(name);
-                if (!other || other->begin() == other->end())
-                    s.push_if(false);
-                else
-                    s.push_if(entity == &*other->begin());
-                break;
-            }
-            case template_if_operation::has_children:
-                s.push_if(entity->begin() != entity->end());
-                break;
-            case template_if_operation::inline_entity:
-                s.push_if(p.get_output_config().is_set(output_flag::inline_documentation)
-                          && is_inline_cpp_entity(entity->get_cpp_entity_type()));
-                break;
-            case template_if_operation::member_group:
-                s.push_if(entity->get_entity_type() == doc_entity::member_group_t);
-                break;
-            case template_if_operation::invalid:
-                p.get_logger()->warn("unknown if operation '{}'", op);
-                break;
-            }
+            s.push_if(get_if_value(s, config, entity, ptr, last));
             break;
         }
         case template_command::else_clause:
