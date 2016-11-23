@@ -478,9 +478,14 @@ namespace
     std::string write_document(const parser& p, const index& i, md_ptr<md_document> doc,
                                const std::string& format_name)
     {
-        auto          format = make_output_format(format_name);
-        string_output output;
+        auto format = make_output_format(format_name);
+        if (!format)
+        {
+            p.get_logger()->warn("invalid format name '{}'", format_name);
+            return "";
+        }
 
+        string_output output;
         resolve_urls(p.get_logger(), i, *doc, format->extension());
         format->render(output, *doc);
 

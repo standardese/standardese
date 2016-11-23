@@ -175,7 +175,13 @@ namespace standardese_tool
 
             auto width = this->map.at("output.width").as<unsigned>();
             for (auto& format_str : this->map.at("output.format").as<std::vector<std::string>>())
-                formats.emplace_back(make_output_format(format_str, width));
+            {
+                auto fmt = make_output_format(format_str, width);
+                if (fmt)
+                    formats.push_back(std::move(fmt));
+                else
+                    throw std::logic_error(fmt::format("invalid format name '{}'", format_str));
+            }
         }
 
         const char* link_extension() const

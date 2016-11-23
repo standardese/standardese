@@ -78,8 +78,6 @@ std::unique_ptr<output_format_base> standardese::make_output_format(const std::s
         return std::unique_ptr<output_format_man>(new output_format_man(width));
     else if (name == output_format_xml::name())
         return std::unique_ptr<output_format_xml>(new output_format_xml);
-    else
-        throw std::invalid_argument("unknown format '" + name + "'");
 
     return nullptr;
 }
