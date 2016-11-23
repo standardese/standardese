@@ -258,6 +258,12 @@ cpp_name doc_entity::get_unique_name() const
                do_get_unique_name();
 }
 
+bool standardese::is_inline_cpp_entity(cpp_entity::type t) STANDARDESE_NOEXCEPT
+{
+    return t == cpp_entity::base_class_t || is_parameter(t) || is_member_variable(t)
+           || is_enum_value(t);
+}
+
 void doc_inline_cpp_entity::do_generate_documentation(const parser& p, md_document& doc,
                                                       unsigned level) const
 {
@@ -460,25 +466,11 @@ void doc_inline_cpp_entity::do_generate_synopsis(const parser& p, code_block_wri
     }
 }
 
-namespace
-{
-    bool is_inline_entity(cpp_entity::type t)
-    {
-        return t == cpp_entity::base_class_t || is_parameter(t) || is_member_variable(t)
-               || is_enum_value(t);
-    }
-
-    bool is_inline_entity(const cpp_entity& e)
-    {
-        return is_inline_entity(e.get_entity_type());
-    }
-}
-
 doc_inline_cpp_entity::doc_inline_cpp_entity(const doc_entity* parent, const cpp_entity& e,
                                              const comment* c)
 : doc_cpp_entity(parent, e, c)
 {
-    assert(is_inline_entity(e));
+    assert(is_inline_cpp_entity(e.get_entity_type()));
 }
 
 void doc_cpp_access_entity::do_generate_synopsis(const parser& p, code_block_writer& out,
@@ -675,7 +667,7 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, md_doc
                 else if (is_enum_value(child.get_cpp_entity_type()))
                     child.do_generate_documentation_inline(p, *enum_values);
                 else
-                    assert(!is_inline_entity(child.get_cpp_entity_type()));
+                    assert(!is_inline_cpp_entity(child.get_cpp_entity_type()));
             }
 
             if (!parameters->empty())
@@ -694,7 +686,7 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, md_doc
     for (auto& child : *this)
     {
         if (p.get_output_config().is_set(output_flag::inline_documentation)
-            && is_inline_entity(child.get_cpp_entity_type()))
+            && is_inline_cpp_entity(child.get_cpp_entity_type()))
             continue;
         child.do_generate_documentation(p, doc, generate_doc ? level + 1 : level);
         any_child = true;
@@ -992,7 +984,8 @@ namespace
     {
         return e.get_entity_type() != cpp_entity::file_t
                && e.get_entity_type() != cpp_entity::namespace_t
-               && e.get_entity_type() != cpp_entity::language_linkage_t && !is_inline_entity(e);
+               && e.get_entity_type() != cpp_entity::language_linkage_t
+               && !is_inline_cpp_entity(e.get_entity_type());
     }
 
     bool is_blacklisted(const entity_blacklist& blacklist, const cpp_entity& e, const comment* c)
@@ -1027,7 +1020,7 @@ namespace
             // entity is blacklisted
             return nullptr;
 
-        if (is_inline_entity(e))
+        if (is_inline_cpp_entity(e.get_entity_type()))
             return detail::make_doc_ptr<doc_inline_cpp_entity>(&parent, e, comment);
         else if (is_leave_entity(e))
             return detail::make_doc_ptr<doc_leave_cpp_entity>(&parent, e, comment);

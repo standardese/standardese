@@ -239,6 +239,8 @@ namespace standardese
         friend detail::doc_ptr_access;
     };
 
+    bool is_inline_cpp_entity(cpp_entity::type t) STANDARDESE_NOEXCEPT;
+
     class doc_inline_cpp_entity final : public doc_cpp_entity
     {
     protected:

@@ -19,7 +19,22 @@ namespace standardese
         generate_doc_text,
 
         for_each,
+        if_clause,
+        else_if_clause,
+        else_clause,
         end,
+
+        count,
+        invalid = count
+    };
+
+    enum class template_if_operation
+    {
+        name,
+        first_child,
+        has_children,
+        inline_entity,
+        member_group,
 
         count,
         invalid = count
@@ -52,8 +67,15 @@ namespace standardese
 
         template_command try_get_command(const std::string& str) const STANDARDESE_NOEXCEPT;
 
+        void set_operation(template_if_operation op, std::string str);
+
+        template_if_operation get_operation(const std::string& str) const;
+
+        template_if_operation try_get_operation(const std::string& str) const STANDARDESE_NOEXCEPT;
+
     private:
         std::string commands_[static_cast<std::size_t>(template_command::count)];
+        std::string if_operations_[static_cast<std::size_t>(template_if_operation::count)];
         std::string delimiter_begin_, delimiter_end_;
     };
 
