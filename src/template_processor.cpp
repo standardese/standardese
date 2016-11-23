@@ -20,6 +20,10 @@ template_config::template_config() : delimiter_begin_("{{"), delimiter_end_("}}"
     set_command(template_command::generate_doc_text, "doc_text");
     set_command(template_command::generate_synopsis, "doc_synopsis");
 
+    set_command(template_command::name, "name");
+    set_command(template_command::index_name, "index_name");
+    set_command(template_command::unique_name, "unique_name");
+
     set_command(template_command::for_each, "for");
     set_command(template_command::if_clause, "if");
     set_command(template_command::else_if_clause, "else_if");
@@ -504,6 +508,28 @@ std::string standardese::process_template(const parser& p, const index& i,
             if (auto doc = get_documentation_text(s, read_arg(ptr, last)))
                 s.get_buffer() += write_document(p, i, std::move(doc), read_arg(ptr, last));
             break;
+
+        case template_command::name:
+        {
+            auto entity = s.lookup_var(read_arg(ptr, last));
+            if (entity)
+                s.get_buffer() += entity->get_name().c_str();
+            break;
+        }
+        case template_command::unique_name:
+        {
+            auto entity = s.lookup_var(read_arg(ptr, last));
+            if (entity)
+                s.get_buffer() += entity->get_unique_name().c_str();
+            break;
+        }
+        case template_command::index_name:
+        {
+            auto entity = s.lookup_var(read_arg(ptr, last));
+            if (entity)
+                s.get_buffer() += entity->get_index_name(true).c_str();
+            break;
+        }
 
         case template_command::for_each:
         {

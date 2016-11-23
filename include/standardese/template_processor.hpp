@@ -18,6 +18,10 @@ namespace standardese
         generate_synopsis,
         generate_doc_text,
 
+        name,
+        unique_name,
+        index_name,
+
         for_each,
         if_clause,
         else_if_clause,
