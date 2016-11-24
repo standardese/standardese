@@ -16,6 +16,8 @@ using namespace standardese;
 
 namespace
 {
+    using standardese::index;
+
     const char link_prefix[] = "standardese://";
 
     void get_standardese_links(std::vector<md_link*>& links, md_entity& cur)
@@ -54,37 +56,82 @@ namespace
         auto& text = static_cast<const md_text&>(*link.begin());
         return text.get_string();
     }
+
+    void resolve_urls(const std::shared_ptr<spdlog::logger>& logger, const linker& l,
+                      const index& i, md_document& document, const char* extension)
+    {
+        std::vector<md_link*> links;
+        get_standardese_links(links, document);
+
+        for (auto link : links)
+        {
+            auto str = get_entity_name(*link);
+            if (!str)
+                continue;
+
+            auto destination = l.get_url(i, str, extension);
+            if (destination.empty())
+            {
+                logger->warn("unable to resolve link to an entity named '{}'", str);
+                continue;
+            }
+            link->set_destination(destination.c_str());
+        }
+    }
 }
 
-void standardese::resolve_urls(const std::shared_ptr<spdlog::logger>& logger, const linker& l,
-                               const index& i, md_document& document, const char* extension)
+raw_document::raw_document(path fname, std::string text)
+: file_name(std::move(fname)), text(std::move(text))
 {
-    std::vector<md_link*> links;
-    get_standardese_links(links, document);
-
-    for (auto link : links)
+    auto idx = file_name.rfind('.');
+    if (idx != path::npos)
     {
-        auto str = get_entity_name(*link);
-        if (!str)
-            continue;
-
-        auto destination = l.get_url(i, str, extension);
-        if (destination.empty())
-        {
-            logger->warn("unable to resolve link to an entity named '{}'", str);
-            continue;
-        }
-        link->set_destination(destination.c_str());
+        file_extension = file_name.substr(idx + 1);
+        file_name.erase(idx);
     }
 }
 
 void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_document& doc,
                     const char* output_extension)
 {
-    auto document = md_ptr<md_document>(static_cast<md_document*>(doc.clone().release()));
-    resolve_urls(logger, *linker_, *index_, *document,
-                 output_extension ? output_extension : format_->extension());
+    if (!output_extension)
+        output_extension = format_->extension();
 
-    file_output output(prefix_ + document->get_output_name() + '.' + format_->extension());
+    auto document = md_ptr<md_document>(static_cast<md_document*>(doc.clone().release()));
+    resolve_urls(logger, *linker_, *index_, *document, output_extension);
+
+    file_output output(prefix_ + document->get_output_name() + '.' + output_extension);
     format_->render(output, *document);
+}
+
+void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw_document& document)
+{
+    auto extension =
+        document.file_extension.empty() ? format_->extension() : document.file_extension;
+    file_output output(prefix_ + document.file_name + '.' + extension);
+
+    auto last_match = document.text.c_str();
+    // while we find standardese protocol URLs starting at last_match
+    while (auto match = std::strstr(last_match, link_prefix))
+    {
+        // write from last_match to match
+        output.write_str(last_match, match - last_match);
+
+        // write correct URL
+        auto entity_name = match + sizeof(link_prefix) - 1;
+        auto end         = std::strchr(entity_name, '/');
+        if (end == nullptr)
+            end = &document.text.back() + 1;
+
+        std::string name(entity_name, end - entity_name);
+        auto        url = linker_->get_url(*index_, name, format_->extension());
+        if (url.empty())
+            logger->warn("unable to resolve link to an entity named '{}'", name);
+        output.write_str(url.c_str(), url.size());
+
+        // start search at the entity name again
+        last_match = entity_name + name.size() + 1;
+    }
+    // write remainder of file
+    output.write_str(last_match, &document.text.back() + 1 - last_match);
 }

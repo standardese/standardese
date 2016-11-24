@@ -475,7 +475,7 @@ namespace
         return doc;
     }
 
-    std::string write_document(const parser& p, const index& i, md_ptr<md_document> doc,
+    std::string write_document(const parser& p, md_ptr<md_document> doc,
                                const std::string& format_name)
     {
         auto format = make_output_format(format_name);
@@ -486,7 +486,6 @@ namespace
         }
 
         string_output output;
-        resolve_urls(p.get_logger(), p.get_linker(), i, *doc, format->extension());
         format->render(output, *doc);
 
         return output.get_string();
@@ -537,15 +536,15 @@ std::string standardese::process_template(const parser& p, const index& i,
         {
         case template_command::generate_doc:
             if (auto doc = get_documentation(s, read_arg(ptr, last)))
-                s.get_buffer() += write_document(p, i, std::move(doc), read_arg(ptr, last));
+                s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
             break;
         case template_command::generate_synopsis:
             if (auto doc = get_synopsis(s, read_arg(ptr, last)))
-                s.get_buffer() += write_document(p, i, std::move(doc), read_arg(ptr, last));
+                s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
             break;
         case template_command::generate_doc_text:
             if (auto doc = get_documentation_text(s, read_arg(ptr, last)))
-                s.get_buffer() += write_document(p, i, std::move(doc), read_arg(ptr, last));
+                s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
             break;
 
         case template_command::name:

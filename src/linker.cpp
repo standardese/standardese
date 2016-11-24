@@ -77,7 +77,7 @@ void linker::register_entity(const doc_entity& e, std::string output_file) const
     }
 
     std::unique_lock<std::mutex> lock(mutex_);
-    auto res = locations_.emplace(entity, location(e, std::move(output_file)));
+    auto res = locations_.emplace(&e, location(*entity, std::move(output_file)));
     if (!res.second)
         throw std::logic_error(fmt::format("linker: duplicate registration of entity '{}'",
                                            e.get_unique_name().c_str()));
