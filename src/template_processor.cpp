@@ -527,8 +527,9 @@ namespace
     }
 }
 
-std::string standardese::process_template(const parser& p, const index& i,
-                                          const template_config& config, const std::string& input)
+raw_document standardese::process_template(const parser& p, const index& i,
+                                           const template_config& config,
+                                           const template_file&   input)
 {
     stack s(p, i);
     auto handle = [&](template_command cur_command, const char* ptr, const char* last,
@@ -601,12 +602,12 @@ std::string standardese::process_template(const parser& p, const index& i,
             assert(false);
         }
     };
-    parse_commands(*p.get_logger(), config, input.c_str(), handle,
+    parse_commands(*p.get_logger(), config, input.text.c_str(), handle,
                    [&](const char* begin, const char* end) {
                        if (!end)
                            s.get_buffer() += begin;
                        else
                            s.get_buffer().append(begin, end - begin);
                    });
-    return s.get_buffer();
+    return raw_document(input.output_name, s.get_buffer());
 }

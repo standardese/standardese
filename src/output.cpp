@@ -41,18 +41,20 @@ namespace
         }
     }
 
-    const char* get_entity_name(const md_link& link)
+    std::string get_entity_name(const md_link& link)
     {
         if (*link.get_destination())
         {
             assert(std::strncmp(link.get_destination(), link_prefix, sizeof(link_prefix) - 1) == 0);
-            return link.get_destination() + sizeof(link_prefix) - 1;
+            std::string result = link.get_destination() + sizeof(link_prefix) - 1;
+            result.pop_back();
+            return result;
         }
         else if (*link.get_title())
             return link.get_title();
         else if (link.begin()->get_entity_type() != md_entity::text_t)
             // must be a text
-            return nullptr;
+            return "";
         auto& text = static_cast<const md_text&>(*link.begin());
         return text.get_string();
     }
@@ -66,7 +68,7 @@ namespace
         for (auto link : links)
         {
             auto str = get_entity_name(*link);
-            if (!str)
+            if (str.empty())
                 continue;
 
             auto destination = l.get_url(i, str, extension);
@@ -126,11 +128,15 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         std::string name(entity_name, end - entity_name);
         auto        url = index_->get_linker().get_url(*index_, name, format_->extension());
         if (url.empty())
+        {
             logger->warn("unable to resolve link to an entity named '{}'", name);
-        output.write_str(url.c_str(), url.size());
-
-        // start search at the entity name again
-        last_match = entity_name + name.size() + 1;
+            last_match = entity_name + 1;
+        }
+        else
+        {
+            output.write_str(url.c_str(), url.size());
+            last_match = entity_name + name.size() + 1;
+        }
     }
     // write remainder of file
     output.write_str(last_match, &document.text.back() + 1 - last_match);

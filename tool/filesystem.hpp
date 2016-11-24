@@ -121,6 +121,17 @@ namespace standardese_tool
 
         return true;
     }
+
+    inline std::string get_output_name(const fs::path& relative)
+    {
+        std::string output_name;
+        // convert "detail/some_file.hpp" to "detail__some_file"
+        for (auto iter = relative.begin(); iter != std::prev(relative.end()); ++iter)
+            output_name += iter->generic_string() + "__";
+        output_name += relative.stem().generic_string();
+
+        return output_name;
+    }
 } // namespace standardese_tool
 
 #endif // STANDARDESE_FILESYSTEM_HPP_INCLUDED

@@ -83,8 +83,21 @@ namespace standardese
         std::string delimiter_begin_, delimiter_end_;
     };
 
-    std::string process_template(const parser& p, const index& i, const template_config& config,
-                                 const std::string& input);
+    struct template_file
+    {
+        std::string output_name;
+        std::string text;
+
+        template_file(std::string output_name, std::string text)
+        : output_name(std::move(output_name)), text(std::move(text))
+        {
+        }
+    };
+
+    struct raw_document;
+
+    raw_document process_template(const parser& p, const index& i, const template_config& config,
+                                  const template_file& input);
 } // namespace standardese
 
 #endif // STANDARDESE_TEMPLATE_PROCESSOR_HPP_INCLUDED
