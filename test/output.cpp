@@ -72,7 +72,7 @@ TEST_CASE("output")
     auto  doc_entity = doc_file::parse(p, idx, "my_file", tu.get_file());
 
     output_format_html format;
-    output             out(p.get_linker(), idx, "", format);
+    output             out(idx, "", format);
 
     SECTION("raw without URLS")
     {

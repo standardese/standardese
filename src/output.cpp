@@ -98,7 +98,7 @@ void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_docu
         output_extension = format_->extension();
 
     auto document = md_ptr<md_document>(static_cast<md_document*>(doc.clone().release()));
-    resolve_urls(logger, *linker_, *index_, *document, output_extension);
+    resolve_urls(logger, index_->get_linker(), *index_, *document, output_extension);
 
     file_output output(prefix_ + document->get_output_name() + '.' + output_extension);
     format_->render(output, *document);
@@ -124,7 +124,7 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
             end = &document.text.back() + 1;
 
         std::string name(entity_name, end - entity_name);
-        auto        url = linker_->get_url(*index_, name, format_->extension());
+        auto        url = index_->get_linker().get_url(*index_, name, format_->extension());
         if (url.empty())
             logger->warn("unable to resolve link to an entity named '{}'", name);
         output.write_str(url.c_str(), url.size());

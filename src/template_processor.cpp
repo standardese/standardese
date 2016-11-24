@@ -439,14 +439,15 @@ namespace
         const index*       idx_;
     };
 
-    md_ptr<md_document> get_documentation(const stack& vars, const std::string& name)
+    md_ptr<md_document> get_documentation(const stack& vars, const index& i,
+                                          const std::string& name)
     {
         auto entity = vars.lookup_var(name);
         if (!entity)
             return nullptr;
 
         auto doc = md_document::make("");
-        entity->generate_documentation(vars.get_parser(), *doc);
+        entity->generate_documentation(vars.get_parser(), i, *doc);
         return doc;
     }
 
@@ -535,7 +536,7 @@ std::string standardese::process_template(const parser& p, const index& i,
         switch (cur_command)
         {
         case template_command::generate_doc:
-            if (auto doc = get_documentation(s, read_arg(ptr, last)))
+            if (auto doc = get_documentation(s, i, read_arg(ptr, last)))
                 s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
             break;
         case template_command::generate_synopsis:

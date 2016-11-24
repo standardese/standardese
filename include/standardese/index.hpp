@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <standardese/doc_entity.hpp>
+#include <standardese/linker.hpp>
 #include <standardese/translation_unit.hpp>
 
 namespace standardese
@@ -29,7 +30,7 @@ namespace standardese
     class index
     {
     public:
-        void register_entity(const doc_entity& entity) const;
+        void register_entity(const doc_entity& entity, std::string output_name) const;
 
         const doc_entity* try_lookup(const std::string& unique_name) const;
 
@@ -62,6 +63,16 @@ namespace standardese
                 f(m);
         }
 
+        const linker& get_linker() const STANDARDESE_NOEXCEPT
+        {
+            return linker_;
+        }
+
+        linker& get_linker() STANDARDESE_NOEXCEPT
+        {
+            return linker_;
+        }
+
     private:
         using ns_member_cb = void(const doc_entity*, const doc_entity&, void*);
 
@@ -71,6 +82,8 @@ namespace standardese
         mutable std::map<std::string, std::pair<bool, const doc_entity*>> entities_;
         mutable std::vector<decltype(entities_)::const_iterator> files_;
         mutable std::vector<std::string>                         modules_;
+
+        linker linker_;
     };
 } // namespace standardese
 

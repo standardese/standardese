@@ -179,7 +179,9 @@ namespace
         return "should never get here";
     }
 
-    md_ptr<md_heading> make_heading(const parser& p, const doc_cpp_entity& e,
+    using standardese::index;
+
+    md_ptr<md_heading> make_heading(const index& i, const doc_cpp_entity& e,
                                     const md_entity& parent, unsigned level, bool show_module)
     {
         auto heading = md_heading::make(parent, level);
@@ -197,16 +199,16 @@ namespace
                 md_text::make(*heading,
                               fmt::format(" [{}]", e.get_comment().get_module()).c_str()));
 
-        heading->add_entity(p.get_linker().get_anchor(e, *heading));
+        heading->add_entity(i.get_linker().get_anchor(e, *heading));
 
         return heading;
     }
 }
 
-void doc_cpp_entity::do_generate_documentation_base(const parser& p, md_document& doc,
-                                                    unsigned level) const
+void doc_cpp_entity::do_generate_documentation_base(const parser& p, const index& i,
+                                                    md_document& doc, unsigned level) const
 {
-    doc.add_entity(make_heading(p, *this, doc, level,
+    doc.add_entity(make_heading(i, *this, doc, level,
                                 p.get_output_config().is_set(output_flag::show_modules)));
 
     code_block_writer out(doc);
@@ -249,21 +251,21 @@ bool standardese::is_inline_cpp_entity(cpp_entity::type t) STANDARDESE_NOEXCEPT
            || is_enum_value(t);
 }
 
-void doc_inline_cpp_entity::do_generate_documentation(const parser& p, md_document& doc,
-                                                      unsigned level) const
+void doc_inline_cpp_entity::do_generate_documentation(const parser& p, const index& i,
+                                                      md_document& doc, unsigned level) const
 {
     assert(!p.get_output_config().is_set(output_flag::inline_documentation));
 
     if (has_comment())
-        do_generate_documentation_base(p, doc, level);
+        do_generate_documentation_base(p, i, doc, level);
 }
 
-void doc_inline_cpp_entity::do_generate_documentation_inline(const parser&            p,
+void doc_inline_cpp_entity::do_generate_documentation_inline(const parser& p, const index& i,
                                                              md_inline_documentation& doc) const
 {
     assert(p.get_output_config().is_set(output_flag::inline_documentation));
     if (has_comment())
-        doc.add_item(get_name().c_str(), p.get_linker().get_anchor_id(*this).c_str(),
+        doc.add_item(get_name().c_str(), i.get_linker().get_anchor_id(*this).c_str(),
                      get_comment().get_content());
 }
 
@@ -472,10 +474,10 @@ doc_cpp_access_entity::doc_cpp_access_entity(const doc_entity* parent, const cpp
 {
 }
 
-void doc_leave_cpp_entity::do_generate_documentation(const parser& p, md_document& doc,
-                                                     unsigned level) const
+void doc_leave_cpp_entity::do_generate_documentation(const parser& p, const index& i,
+                                                     md_document& doc, unsigned level) const
 {
-    do_generate_documentation_base(p, doc, level);
+    do_generate_documentation_base(p, i, doc, level);
 }
 
 namespace
@@ -623,14 +625,14 @@ namespace
     }
 }
 
-void doc_container_cpp_entity::do_generate_documentation(const parser& p, md_document& doc,
-                                                         unsigned level) const
+void doc_container_cpp_entity::do_generate_documentation(const parser& p, const index& i,
+                                                         md_document& doc, unsigned level) const
 {
     auto generate_doc = !require_comment_for_doc(get_cpp_entity_type()) || has_comment();
     if (generate_doc)
     {
         // generate heading + synopsis + comment
-        do_generate_documentation_base(p, doc, level);
+        do_generate_documentation_base(p, i, doc, level);
 
         // add inline entity comments
         if (p.get_output_config().is_set(output_flag::inline_documentation))
@@ -643,13 +645,13 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, md_doc
             for (auto& child : *this)
             {
                 if (is_parameter(child.get_cpp_entity_type()))
-                    child.do_generate_documentation_inline(p, *parameters);
+                    child.do_generate_documentation_inline(p, i, *parameters);
                 else if (child.get_cpp_entity_type() == cpp_entity::base_class_t)
-                    child.do_generate_documentation_inline(p, *bases);
+                    child.do_generate_documentation_inline(p, i, *bases);
                 else if (is_member_variable(child.get_cpp_entity_type()))
-                    child.do_generate_documentation_inline(p, *members);
+                    child.do_generate_documentation_inline(p, i, *members);
                 else if (is_enum_value(child.get_cpp_entity_type()))
-                    child.do_generate_documentation_inline(p, *enum_values);
+                    child.do_generate_documentation_inline(p, i, *enum_values);
                 else
                     assert(!is_inline_cpp_entity(child.get_cpp_entity_type()));
             }
@@ -672,7 +674,7 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, md_doc
         if (p.get_output_config().is_set(output_flag::inline_documentation)
             && is_inline_cpp_entity(child.get_cpp_entity_type()))
             continue;
-        child.do_generate_documentation(p, doc, generate_doc ? level + 1 : level);
+        child.do_generate_documentation(p, i, doc, generate_doc ? level + 1 : level);
         any_child = true;
     }
 
@@ -906,7 +908,7 @@ std::size_t doc_member_group::group_id() const STANDARDESE_NOEXCEPT
     return get_comment().member_group_id();
 }
 
-void doc_member_group::do_generate_documentation(const parser& p, md_document& doc,
+void doc_member_group::do_generate_documentation(const parser& p, const index& i, md_document& doc,
                                                  unsigned level) const
 {
     assert(!empty());
@@ -914,7 +916,7 @@ void doc_member_group::do_generate_documentation(const parser& p, md_document& d
     if (doc_entity_container::begin()->get_entity_type() == doc_entity::cpp_entity_t)
     {
         auto& cpp_e = static_cast<const doc_cpp_entity&>(*doc_entity_container::begin());
-        doc.add_entity(make_heading(p, cpp_e, doc, level,
+        doc.add_entity(make_heading(i, cpp_e, doc, level,
                                     p.get_output_config().is_set(output_flag::show_modules)));
     }
     else
@@ -1063,8 +1065,7 @@ namespace
         auto entity = handle_child_impl(p, i, parent, e, cur_access, output_file);
         if (!entity)
             return;
-        i.register_entity(*entity);
-        p.get_linker().register_entity(*entity, std::move(output_file));
+        i.register_entity(*entity, std::move(output_file));
         if (entity->has_comment() && entity->get_comment().in_member_group())
             handle_group(p, parent, std::move(entity));
         else
@@ -1175,22 +1176,21 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
         auto entity = handle_child_impl(p, i, *res, child, cpp_public, output_name);
         if (!entity)
             continue;
-        i.register_entity(*entity);
-        p.get_linker().register_entity(*entity, output_name);
+        i.register_entity(*entity, output_name);
         if (entity->has_comment() && entity->get_comment().in_member_group())
             handle_group(p, *res->file_, std::move(entity));
         else
             res->file_->add_entity(std::move(entity));
     }
-    i.register_entity(*res->file_);
-    p.get_linker().register_entity(*res->file_, std::move(output_name));
+    i.register_entity(*res->file_, std::move(output_name));
 
     return res;
 }
 
-void doc_file::do_generate_documentation(const parser& p, md_document& doc, unsigned level) const
+void doc_file::do_generate_documentation(const parser& p, const index& i, md_document& doc,
+                                         unsigned level) const
 {
-    file_->do_generate_documentation(p, doc, level);
+    file_->do_generate_documentation(p, i, doc, level);
 }
 
 void doc_file::do_generate_synopsis(const parser& p, code_block_writer& out, bool top_level) const

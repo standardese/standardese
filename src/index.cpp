@@ -43,7 +43,7 @@ std::string detail::get_short_id(const std::string& id)
     return id.substr(0, open_paren) + id.substr(close_paren + 1);
 }
 
-void index::register_entity(const doc_entity& entity) const
+void index::register_entity(const doc_entity& entity, std::string output_file) const
 {
     auto id       = detail::get_id(entity.get_unique_name().c_str());
     auto short_id = detail::get_short_id(id);
@@ -84,6 +84,8 @@ void index::register_entity(const doc_entity& entity) const
         auto pos = std::lower_bound(modules_.begin(), modules_.end(), entity.get_module());
         modules_.insert(pos, entity.get_module());
     }
+
+    linker_.register_entity(entity, std::move(output_file));
 }
 
 const doc_entity* index::try_lookup(const std::string& unique_name) const

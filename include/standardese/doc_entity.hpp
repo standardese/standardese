@@ -129,9 +129,9 @@ namespace standardese
             do_generate_synopsis(p, out, true);
         }
 
-        void generate_documentation(const parser& p, md_document& doc) const
+        void generate_documentation(const parser& p, const index& i, md_document& doc) const
         {
-            do_generate_documentation(p, doc, 1u);
+            do_generate_documentation(p, i, doc, 1u);
         }
 
     protected:
@@ -147,11 +147,11 @@ namespace standardese
             parent_ = parent;
         }
 
-        virtual void do_generate_documentation(const parser& p, md_document& doc,
+        virtual void do_generate_documentation(const parser& p, const index& i, md_document& doc,
                                                unsigned level) const = 0;
 
-        virtual void do_generate_documentation_inline(const parser&,
-                                                      standardese::md_inline_documentation&) const
+        virtual void do_generate_documentation_inline(const parser&, const index&,
+                                                      md_inline_documentation&) const
         {
         }
 
@@ -204,7 +204,7 @@ namespace standardese
         }
 
     protected:
-        void do_generate_documentation_base(const parser& p, md_document& doc,
+        void do_generate_documentation_base(const parser& p, const index& i, md_document& doc,
                                             unsigned level) const;
 
         doc_cpp_entity(const doc_entity* parent, const cpp_entity& e, const comment* c)
@@ -237,14 +237,14 @@ namespace standardese
     class doc_inline_cpp_entity final : public doc_cpp_entity
     {
     protected:
-        void do_generate_documentation(const parser& p, md_document& doc,
+        void do_generate_documentation(const parser& p, const index& i, md_document& doc,
                                        unsigned level) const override;
 
         void do_generate_synopsis(const parser& p, code_block_writer& out,
                                   bool top_level) const override;
 
-        void do_generate_documentation_inline(
-            const parser& p, standardese::md_inline_documentation& doc) const override;
+        void do_generate_documentation_inline(const parser& p, const index& i,
+                                              md_inline_documentation& doc) const override;
 
     private:
         doc_inline_cpp_entity(const doc_entity* parent, const cpp_entity& e, const comment* c);
@@ -255,7 +255,8 @@ namespace standardese
     class doc_cpp_access_entity final : public doc_cpp_entity
     {
     protected:
-        void do_generate_documentation(const parser&, md_document&, unsigned) const override
+        void do_generate_documentation(const parser&, const index&, md_document&,
+                                       unsigned) const override
         {
         }
 
@@ -271,7 +272,7 @@ namespace standardese
     class doc_leave_cpp_entity final : public doc_cpp_entity
     {
     protected:
-        void do_generate_documentation(const parser& p, md_document& doc,
+        void do_generate_documentation(const parser& p, const index& i, md_document& doc,
                                        unsigned level) const override;
 
         void do_generate_synopsis(const parser& p, code_block_writer& out,
@@ -318,7 +319,7 @@ namespace standardese
         }
 
     protected:
-        void do_generate_documentation(const parser& p, md_document& doc,
+        void do_generate_documentation(const parser& p, const index& i, md_document& doc,
                                        unsigned level) const override;
 
         void do_generate_synopsis(const parser& p, code_block_writer& out,
@@ -368,7 +369,7 @@ namespace standardese
         std::size_t group_id() const STANDARDESE_NOEXCEPT;
 
     protected:
-        void do_generate_documentation(const parser& p, md_document& doc,
+        void do_generate_documentation(const parser& p, const index& i, md_document& doc,
                                        unsigned level) const override;
 
         void do_generate_synopsis(const parser& p, code_block_writer& out,
@@ -435,7 +436,7 @@ namespace standardese
         }
 
     protected:
-        void do_generate_documentation(const parser& p, md_document& doc,
+        void do_generate_documentation(const parser& p, const index& i, md_document& doc,
                                        unsigned level) const override;
 
         void do_generate_synopsis(const parser& p, code_block_writer& out,
