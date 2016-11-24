@@ -50,6 +50,84 @@ void print_usage(const char* exe_name, const po::options_description& generic,
     std::clog << configuration << '\n';
 }
 
+template <typename Generator>
+std::vector<standardese::documentation> generate_documentation(standardese::parser&           p,
+                                                               const po::variables_map&       map,
+                                                               standardese_tool::thread_pool& pool,
+                                                               Generator generate)
+{
+    auto input              = map.at("input-files").as<std::vector<fs::path>>();
+    auto blacklist_ext      = map.at("input.blacklist_ext").as<std::vector<std::string>>();
+    auto blacklist_file     = map.at("input.blacklist_file").as<std::vector<std::string>>();
+    auto blacklist_dir      = map.at("input.blacklist_dir").as<std::vector<std::string>>();
+    auto blacklist_dotfiles = map.at("input.blacklist_dotfiles").as<bool>();
+    auto force_blacklist    = map.at("input.force_blacklist").as<bool>();
+
+    assert(!input.empty());
+    for (auto& path : input)
+        p.get_preprocessor().whitelist_include_dir(path.parent_path().generic_string());
+
+    std::vector<std::future<standardese::documentation>> futures;
+    futures.reserve(input.size());
+
+    for (auto& path : input)
+        standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,
+                                      blacklist_dotfiles, force_blacklist,
+                                      [&](const fs::path& p, const fs::path& relative) {
+                                          futures.push_back(standardese_tool::add_job(pool,
+                                                                                      generate, p,
+                                                                                      relative));
+                                      });
+
+    std::vector<standardese::documentation> documentations;
+    for (auto& f : futures)
+    {
+        auto doc = f.get();
+        if (doc.document)
+            documentations.push_back(std::move(doc));
+    }
+
+    return documentations;
+}
+
+void write_output_files(const standardese_tool::configuration& config,
+                        const standardese::index& idx, standardese_tool::thread_pool& pool,
+                        const std::vector<standardese::documentation>& documentations)
+{
+    using namespace standardese;
+
+    for (auto& format : config.formats)
+    {
+        config.parser->get_logger()->info("Writing files for output format {}...",
+                                          format->extension());
+
+        path prefix;
+        if (config.formats.size() > 1u)
+        {
+            fs::create_directories(format->extension());
+            prefix = format->extension();
+            prefix += '/'; // hope that every platform handles it
+        }
+
+        std::vector<std::future<void>> futures;
+        futures.reserve(documentations.size());
+
+        output out(idx, prefix, *format);
+        for (auto& doc : documentations)
+            if (doc.document)
+                futures.push_back(
+                    standardese_tool::add_job(pool,
+                                              [&](const md_document& document) {
+                                                  out.render(config.parser->get_logger(), document,
+                                                             config.link_extension());
+                                              },
+                                              std::ref(*doc.document)));
+
+        for (auto& f : futures)
+            f.wait();
+    }
+}
+
 int main(int argc, char* argv[])
 {
     // clang-format off
@@ -147,9 +225,6 @@ int main(int argc, char* argv[])
     try
     {
         config = standardese_tool::get_configuration(argc, argv, generic, configuration);
-
-        if (config.map.at("jobs").as<unsigned>() == 0)
-            throw std::invalid_argument("number of threads must not be 0");
     }
     catch (std::exception& ex)
     {
@@ -162,7 +237,6 @@ int main(int argc, char* argv[])
     auto& parser         = *config.parser;
     auto& compile_config = config.compile_config;
     auto& log            = parser.get_logger();
-    auto& formats        = config.formats;
 
     if (map.count("help"))
         print_usage(argv[0], generic, configuration);
@@ -178,44 +252,12 @@ int main(int argc, char* argv[])
         try
         {
             using namespace standardese;
-
-            parser.get_comment_config().set_command_character(
-                map.at("comment.command_character").as<char>());
-
-            parser.get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
-            parser.get_output_config().set_flag(output_flag::inline_documentation,
-                                                map.at("output.inline_doc").as<bool>());
-            parser.get_output_config().set_flag(output_flag::show_modules,
-                                                map.at("output.show_modules").as<bool>());
-            parser.get_output_config().set_flag(output_flag::show_macro_replacement,
-                                                map.at("output.show_macro_replacement").as<bool>());
-            parser.get_output_config().set_flag(output_flag::show_group_member_id,
-                                                map.at("output.show_group_member_id").as<bool>());
-
-            auto input              = map.at("input-files").as<std::vector<fs::path>>();
-            auto blacklist_ext      = map.at("input.blacklist_ext").as<std::vector<std::string>>();
-            auto blacklist_file     = map.at("input.blacklist_file").as<std::vector<std::string>>();
-            auto blacklist_dir      = map.at("input.blacklist_dir").as<std::vector<std::string>>();
-            auto blacklist_dotfiles = map.at("input.blacklist_dotfiles").as<bool>();
-            auto force_blacklist    = map.at("input.force_blacklist").as<bool>();
-
-            auto& blacklist_entity = parser.get_output_config().get_blacklist();
-            for (auto& str : map.at("input.blacklist_entity_name").as<std::vector<std::string>>())
-                blacklist_entity.blacklist(str);
-            for (auto& str : map.at("input.blacklist_namespace").as<std::vector<std::string>>())
-                blacklist_entity.blacklist(str);
-            if (map.at("input.require_comment").as<bool>())
-                blacklist_entity.set_option(entity_blacklist::require_comment);
-            if (map.at("input.extract_private").as<bool>())
-                blacklist_entity.set_option(entity_blacklist::extract_private);
-
             log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
             log->debug("Using cmark version: {}", CMARK_VERSION_STRING);
 
-            standardese::index            index;
             standardese_tool::thread_pool pool(map.at("jobs").as<unsigned>());
-            std::vector<std::future<standardese::documentation>> futures;
-            futures.reserve(input.size());
+            standardese::index            index;
+            config.set_external(index.get_linker());
 
             auto generate = [&](const fs::path& p, const fs::path& relative) {
                 log->info("Generating documentation for {}...", p);
@@ -245,62 +287,14 @@ int main(int argc, char* argv[])
                 return result;
             };
 
-            assert(!input.empty());
-            for (auto& path : input)
-                parser.get_preprocessor().whitelist_include_dir(
-                    path.parent_path().generic_string());
-            for (auto& path : input)
-                standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,
-                                              blacklist_dotfiles, force_blacklist,
-                                              [&](const fs::path& p, const fs::path& relative) {
-                                                  futures.push_back(
-                                                      standardese_tool::add_job(pool, generate, p,
-                                                                                relative));
-                                              });
-
-            std::vector<documentation> documentations;
-            for (auto& f : futures)
-            {
-                auto doc = f.get();
-                if (doc.document)
-                    documentations.push_back(std::move(doc));
-            }
+            auto documentations = generate_documentation(parser, map, pool, generate);
 
             log->info("Generating indices...");
             documentations.push_back(documentation(generate_file_index(index)));
             documentations.push_back(documentation(generate_entity_index(index)));
             documentations.push_back(documentation(generate_module_index(parser, index)));
 
-            config.set_external(index.get_linker());
-            for (auto& format : formats)
-            {
-                log->info("Writing files for output format {}...", format->extension());
-
-                path prefix;
-                if (formats.size() > 1u)
-                {
-                    fs::create_directories(format->extension());
-                    prefix = format->extension();
-                    prefix += '/'; // hope that every platform handles it
-                }
-
-                std::vector<std::future<void>> futures;
-                futures.reserve(documentations.size());
-
-                output out(index, prefix, *format);
-                for (auto& doc : documentations)
-                    if (doc.document)
-                        futures.push_back(
-                            standardese_tool::add_job(pool,
-                                                      [&](const md_document& document) {
-                                                          out.render(log, document,
-                                                                     config.link_extension());
-                                                      },
-                                                      std::ref(*doc.document)));
-
-                for (auto& f : futures)
-                    f.wait();
-            }
+            write_output_files(config, index, pool, documentations);
         }
         catch (std::exception& ex)
         {

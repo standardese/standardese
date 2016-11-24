@@ -153,6 +153,31 @@ namespace standardese_tool
             for (auto& dir : dirs->second.as<std::vector<std::string>>())
                 p->get_preprocessor().whitelist_include_dir(std::move(dir));
 
+        p->get_comment_config().set_command_character(
+            map.at("comment.command_character").as<char>());
+
+        using standardese::output_flag;
+        p->get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
+        p->get_output_config().set_flag(output_flag::inline_documentation,
+                                        map.at("output.inline_doc").as<bool>());
+        p->get_output_config().set_flag(output_flag::show_modules,
+                                        map.at("output.show_modules").as<bool>());
+        p->get_output_config().set_flag(output_flag::show_macro_replacement,
+                                        map.at("output.show_macro_replacement").as<bool>());
+        p->get_output_config().set_flag(output_flag::show_group_member_id,
+                                        map.at("output.show_group_member_id").as<bool>());
+
+        using standardese::entity_blacklist;
+        auto& blacklist_entity = p->get_output_config().get_blacklist();
+        for (auto& str : map.at("input.blacklist_entity_name").as<std::vector<std::string>>())
+            blacklist_entity.blacklist(str);
+        for (auto& str : map.at("input.blacklist_namespace").as<std::vector<std::string>>())
+            blacklist_entity.blacklist(str);
+        if (map.at("input.require_comment").as<bool>())
+            blacklist_entity.set_option(entity_blacklist::require_comment);
+        if (map.at("input.extract_private").as<bool>())
+            blacklist_entity.set_option(entity_blacklist::extract_private);
+
         return p;
     }
 
@@ -168,13 +193,13 @@ namespace standardese_tool
         }
 
         configuration(std::unique_ptr<standardese::parser> p, standardese::compile_config c,
-                      boost::program_options::variables_map map)
-        : parser(std::move(p)), compile_config(std::move(c)), map(std::move(map))
+                      boost::program_options::variables_map m)
+        : parser(std::move(p)), compile_config(std::move(c)), map(std::move(m))
         {
             using namespace standardese;
 
-            auto width = this->map.at("output.width").as<unsigned>();
-            for (auto& format_str : this->map.at("output.format").as<std::vector<std::string>>())
+            auto width = map.at("output.width").as<unsigned>();
+            for (auto& format_str : map.at("output.format").as<std::vector<std::string>>())
             {
                 auto fmt = make_output_format(format_str, width);
                 if (fmt)
@@ -182,6 +207,9 @@ namespace standardese_tool
                 else
                     throw std::logic_error(fmt::format("invalid format name '{}'", format_str));
             }
+
+            if (map.at("jobs").as<unsigned>() == 0)
+                throw std::invalid_argument("number of threads must not be 0");
         }
 
         const char* link_extension() const
