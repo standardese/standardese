@@ -160,7 +160,7 @@ namespace
             return buffer_;
         }
 
-        const doc_entity* lookup_var(const std::string& name) const STANDARDESE_NOEXCEPT
+        const doc_entity* try_lookup_var(const std::string& name) const STANDARDESE_NOEXCEPT
         {
             for (auto iter = stack_.rbegin(); iter != stack_.rend(); ++iter)
             {
@@ -174,7 +174,12 @@ namespace
                 }
             }
 
-            auto entity = idx_->try_lookup(name);
+            return idx_->try_lookup(name);
+        }
+
+        const doc_entity* lookup_var(const std::string& name) const STANDARDESE_NOEXCEPT
+        {
+            auto entity = try_lookup_var(name);
             if (!entity)
                 parser_->get_logger()->warn("unable to find entity named '{}'", name);
             return entity;
@@ -480,17 +485,23 @@ namespace
     md_ptr<md_document> get_anchor(const stack& vars, const linker& l,
                                    const std::string& output_file, const std::string& name)
     {
-        auto entity = vars.lookup_var(name);
-        if (!entity)
-            return nullptr;
+        auto doc = md_document::make("");
+        doc->add_entity(md_paragraph::make(*doc));
+        auto& paragraph = static_cast<md_container&>(doc->back());
 
-        // notify linker that entity is now documented here
-        l.change_output_file(*entity, output_file);
+        if (auto entity = vars.try_lookup_var(name))
+        {
+            // notify linker that entity is now documented here
+            l.change_output_file(*entity, output_file);
+            paragraph.add_entity(l.get_anchor(*entity, paragraph));
+        }
+        else
+        {
+            // register anchor
+            auto id = l.register_anchor(name, output_file);
+            paragraph.add_entity(md_anchor::make(paragraph, id.c_str()));
+        }
 
-        auto doc       = md_document::make("");
-        auto paragraph = md_paragraph::make(*doc);
-        paragraph->add_entity(l.get_anchor(*entity, *paragraph));
-        doc->add_entity(std::move(paragraph));
         return doc;
     }
 

@@ -83,6 +83,18 @@ void linker::register_entity(const doc_entity& e, std::string output_file) const
                                            e.get_unique_name().c_str()));
 }
 
+std::string linker::register_anchor(const std::string& unique_name, std::string output_file) const
+{
+    location loc(unique_name.c_str(), std::move(output_file));
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        auto                         res = anchors_.emplace(unique_name, loc);
+        if (!res.second)
+            res.first->second = loc;
+    }
+    return loc.get_id();
+}
+
 void linker::change_output_file(const doc_entity& e, std::string output_file) const
 {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -95,6 +107,13 @@ std::string linker::get_url(const index& idx, const std::string& unique_name,
     auto entity = idx.try_lookup(unique_name);
     if (entity)
         return get_url(*entity, extension);
+
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        auto                         iter = anchors_.find(unique_name);
+        if (iter != anchors_.end())
+            return iter->second.format(extension);
+    }
 
     for (auto& pair : external_)
         if (matches(pair.first, unique_name.c_str()))
@@ -120,7 +139,12 @@ md_ptr<md_anchor> linker::get_anchor(const doc_entity& e, const md_entity& paren
 }
 
 linker::location::location(const doc_entity& e, std::string output_file)
-: id_(url_encode(e.get_unique_name().c_str()))
+: location(e.get_unique_name().c_str(), std::move(output_file))
+{
+}
+
+linker::location::location(const char* unique_name, std::string output_file)
+: id_(url_encode(unique_name))
 {
     set_output_file(std::move(output_file));
 }

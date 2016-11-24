@@ -25,6 +25,8 @@ namespace standardese
 
         void register_entity(const doc_entity& e, std::string output_file) const;
 
+        std::string register_anchor(const std::string& unique_name, std::string output_file) const;
+
         void change_output_file(const doc_entity& e, std::string output_file) const;
 
         std::string get_url(const index& idx, const std::string& unique_name,
@@ -41,6 +43,8 @@ namespace standardese
         {
         public:
             location(const doc_entity& e, std::string output_file);
+
+            location(const char* unique_name, std::string output_file);
 
             std::string format(const char* extension) const;
 
@@ -59,6 +63,7 @@ namespace standardese
 
         mutable std::mutex mutex_;
         mutable std::unordered_map<const doc_entity*, location> locations_;
+        mutable std::unordered_map<std::string, location>       anchors_;
 
         std::unordered_map<std::string, std::string> external_;
     };
