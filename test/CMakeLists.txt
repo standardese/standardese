@@ -11,6 +11,7 @@ endif()
 set(tests
     comment.cpp
     cpp_entity.cpp
+    cpp_entity_blacklist.cpp
     cpp_function.cpp
     cpp_namespace.cpp
     cpp_template.cpp
@@ -18,7 +19,7 @@ set(tests
     cpp_variable.cpp
     output.cpp
     preprocessor.cpp
-    cpp_entity_blacklist.cpp)
+    template.cpp)
 
 add_executable(standardese_test test.cpp test_parser.hpp ${tests})
 target_include_directories(standardese_test PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
