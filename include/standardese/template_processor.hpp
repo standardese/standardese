@@ -17,6 +17,7 @@ namespace standardese
         generate_doc,
         generate_synopsis,
         generate_doc_text,
+        generate_anchor,
 
         name,
         unique_name,

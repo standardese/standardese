@@ -19,6 +19,7 @@ template_config::template_config() : delimiter_begin_("{{"), delimiter_end_("}}"
     set_command(template_command::generate_doc, "doc");
     set_command(template_command::generate_doc_text, "doc_text");
     set_command(template_command::generate_synopsis, "doc_synopsis");
+    set_command(template_command::generate_anchor, "doc_anchor");
 
     set_command(template_command::name, "name");
     set_command(template_command::index_name, "index_name");
@@ -476,6 +477,23 @@ namespace
         return doc;
     }
 
+    md_ptr<md_document> get_anchor(const stack& vars, const linker& l,
+                                   const std::string& output_file, const std::string& name)
+    {
+        auto entity = vars.lookup_var(name);
+        if (!entity)
+            return nullptr;
+
+        // notify linker that entity is now documented here
+        l.change_output_file(*entity, output_file);
+
+        auto doc       = md_document::make("");
+        auto paragraph = md_paragraph::make(*doc);
+        paragraph->add_entity(l.get_anchor(*entity, *paragraph));
+        doc->add_entity(std::move(paragraph));
+        return doc;
+    }
+
     std::string write_document(const parser& p, md_ptr<md_document> doc,
                                const std::string& format_name)
     {
@@ -546,6 +564,10 @@ raw_document standardese::process_template(const parser& p, const index& i,
             break;
         case template_command::generate_doc_text:
             if (auto doc = get_documentation_text(s, read_arg(ptr, last)))
+                s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
+            break;
+        case template_command::generate_anchor:
+            if (auto doc = get_anchor(s, i.get_linker(), input.output_name, read_arg(ptr, last)))
                 s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
             break;
 
