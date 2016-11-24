@@ -29,7 +29,6 @@ namespace std
 {
 
     /// \effects Exchanges values stored in two locations.
-    ///
     /// \requires Type `T` shall be `MoveConstructible` and `MoveAssignable`.
     template <class T>
     void swap(T &a, T &b) noexcept(is_nothrow_move_constructible<T>::value &&
@@ -236,6 +235,7 @@ instead you can use a forward slash. *
 #### Linking
 
 To link to an entity, use the syntax `[link-text](<> "unique-name")` (a CommonMark link with empty URL and a title of `unique-name`). If you don't want a special `link-text`, this can be shortened to `[unique-name]()` (a CommonMark link with empty URL and the name of an entity as text).
+You can also use an URL of the following form `[link-text](standardese://unique-name "optional-title")` (a normal CommonMark link with the `standardese://` protocol).
 In either case `standardese` will insert the correct URL by searching for the entity with the given `unique-name`.
 
 The `unique-name` of an entity is the name with all scopes, i.e. `foo::bar::baz`.

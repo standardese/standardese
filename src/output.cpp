@@ -16,7 +16,9 @@ using namespace standardese;
 
 namespace
 {
-    void get_empty_links(std::vector<md_link*>& links, md_entity& cur)
+    const char link_prefix[] = "standardese://";
+
+    void get_standardese_links(std::vector<md_link*>& links, md_entity& cur)
     {
         if (cur.get_entity_type() == md_entity::link_t)
         {
@@ -24,18 +26,27 @@ namespace
             if (*link.get_destination() == '\0')
                 // empty link
                 links.push_back(&link);
+            else if (std::strncmp(link.get_destination(), link_prefix, sizeof(link_prefix) - 1)
+                     == 0)
+                // standardese link
+                links.push_back(&link);
         }
         else if (is_container(cur.get_entity_type()))
         {
             auto& container = static_cast<md_container&>(cur);
             for (auto& entity : container)
-                get_empty_links(links, entity);
+                get_standardese_links(links, entity);
         }
     }
 
     const char* get_entity_name(const md_link& link)
     {
-        if (*link.get_title())
+        if (*link.get_destination())
+        {
+            assert(std::strncmp(link.get_destination(), link_prefix, sizeof(link_prefix) - 1) == 0);
+            return link.get_destination() + sizeof(link_prefix) - 1;
+        }
+        else if (*link.get_title())
             return link.get_title();
         else if (link.begin()->get_entity_type() != md_entity::text_t)
             // must be a text
@@ -49,7 +60,7 @@ void standardese::resolve_urls(const std::shared_ptr<spdlog::logger>& logger, co
                                const index& i, md_document& document, const char* extension)
 {
     std::vector<md_link*> links;
-    get_empty_links(links, document);
+    get_standardese_links(links, document);
 
     for (auto link : links)
     {
