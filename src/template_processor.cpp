@@ -10,7 +10,11 @@
 #include <type_traits>
 #include <vector>
 
+#include <spdlog/fmt/fmt.h>
+
+#include <standardese/index.hpp>
 #include <standardese/output.hpp>
+#include <standardese/parser.hpp>
 
 using namespace standardese;
 
@@ -557,8 +561,7 @@ namespace
 }
 
 raw_document standardese::process_template(const parser& p, const index& i,
-                                           const template_config& config,
-                                           const template_file&   input)
+                                           const template_file& input)
 {
     stack s(p, i);
     auto handle = [&](template_command cur_command, const char* ptr, const char* last,
@@ -621,7 +624,7 @@ raw_document standardese::process_template(const parser& p, const index& i,
             auto entity = s.lookup_var(read_arg(ptr, last));
             if (!entity)
                 break;
-            s.push_if(get_if_value(s, config, entity, ptr, last));
+            s.push_if(get_if_value(s, p.get_template_config(), entity, ptr, last));
             break;
         }
         case template_command::else_clause:
@@ -635,7 +638,7 @@ raw_document standardese::process_template(const parser& p, const index& i,
             assert(false);
         }
     };
-    parse_commands(*p.get_logger(), config, input.text.c_str(), handle,
+    parse_commands(*p.get_logger(), p.get_template_config(), input.text.c_str(), handle,
                    [&](const char* begin, const char* end) {
                        if (!end)
                            s.get_buffer() += begin;

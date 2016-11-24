@@ -217,6 +217,14 @@ int main(int argc, char* argv[])
             ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""),
              "syntax is prefix=url, supports linking to a different URL for entities starting with prefix")
 
+            ("template.delimiter_begin", po::value<std::string>()->default_value("{{"),
+             "set the template delimiter begin string")
+            ("template.delimiter_end", po::value<std::string>()->default_value("}}"),
+            "set the template delimiter end string")
+            ("template.cmd_name_", po::value<std::string>(),
+            "override the name for the template command following the name_ (e.g. template.cmd_name_if=my_if);"
+            "standardese prefix will be added automatically")
+
             ("output.format",
              po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"commonmark"}, "{commonmark}"),
              "the output format used (commonmark, latex, man, html, xml)")
@@ -311,12 +319,11 @@ int main(int argc, char* argv[])
             documentations.push_back(documentation(generate_module_index(parser, index)));
 
             // process templates
-            template_config tconfig;
-            auto            raw_documents =
+            auto raw_documents =
                 standardese_tool::for_each(pool, templates,
                                            [](const template_file&) { return true; },
                                            [&](const template_file& f) {
-                                               return process_template(parser, index, tconfig, f);
+                                               return process_template(parser, index, f);
                                            });
 
             // write output

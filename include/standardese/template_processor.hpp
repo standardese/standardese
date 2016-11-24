@@ -7,11 +7,13 @@
 
 #include <string>
 
-#include <standardese/index.hpp>
-#include <standardese/parser.hpp>
+#include <standardese/noexcept.hpp>
 
 namespace standardese
 {
+    class parser;
+    class index;
+
     enum class template_command
     {
         generate_doc,
@@ -97,8 +99,7 @@ namespace standardese
 
     struct raw_document;
 
-    raw_document process_template(const parser& p, const index& i, const template_config& config,
-                                  const template_file& input);
+    raw_document process_template(const parser& p, const index& i, const template_file& input);
 } // namespace standardese
 
 #endif // STANDARDESE_TEMPLATE_PROCESSOR_HPP_INCLUDED

@@ -117,8 +117,13 @@ namespace standardese_tool
 
                     if (erase_prefix(name, "comment.cmd_name_"))
                     {
-                        auto section = p.get_comment_config().get_command(name);
-                        p.get_comment_config().set_command(section, opt.value[0]);
+                        auto cmd = p.get_comment_config().get_command(name);
+                        p.get_comment_config().set_command(cmd, opt.value[0]);
+                    }
+                    else if (erase_prefix(name, "template.cmd_name_"))
+                    {
+                        auto cmd = p.get_template_config().get_command(name);
+                        p.get_template_config().set_command(cmd, opt.value[0]);
                     }
                     else if (erase_prefix(name, "output.section_name_"))
                     {
@@ -155,6 +160,10 @@ namespace standardese_tool
 
         p->get_comment_config().set_command_character(
             map.at("comment.command_character").as<char>());
+
+        p->get_template_config()
+            .set_delimiters(map.at("template.delimiter_begin").as<std::string>(),
+                            map.at("template.delimiter_end").as<std::string>());
 
         using standardese::output_flag;
         p->get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
