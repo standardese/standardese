@@ -46,6 +46,12 @@ namespace standardese
 
     class output_format_xml : public output_format_base
     {
+    public:
+        static const char* name() STANDARDESE_NOEXCEPT
+        {
+            return "xml";
+        }
+
     private:
         void do_render(output_stream_base& output, const md_entity& entity) override;
 
@@ -57,6 +63,12 @@ namespace standardese
 
     class output_format_html : public output_format_base
     {
+    public:
+        static const char* name() STANDARDESE_NOEXCEPT
+        {
+            return "html";
+        }
+
     private:
         void do_render(output_stream_base& output, const md_entity& entity) override;
 
@@ -74,6 +86,11 @@ namespace standardese
     class output_format_markdown : public output_format_base
     {
     public:
+        static const char* name() STANDARDESE_NOEXCEPT
+        {
+            return "commonmark";
+        }
+
         explicit output_format_markdown(unsigned width = detail::default_width) : width_(width)
         {
         }
@@ -102,6 +119,11 @@ namespace standardese
     class output_format_man : public output_format_base
     {
     public:
+        static const char* name() STANDARDESE_NOEXCEPT
+        {
+            return "man";
+        }
+
         explicit output_format_man(unsigned width = detail::default_width) : width_(width)
         {
         }
@@ -130,6 +152,11 @@ namespace standardese
     class output_format_latex : public output_format_base
     {
     public:
+        static const char* name() STANDARDESE_NOEXCEPT
+        {
+            return "latex";
+        }
+
         explicit output_format_latex(unsigned width = detail::default_width) : width_(width)
         {
         }
@@ -154,6 +181,9 @@ namespace standardese
 
         unsigned width_;
     };
+
+    std::unique_ptr<output_format_base> make_output_format(const std::string& name,
+                                                           unsigned width = detail::default_width);
 } // namespace standardeses
 
 #endif // STANDARDESE_OUTPUT_FORMAT_HPP_INCLUDED

@@ -18,7 +18,7 @@ standardese::documentation standardese::generate_doc_file(const parser& p, const
     auto file = doc_file::parse(p, i, std::move(name), f);
 
     auto doc = md_document::make(file->get_file_name().c_str());
-    file->generate_documentation(p, *doc);
+    file->generate_documentation(p, i, *doc);
     return {std::move(file), std::move(doc)};
 }
 

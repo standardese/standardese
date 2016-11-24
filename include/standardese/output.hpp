@@ -120,8 +120,18 @@ namespace standardese
 
     class md_document;
     class index;
+    class linker;
 
     using path = std::string;
+
+    struct raw_document
+    {
+        path        file_name;
+        path        file_extension;
+        std::string text;
+
+        raw_document(path file_name, std::string text);
+    };
 
     class output
     {
@@ -133,6 +143,9 @@ namespace standardese
 
         void render(const std::shared_ptr<spdlog::logger>& logger, const md_document& document,
                     const char* output_extension = nullptr);
+
+        void render_raw(const std::shared_ptr<spdlog::logger>& logger,
+                        const raw_document&                    document);
 
         output_format_base& get_format() STANDARDESE_NOEXCEPT
         {

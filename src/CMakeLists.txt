@@ -22,6 +22,7 @@ set(header
         ../include/standardese/cpp_enum.hpp
         ../include/standardese/cpp_function.hpp
         ../include/standardese/cpp_namespace.hpp
+        ../include/standardese/cpp_preprocessor.hpp
         ../include/standardese/cpp_template.hpp
         ../include/standardese/cpp_type.hpp
         ../include/standardese/cpp_variable.hpp
@@ -29,6 +30,7 @@ set(header
         ../include/standardese/error.hpp
         ../include/standardese/generator.hpp
         ../include/standardese/index.hpp
+        ../include/standardese/linker.hpp
         ../include/standardese/md_blocks.hpp
         ../include/standardese/md_custom.hpp
         ../include/standardese/md_entity.hpp
@@ -37,9 +39,9 @@ set(header
         ../include/standardese/output_format.hpp
         ../include/standardese/output_stream.hpp
         ../include/standardese/parser.hpp
-        ../include/standardese/preprocessor.hpp
         ../include/standardese/section.hpp
         ../include/standardese/string.hpp
+        ../include/standardese/template_processor.hpp
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
@@ -62,6 +64,7 @@ set(src
         error.cpp
         generator.cpp
         index.cpp
+        linker.cpp
         md_blocks.cpp
         md_custom.cpp
         md_entity.cpp
@@ -71,6 +74,7 @@ set(src
         output_stream.cpp
         parser.cpp
         preprocessor.cpp
+        template_processor.cpp
         translation_unit.cpp)
 
 add_library(standardese ${detail_header} ${header} ${src})

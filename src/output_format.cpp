@@ -64,3 +64,20 @@ void output_format_latex::do_render(output_stream_base& output, const md_entity&
     cmark_str str(cmark_render_latex(entity.get_node(), CMARK_OPT_NOBREAKS, width_));
     write(output, str);
 }
+
+std::unique_ptr<output_format_base> standardese::make_output_format(const std::string& name,
+                                                                    unsigned           width)
+{
+    if (name == output_format_markdown::name())
+        return std::unique_ptr<output_format_markdown>(new output_format_markdown(width));
+    else if (name == output_format_html::name())
+        return std::unique_ptr<output_format_html>(new output_format_html);
+    else if (name == output_format_latex::name())
+        return std::unique_ptr<output_format_latex>(new output_format_latex(width));
+    else if (name == output_format_man::name())
+        return std::unique_ptr<output_format_man>(new output_format_man(width));
+    else if (name == output_format_xml::name())
+        return std::unique_ptr<output_format_xml>(new output_format_xml);
+
+    return nullptr;
+}

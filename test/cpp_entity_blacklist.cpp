@@ -98,7 +98,7 @@ std::string get_synopsis(const parser& p, const doc_file& file, const cpp_entity
 {
     // don't support nesting
     for (auto& doc_e : file)
-        if (&static_cast<doc_cpp_entity&>(doc_e).get_cpp_entity() == &e)
+        if (&static_cast<const doc_cpp_entity&>(doc_e).get_cpp_entity() == &e)
             return get_synopsis(p, doc_e);
     REQUIRE(false);
     return "";
