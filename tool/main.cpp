@@ -57,6 +57,7 @@ std::vector<standardese::documentation> generate_documentation(standardese::pars
                                                                Generator generate)
 {
     auto input              = map.at("input-files").as<std::vector<fs::path>>();
+    auto source_ext         = map.at("input.source_ext").as<std::vector<std::string>>();
     auto blacklist_ext      = map.at("input.blacklist_ext").as<std::vector<std::string>>();
     auto blacklist_file     = map.at("input.blacklist_file").as<std::vector<std::string>>();
     auto blacklist_dir      = map.at("input.blacklist_dir").as<std::vector<std::string>>();
@@ -71,12 +72,14 @@ std::vector<standardese::documentation> generate_documentation(standardese::pars
     futures.reserve(input.size());
 
     for (auto& path : input)
-        standardese_tool::handle_path(path, blacklist_ext, blacklist_file, blacklist_dir,
-                                      blacklist_dotfiles, force_blacklist,
-                                      [&](const fs::path& p, const fs::path& relative) {
-                                          futures.push_back(standardese_tool::add_job(pool,
-                                                                                      generate, p,
-                                                                                      relative));
+        standardese_tool::handle_path(path, source_ext, blacklist_ext, blacklist_file,
+                                      blacklist_dir, blacklist_dotfiles, force_blacklist,
+                                      [&](bool is_source_file, const fs::path& p,
+                                          const fs::path& relative) {
+                                          if (is_source_file)
+                                              futures.push_back(
+                                                  standardese_tool::add_job(pool, generate, p,
+                                                                            relative));
                                       });
 
     std::vector<standardese::documentation> documentations;
@@ -144,6 +147,10 @@ int main(int argc, char* argv[])
              "enable/disable color support of logger");
 
     configuration.add_options()
+            ("input.source_ext",
+             po::value<std::vector<std::string>>()
+             ->default_value({".h", ".hpp", ".h++", ".hxx"}, "(common C++ header file extensions"),
+            "file extensions that are treated as header files and where files will be parsed")
             ("input.blacklist_ext",
              po::value<std::vector<std::string>>()->default_value({}, "(none)"),
              "file extension that is forbidden (e.g. \".md\"; \".\" for no extension)")

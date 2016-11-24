@@ -16,6 +16,7 @@ namespace standardese_tool
 
     // blacklist of certain extensions, files, ...
     using blacklist = std::vector<std::string>;
+    using whitelist = blacklist;
 
     namespace detail
     {
@@ -58,6 +59,15 @@ namespace standardese_tool
 
             return true;
         }
+
+        inline bool is_source_file(const fs::path& path, const whitelist& source_extensions)
+        {
+            auto ext = path.extension();
+            for (auto& e : source_extensions)
+                if (ext == e)
+                    return true;
+            return false;
+        }
     } // namespace detail
 
     // a path is determined valid through the blacklists
@@ -65,8 +75,9 @@ namespace standardese_tool
     // otherwise recursively traverses through the given directory and calls f for each valid file
     // returns false if path was a normal file that was marked as invalid, true otherwise
     template <typename Fun>
-    bool handle_path(const fs::path& path, const blacklist& extensions, const blacklist& files,
-                     blacklist dirs, bool blacklist_dotfiles, bool force_blacklist, Fun f)
+    bool handle_path(const fs::path& path, const whitelist& source_extensions,
+                     const blacklist& extensions, const blacklist& files, blacklist dirs,
+                     bool blacklist_dotfiles, bool force_blacklist, Fun f)
     {
         // remove trailing slash if any
         // otherwise Boost.Filesystem can't handle it
@@ -93,7 +104,7 @@ namespace standardese_tool
                 else if (detail::is_valid(cur, relative, extensions, files, dirs,
                                           blacklist_dotfiles))
                 {
-                    f(cur, relative);
+                    f(detail::is_source_file(cur, source_extensions), cur, relative);
                 }
             }
         }
@@ -103,7 +114,7 @@ namespace standardese_tool
                  || detail::is_valid(path, "", extensions, files, dirs, blacklist_dotfiles))
         {
             // return only the filename of the path as relative path
-            f(path, path.filename());
+            f(detail::is_source_file(path, source_extensions), path, path.filename());
         }
         else
             return false;
