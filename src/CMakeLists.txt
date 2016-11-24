@@ -30,6 +30,7 @@ set(header
         ../include/standardese/error.hpp
         ../include/standardese/generator.hpp
         ../include/standardese/index.hpp
+        ../include/standardese/linker.hpp
         ../include/standardese/md_blocks.hpp
         ../include/standardese/md_custom.hpp
         ../include/standardese/md_entity.hpp
@@ -63,6 +64,7 @@ set(src
         error.cpp
         generator.cpp
         index.cpp
+        linker.cpp
         md_blocks.cpp
         md_custom.cpp
         md_entity.cpp

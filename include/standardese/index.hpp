@@ -22,8 +22,6 @@ namespace standardese
         // returns the short id
         // it doesn't require parameters
         std::string get_short_id(const std::string& id);
-
-        std::string escape_unique_name(const char* name);
     } // namespace detail
 
     class cpp_namespace;
@@ -31,25 +29,11 @@ namespace standardese
     class index
     {
     public:
-        /// \effects Registers an external URL.
-        /// All unresolved `unique-name`s starting with `prefix` will be resolved to `url`.
-        /// If `url` contains two dollar signs (`$$`), this will be replaced by the (url-encoded) `unique-name`.
-        void register_external(std::string prefix, std::string url)
-        {
-            auto iter = external_.find(prefix);
-            if (iter == external_.end())
-                external_.emplace(std::move(prefix), std::move(url));
-            else
-                iter->second = std::move(url);
-        }
-
         void register_entity(const doc_entity& entity) const;
 
         const doc_entity* try_lookup(const std::string& unique_name) const;
 
         const doc_entity& lookup(const std::string& unique_name) const;
-
-        std::string get_url(const std::string& unique_name, const char* extension) const;
 
         // void(const doc_entity&)
         template <typename Func>
@@ -87,8 +71,6 @@ namespace standardese
         mutable std::map<std::string, std::pair<bool, const doc_entity*>> entities_;
         mutable std::vector<decltype(entities_)::const_iterator> files_;
         mutable std::vector<std::string>                         modules_;
-
-        std::unordered_map<std::string, std::string> external_;
     };
 } // namespace standardese
 

@@ -75,11 +75,6 @@ namespace standardese
             return do_get_index_name(full_name);
         }
 
-        cpp_name get_file_name() const
-        {
-            return do_get_file_name();
-        }
-
         cpp_entity::type get_cpp_entity_type() const STANDARDESE_NOEXCEPT
         {
             return do_get_cpp_entity_type();
@@ -167,8 +162,6 @@ namespace standardese
         virtual cpp_name do_get_name() const                     = 0;
         virtual cpp_name do_get_unique_name() const              = 0;
         virtual cpp_name do_get_index_name(bool full_name) const = 0;
-
-        virtual cpp_name do_get_file_name() const;
 
         virtual cpp_entity::type do_get_cpp_entity_type() const STANDARDESE_NOEXCEPT = 0;
 
@@ -436,6 +429,11 @@ namespace standardese
             return static_cast<const doc_entity&>(*file_).end();
         }
 
+        cpp_name get_file_name() const
+        {
+            return output_name_;
+        }
+
     protected:
         void do_generate_documentation(const parser& p, md_document& doc,
                                        unsigned level) const override;
@@ -457,11 +455,6 @@ namespace standardese
         cpp_name do_get_index_name(bool full_name) const override
         {
             return file_->get_index_name(full_name);
-        }
-
-        cpp_name do_get_file_name() const override
-        {
-            return output_name_;
         }
 
         cpp_entity::type do_get_cpp_entity_type() const STANDARDESE_NOEXCEPT override

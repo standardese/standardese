@@ -43,19 +43,6 @@ std::string detail::get_short_id(const std::string& id)
     return id.substr(0, open_paren) + id.substr(close_paren + 1);
 }
 
-std::string detail::escape_unique_name(const char* name)
-{
-    std::string result;
-    for (; *name; ++name)
-        if (*name == '<')
-            result += "__";
-        else if (*name == '>')
-            result += "__";
-        else
-            result += *name;
-    return result;
-}
-
 void index::register_entity(const doc_entity& entity) const
 {
     auto id       = detail::get_id(entity.get_unique_name().c_str());
@@ -110,83 +97,6 @@ const doc_entity& index::lookup(const std::string& unique_name) const
 {
     std::lock_guard<std::mutex> lock(mutex_);
     return *entities_.at(detail::get_id(unique_name)).second;
-}
-
-namespace
-{
-    bool matches(const std::string& prefix, const std::string& unique_name)
-    {
-        return unique_name.compare(0, prefix.size(), prefix) == 0;
-    }
-
-    bool is_valid_url(char c)
-    {
-        return std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~';
-    }
-
-    std::string url_encode(const std::string& url)
-    {
-        std::string result;
-
-        for (auto c : url)
-        {
-            if (is_valid_url(c))
-                result += c;
-            else
-            {
-                // escape character
-                result += '%';
-                result += fmt::format("{0:x}", int(c));
-            }
-        }
-
-        return result;
-    }
-
-    std::string generate(const std::string& url, const std::string& unique_name)
-    {
-        std::string result;
-        for (auto iter = url.begin(); iter != url.end(); ++iter)
-        {
-            if (*iter == '$' && iter != std::prev(url.end()) && *++iter == '$')
-                // sequence of two dollar signs
-                result += url_encode(unique_name);
-            else
-                result += *iter;
-        }
-
-        return result;
-    }
-
-    std::string format_url(const doc_entity& entity, const char* extension)
-    {
-        return fmt::format("{}.{}#{}", entity.get_file_name().c_str(), extension,
-                           detail::escape_unique_name(entity.get_unique_name().c_str()).c_str());
-    }
-}
-
-std::string index::get_url(const std::string& unique_name, const char* extension) const
-{
-    auto entity = try_lookup(unique_name);
-    if (!entity)
-    {
-        for (auto& pair : external_)
-            if (matches(pair.first, unique_name))
-                return generate(pair.second, unique_name);
-        return "";
-    }
-
-    if (entity->get_cpp_entity_type() == cpp_entity::file_t)
-        return fmt::format("{}.{}", entity->get_file_name().c_str(), extension);
-    else if (entity->has_comment() && entity->get_comment().in_member_group())
-    {
-        assert(entity->has_parent()
-               && entity->get_parent().get_entity_type() == doc_entity::member_group_t);
-        // format url to member group
-        return format_url(entity->get_parent(), extension);
-    }
-    else
-        return format_url(*entity, extension);
 }
 
 void index::namespace_member_impl(ns_member_cb cb, void* data)

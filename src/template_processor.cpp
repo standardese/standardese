@@ -486,7 +486,7 @@ namespace
         }
 
         string_output output;
-        resolve_urls(p.get_logger(), i, *doc, format->extension());
+        resolve_urls(p.get_logger(), p.get_linker(), i, *doc, format->extension());
         format->render(output, *doc);
 
         return output.get_string();

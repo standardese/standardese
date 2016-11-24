@@ -39,15 +39,6 @@ const std::string& doc_entity::get_module() const STANDARDESE_NOEXCEPT
     return has_parent() ? get_parent().get_module() : empty;
 }
 
-cpp_name doc_entity::do_get_file_name() const
-{
-    auto cur = this;
-    while (cur->parent_)
-        cur = cur->parent_;
-    assert(cur->get_cpp_entity_type() == cpp_entity::file_t);
-    return cur->do_get_file_name();
-}
-
 namespace
 {
     const char* get_entity_type_spelling(const cpp_entity& e)
@@ -188,14 +179,8 @@ namespace
         return "should never get here";
     }
 
-    md_ptr<md_anchor> get_anchor(const doc_cpp_entity& e, const md_entity& parent)
-    {
-        auto id = detail::escape_unique_name(e.get_unique_name().c_str());
-        return md_anchor::make(parent, id.c_str());
-    }
-
-    md_ptr<md_heading> make_heading(const doc_cpp_entity& e, const md_entity& parent,
-                                    unsigned level, bool show_module)
+    md_ptr<md_heading> make_heading(const parser& p, const doc_cpp_entity& e,
+                                    const md_entity& parent, unsigned level, bool show_module)
     {
         auto heading = md_heading::make(parent, level);
 
@@ -212,7 +197,7 @@ namespace
                 md_text::make(*heading,
                               fmt::format(" [{}]", e.get_comment().get_module()).c_str()));
 
-        heading->add_entity(get_anchor(e, *heading));
+        heading->add_entity(p.get_linker().get_anchor(e, *heading));
 
         return heading;
     }
@@ -221,8 +206,8 @@ namespace
 void doc_cpp_entity::do_generate_documentation_base(const parser& p, md_document& doc,
                                                     unsigned level) const
 {
-    doc.add_entity(
-        make_heading(*this, doc, level, p.get_output_config().is_set(output_flag::show_modules)));
+    doc.add_entity(make_heading(p, *this, doc, level,
+                                p.get_output_config().is_set(output_flag::show_modules)));
 
     code_block_writer out(doc);
     if (has_comment() && get_comment().has_synopsis_override())
@@ -278,8 +263,7 @@ void doc_inline_cpp_entity::do_generate_documentation_inline(const parser&      
 {
     assert(p.get_output_config().is_set(output_flag::inline_documentation));
     if (has_comment())
-        doc.add_item(get_name().c_str(),
-                     detail::escape_unique_name(get_unique_name().c_str()).c_str(),
+        doc.add_item(get_name().c_str(), p.get_linker().get_anchor_id(*this).c_str(),
                      get_comment().get_content());
 }
 
@@ -930,7 +914,7 @@ void doc_member_group::do_generate_documentation(const parser& p, md_document& d
     if (doc_entity_container::begin()->get_entity_type() == doc_entity::cpp_entity_t)
     {
         auto& cpp_e = static_cast<const doc_cpp_entity&>(*doc_entity_container::begin());
-        doc.add_entity(make_heading(cpp_e, doc, level,
+        doc.add_entity(make_heading(p, cpp_e, doc, level,
                                     p.get_output_config().is_set(output_flag::show_modules)));
     }
     else
@@ -1003,10 +987,12 @@ namespace
 
     using standardese::index;
 
-    void handle_children(const parser& p, const index& i, doc_container_cpp_entity& cont);
+    void handle_children(const parser& p, const index& i, std::string output_file,
+                         doc_container_cpp_entity& cont);
 
     doc_entity_ptr handle_child_impl(const parser& p, const index& i, const doc_entity& parent,
-                                     const cpp_entity& e, cpp_access_specifier_t cur_access)
+                                     const cpp_entity& e, cpp_access_specifier_t cur_access,
+                                     std::string output_file)
     {
         auto& blacklist       = p.get_output_config().get_blacklist();
         auto  extract_private = blacklist.is_set(entity_blacklist::extract_private);
@@ -1027,7 +1013,7 @@ namespace
         else if (is_container_entity(e))
         {
             auto container = detail::make_doc_ptr<doc_container_cpp_entity>(&parent, e, comment);
-            handle_children(p, i, *container);
+            handle_children(p, i, std::move(output_file), *container);
             return std::move(container);
         }
         else
@@ -1071,41 +1057,44 @@ namespace
     }
 
     void handle_child(const parser& p, const index& i, doc_container_cpp_entity& parent,
-                      const cpp_entity& e, cpp_access_specifier_t cur_access)
+                      const cpp_entity& e, cpp_access_specifier_t cur_access,
+                      std::string output_file)
     {
-        auto entity = handle_child_impl(p, i, parent, e, cur_access);
+        auto entity = handle_child_impl(p, i, parent, e, cur_access, output_file);
         if (!entity)
             return;
         i.register_entity(*entity);
+        p.get_linker().register_entity(*entity, std::move(output_file));
         if (entity->has_comment() && entity->get_comment().in_member_group())
             handle_group(p, parent, std::move(entity));
         else
             parent.add_entity(std::move(entity));
     }
 
-    void handle_children(const parser& p, const index& i, doc_container_cpp_entity& cont)
+    void handle_children(const parser& p, const index& i, std::string output_file,
+                         doc_container_cpp_entity& cont)
     {
         auto& entity = cont.get_cpp_entity();
         switch (entity.get_entity_type())
         {
         case cpp_entity::language_linkage_t:
             for (auto& child : static_cast<const cpp_language_linkage&>(entity))
-                handle_child(p, i, cont, child, cpp_public);
+                handle_child(p, i, cont, child, cpp_public, std::move(output_file));
             break;
         case cpp_entity::namespace_t:
             for (auto& child : static_cast<const cpp_namespace&>(entity))
-                handle_child(p, i, cont, child, cpp_public);
+                handle_child(p, i, cont, child, cpp_public, std::move(output_file));
             break;
 
         case cpp_entity::enum_t:
             for (auto& child : static_cast<const cpp_enum&>(entity))
-                handle_child(p, i, cont, child, cpp_public);
+                handle_child(p, i, cont, child, cpp_public, output_file);
             break;
 
         case cpp_entity::function_template_t:
             for (auto& child :
                  static_cast<const cpp_function_template&>(entity).get_template_parameters())
-                handle_child(p, i, cont, child, cpp_public);
+                handle_child(p, i, cont, child, cpp_public, output_file);
         // fallthrough
         case cpp_entity::function_t:
         case cpp_entity::member_function_t:
@@ -1113,7 +1102,7 @@ namespace
         case cpp_entity::constructor_t:
         case cpp_entity::function_template_specialization_t:
             for (auto& child : get_function(entity)->get_parameters())
-                handle_child(p, i, cont, child, cpp_public);
+                handle_child(p, i, cont, child, cpp_public, output_file);
             break;
 
         case cpp_entity::class_template_t:
@@ -1122,14 +1111,14 @@ namespace
             {
                 for (auto& child :
                      static_cast<const cpp_class_template&>(entity).get_template_parameters())
-                    handle_child(p, i, cont, child, cpp_public);
+                    handle_child(p, i, cont, child, cpp_public, output_file);
             }
             else
             {
                 for (auto& child :
                      static_cast<const cpp_class_template_partial_specialization&>(entity)
                          .get_template_parameters())
-                    handle_child(p, i, cont, child, cpp_public);
+                    handle_child(p, i, cont, child, cpp_public, output_file);
             }
         // fallthrough
         case cpp_entity::class_template_full_specialization_t:
@@ -1137,7 +1126,7 @@ namespace
         {
             auto& c = *get_class(entity);
             for (auto& child : c.get_bases())
-                handle_child(p, i, cont, child, child.get_access());
+                handle_child(p, i, cont, child, child.get_access(), output_file);
 
             auto cur_access = c.get_class_type() == cpp_class_t ? cpp_private : cpp_public;
             for (auto& child : c)
@@ -1149,7 +1138,7 @@ namespace
                         detail::make_doc_ptr<doc_cpp_access_entity>(&cont, child, nullptr));
                 }
                 else
-                    handle_child(p, i, cont, child, cur_access);
+                    handle_child(p, i, cont, child, cur_access, output_file);
             }
             break;
         }
@@ -1157,7 +1146,7 @@ namespace
         case cpp_entity::alias_template_t:
             for (auto& child :
                  static_cast<const cpp_alias_template&>(entity).get_template_parameters())
-                handle_child(p, i, cont, child, cpp_public);
+                handle_child(p, i, cont, child, cpp_public, output_file);
             break;
 
         default:
@@ -1178,21 +1167,23 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
     if (file_ptr->has_comment() && file_ptr->get_comment().has_unique_name_override())
         output_name = file_ptr->get_comment().get_unique_name_override();
 
-    auto res = detail::make_doc_ptr<doc_file>(std::move(output_name), std::move(file_ptr));
+    auto res = detail::make_doc_ptr<doc_file>(output_name, std::move(file_ptr));
     res->file_->set_parent(res.get());
 
     for (auto& child : f)
     {
-        auto entity = handle_child_impl(p, i, *res, child, cpp_public);
+        auto entity = handle_child_impl(p, i, *res, child, cpp_public, output_name);
         if (!entity)
             continue;
         i.register_entity(*entity);
+        p.get_linker().register_entity(*entity, output_name);
         if (entity->has_comment() && entity->get_comment().in_member_group())
             handle_group(p, *res->file_, std::move(entity));
         else
             res->file_->add_entity(std::move(entity));
     }
     i.register_entity(*res->file_);
+    p.get_linker().register_entity(*res->file_, std::move(output_name));
 
     return res;
 }

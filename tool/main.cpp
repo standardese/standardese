@@ -271,7 +271,7 @@ int main(int argc, char* argv[])
             documentations.push_back(documentation(generate_entity_index(index)));
             documentations.push_back(documentation(generate_module_index(parser, index)));
 
-            config.set_external(index);
+            config.set_external(parser.get_linker());
             for (auto& format : formats)
             {
                 log->info("Writing files for output format {}...", format->extension());
@@ -287,7 +287,7 @@ int main(int argc, char* argv[])
                 std::vector<std::future<void>> futures;
                 futures.reserve(documentations.size());
 
-                output out(index, prefix, *format);
+                output out(parser.get_linker(), index, prefix, *format);
                 for (auto& doc : documentations)
                     if (doc.document)
                         futures.push_back(

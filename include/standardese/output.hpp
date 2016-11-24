@@ -120,17 +120,18 @@ namespace standardese
 
     class md_document;
     class index;
+    class linker;
 
-    void resolve_urls(const std::shared_ptr<spdlog::logger>& logger, const index& i,
-                      md_document& document, const char* extension);
+    void resolve_urls(const std::shared_ptr<spdlog::logger>& logger, const linker& l,
+                      const index& i, md_document& document, const char* extension);
 
     using path = std::string;
 
     class output
     {
     public:
-        output(const index& i, path prefix, output_format_base& format)
-        : prefix_(std::move(prefix)), format_(&format), index_(&i)
+        output(const linker& l, const index& i, path prefix, output_format_base& format)
+        : prefix_(std::move(prefix)), format_(&format), index_(&i), linker_(&l)
         {
         }
 
@@ -151,6 +152,7 @@ namespace standardese
         path                prefix_;
         output_format_base* format_;
         const index*        index_;
+        const linker*       linker_;
     };
 } // namespace standardese
 

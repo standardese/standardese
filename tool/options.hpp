@@ -192,17 +192,17 @@ namespace standardese_tool
             return nullptr;
         }
 
-        void set_external(standardese::index& i) const
+        void set_external(standardese::linker& l) const
         {
             // register cppreference.com
-            i.register_external("std::", "http://en.cppreference.com/mwiki/"
+            l.register_external("std::", "http://en.cppreference.com/mwiki/"
                                          "index.php?title=Special%3ASearch&search=$$");
             for (auto& str : map.at("comment.external_doc").as<std::vector<std::string>>())
             {
                 auto sep    = str.find('=');
                 auto prefix = str.substr(0, sep);
                 auto url    = str.substr(sep + 1);
-                i.register_external(std::move(prefix), std::move(url));
+                l.register_external(std::move(prefix), std::move(url));
             }
         }
     };
