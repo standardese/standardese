@@ -4,9 +4,6 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/1aw8ml5lawu4mtyv/branch/master?svg=true)](https://ci.appveyor.com/project/foonathan/standardese/branch/master)
 [![Join the chat at https://gitter.im/foonathan/standardese](https://badges.gitter.im/foonathan/standardese.svg)](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-> Note: This is an early prototype and highly WIP.
-> Many features are missing and there are probably bugs everywhere.
-
 Standardese aims to be a nextgen [Doxygen](http://doxygen.org).
 It consists of two parts: a library and a tool.
 
@@ -135,6 +132,7 @@ Basic usage is: `standardese [options] inputs`
 
 The inputs can be both files or directories, in case of directory each file is documented, unless an input option is specified (see below).
 The tool will currently generate a corresponding Markdown file with the documentation for each file it gets as input.
+Files that are not source files (determined by the `input.source_ext` option), will be treated as template files (see below).
 
 > Note: You only need and should give header files to standardese.
 > The source files are unnecessary.
@@ -157,6 +155,9 @@ standardese will pass *all* the flags of all files to libclang.
 
 * The `comment.*` options are related to the syntax of the documentation markup.
 You can set both the leading character and the name for each command, for example.
+
+* The `template.*` options are related to the syntax of the template markup.
+You can set both the delimiters and the name for each command, for example.
 
 * The `output.*` options are related to the output generation.
 It contains an option to set the human readable name of a section, for example.
@@ -407,6 +408,76 @@ For example:
 /// The `\exclude` is part of the documentation for `bar`.
 void func(int foo, int bar);
 ```
+
+### Template syntax overview
+
+If you pass a file that is not a source file, it will be treated as template file and processed.
+This allows advanced control over the output or writing additional documentation files.
+
+standardese will read the file and replace two things:
+
+* URLs with the `standardese://` protocol will be converted to the correct URL for the given entity.
+This allows referring to documentation entities from other files without manually having to deal with the URLs.
+
+* Special commands inside two curly braces by default ('{{ … }}').
+
+> Note: standardese is dumb and does not do any other formatting with the template file otherwise.
+> Most importantly, it will create lot of unnecessary empty lines,
+> so does not really work with formats where newlines are important.
+
+The special commands allow querying standardese for information.
+It will look for delimiters and commands starting with `standardese_`.
+All other commands will be silently ignored.
+
+> This allows mixing "normal" template syntax with standardese syntax.
+> Process the file with standardese, then your template engine.
+
+There are the following commands available,
+`entity` always means the unique name of an entity here.
+
+* `standardese_doc <entity> <format>`: Will be replaced with the documentation output for `entity` in the given `format`.
+For example `{{ standardese_doc file.hpp html }}` will be replaced with the same HTML standardese will generate for the header file `file.hpp`.
+
+* `standardese_doc_text <entity> <format>`: Will be replaced with the comment of `entity` in the given format.
+
+* `standardese_doc_synopsis <entity> <format>`: Will be replaced with the synopsis of `entity` in the given format.
+
+* `standardese_doc_anchor <unique_name> <format>`: If `unique_name` refers to an existing entity, all links to that entity will link to the anchor in the template file generated in the given format.
+Otherwise it will create a new entity named `unique_name` you can link to throughout the documentation.
+
+* `standardese_name/index_name/unique_name <entity>`: Will be replaced with the name/index name/unique name of the given entity, just a raw character sequence without formatting.
+
+* `standardese_for <variable> <entity>`: Will loop over each child of `entity` and copy the processed next block, the unique name of the current child is stored in the given `variable`. For example, this will print the names of all children of an entity:
+```
+{{ standardese_for $child some_entity }}
+    {{ standardese_name $child }}
+{{ standardese_end }}
+```
+
+* `standardese_if/else_if/else <entity> <op> [args...]`: Will ignore a block if a condition is not fulfilled. See below for a list of conditions. For example, this will do something different depending on the unique name of an entity:
+```
+{{ standardese_if $entity name a }}
+    Name is a!
+{{ standardese_else_if $entity name b }}
+    Name is b!
+{{ standardese_else }}
+    Name is something else.
+{{ standardese_end }}
+```
+
+* `standardese_end`: Ends the block that was started last.
+
+There are the following if operations available:
+
+* `<entity> name <name>`: Checks if `entity` has the given unique name.
+
+* `<child> first_child <parent>`: Checks if `child` is the first child of `parent`.
+
+* `<entity> has_children`: Checks if `entity` has children.
+
+* `<entity> inline_entity`: Checks if `entity` is an inline entity (parameter, base class, enum value,...) and inline entities will be shown inline in the documentation output (`output.inline_doc`).
+
+* `<entity> member_group`: Checks if `entity` refers to a member group.
 
 ## Acknowledgements
 

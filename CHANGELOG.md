@@ -5,6 +5,7 @@
 * Add `synopsis` command to override the synopsis
 * Add `group` command to group documentation together
 * Add `module` command as a way to categorize entities
+* Add template language
 * Allow `unique_name` on files to override the output name
 * *Breaking:* Change hard line break character to a forward slash
 * *Breaking:* Require `entity` and `file` command to be first in a comment
@@ -27,6 +28,7 @@
 * Add `output.show_group_member_id` option to enable/disable showing an integral id for members of a member group
 * Add `compilation.clang_binary` option to control clang binary used as preprocessor
 * Add `compilation.ms_compatibility` option to give more control over MSVC compatibility as well as tweaked `compilation.ms_extensions`
+* Add `template.*` options and other template support
 
 ## 0.2-2
 
