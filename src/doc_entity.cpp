@@ -245,6 +245,15 @@ cpp_name doc_entity::get_unique_name() const
                do_get_unique_name();
 }
 
+doc_entity::doc_entity(doc_entity::type t, const doc_entity* parent,
+                       const comment* c) STANDARDESE_NOEXCEPT : parent_(parent),
+                                                                comment_(c),
+                                                                t_(t)
+{
+    if (comment_)
+        comment_->get_content().set_entity(*this);
+}
+
 bool standardese::is_inline_cpp_entity(cpp_entity::type t) STANDARDESE_NOEXCEPT
 {
     return t == cpp_entity::base_class_t || is_parameter(t) || is_member_variable(t)

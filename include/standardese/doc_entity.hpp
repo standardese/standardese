@@ -9,7 +9,7 @@
 
 #include <standardese/detail/entity_container.hpp>
 #include <standardese/cpp_entity.hpp>
-#include "md_custom.hpp"
+#include <standardese/md_custom.hpp>
 
 namespace standardese
 {
@@ -136,12 +136,7 @@ namespace standardese
         }
 
     protected:
-        doc_entity(type t, const doc_entity* parent, const comment* c) STANDARDESE_NOEXCEPT
-            : parent_(parent),
-              comment_(c),
-              t_(t)
-        {
-        }
+        doc_entity(type t, const doc_entity* parent, const comment* c) STANDARDESE_NOEXCEPT;
 
         void set_parent(const doc_entity* parent)
         {

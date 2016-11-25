@@ -101,10 +101,32 @@ void linker::change_output_file(const doc_entity& e, std::string output_file) co
     locations_.at(&e).set_output_file(std::move(output_file));
 }
 
-std::string linker::get_url(const index& idx, const std::string& unique_name,
-                            const char* extension) const
+namespace
 {
-    auto entity = idx.try_lookup(unique_name);
+    using standardese::index;
+
+    const doc_entity* lookup_name(const index& idx, const doc_entity* context,
+                                  const std::string& unique_name)
+    {
+        if (unique_name.front() == '.' && context)
+        {
+            for (auto cur = context; cur; cur = cur->has_parent() ? &cur->get_parent() : nullptr)
+            {
+                auto name =
+                    std::string(cur->get_unique_name().c_str()) + "::" + (unique_name.c_str() + 1);
+                if (auto entity = idx.try_lookup(name))
+                    return entity;
+            }
+        }
+
+        return idx.try_lookup(unique_name);
+    }
+}
+
+std::string linker::get_url(const index& idx, const doc_entity* context,
+                            const std::string& unique_name, const char* extension) const
+{
+    auto entity = lookup_name(idx, context, unique_name);
     if (entity)
         return get_url(*entity, extension);
 

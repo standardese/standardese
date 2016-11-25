@@ -13,6 +13,8 @@
 
 namespace standardese
 {
+    class doc_entity;
+
     class md_comment final : public md_container
     {
     public:
@@ -53,11 +55,28 @@ namespace standardese
             return md_ptr<md_comment>(static_cast<md_comment*>(entity.release()));
         }
 
+        void set_entity(const doc_entity& entity) const STANDARDESE_NOEXCEPT
+        {
+            entity_ = &entity;
+        }
+
+        bool has_entity() const STANDARDESE_NOEXCEPT
+        {
+            return entity_ != nullptr;
+        }
+
+        const doc_entity& get_entity() const STANDARDESE_NOEXCEPT
+        {
+            return *entity_;
+        }
+
     protected:
         md_entity_ptr do_clone(const md_entity* parent) const override;
 
     private:
         md_comment();
+
+        mutable const doc_entity* entity_;
 
         friend detail::md_ptr_access;
     };

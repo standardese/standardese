@@ -4,6 +4,7 @@
 
 #include <standardese/output.hpp>
 
+#include <stack>
 #include <spdlog/logger.h>
 
 #include <standardese/comment.hpp>
@@ -20,26 +21,41 @@ namespace
 
     const char link_prefix[] = "standardese://";
 
-    void get_standardese_links(std::vector<md_link*>& links, md_entity& cur,
-                               bool only_empty = false)
+    template <typename Func>
+    void for_each_entity_reference(md_document& doc, Func f)
     {
-        if (cur.get_entity_type() == md_entity::link_t)
+        std::stack<std::pair<md_container*, const doc_entity*>> stack;
+        stack.emplace(&doc, nullptr);
+        while (!stack.empty())
         {
-            auto& link = static_cast<md_link&>(cur);
-            if (*link.get_destination() == '\0')
-                // empty link
-                links.push_back(&link);
-            else if (!only_empty
-                     && std::strncmp(link.get_destination(), link_prefix, sizeof(link_prefix) - 1)
-                            == 0)
-                // standardese link
-                links.push_back(&link);
-        }
-        else if (is_container(cur.get_entity_type()))
-        {
-            auto& container = static_cast<md_container&>(cur);
-            for (auto& entity : container)
-                get_standardese_links(links, entity);
+            auto cur = stack.top();
+            stack.pop();
+
+            for (auto& child : *cur.first)
+            {
+                if (child.get_entity_type() == md_entity::link_t)
+                {
+                    auto& link = static_cast<md_link&>(child);
+                    if (*link.get_destination() == '\0')
+                        // empty link
+                        f(cur.second, link);
+                    else if (std::strncmp(link.get_destination(), link_prefix,
+                                          sizeof(link_prefix) - 1)
+                             == 0)
+                        // standardese link
+                        f(cur.second, link);
+                }
+                else if (child.get_entity_type() == md_entity::comment_t)
+                {
+                    auto& comment = static_cast<md_comment&>(child);
+                    stack.emplace(&comment, comment.has_entity() ? &comment.get_entity() : nullptr);
+                }
+                else if (is_container(child.get_entity_type()))
+                {
+                    auto& container = static_cast<md_container&>(child);
+                    stack.emplace(&container, cur.second);
+                }
+            }
         }
     }
 
@@ -61,42 +77,34 @@ namespace
         return text.get_string();
     }
 
-    void resolve_urls(const std::shared_ptr<spdlog::logger>& logger, const linker& l,
-                      const index& i, md_document& document, const char* extension)
+    void resolve_urls(const std::shared_ptr<spdlog::logger>& logger, const index& i,
+                      md_document& document, const char* extension)
     {
-        std::vector<md_link*> links;
-        get_standardese_links(links, document);
-
-        for (auto link : links)
-        {
-            auto str = get_entity_name(*link);
+        for_each_entity_reference(document, [&](const doc_entity* context, md_link& link) {
+            auto str = get_entity_name(link);
             if (str.empty())
-                continue;
+                return;
 
-            auto destination = l.get_url(i, str, extension);
+            auto destination = i.get_linker().get_url(i, context, str, extension);
             if (destination.empty())
-            {
                 logger->warn("unable to resolve link to an entity named '{}'", str);
-                continue;
-            }
-            link->set_destination(destination.c_str());
-        }
+            else
+                link.set_destination(destination.c_str());
+        });
     }
 }
 
 void standardese::normalize_urls(md_document& document)
 {
-    std::vector<md_link*> links;
-    get_standardese_links(links, document, true);
+    for_each_entity_reference(document, [&](const doc_entity*, md_link& link) {
+        if (*link.get_destination() != '\0')
+            // already a standardese link
+            return;
 
-    for (auto link : links)
-    {
-        auto str = get_entity_name(*link);
-        if (str.empty())
-            continue;
-
-        link->set_destination(("standardese://" + str + '/').c_str());
-    }
+        auto str = get_entity_name(link);
+        if (!str.empty())
+            link.set_destination(("standardese://" + str + '/').c_str());
+    });
 }
 
 raw_document::raw_document(path fname, std::string text)
@@ -117,7 +125,7 @@ void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_docu
         output_extension = format_->extension();
 
     auto document = md_ptr<md_document>(static_cast<md_document*>(doc.clone().release()));
-    resolve_urls(logger, index_->get_linker(), *index_, *document, output_extension);
+    resolve_urls(logger, *index_, *document, output_extension);
 
     file_output output(prefix_ + document->get_output_name() + '.' + output_extension);
     format_->render(output, *document);
@@ -157,7 +165,7 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
             end = &document.text.back() + 1;
 
         std::string name(entity_name, end - entity_name);
-        auto        url = index_->get_linker().get_url(*index_, name, format_->extension());
+        auto url = index_->get_linker().get_url(*index_, nullptr, name, format_->extension());
         if (url.empty())
         {
             logger->warn("unable to resolve link to an entity named '{}'", name);
