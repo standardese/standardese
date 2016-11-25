@@ -113,7 +113,7 @@ namespace
     const doc_entity* lookup_name(const index& idx, const doc_entity* context,
                                   const std::string& unique_name)
     {
-        if (unique_name.front() == '.' && context)
+        if ((unique_name.front() == '?' || unique_name.front() == '*') && context)
         {
             for (auto cur = context; cur; cur = cur->has_parent() ? &cur->get_parent() : nullptr)
             {
