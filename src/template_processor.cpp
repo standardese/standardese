@@ -12,6 +12,7 @@
 
 #include <spdlog/fmt/fmt.h>
 
+#include <standardese/generator.hpp>
 #include <standardese/index.hpp>
 #include <standardese/output.hpp>
 #include <standardese/parser.hpp>
@@ -40,6 +41,7 @@ template_config::template_config() : delimiter_begin_("{{"), delimiter_end_("}}"
     set_operation(template_if_operation::has_children, "has_children");
     set_operation(template_if_operation::inline_entity, "inline_entity");
     set_operation(template_if_operation::member_group, "member_group");
+    set_operation(template_if_operation::is_index, "is_index");
 }
 
 void template_config::set_command(template_command cmd, std::string str)
@@ -169,19 +171,11 @@ namespace
 
         const doc_entity* try_lookup_var(const std::string& name) const STANDARDESE_NOEXCEPT
         {
-            for (auto iter = stack_.rbegin(); iter != stack_.rend(); ++iter)
-            {
-                if (auto loop = iter->get_for_loop())
-                {
-                    if (loop->cur == loop->end)
-                        // inside a loop that is skipped
-                        return nullptr;
-                    else if (loop->loop_var == name)
-                        return &*loop->cur;
-                }
-            }
-
-            if (name == "$file")
+            auto skip   = false;
+            auto result = find_variable(name, skip);
+            if (skip || result)
+                return result;
+            else if (name == "$file")
                 return file_;
 
             return idx_->try_lookup(name);
@@ -189,7 +183,14 @@ namespace
 
         const doc_entity* lookup_var(const std::string& name) const STANDARDESE_NOEXCEPT
         {
-            auto entity = try_lookup_var(name);
+            auto skip   = false;
+            auto result = find_variable(name, skip);
+            if (skip || result)
+                return result;
+            else if (file_ && name == "$file")
+                return file_;
+
+            auto entity = idx_->try_lookup(name);
             if (!entity)
                 parser_->get_logger()->warn("unable to find entity named '{}'", name);
             return entity;
@@ -248,6 +249,26 @@ namespace
             {
             }
         };
+
+        const doc_entity* find_variable(const std::string& name, bool& skip) const
+        {
+            for (auto iter = stack_.rbegin(); iter != stack_.rend(); ++iter)
+            {
+                if (auto loop = iter->get_for_loop())
+                {
+                    if (loop->cur == loop->end)
+                    {
+                        // inside a loop that is skipped
+                        skip = true;
+                        return nullptr;
+                    }
+                    else if (loop->loop_var == name)
+                        return &*loop->cur;
+                }
+            }
+
+            return nullptr;
+        }
 
         void end_loop(const char*& ptr, for_loop* loop)
         {
@@ -456,16 +477,19 @@ namespace
         const doc_entity*  file_;
     };
 
-    md_ptr<md_document> get_documentation(const stack& vars, const index& i,
-                                          const std::string& name)
+    md_ptr<md_document> get_documentation(const stack& vars, const documentation* doc,
+                                          const index& i, const std::string& name)
     {
+        if (doc && doc->document && name == "$file")
+            return doc->document->clone();
+
         auto entity = vars.lookup_var(name);
         if (!entity)
             return nullptr;
 
-        auto doc = md_document::make("");
-        entity->generate_documentation(vars.get_parser(), i, *doc);
-        return doc;
+        auto document = md_document::make("");
+        entity->generate_documentation(vars.get_parser(), i, *document);
+        return document;
     }
 
     md_ptr<md_document> get_synopsis(const stack& vars, const std::string& name)
@@ -565,6 +589,8 @@ namespace
                    && is_inline_cpp_entity(entity->get_cpp_entity_type());
         case template_if_operation::member_group:
             return entity->get_entity_type() == doc_entity::member_group_t;
+        case template_if_operation::is_index:
+            return entity->get_entity_type() == doc_entity::index_t;
         case template_if_operation::invalid:
             s.get_parser().get_logger()->warn("unknown if operation '{}'", op);
             break;
@@ -577,15 +603,15 @@ namespace
 raw_document standardese::process_template(const parser& p, const index& i,
                                            const template_file& input,
                                            output_format_base*  default_format,
-                                           const doc_entity*    file)
+                                           const documentation* doc_file)
 {
-    stack s(p, i, file);
+    stack s(p, i, doc_file->file.get());
     auto handle = [&](template_command cur_command, const char* ptr, const char* last,
                       const char*& end) {
         switch (cur_command)
         {
         case template_command::generate_doc:
-            if (auto doc = get_documentation(s, i, read_arg(ptr, last)))
+            if (auto doc = get_documentation(s, doc_file, i, read_arg(ptr, last)))
                 s.get_buffer() +=
                     write_document(p, std::move(doc), default_format, read_arg(ptr, last));
             break;

@@ -68,9 +68,9 @@ namespace standardese
 
         static md_ptr<md_document> make(std::string name);
 
-        md_entity_ptr clone() const
+        md_ptr<md_document> clone() const
         {
-            return do_clone(nullptr);
+            return md_ptr<md_document>(static_cast<md_document*>(do_clone(nullptr).release()));
         }
 
         const std::string& get_output_name() const STANDARDESE_NOEXCEPT

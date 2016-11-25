@@ -13,7 +13,6 @@ namespace standardese
 {
     class parser;
     class index;
-    class doc_entity;
 
     enum class template_command
     {
@@ -43,6 +42,7 @@ namespace standardese
         has_children,
         inline_entity,
         member_group,
+        is_index,
 
         count,
         invalid = count
@@ -100,10 +100,11 @@ namespace standardese
 
     struct raw_document;
     class output_format_base;
+    class documentation;
 
     raw_document process_template(const parser& p, const index& i, const template_file& input,
-                                  output_format_base* default_format = nullptr,
-                                  const doc_entity*   file           = nullptr);
+                                  output_format_base*  default_format = nullptr,
+                                  const documentation* doc_file       = nullptr);
 } // namespace standardese
 
 #endif // STANDARDESE_TEMPLATE_PROCESSOR_HPP_INCLUDED

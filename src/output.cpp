@@ -124,14 +124,14 @@ void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_docu
 }
 
 void output::render_template(const std::shared_ptr<spdlog::logger>& logger,
-                             const template_file& templ, const doc_file& file,
-                             const std::string& output_name, const char* output_extension)
+                             const template_file& templ, const documentation& doc,
+                             const char* output_extension)
 {
     if (!output_extension)
         output_extension = format_->extension();
 
-    auto document           = process_template(*parser_, *index_, templ, format_, &file);
-    document.file_name      = output_name;
+    auto document           = process_template(*parser_, *index_, templ, format_, &doc);
+    document.file_name      = doc.document->get_output_name();
     document.file_extension = output_extension;
 
     render_raw(logger, document);

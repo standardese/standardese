@@ -131,10 +131,9 @@ void write_output_files(const standardese_tool::configuration& config,
                                        return doc.document != nullptr;
                                    },
                                    [&](const standardese::documentation& doc) {
-                                       if (doc.file && default_template)
+                                       if (default_template)
                                            out.render_template(config.parser->get_logger(),
-                                                               *default_template, *doc.file,
-                                                               doc.document->get_output_name(),
+                                                               *default_template, doc,
                                                                config.link_extension());
                                        else
                                            out.render(config.parser->get_logger(), *doc.document,
@@ -297,7 +296,7 @@ int main(int argc, char* argv[])
             auto generate = [&](const fs::path& p, const fs::path& relative) {
                 log->info("Generating documentation for {}...", p);
 
-                standardese::documentation result(nullptr);
+                standardese::documentation result(nullptr, nullptr);
                 try
                 {
                     auto output_name = standardese_tool::get_output_name(relative);
@@ -323,9 +322,9 @@ int main(int argc, char* argv[])
 
             // generate indices
             log->info("Generating indices...");
-            documentations.push_back(documentation(generate_file_index(index)));
-            documentations.push_back(documentation(generate_entity_index(index)));
-            documentations.push_back(documentation(generate_module_index(parser, index)));
+            documentations.push_back(generate_file_index(index));
+            documentations.push_back(generate_entity_index(index));
+            documentations.push_back(generate_module_index(parser, index));
 
             // process templates
             auto raw_documents =

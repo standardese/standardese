@@ -122,7 +122,7 @@ namespace standardese
     class md_document;
     class index;
     class linker;
-    class doc_file;
+    class documentation;
 
     using path = std::string;
 
@@ -149,9 +149,8 @@ namespace standardese
                     const char* output_extension = nullptr);
 
         void render_template(const std::shared_ptr<spdlog::logger>& logger,
-                             const template_file& templ, const doc_file& file,
-                             const std::string& output_name,
-                             const char*        output_extension = nullptr);
+                             const template_file& templ, const documentation& doc,
+                             const char* output_extension);
 
         void render_raw(const std::shared_ptr<spdlog::logger>& logger,
                         const raw_document&                    document);
