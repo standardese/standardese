@@ -146,6 +146,39 @@ void output::render_template(const std::shared_ptr<spdlog::logger>& logger,
     render_raw(logger, document);
 }
 
+namespace
+{
+    unsigned get_hex_digit(char c)
+    {
+        static auto lookup = "0123456789ABCDEF";
+
+        auto ptr = std::strchr(lookup, std::toupper(c));
+        assert(ptr);
+        return unsigned(ptr - lookup);
+    }
+
+    std::string unescape(const char* begin, const char* end)
+    {
+        std::string result;
+        for (auto ptr = begin; ptr != end; ++ptr)
+        {
+            if (*ptr == '\\')
+                ; // ignore
+            else if (*ptr == '%')
+            {
+                // on the fly hexadecimal parsing
+                auto number = get_hex_digit(ptr[1]) * 16 + get_hex_digit(ptr[2]);
+                result += char(number);
+
+                ptr += 2; // ignore next 2 + 1 (++ptr at the end of the loop)
+            }
+            else
+                result += *ptr;
+        }
+        return result;
+    }
+}
+
 void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw_document& document)
 {
     auto extension =
@@ -165,8 +198,8 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         if (end == nullptr)
             end = &document.text.back() + 1;
 
-        std::string name(entity_name, end - entity_name);
-        auto url = index_->get_linker().get_url(*index_, nullptr, name, format_->extension());
+        auto name = unescape(entity_name, end);
+        auto url  = index_->get_linker().get_url(*index_, nullptr, name, format_->extension());
         if (url.empty())
         {
             logger->warn("unable to resolve link to an entity named '{}'", name);
