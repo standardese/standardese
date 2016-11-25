@@ -527,6 +527,7 @@ namespace
         }
 
         string_output output;
+        normalize_urls(*doc);
         format->render(output, *doc);
 
         return output.get_string();

@@ -20,7 +20,8 @@ namespace
 
     const char link_prefix[] = "standardese://";
 
-    void get_standardese_links(std::vector<md_link*>& links, md_entity& cur)
+    void get_standardese_links(std::vector<md_link*>& links, md_entity& cur,
+                               bool only_empty = false)
     {
         if (cur.get_entity_type() == md_entity::link_t)
         {
@@ -28,8 +29,9 @@ namespace
             if (*link.get_destination() == '\0')
                 // empty link
                 links.push_back(&link);
-            else if (std::strncmp(link.get_destination(), link_prefix, sizeof(link_prefix) - 1)
-                     == 0)
+            else if (!only_empty
+                     && std::strncmp(link.get_destination(), link_prefix, sizeof(link_prefix) - 1)
+                            == 0)
                 // standardese link
                 links.push_back(&link);
         }
@@ -79,6 +81,21 @@ namespace
             }
             link->set_destination(destination.c_str());
         }
+    }
+}
+
+void standardese::normalize_urls(md_document& document)
+{
+    std::vector<md_link*> links;
+    get_standardese_links(links, document, true);
+
+    for (auto link : links)
+    {
+        auto str = get_entity_name(*link);
+        if (str.empty())
+            continue;
+
+        link->set_destination(("standardese://" + str + '/').c_str());
     }
 }
 
