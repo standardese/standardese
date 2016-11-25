@@ -42,7 +42,7 @@ namespace standardese
         has_children,
         inline_entity,
         member_group,
-        is_index,
+        index,
 
         count,
         invalid = count

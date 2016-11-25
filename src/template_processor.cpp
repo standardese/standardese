@@ -41,7 +41,7 @@ template_config::template_config() : delimiter_begin_("{{"), delimiter_end_("}}"
     set_operation(template_if_operation::has_children, "has_children");
     set_operation(template_if_operation::inline_entity, "inline_entity");
     set_operation(template_if_operation::member_group, "member_group");
-    set_operation(template_if_operation::is_index, "is_index");
+    set_operation(template_if_operation::index, "index");
 }
 
 void template_config::set_command(template_command cmd, std::string str)
@@ -589,7 +589,7 @@ namespace
                    && is_inline_cpp_entity(entity->get_cpp_entity_type());
         case template_if_operation::member_group:
             return entity->get_entity_type() == doc_entity::member_group_t;
-        case template_if_operation::is_index:
+        case template_if_operation::index:
             return entity->get_entity_type() == doc_entity::index_t;
         case template_if_operation::invalid:
             s.get_parser().get_logger()->warn("unknown if operation '{}'", op);
