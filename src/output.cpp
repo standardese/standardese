@@ -22,7 +22,7 @@ namespace
     const char link_prefix[] = "standardese://";
 
     template <typename Func>
-    void for_each_entity_reference(md_document& doc, Func f)
+    void for_each_entity_reference(md_container& doc, Func f)
     {
         std::stack<std::pair<md_container*, const doc_entity*>> stack;
         stack.emplace(&doc, nullptr);
@@ -94,12 +94,16 @@ namespace
     }
 }
 
-void standardese::normalize_urls(const index& idx, md_document& document)
+void standardese::normalize_urls(const index& idx, md_container& document,
+                                 const doc_entity* default_context)
 {
     for_each_entity_reference(document, [&](const doc_entity* context, md_link& link) {
         auto str = get_entity_name(link);
         if (str.empty())
             return;
+
+        if (!context)
+            context = default_context;
 
         auto entity = context ? idx.try_name_lookup(*context, str) : idx.try_lookup(str);
         if (entity)

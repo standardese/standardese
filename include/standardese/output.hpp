@@ -123,10 +123,12 @@ namespace standardese
     class index;
     class linker;
     struct documentation;
+    class doc_entity;
 
     using path = std::string;
 
-    void normalize_urls(const index& idx, md_document& doc);
+    void normalize_urls(const index& idx, md_container& doc,
+                        const doc_entity* default_context = nullptr);
 
     struct raw_document
     {
