@@ -42,7 +42,7 @@ namespace standardese
                 doc.add_entity(child.clone(doc));
         }
 
-        void do_generate_synopsis(const parser&, code_block_writer&, bool) const
+        void do_generate_synopsis(const parser&, code_block_writer&, bool) const override
         {
         }
 

@@ -109,14 +109,14 @@ namespace
     {
         auto last_match = input;
         // while we find begin delimiter starting at last_match
-        while (auto match = std::strstr(last_match, config.delimiter_begin().c_str()))
+        while (const char* match = std::strstr(last_match, config.delimiter_begin().c_str()))
         {
             // append characters between matches
             skip(last_match, match);
 
             // find end delimiter
-            auto start = match + config.delimiter_begin().size();
-            auto last  = std::strstr(start, config.delimiter_end().c_str());
+            auto        start = match + config.delimiter_begin().size();
+            const char* last  = std::strstr(start, config.delimiter_end().c_str());
             if (!last)
                 break;
             auto end = last + config.delimiter_end().size();
@@ -465,7 +465,14 @@ namespace
                 return &storage_;
             }
 
-            using storage = typename std::aligned_union<1, for_loop>::type;
+            union storage_helper {
+                for_loop    l;
+                if_clause   c;
+                else_clause e;
+            };
+
+            using storage = typename std::aligned_storage<sizeof(storage_helper),
+                                                          alignof(storage_helper)>::type;
             storage    storage_;
             state_type type_;
         };
@@ -605,7 +612,7 @@ raw_document standardese::process_template(const parser& p, const index& i,
                                            output_format_base*  default_format,
                                            const documentation* doc_file)
 {
-    stack s(p, i, doc_file->file.get());
+    stack s(p, i, doc_file ? doc_file->file.get() : nullptr);
     auto handle = [&](template_command cur_command, const char* ptr, const char* last,
                       const char*& end) {
         switch (cur_command)

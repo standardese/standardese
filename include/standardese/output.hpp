@@ -122,7 +122,7 @@ namespace standardese
     class md_document;
     class index;
     class linker;
-    class documentation;
+    struct documentation;
 
     using path = std::string;
 
@@ -133,6 +133,8 @@ namespace standardese
         path        file_name;
         path        file_extension;
         std::string text;
+
+        raw_document() = default;
 
         raw_document(path file_name, std::string text);
     };

@@ -100,7 +100,7 @@ namespace standardese
 
     struct raw_document;
     class output_format_base;
-    class documentation;
+    struct documentation;
 
     raw_document process_template(const parser& p, const index& i, const template_file& input,
                                   output_format_base*  default_format = nullptr,

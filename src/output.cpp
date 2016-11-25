@@ -151,8 +151,8 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         output.write_str(last_match, match - last_match);
 
         // write correct URL
-        auto entity_name = match + sizeof(link_prefix) - 1;
-        auto end         = std::strchr(entity_name, '/');
+        auto        entity_name = match + sizeof(link_prefix) - 1;
+        const char* end         = std::strchr(entity_name, '/');
         if (end == nullptr)
             end = &document.text.back() + 1;
 
