@@ -517,19 +517,25 @@ namespace
     }
 
     std::string write_document(const parser& p, md_ptr<md_document> doc,
-                               const std::string& format_name)
+                               output_format_base* default_format, const std::string& format_name)
     {
-        auto format = make_output_format(format_name);
-        if (!format)
+        string_output output;
+        normalize_urls(*doc);
+
+        std::unique_ptr<output_format_base> format;
+        if (format_name != "$format")
+        {
+            format         = make_output_format(format_name);
+            default_format = format.get();
+        }
+
+        if (!default_format)
         {
             p.get_logger()->warn("invalid format name '{}'", format_name);
             return "";
         }
 
-        string_output output;
-        normalize_urls(*doc);
-        format->render(output, *doc);
-
+        default_format->render(output, *doc);
         return output.get_string();
     }
 
@@ -569,7 +575,9 @@ namespace
 }
 
 raw_document standardese::process_template(const parser& p, const index& i,
-                                           const template_file& input, const doc_entity* file)
+                                           const template_file& input,
+                                           output_format_base*  default_format,
+                                           const doc_entity*    file)
 {
     stack s(p, i, file);
     auto handle = [&](template_command cur_command, const char* ptr, const char* last,
@@ -578,19 +586,23 @@ raw_document standardese::process_template(const parser& p, const index& i,
         {
         case template_command::generate_doc:
             if (auto doc = get_documentation(s, i, read_arg(ptr, last)))
-                s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
+                s.get_buffer() +=
+                    write_document(p, std::move(doc), default_format, read_arg(ptr, last));
             break;
         case template_command::generate_synopsis:
             if (auto doc = get_synopsis(s, read_arg(ptr, last)))
-                s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
+                s.get_buffer() +=
+                    write_document(p, std::move(doc), default_format, read_arg(ptr, last));
             break;
         case template_command::generate_doc_text:
             if (auto doc = get_documentation_text(s, read_arg(ptr, last)))
-                s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
+                s.get_buffer() +=
+                    write_document(p, std::move(doc), default_format, read_arg(ptr, last));
             break;
         case template_command::generate_anchor:
             if (auto doc = get_anchor(s, i.get_linker(), input.output_name, read_arg(ptr, last)))
-                s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
+                s.get_buffer() +=
+                    write_document(p, std::move(doc), default_format, read_arg(ptr, last));
             break;
 
         case template_command::name:

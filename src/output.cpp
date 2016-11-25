@@ -130,7 +130,7 @@ void output::render_template(const std::shared_ptr<spdlog::logger>& logger,
     if (!output_extension)
         output_extension = format_->extension();
 
-    auto document           = process_template(*parser_, *index_, templ, &file);
+    auto document           = process_template(*parser_, *index_, templ, format_, &file);
     document.file_name      = output_name;
     document.file_extension = output_extension;
 

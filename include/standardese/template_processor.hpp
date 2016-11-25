@@ -99,9 +99,11 @@ namespace standardese
     };
 
     struct raw_document;
+    class output_format_base;
 
     raw_document process_template(const parser& p, const index& i, const template_file& input,
-                                  const doc_entity* file = nullptr);
+                                  output_format_base* default_format = nullptr,
+                                  const doc_entity*   file           = nullptr);
 } // namespace standardese
 
 #endif // STANDARDESE_TEMPLATE_PROCESSOR_HPP_INCLUDED
