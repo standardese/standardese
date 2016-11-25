@@ -106,6 +106,7 @@ std::vector<standardese::documentation> generate_documentation(
 
 void write_output_files(const standardese_tool::configuration& config,
                         const standardese::index& idx, standardese_tool::thread_pool& pool,
+                        const standardese::template_file*              default_template,
                         const std::vector<standardese::documentation>& documentations,
                         const std::vector<standardese::raw_document>&  raw_documents)
 {
@@ -124,14 +125,20 @@ void write_output_files(const standardese_tool::configuration& config,
             prefix += '/'; // hope that every platform handles it
         }
 
-        output out(idx, prefix, *format);
+        output out(*config.parser, idx, prefix, *format);
         standardese_tool::for_each(pool, documentations,
                                    [](const standardese::documentation& doc) {
                                        return doc.document != nullptr;
                                    },
                                    [&](const standardese::documentation& doc) {
-                                       out.render(config.parser->get_logger(), *doc.document,
-                                                  config.link_extension());
+                                       if (doc.file && default_template)
+                                           out.render_template(config.parser->get_logger(),
+                                                               *default_template, *doc.file,
+                                                               doc.document->get_output_name(),
+                                                               config.link_extension());
+                                       else
+                                           out.render(config.parser->get_logger(), *doc.document,
+                                                      config.link_extension());
                                    });
         standardese_tool::for_each(pool, raw_documents,
                                    [](const standardese::raw_document&) { return true; },
@@ -217,6 +224,8 @@ int main(int argc, char* argv[])
             ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""),
              "syntax is prefix=url, supports linking to a different URL for entities starting with prefix")
 
+            ("template.default_template", po::value<std::string>()->default_value("", ""),
+             "set the default template for all output")
             ("template.delimiter_begin", po::value<std::string>()->default_value("{{"),
              "set the template delimiter begin string")
             ("template.delimiter_end", po::value<std::string>()->default_value("}}"),
@@ -323,11 +332,27 @@ int main(int argc, char* argv[])
                 standardese_tool::for_each(pool, templates,
                                            [](const template_file&) { return true; },
                                            [&](const template_file& f) {
+                                               log->info("Processing template file '{}'...",
+                                                         f.output_name);
                                                return process_template(parser, index, f);
                                            });
 
             // write output
-            write_output_files(config, index, pool, documentations, raw_documents);
+            auto templ_path = map.at("template.default_template").as<std::string>();
+            if (templ_path.empty())
+                write_output_files(config, index, pool, nullptr, documentations, raw_documents);
+            else
+            {
+                std::ifstream file(templ_path);
+                if (!file.is_open())
+                    log->critical("unable to open template file '{}'", templ_path);
+                else
+                {
+                    template_file templ("", std::string(std::istreambuf_iterator<char>(file),
+                                                        std::istreambuf_iterator<char>{}));
+                    write_output_files(config, index, pool, &templ, documentations, raw_documents);
+                }
+            }
         }
         catch (std::exception& ex)
         {

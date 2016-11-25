@@ -146,7 +146,10 @@ namespace
     class stack
     {
     public:
-        stack(const parser& p, const index& idx) STANDARDESE_NOEXCEPT : parser_(&p), idx_(&idx)
+        stack(const parser& p, const index& idx, const doc_entity* file) STANDARDESE_NOEXCEPT
+            : parser_(&p),
+              idx_(&idx),
+              file_(file)
         {
         }
 
@@ -177,6 +180,9 @@ namespace
                         return &*loop->cur;
                 }
             }
+
+            if (name == "$file")
+                return file_;
 
             return idx_->try_lookup(name);
         }
@@ -447,6 +453,7 @@ namespace
         std::string        buffer_;
         const parser*      parser_;
         const index*       idx_;
+        const doc_entity*  file_;
     };
 
     md_ptr<md_document> get_documentation(const stack& vars, const index& i,
@@ -561,9 +568,9 @@ namespace
 }
 
 raw_document standardese::process_template(const parser& p, const index& i,
-                                           const template_file& input)
+                                           const template_file& input, const doc_entity* file)
 {
-    stack s(p, i);
+    stack s(p, i, file);
     auto handle = [&](template_command cur_command, const char* ptr, const char* last,
                       const char*& end) {
         switch (cur_command)
