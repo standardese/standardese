@@ -97,10 +97,6 @@ namespace
 void standardese::normalize_urls(const index& idx, md_document& document)
 {
     for_each_entity_reference(document, [&](const doc_entity* context, md_link& link) {
-        if (*link.get_destination() != '\0')
-            // already a standardese link
-            return;
-
         auto str = get_entity_name(link);
         if (str.empty())
             return;
@@ -174,7 +170,8 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         if (url.empty())
         {
             logger->warn("unable to resolve link to an entity named '{}'", name);
-            last_match = entity_name + 1;
+            output.write_str(match, entity_name - match);
+            last_match = entity_name;
         }
         else
         {
