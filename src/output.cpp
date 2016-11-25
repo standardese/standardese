@@ -94,16 +94,21 @@ namespace
     }
 }
 
-void standardese::normalize_urls(md_document& document)
+void standardese::normalize_urls(const index& idx, md_document& document)
 {
-    for_each_entity_reference(document, [&](const doc_entity*, md_link& link) {
+    for_each_entity_reference(document, [&](const doc_entity* context, md_link& link) {
         if (*link.get_destination() != '\0')
             // already a standardese link
             return;
 
         auto str = get_entity_name(link);
-        if (!str.empty())
-            link.set_destination(("standardese://" + str + '/').c_str());
+        if (str.empty())
+            return;
+
+        auto entity = context ? idx.try_name_lookup(*context, str) : idx.try_lookup(str);
+        if (entity)
+            link.set_destination(
+                (std::string("standardese://") + entity->get_unique_name().c_str() + '/').c_str());
     });
 }
 

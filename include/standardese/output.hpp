@@ -126,7 +126,7 @@ namespace standardese
 
     using path = std::string;
 
-    void normalize_urls(md_document& doc);
+    void normalize_urls(const index& idx, md_document& doc);
 
     struct raw_document
     {

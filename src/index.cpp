@@ -101,6 +101,32 @@ const doc_entity& index::lookup(const std::string& unique_name) const
     return *entities_.at(detail::get_id(unique_name)).second;
 }
 
+const doc_entity* index::try_name_lookup(const doc_entity&  context,
+                                         const std::string& unique_name) const
+{
+    if (unique_name.front() == '?' || unique_name.front() == '*')
+    {
+        for (auto cur = &context; cur; cur = cur->has_parent() ? &cur->get_parent() : nullptr)
+        {
+            auto name =
+                std::string(cur->get_unique_name().c_str()) + "::" + (unique_name.c_str() + 1);
+            if (auto entity = try_lookup(name))
+                return entity;
+        }
+    }
+
+    return try_lookup(unique_name);
+}
+
+const doc_entity& index::name_lookup(const doc_entity&  context,
+                                     const std::string& unique_name) const
+{
+    auto result = try_name_lookup(context, unique_name);
+    if (!result)
+        throw std::invalid_argument(fmt::format("unable to find entity named '{}'", unique_name));
+    return *result;
+}
+
 void index::namespace_member_impl(ns_member_cb cb, void* data)
 {
     for (auto& pair : entities_)
