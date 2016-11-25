@@ -259,6 +259,45 @@ Because it is sometimes long and ugly, you can override the unique name via the 
 You can also use a short `unique-name` if there aren't multiple entities resolved to the same short name.
 The short name is the `unique-name` but without a signature, i.e. for `foo<T>::func<U>(int) const`, the short name is `foo<T>::func<U>`.
 
+##### Name lookup
+
+If you prefix a unique name with `*` or `?`, this will do a name lookup, looking for the entity.
+This only works inside a comment associated with an entity, not in template files etc.
+
+It does a similar search to the actual name lookup in C++:
+It starts at the associated entity and appends its scope to the partial unique name given,
+going to the next higher entity if no matching entity can be found, etc.
+
+For example:
+
+```cpp
+/// a.
+struct a {};
+
+namespace ns
+{
+    /// ns::a.
+    struct a {};
+    
+    /// [This will link to ::a, no lookup here](standardese://a/).
+    /// [This will link to ns::a](standardese://*a/).
+    void foo();
+    
+    /// b
+    template <typename T>
+    struct b
+    {
+        /// c.      
+        void c();
+        
+        /// [This will link to ns::b<T>::c()](standardese://*c/).
+        void foo();
+    };
+}
+```
+
+##### External links
+
 You can also link to external documentations via the tool option `--comment.external_doc prefix=url`.
 All `unique-name`s starting with `prefix` will be linked to the `url`.
 If the `url` contains two dollar signs `$$`, they will be replaced by the `unique-name`.
