@@ -245,6 +245,15 @@ cpp_name doc_entity::get_unique_name() const
                do_get_unique_name();
 }
 
+doc_entity::doc_entity(doc_entity::type t, const doc_entity* parent,
+                       const comment* c) STANDARDESE_NOEXCEPT : parent_(parent),
+                                                                comment_(c),
+                                                                t_(t)
+{
+    if (comment_)
+        comment_->get_content().set_entity(*this);
+}
+
 bool standardese::is_inline_cpp_entity(cpp_entity::type t) STANDARDESE_NOEXCEPT
 {
     return t == cpp_entity::base_class_t || is_parameter(t) || is_member_variable(t)
@@ -994,7 +1003,7 @@ namespace
 
     doc_entity_ptr handle_child_impl(const parser& p, const index& i, const doc_entity& parent,
                                      const cpp_entity& e, cpp_access_specifier_t cur_access,
-                                     std::string output_file)
+                                     const std::string& output_file)
     {
         auto& blacklist       = p.get_output_config().get_blacklist();
         auto  extract_private = blacklist.is_set(entity_blacklist::extract_private);
@@ -1015,7 +1024,7 @@ namespace
         else if (is_container_entity(e))
         {
             auto container = detail::make_doc_ptr<doc_container_cpp_entity>(&parent, e, comment);
-            handle_children(p, i, std::move(output_file), *container);
+            handle_children(p, i, output_file, *container);
             return std::move(container);
         }
         else
@@ -1060,12 +1069,12 @@ namespace
 
     void handle_child(const parser& p, const index& i, doc_container_cpp_entity& parent,
                       const cpp_entity& e, cpp_access_specifier_t cur_access,
-                      std::string output_file)
+                      const std::string& output_file)
     {
         auto entity = handle_child_impl(p, i, parent, e, cur_access, output_file);
         if (!entity)
             return;
-        i.register_entity(*entity, std::move(output_file));
+        i.register_entity(*entity, output_file);
         if (entity->has_comment() && entity->get_comment().in_member_group())
             handle_group(p, parent, std::move(entity));
         else

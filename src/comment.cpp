@@ -48,7 +48,8 @@ md_entity& md_comment::add_entity(md_entity_ptr ptr)
 
 md_entity_ptr md_comment::do_clone(const md_entity*) const
 {
-    auto result = md_comment::make();
+    auto result     = md_comment::make();
+    result->entity_ = entity_;
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
     return std::move(result);

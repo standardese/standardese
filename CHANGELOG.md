@@ -7,6 +7,7 @@
 * Add `module` command as a way to categorize entities
 * Add template language
 * Allow `unique_name` on files to override the output name
+* Allow name lookup on entity links (when link starts with `*` or `?`)
 * *Breaking:* Change hard line break character to a forward slash
 * *Breaking:* Require `entity` and `file` command to be first in a comment
 * *Breaking:* Remove template parameters for function template unique name

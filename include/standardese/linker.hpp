@@ -29,8 +29,8 @@ namespace standardese
 
         void change_output_file(const doc_entity& e, std::string output_file) const;
 
-        std::string get_url(const index& idx, const std::string& unique_name,
-                            const char* extension) const;
+        std::string get_url(const index& idx, const doc_entity* context,
+                            const std::string& unique_name, const char* extension) const;
 
         std::string get_url(const doc_entity& e, const char* extension) const;
 

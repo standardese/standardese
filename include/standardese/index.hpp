@@ -36,6 +36,12 @@ namespace standardese
 
         const doc_entity& lookup(const std::string& unique_name) const;
 
+        const doc_entity* try_name_lookup(const doc_entity&  context,
+                                          const std::string& unique_name) const;
+
+        const doc_entity& name_lookup(const doc_entity&  context,
+                                      const std::string& unique_name) const;
+
         // void(const doc_entity&)
         template <typename Func>
         void for_each_file(Func f)

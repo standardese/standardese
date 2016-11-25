@@ -131,6 +131,9 @@ void write_output_files(const standardese_tool::configuration& config,
                                        return doc.document != nullptr;
                                    },
                                    [&](const standardese::documentation& doc) {
+                                       config.parser->get_logger()
+                                           ->debug("writing documentation file '{}'",
+                                                   doc.document->get_output_name());
                                        if (default_template)
                                            out.render_template(config.parser->get_logger(),
                                                                *default_template, doc,
@@ -142,6 +145,8 @@ void write_output_files(const standardese_tool::configuration& config,
         standardese_tool::for_each(pool, raw_documents,
                                    [](const standardese::raw_document&) { return true; },
                                    [&](const standardese::raw_document& doc) {
+                                       config.parser->get_logger()
+                                           ->debug("writing template file '{}'", doc.file_name);
                                        out.render_raw(config.parser->get_logger(), doc);
                                    });
     }

@@ -14,20 +14,25 @@ using namespace standardese;
 
 namespace
 {
-    bool is_valid_url(char c)
+    bool is_valid_fragment(char c)
     {
-        return std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~';
+        if (std::isalnum(c))
+            return c;
+        static auto allowed = "!$&'()*+,;=-._~:@/?";
+        return std::strchr(allowed, c) != nullptr;
     }
 
-    std::string url_encode(const char* url)
+    std::string fragment_encode(const char* url)
     {
         std::string result;
 
         while (*url)
         {
             auto c = *url++;
-            if (is_valid_url(c))
+            if (is_valid_fragment(c))
                 result += c;
+            else if (c == '<' || c == '>')
+                result += '-';
             else
             {
                 // escape character
@@ -51,7 +56,7 @@ namespace
         {
             if (*iter == '$' && iter != std::prev(url.end()) && *++iter == '$')
                 // sequence of two dollar signs
-                result += url_encode(unique_name);
+                result += fragment_encode(unique_name);
             else
                 result += *iter;
         }
@@ -101,10 +106,11 @@ void linker::change_output_file(const doc_entity& e, std::string output_file) co
     locations_.at(&e).set_output_file(std::move(output_file));
 }
 
-std::string linker::get_url(const index& idx, const std::string& unique_name,
-                            const char* extension) const
+std::string linker::get_url(const index& idx, const doc_entity* context,
+                            const std::string& unique_name, const char* extension) const
 {
-    auto entity = idx.try_lookup(unique_name);
+    auto entity =
+        context ? idx.try_name_lookup(*context, unique_name) : idx.try_lookup(unique_name);
     if (entity)
         return get_url(*entity, extension);
 
@@ -144,7 +150,7 @@ linker::location::location(const doc_entity& e, std::string output_file)
 }
 
 linker::location::location(const char* unique_name, std::string output_file)
-: id_(url_encode(unique_name))
+: id_(fragment_encode(unique_name))
 {
     set_output_file(std::move(output_file));
 }

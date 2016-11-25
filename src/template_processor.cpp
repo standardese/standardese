@@ -547,11 +547,11 @@ namespace
         return doc;
     }
 
-    std::string write_document(const parser& p, md_ptr<md_document> doc,
+    std::string write_document(const parser& p, const index& idx, md_ptr<md_document> doc,
                                output_format_base* default_format, const std::string& format_name)
     {
         string_output output;
-        normalize_urls(*doc);
+        normalize_urls(idx, *doc);
 
         std::unique_ptr<output_format_base> format;
         if (format_name != "$format")
@@ -620,22 +620,22 @@ raw_document standardese::process_template(const parser& p, const index& i,
         case template_command::generate_doc:
             if (auto doc = get_documentation(s, doc_file, i, read_arg(ptr, last)))
                 s.get_buffer() +=
-                    write_document(p, std::move(doc), default_format, read_arg(ptr, last));
+                    write_document(p, i, std::move(doc), default_format, read_arg(ptr, last));
             break;
         case template_command::generate_synopsis:
             if (auto doc = get_synopsis(s, read_arg(ptr, last)))
                 s.get_buffer() +=
-                    write_document(p, std::move(doc), default_format, read_arg(ptr, last));
+                    write_document(p, i, std::move(doc), default_format, read_arg(ptr, last));
             break;
         case template_command::generate_doc_text:
             if (auto doc = get_documentation_text(s, read_arg(ptr, last)))
                 s.get_buffer() +=
-                    write_document(p, std::move(doc), default_format, read_arg(ptr, last));
+                    write_document(p, i, std::move(doc), default_format, read_arg(ptr, last));
             break;
         case template_command::generate_anchor:
             if (auto doc = get_anchor(s, i.get_linker(), input.output_name, read_arg(ptr, last)))
                 s.get_buffer() +=
-                    write_document(p, std::move(doc), default_format, read_arg(ptr, last));
+                    write_document(p, i, std::move(doc), default_format, read_arg(ptr, last));
             break;
 
         case template_command::name:
