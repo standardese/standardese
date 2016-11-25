@@ -106,6 +106,13 @@ const doc_entity* index::try_name_lookup(const doc_entity&  context,
 {
     if (unique_name.front() == '?' || unique_name.front() == '*')
     {
+        // first try parameter/base
+        auto name =
+            std::string(context.get_unique_name().c_str()) + "." + (unique_name.c_str() + 1);
+        if (auto entity = try_lookup(name))
+            return entity;
+
+        // then look for other names
         for (auto cur = &context; cur; cur = cur->has_parent() ? &cur->get_parent() : nullptr)
         {
             auto name =
