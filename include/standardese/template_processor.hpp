@@ -42,6 +42,7 @@ namespace standardese
         has_children,
         inline_entity,
         member_group,
+        index,
 
         count,
         invalid = count
@@ -98,8 +99,12 @@ namespace standardese
     };
 
     struct raw_document;
+    class output_format_base;
+    class documentation;
 
-    raw_document process_template(const parser& p, const index& i, const template_file& input);
+    raw_document process_template(const parser& p, const index& i, const template_file& input,
+                                  output_format_base*  default_format = nullptr,
+                                  const documentation* doc_file       = nullptr);
 } // namespace standardese
 
 #endif // STANDARDESE_TEMPLATE_PROCESSOR_HPP_INCLUDED

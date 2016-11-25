@@ -479,6 +479,16 @@ There are the following if operations available:
 
 * `<entity> member_group`: Checks if `entity` refers to a member group.
 
+* `<entity> index`: Check if `entity` refers to an index file
+
+You can also provide a default template that can be used to customize the output globally.
+Then there are two special variables available: `$file`, which refers to the current file, and `$format`, which refers to the set output format.
+The most basic template will just generate the output as standardese would do normally:
+
+```cpp
+{{ standardese_doc $file $format }}
+```
+
 ## Acknowledgements
 
 Thanks a lot to:

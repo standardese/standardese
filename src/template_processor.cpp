@@ -12,6 +12,7 @@
 
 #include <spdlog/fmt/fmt.h>
 
+#include <standardese/generator.hpp>
 #include <standardese/index.hpp>
 #include <standardese/output.hpp>
 #include <standardese/parser.hpp>
@@ -40,6 +41,7 @@ template_config::template_config() : delimiter_begin_("{{"), delimiter_end_("}}"
     set_operation(template_if_operation::has_children, "has_children");
     set_operation(template_if_operation::inline_entity, "inline_entity");
     set_operation(template_if_operation::member_group, "member_group");
+    set_operation(template_if_operation::index, "index");
 }
 
 void template_config::set_command(template_command cmd, std::string str)
@@ -146,7 +148,10 @@ namespace
     class stack
     {
     public:
-        stack(const parser& p, const index& idx) STANDARDESE_NOEXCEPT : parser_(&p), idx_(&idx)
+        stack(const parser& p, const index& idx, const doc_entity* file) STANDARDESE_NOEXCEPT
+            : parser_(&p),
+              idx_(&idx),
+              file_(file)
         {
         }
 
@@ -166,24 +171,26 @@ namespace
 
         const doc_entity* try_lookup_var(const std::string& name) const STANDARDESE_NOEXCEPT
         {
-            for (auto iter = stack_.rbegin(); iter != stack_.rend(); ++iter)
-            {
-                if (auto loop = iter->get_for_loop())
-                {
-                    if (loop->cur == loop->end)
-                        // inside a loop that is skipped
-                        return nullptr;
-                    else if (loop->loop_var == name)
-                        return &*loop->cur;
-                }
-            }
+            auto skip   = false;
+            auto result = find_variable(name, skip);
+            if (skip || result)
+                return result;
+            else if (name == "$file")
+                return file_;
 
             return idx_->try_lookup(name);
         }
 
         const doc_entity* lookup_var(const std::string& name) const STANDARDESE_NOEXCEPT
         {
-            auto entity = try_lookup_var(name);
+            auto skip   = false;
+            auto result = find_variable(name, skip);
+            if (skip || result)
+                return result;
+            else if (file_ && name == "$file")
+                return file_;
+
+            auto entity = idx_->try_lookup(name);
             if (!entity)
                 parser_->get_logger()->warn("unable to find entity named '{}'", name);
             return entity;
@@ -242,6 +249,26 @@ namespace
             {
             }
         };
+
+        const doc_entity* find_variable(const std::string& name, bool& skip) const
+        {
+            for (auto iter = stack_.rbegin(); iter != stack_.rend(); ++iter)
+            {
+                if (auto loop = iter->get_for_loop())
+                {
+                    if (loop->cur == loop->end)
+                    {
+                        // inside a loop that is skipped
+                        skip = true;
+                        return nullptr;
+                    }
+                    else if (loop->loop_var == name)
+                        return &*loop->cur;
+                }
+            }
+
+            return nullptr;
+        }
 
         void end_loop(const char*& ptr, for_loop* loop)
         {
@@ -447,18 +474,22 @@ namespace
         std::string        buffer_;
         const parser*      parser_;
         const index*       idx_;
+        const doc_entity*  file_;
     };
 
-    md_ptr<md_document> get_documentation(const stack& vars, const index& i,
-                                          const std::string& name)
+    md_ptr<md_document> get_documentation(const stack& vars, const documentation* doc,
+                                          const index& i, const std::string& name)
     {
+        if (doc && doc->document && name == "$file")
+            return doc->document->clone();
+
         auto entity = vars.lookup_var(name);
         if (!entity)
             return nullptr;
 
-        auto doc = md_document::make("");
-        entity->generate_documentation(vars.get_parser(), i, *doc);
-        return doc;
+        auto document = md_document::make("");
+        entity->generate_documentation(vars.get_parser(), i, *document);
+        return document;
     }
 
     md_ptr<md_document> get_synopsis(const stack& vars, const std::string& name)
@@ -510,18 +541,25 @@ namespace
     }
 
     std::string write_document(const parser& p, md_ptr<md_document> doc,
-                               const std::string& format_name)
+                               output_format_base* default_format, const std::string& format_name)
     {
-        auto format = make_output_format(format_name);
-        if (!format)
+        string_output output;
+        normalize_urls(*doc);
+
+        std::unique_ptr<output_format_base> format;
+        if (format_name != "$format")
+        {
+            format         = make_output_format(format_name);
+            default_format = format.get();
+        }
+
+        if (!default_format)
         {
             p.get_logger()->warn("invalid format name '{}'", format_name);
             return "";
         }
 
-        string_output output;
-        format->render(output, *doc);
-
+        default_format->render(output, *doc);
         return output.get_string();
     }
 
@@ -551,6 +589,8 @@ namespace
                    && is_inline_cpp_entity(entity->get_cpp_entity_type());
         case template_if_operation::member_group:
             return entity->get_entity_type() == doc_entity::member_group_t;
+        case template_if_operation::index:
+            return entity->get_entity_type() == doc_entity::index_t;
         case template_if_operation::invalid:
             s.get_parser().get_logger()->warn("unknown if operation '{}'", op);
             break;
@@ -561,28 +601,34 @@ namespace
 }
 
 raw_document standardese::process_template(const parser& p, const index& i,
-                                           const template_file& input)
+                                           const template_file& input,
+                                           output_format_base*  default_format,
+                                           const documentation* doc_file)
 {
-    stack s(p, i);
+    stack s(p, i, doc_file->file.get());
     auto handle = [&](template_command cur_command, const char* ptr, const char* last,
                       const char*& end) {
         switch (cur_command)
         {
         case template_command::generate_doc:
-            if (auto doc = get_documentation(s, i, read_arg(ptr, last)))
-                s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
+            if (auto doc = get_documentation(s, doc_file, i, read_arg(ptr, last)))
+                s.get_buffer() +=
+                    write_document(p, std::move(doc), default_format, read_arg(ptr, last));
             break;
         case template_command::generate_synopsis:
             if (auto doc = get_synopsis(s, read_arg(ptr, last)))
-                s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
+                s.get_buffer() +=
+                    write_document(p, std::move(doc), default_format, read_arg(ptr, last));
             break;
         case template_command::generate_doc_text:
             if (auto doc = get_documentation_text(s, read_arg(ptr, last)))
-                s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
+                s.get_buffer() +=
+                    write_document(p, std::move(doc), default_format, read_arg(ptr, last));
             break;
         case template_command::generate_anchor:
             if (auto doc = get_anchor(s, i.get_linker(), input.output_name, read_arg(ptr, last)))
-                s.get_buffer() += write_document(p, std::move(doc), read_arg(ptr, last));
+                s.get_buffer() +=
+                    write_document(p, std::move(doc), default_format, read_arg(ptr, last));
             break;
 
         case template_command::name:

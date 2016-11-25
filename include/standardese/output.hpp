@@ -14,6 +14,7 @@
 #include <standardese/output_format.hpp>
 #include <standardese/output_stream.hpp>
 #include <standardese/string.hpp>
+#include <standardese/template_processor.hpp>
 
 namespace spdlog
 {
@@ -121,8 +122,11 @@ namespace standardese
     class md_document;
     class index;
     class linker;
+    class documentation;
 
     using path = std::string;
+
+    void normalize_urls(md_document& doc);
 
     struct raw_document
     {
@@ -136,13 +140,17 @@ namespace standardese
     class output
     {
     public:
-        output(const index& i, path prefix, output_format_base& format)
-        : prefix_(std::move(prefix)), format_(&format), index_(&i)
+        output(const parser& p, const index& i, path prefix, output_format_base& format)
+        : prefix_(std::move(prefix)), format_(&format), parser_(&p), index_(&i)
         {
         }
 
         void render(const std::shared_ptr<spdlog::logger>& logger, const md_document& document,
                     const char* output_extension = nullptr);
+
+        void render_template(const std::shared_ptr<spdlog::logger>& logger,
+                             const template_file& templ, const documentation& doc,
+                             const char* output_extension);
 
         void render_raw(const std::shared_ptr<spdlog::logger>& logger,
                         const raw_document&                    document);
@@ -160,6 +168,7 @@ namespace standardese
     private:
         path                prefix_;
         output_format_base* format_;
+        const parser*       parser_;
         const index*        index_;
     };
 } // namespace standardese

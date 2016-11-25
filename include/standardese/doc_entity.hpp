@@ -46,6 +46,7 @@ namespace standardese
         enum type
         {
             file_t,
+            index_t,
             cpp_entity_t,
             member_group_t,
         };

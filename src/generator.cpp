@@ -79,7 +79,7 @@ namespace
     }
 }
 
-md_ptr<md_document> standardese::generate_file_index(index& i, std::string name)
+documentation standardese::generate_file_index(index& i, std::string name)
 {
     auto doc = md_document::make(std::move(name));
 
@@ -92,13 +92,14 @@ md_ptr<md_document> standardese::generate_file_index(index& i, std::string name)
 
     assert(size != 0u);
     if (size == 1u)
-        return nullptr;
+        return documentation(nullptr, nullptr);
 
     doc->add_entity(std::move(list));
-    return doc;
+    auto entity = detail::make_doc_ptr<doc_index>(*doc, doc->get_output_name());
+    return documentation(std::move(entity), std::move(doc));
 }
 
-md_ptr<md_document> standardese::generate_entity_index(index& i, std::string name)
+documentation standardese::generate_entity_index(index& i, std::string name)
 {
     auto doc  = md_document::make(std::move(name));
     auto list = md_list::make_bullet(*doc);
@@ -129,10 +130,11 @@ md_ptr<md_document> standardese::generate_entity_index(index& i, std::string nam
         list->add_entity(std::move(p.second));
     doc->add_entity(std::move(list));
 
-    return doc;
+    auto entity = detail::make_doc_ptr<doc_index>(*doc, doc->get_output_name());
+    return documentation(std::move(entity), std::move(doc));
 }
 
-md_ptr<md_document> standardese::generate_module_index(const parser& p, index& i, std::string name)
+documentation standardese::generate_module_index(const parser& p, index& i, std::string name)
 {
     auto doc  = md_document::make(std::move(name));
     auto list = md_list::make_bullet(*doc);
@@ -158,11 +160,12 @@ md_ptr<md_document> standardese::generate_module_index(const parser& p, index& i
     });
 
     if (module_lists.empty())
-        return nullptr;
+        return documentation(nullptr, nullptr);
 
     for (auto& p : module_lists)
         list->add_entity(std::move(p.second));
     doc->add_entity(std::move(list));
 
-    return doc;
+    auto entity = detail::make_doc_ptr<doc_index>(*doc, doc->get_output_name());
+    return documentation(std::move(entity), std::move(doc));
 }

@@ -20,7 +20,8 @@ namespace
 
     const char link_prefix[] = "standardese://";
 
-    void get_standardese_links(std::vector<md_link*>& links, md_entity& cur)
+    void get_standardese_links(std::vector<md_link*>& links, md_entity& cur,
+                               bool only_empty = false)
     {
         if (cur.get_entity_type() == md_entity::link_t)
         {
@@ -28,8 +29,9 @@ namespace
             if (*link.get_destination() == '\0')
                 // empty link
                 links.push_back(&link);
-            else if (std::strncmp(link.get_destination(), link_prefix, sizeof(link_prefix) - 1)
-                     == 0)
+            else if (!only_empty
+                     && std::strncmp(link.get_destination(), link_prefix, sizeof(link_prefix) - 1)
+                            == 0)
                 // standardese link
                 links.push_back(&link);
         }
@@ -82,6 +84,21 @@ namespace
     }
 }
 
+void standardese::normalize_urls(md_document& document)
+{
+    std::vector<md_link*> links;
+    get_standardese_links(links, document, true);
+
+    for (auto link : links)
+    {
+        auto str = get_entity_name(*link);
+        if (str.empty())
+            continue;
+
+        link->set_destination(("standardese://" + str + '/').c_str());
+    }
+}
+
 raw_document::raw_document(path fname, std::string text)
 : file_name(std::move(fname)), text(std::move(text))
 {
@@ -104,6 +121,20 @@ void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_docu
 
     file_output output(prefix_ + document->get_output_name() + '.' + output_extension);
     format_->render(output, *document);
+}
+
+void output::render_template(const std::shared_ptr<spdlog::logger>& logger,
+                             const template_file& templ, const documentation& doc,
+                             const char* output_extension)
+{
+    if (!output_extension)
+        output_extension = format_->extension();
+
+    auto document           = process_template(*parser_, *index_, templ, format_, &doc);
+    document.file_name      = doc.document->get_output_name();
+    document.file_extension = output_extension;
+
+    render_raw(logger, document);
 }
 
 void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw_document& document)
