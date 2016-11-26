@@ -1074,11 +1074,13 @@ namespace
         auto entity = handle_child_impl(p, i, parent, e, cur_access, output_file);
         if (!entity)
             return;
-        i.register_entity(*entity, output_file);
+
+        auto e_ptr = entity.get();
         if (entity->has_comment() && entity->get_comment().in_member_group())
             handle_group(p, parent, std::move(entity));
         else
             parent.add_entity(std::move(entity));
+        i.register_entity(*e_ptr, output_file);
     }
 
     void handle_children(const parser& p, const index& i, std::string output_file,
