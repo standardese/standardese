@@ -48,7 +48,8 @@ md_entity& md_comment::add_entity(md_entity_ptr ptr)
 
 md_entity_ptr md_comment::do_clone(const md_entity*) const
 {
-    auto result = md_comment::make();
+    auto result     = md_comment::make();
+    result->entity_ = entity_;
     for (auto& child : *this)
         result->add_entity(child.clone(*result));
     return std::move(result);
@@ -138,8 +139,8 @@ namespace
     {
         if (location.second == 1u)
             // entity is located at the first line of the file
-            // no comment possible
-            return comment_id("", 1u);
+            // only end-of-line comment possible
+            return comment_id(location.first, 1u);
         else if (name.empty())
             return comment_id(location.first, location.second - 1);
 
@@ -155,6 +156,19 @@ namespace
         return create_location_id(e.get_entity_type(), loc);
     }
 
+    cpp_name get_inline_name(const cpp_entity& e)
+    {
+        auto name = e.get_name();
+        if (!name.empty())
+            return name;
+        assert(is_parameter(e.get_entity_type()));
+        auto unique_name = e.get_unique_name();
+        for (auto ptr = unique_name.c_str(); *ptr; ++ptr)
+            if (*ptr == '.')
+                return ++ptr;
+        return "";
+    }
+
     comment_id create_location_id(const cpp_entity& e)
     {
         if (e.get_entity_type() == cpp_entity::file_t)
@@ -167,22 +181,23 @@ namespace
         auto& parent    = get_inline_parent(e);
         auto  is_inline = &parent != &e;
         return create_location_id(e.get_entity_type(), get_location(parent.get_cursor()),
-                                  is_inline ? e.get_name() : "");
+                                  is_inline ? get_inline_name(e) : "");
     }
 
     bool inline_name_matches(const cpp_entity& e, const string& name)
     {
+        auto e_name = get_inline_name(e);
         if (e.get_entity_type() == cpp_entity::base_class_t)
         {
             if (std::strncmp(name.c_str(), "::", 2) != 0)
                 return false;
-            return std::strcmp(e.get_name().c_str(), name.c_str() + 2) == 0;
+            return std::strcmp(e_name.c_str(), name.c_str() + 2) == 0;
         }
         else
         {
             if (std::strncmp(name.c_str(), ".", 1) != 0)
                 return false;
-            return std::strcmp(e.get_name().c_str(), name.c_str() + 1) == 0;
+            return std::strcmp(e_name.c_str(), name.c_str() + 1) == 0;
         }
     }
 
@@ -199,7 +214,14 @@ namespace
                 return false;
 
             auto e_id = create_location_id(e);
-            return e_id.line() - id.line() <= 1u && e_id.file_name() == id.file_name();
+            if (id.file_name() != e_id.file_name())
+                // wrong file
+                return false;
+            else if (id.line() > e_id.line() + 1)
+                // next comment
+                return false;
+
+            return e_id.line() == id.line() || e_id.line() + 1 == id.line();
         }
         else if (id.is_inline_location())
         {
@@ -209,7 +231,14 @@ namespace
             assert(clang_Cursor_isNull(cur));
 
             auto e_id = create_location_id(e);
-            return e_id.line() - id.line() <= 1u && e_id.file_name() == id.file_name()
+            if (id.file_name() != e_id.file_name())
+                // wrong file
+                return false;
+            else if (id.line() > e_id.line() + 1)
+                // next comment
+                return false;
+
+            return (e_id.line() == id.line() || e_id.line() + 1 == id.line())
                    && inline_name_matches(e, id.inline_entity_name());
         }
 
@@ -222,8 +251,18 @@ namespace
                                            cpp_cursor cur = {})
     {
         auto iter = comments.lower_bound(id);
-        if (iter != comments.end() && matches(e, iter->first, cur))
+        if (iter != comments.end())
         {
+            // first try the next higher one, i.e. end of same line
+            // then try the actual match
+            ++iter;
+            if (iter == comments.end() || !matches(e, iter->first, cur))
+            {
+                --iter;
+                if (!matches(e, iter->first, cur))
+                    return nullptr;
+            }
+
             if (!iter->second.empty())
                 return &iter->second;
             // this command is only used for commands, look for a remote comment
@@ -274,6 +313,18 @@ const comment* comment_registry::lookup_comment(const cpp_entity_registry& regis
     if (id == short_id)
         return nullptr;
     iter = comments_.find(comment_id(short_id));
+    if (iter != comments_.end())
+        return &iter->second;
+
+    return nullptr;
+}
+
+const comment* comment_registry::lookup_comment(const std::string& module) const
+{
+    std::unique_lock<std::mutex> lock(mutex_);
+
+    auto id   = comment_id(module);
+    auto iter = comments_.find(id);
     if (iter != comments_.end())
         return &iter->second;
 
@@ -443,8 +494,11 @@ namespace
         md_paragraph& new_paragraph()
         {
             assert(top().get_entity_type() == md_entity::paragraph_t);
-            pop();
-            push(md_paragraph::make(top()));
+            if (!top().empty())
+            {
+                pop();
+                push(md_paragraph::make(top()));
+            }
             return static_cast<md_paragraph&>(top());
         }
 
@@ -460,8 +514,12 @@ namespace
             if (!container.empty())
             {
                 if (stack_.empty())
+                {
+                    if (container.ptr->get_entity_type() == md_entity::paragraph_t)
+                        set_implicit_section(static_cast<md_paragraph&>(*container.ptr), *info_);
                     info_->comment.get_content().add_entity(
                         container.ptr->clone(info_->comment.get_content()));
+                }
                 else
                     top().add_entity(std::move(container.ptr));
             }
@@ -475,6 +533,17 @@ namespace
         }
 
     private:
+        void set_implicit_section(md_paragraph& paragraph, comment_info& info)
+        {
+            if (paragraph.get_section_type() == section_type::invalid)
+            {
+                if (info.comment.empty())
+                    paragraph.set_section_type(section_type::brief, "");
+                else
+                    paragraph.set_section_type(section_type::details, "");
+            }
+        }
+
         struct container
         {
             md_ptr<md_container> ptr;
@@ -500,7 +569,15 @@ namespace
         const parser*                 parser_;
     };
 
-    bool parse_command(const parser& p, container_stack& stack, md_entity_ptr text_entity)
+    std::size_t get_group_id(const char* name)
+    {
+        using hash = std::hash<std::string>;
+        auto res   = hash{}(name);
+        return res == 0u ? 19937u : res; // must not be 0
+    }
+
+    bool parse_command(const parser& p, container_stack& stack, bool first,
+                       md_entity_ptr text_entity)
     {
         assert(text_entity->get_entity_type() == md_entity::text_t);
         auto& text = static_cast<md_text&>(*text_entity);
@@ -519,6 +596,7 @@ namespace
         }
         else if (is_command(command))
         {
+            stack.new_paragraph(); // terminate old paragraph
             switch (make_command(command))
             {
             case command_type::exclude:
@@ -527,18 +605,33 @@ namespace
             case command_type::unique_name:
                 stack.info().comment.set_unique_name_override(read_argument(text, command_str));
                 break;
+            case command_type::synopsis:
+                stack.info().comment.set_synopsis_override(read_argument(text, command_str));
+                break;
+            case command_type::group:
+                stack.info().comment.add_to_member_group(
+                    get_group_id(read_argument(text, command_str)));
+                break;
+            case command_type::module:
+                if (!first)
+                    stack.info().comment.set_module(read_argument(text, command_str));
+                else
+                {
+                    // module comment
+                    assert(stack.info().entity_name.empty());
+                    stack.info().entity_name = read_argument(text, command_str);
+                }
+                break;
             case command_type::entity:
-                if (!stack.info().entity_name.empty())
-                    throw comment_parse_error(fmt::format("Comment target already set to {}",
-                                                          stack.info().entity_name.c_str()),
-                                              text);
+                if (!first)
+                    throw comment_parse_error("entity comment not first", text);
+                assert(stack.info().entity_name.empty());
                 stack.info().entity_name = read_argument(text, command_str);
                 break;
             case command_type::file:
-                if (!stack.info().entity_name.empty())
-                    throw comment_parse_error(fmt::format("Comment target already set to {}",
-                                                          stack.info().entity_name.c_str()),
-                                              text);
+                if (!first)
+                    throw comment_parse_error("first comment not first", text);
+                assert(stack.info().entity_name.empty());
                 stack.info().entity_name = stack.info().file_name;
                 break;
             case command_type::param:
@@ -610,7 +703,7 @@ namespace
         md_iter iter(cmark_iter_new(root.get()));
 
         container_stack stack(p, info);
-        auto            first_paragraph = true, added_section = false;
+        auto            first_content = true;
         for (auto ev = CMARK_EVENT_NONE; (ev = cmark_iter_next(iter.get())) != CMARK_EVENT_DONE;)
         {
             auto node = cmark_iter_get_node(iter.get());
@@ -625,41 +718,32 @@ namespace
                     auto  entity = md_entity::try_parse(node, parent);
                     if (is_container(entity->get_entity_type()))
                     {
-                        if (entity->get_entity_type() == md_entity::paragraph_t)
-                        {
-                            auto& paragraph = static_cast<md_paragraph&>(*entity);
-                            if (paragraph.get_section_type() == section_type::invalid)
-                                paragraph.set_section_type(first_paragraph ? section_type::brief :
-                                                                             section_type::details,
-                                                           "");
-                            first_paragraph = false;
-                        }
+                        if (entity->get_entity_type() != md_entity::paragraph_t)
+                            first_content = false; // allow paragraph
                         stack.push(std::move(entity));
                     }
                     else if (entity->get_entity_type() == md_entity::line_break_t
                              && stack.top().get_entity_type() == md_entity::paragraph_t)
                     {
                         // terminate current paragraph
-                        auto& paragraph = stack.new_paragraph();
-                        paragraph.set_section_type(first_paragraph ? section_type::brief :
-                                                                     section_type::details,
-                                                   "");
-                        first_paragraph = false;
+                        stack.new_paragraph();
+                        first_content = false;
                     }
                     else if (entity->get_entity_type() == md_entity::text_t)
-                        added_section |= parse_command(p, stack, std::move(entity));
+                    {
+                        parse_command(p, stack, first_content, std::move(entity));
+                        first_content = false;
+                    }
                     else if (entity->get_entity_type() == md_entity::soft_break_t)
                         stack.add_soft_break(std::move(entity));
                     else
+                    {
                         stack.top().add_entity(std::move(entity));
+                        first_content = false;
+                    }
                 }
                 else if (ev == CMARK_EVENT_EXIT)
-                {
                     stack.pop();
-                    // reset first_paragraph if brief paragraph was empty
-                    first_paragraph =
-                        !added_section && stack.info().comment.get_content().get_brief().empty();
-                }
                 else
                     assert(false);
             }

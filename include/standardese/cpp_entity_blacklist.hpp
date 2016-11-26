@@ -8,10 +8,11 @@
 #include <bitset>
 #include <set>
 
-#include <standardese/doc_entity.hpp>
+#include <standardese/cpp_entity.hpp>
 
 namespace standardese
 {
+    class doc_entity;
     class md_document;
     class parser;
 
@@ -91,6 +92,7 @@ namespace standardese
 
         bool is_blacklisted(documentation_t, const cpp_entity& e) const;
 
+        bool is_blacklisted(synopsis_t, const doc_entity& e) const;
         bool is_blacklisted(synopsis_t, const cpp_entity& e) const;
 
     private:
@@ -98,8 +100,6 @@ namespace standardese
         std::bitset<cpp_entity::invalid_t> type_blacklist_;
         int                                options_ = 0;
     };
-
-    void write_synopsis(const parser& p, md_document& doc, const doc_entity& e);
 } // namespace standardese
 
 #endif // STANDARDESE_SYNOPSIS_HPP_INCLUDED

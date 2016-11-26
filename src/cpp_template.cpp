@@ -37,7 +37,25 @@ cpp_name cpp_template_parameter::do_get_unique_name() const
 {
     auto parent = get_semantic_parent();
     assert(parent);
-    return std::string(parent->get_unique_name().c_str()) + "." + get_name().c_str();
+
+    std::string name = get_name().c_str();
+    if (name.empty())
+    {
+        auto i      = 0u;
+        auto params = get_template_parameters(*parent);
+        assert(params);
+        for (auto& param : *params)
+        {
+            if (&param == this)
+                break;
+            else
+                ++i;
+        }
+
+        name = std::to_string(i);
+    }
+
+    return std::string(parent->get_unique_name().c_str()) + "." + name;
 }
 
 cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translation_unit& tu,
@@ -51,10 +69,14 @@ cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translat
     auto              name   = detail::parse_name(cur);
 
     // skip typename
-    auto res = detail::skip_if_token(stream, "typename");
+    auto keyword = cpp_template_parameter::cpp_typename;
+    auto res     = detail::skip_if_token(stream, "typename");
     if (!res)
+    {
         // it must be class
         detail::skip(stream, cur, "class");
+        keyword = cpp_template_parameter::cpp_class;
+    }
 
     // variadic parameter
     auto is_variadic = false;
@@ -81,7 +103,7 @@ cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translat
             def_name.pop_back();
     }
 
-    return detail::make_cpp_ptr<cpp_template_type_parameter>(cur, parent,
+    return detail::make_cpp_ptr<cpp_template_type_parameter>(cur, parent, keyword,
                                                              cpp_type_ref(def_name, CXType()),
                                                              is_variadic);
 }
@@ -146,23 +168,35 @@ cpp_ptr<cpp_non_type_template_parameter> cpp_non_type_template_parameter::parse(
 
 namespace
 {
-    bool is_template_template_variadic(translation_unit& tu, cpp_cursor cur, const cpp_name& name)
+    struct template_template_info
+    {
+        cpp_template_parameter::cpp_keyword_kind keyword;
+        bool                                     variadic;
+    };
+
+    template_template_info parse_template_template(translation_unit& tu, cpp_cursor cur,
+                                                   const cpp_name& name)
     {
         detail::tokenizer tokenizer(tu, cur);
         auto              stream = detail::make_stream(tokenizer);
 
-        auto found = false;
+        auto keyword = cpp_template_parameter::cpp_typename;
+        auto found   = false;
         while (!stream.done())
         {
             if (detail::skip_if_token(stream, "..."))
                 found = true;
             else if (detail::skip_if_token(stream, name.c_str()))
                 break;
+            else if (detail::skip_if_token(stream, "typename"))
+                keyword = cpp_template_parameter::cpp_typename;
+            else if (detail::skip_if_token(stream, "class"))
+                keyword = cpp_template_parameter::cpp_class;
             else if (!std::isspace(stream.get().get_value()[0]))
                 found = false;
         }
 
-        return found;
+        return {keyword, found};
     }
 }
 
@@ -171,11 +205,11 @@ cpp_ptr<cpp_template_template_parameter> cpp_template_template_parameter::parse(
 {
     assert(clang_getCursorKind(cur) == CXCursor_TemplateTemplateParameter);
 
-    auto name     = detail::parse_name(cur);
-    auto variadic = is_template_template_variadic(tu, cur, name);
+    auto name = detail::parse_name(cur);
+    auto info = parse_template_template(tu, cur, name);
     auto result =
-        detail::make_cpp_ptr<cpp_template_template_parameter>(cur, parent, cpp_template_ref(),
-                                                              variadic);
+        detail::make_cpp_ptr<cpp_template_template_parameter>(cur, parent, info.keyword,
+                                                              cpp_template_ref(), info.variadic);
 
     detail::visit_children(cur, [&](CXCursor cur, CXCursor) {
         if (auto param = cpp_template_parameter::try_parse(tu, cur, *result))
@@ -238,7 +272,7 @@ namespace
         });
 
         unsigned unused, end;
-        detail::get_range(last, unused, end);
+        detail::get_range(tu, last, unused, end);
         return end;
     }
 
@@ -283,7 +317,7 @@ cpp_ptr<cpp_function_template> cpp_function_template::parse(translation_unit& tu
 
 cpp_name cpp_function_template::get_name() const
 {
-    return get_template_name(func_->get_name().c_str(), *this);
+    return func_->get_name();
 }
 
 cpp_name cpp_function_template::get_signature() const

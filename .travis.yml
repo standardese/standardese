@@ -41,7 +41,7 @@ matrix:
 
 install:
   - . travis_install_libclang.sh
-  - if [ -z $TOOLSET ]; then export TOOLSET=$LLVM_DIR/bin/clang++; fi 
+  - if [ -z $TOOLSET ]; then export TOOLSET=$LLVM_DIR/bin/clang++; fi
 
   - cd ../
 
@@ -61,7 +61,7 @@ install:
 
 script:
   - mkdir build && cd build
-  - $CMAKE -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-UNDEBUG -Wall -Wextra -pedantic -Wno-parentheses" -DLIBCLANG_LIBRARY=$LIBCLANG_LIBRARY -DLIBCLANG_INCLUDE_DIR=$LIBCLANG_INCLUDE_DIR -DLIBCLANG_SYSTEM_INCLUDE_DIR=$LIBCLANG_SYSTEM_INCLUDE_DIR -DSTANDARDESE_BUILD_TOOL=$BUILD_TOOL ../
+  - $CMAKE -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-UNDEBUG -Wall -Wextra -pedantic -Wno-parentheses" -DLIBCLANG_LIBRARY=$LIBCLANG_LIBRARY -DLIBCLANG_INCLUDE_DIR=$LIBCLANG_INCLUDE_DIR -DLIBCLANG_SYSTEM_INCLUDE_DIR=$LIBCLANG_SYSTEM_INCLUDE_DIR -DCLANG_BINARY=$CLANG_BINARY -DSTANDARDESE_BUILD_TOOL=$BUILD_TOOL ../
   - $CMAKE --build .
   - if [[ $BUILD_TOOL = true ]]; then ./tool/standardese --version; fi
   - ./test/standardese_test

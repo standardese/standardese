@@ -4,10 +4,8 @@
 
 #include <standardese/parser.hpp>
 
-#include <fstream>
-#include <spdlog/sinks/null_sink.h>
-
-#include <standardese/preprocessor.hpp>
+#include <standardese/detail/tokenizer.hpp>
+#include <standardese/cpp_preprocessor.hpp>
 #include <standardese/error.hpp>
 #include <standardese/translation_unit.hpp>
 
@@ -15,21 +13,6 @@ using namespace standardese;
 
 namespace
 {
-    std::string read_source(const char* full_path)
-    {
-        // need to open in binary mode as libclang does it (apparently)
-        // otherwise the offsets are incompatible under Windows
-        std::filebuf filebuf;
-        filebuf.open(full_path, std::ios_base::in | std::ios_base::binary);
-        assert(filebuf.is_open());
-
-        auto source =
-            std::string(std::istreambuf_iterator<char>(&filebuf), std::istreambuf_iterator<char>());
-        if (source.back() != '\n')
-            source.push_back('\n');
-        return source;
-    }
-
     CXTranslationUnit get_cxunit(CXIndex index, const compile_config& c, const char* full_path,
                                  const std::string& source)
     {
@@ -59,8 +42,7 @@ translation_unit parser::parse(const char* full_path, const compile_config& c,
     auto              file_ptr = file.get();
     files_.add_file(std::move(file));
 
-    auto source       = read_source(full_path);
-    auto preprocessed = preprocessor_.preprocess(c, full_path, source, *file_ptr);
+    auto preprocessed = preprocessor_.preprocess(*this, c, full_path, *file_ptr);
     auto tu           = get_cxunit(index_.get(), c, full_path, preprocessed);
     parse_comments(*this, file_name, preprocessed);
 
@@ -68,11 +50,6 @@ translation_unit parser::parse(const char* full_path, const compile_config& c,
     file_ptr->set_cursor(clang_getTranslationUnitCursor(tu));
 
     return translation_unit(*this, full_path, file_ptr);
-}
-
-parser::parser()
-: parser(std::make_shared<spdlog::logger>("null", std::make_shared<spdlog::sinks::null_sink_mt>()))
-{
 }
 
 parser::parser(std::shared_ptr<spdlog::logger> logger)

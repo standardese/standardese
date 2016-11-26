@@ -15,7 +15,7 @@ using namespace standardese;
 
 TEST_CASE("cpp_template_type_parameter", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         template <typename A, typename B = decltype(0)>
@@ -52,6 +52,7 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
             ++count;
             REQUIRE(!param->is_variadic());
             REQUIRE(!param->has_default_type());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_typename);
         }
         else if (param->get_name() == "B")
         {
@@ -59,18 +60,21 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
             REQUIRE(!param->is_variadic());
             REQUIRE(param->has_default_type());
             REQUIRE(param->get_default_type().get_name() == "decltype(0)");
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_typename);
         }
         else if (param->get_name() == "C")
         {
             ++count;
             REQUIRE(param->is_variadic());
             REQUIRE(!param->has_default_type());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_typename);
         }
         else if (param->get_name() == "D")
         {
             ++count;
             REQUIRE(param->is_variadic());
             REQUIRE(!param->has_default_type());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
         }
         else if (param->get_name() == "E")
         {
@@ -79,6 +83,7 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
             REQUIRE(param->has_default_type());
             REQUIRE(param->get_default_type().get_name() == "s");
             // bug: REQUIRE(param->get_default_type().get_full_name() == "ns::s");
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
         }
         else if (param->get_name() == "F")
         {
@@ -87,6 +92,7 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
             REQUIRE(param->has_default_type());
             REQUIRE(param->get_default_type().get_name() == "ns::s");
             // bug: REQUIRE(param->get_default_type().get_full_name() == "ns::s");
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_typename);
         }
         else if (param->get_name() == "G")
         {
@@ -95,6 +101,7 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
             REQUIRE(param->has_default_type());
             REQUIRE(param->get_default_type().get_name() == "s1<int>");
             // bug: REQUIRE(param->get_default_type().get_full_name() == "s1<int, int>");
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_typename);
         }
         else
             REQUIRE(false);
@@ -104,7 +111,7 @@ TEST_CASE("cpp_template_type_parameter", "[cpp]")
 
 TEST_CASE("cpp_non_type_template_parameter", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         template <int A, int B = 0>
@@ -190,7 +197,7 @@ TEST_CASE("cpp_non_type_template_parameter", "[cpp]")
 
 TEST_CASE("cpp_template_template_parameter", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         template <template <typename> class A>
@@ -231,6 +238,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             ++count;
             REQUIRE(!param->is_variadic());
             REQUIRE(!param->has_default_template());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
 
             auto size = 0u;
             for (auto& e : *param)
@@ -248,6 +256,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             REQUIRE(param->has_default_template());
             REQUIRE(param->get_default_template().get_name() == "s2");
             REQUIRE(param->get_default_template().get_full_name() == "s2");
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
 
             auto size = 0u;
             for (auto& e : *param)
@@ -276,6 +285,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             REQUIRE(param->has_default_template());
             REQUIRE(param->get_default_template().get_name() == "s");
             REQUIRE(param->get_default_template().get_full_name() == "ns::s");
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
 
             auto size = 0u;
             for (auto& e : *param)
@@ -302,6 +312,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             ++count;
             REQUIRE(param->is_variadic());
             REQUIRE(!param->has_default_template());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
 
             auto size = 0u;
             for (auto& e : *param)
@@ -317,6 +328,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             ++count;
             REQUIRE(param->is_variadic());
             REQUIRE(!param->has_default_template());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
 
             auto size = 0u;
             for (auto& e : *param)
@@ -343,6 +355,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
             ++count;
             REQUIRE(!param->is_variadic());
             REQUIRE(!param->has_default_template());
+            REQUIRE(param->get_keyword() == cpp_template_parameter::cpp_class);
 
             auto size = 0u;
             for (auto& e : *param)
@@ -376,7 +389,7 @@ TEST_CASE("cpp_template_template_parameter", "[cpp]")
 // parsing just forwards
 TEST_CASE("cpp_function_template and specialization", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         /// a
@@ -442,7 +455,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             if (ptr->get_function().get_name() == "a")
             {
                 ++count;
-                REQUIRE(ptr->get_name() == "a<A>");
+                REQUIRE(ptr->get_name() == "a");
                 REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// a");
                 REQUIRE(ptr->get_signature() == "(A)");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
@@ -466,7 +479,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             else if (ptr->get_function().get_name() == "b")
             {
                 ++count;
-                REQUIRE(ptr->get_name() == "b<A, B>");
+                REQUIRE(ptr->get_name() == "b");
                 REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// b");
                 REQUIRE(ptr->get_signature() == "(B)");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
@@ -497,7 +510,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             else if (ptr->get_function().get_name() == "c")
             {
                 ++count;
-                REQUIRE(ptr->get_name() == "c<val>");
+                REQUIRE(ptr->get_name() == "c");
                 REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// c");
                 REQUIRE(ptr->get_signature() == "()");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
@@ -521,7 +534,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
             else if (ptr->get_function().get_name() == "d")
             {
                 ++count;
-                REQUIRE(ptr->get_name() == "d<A>");
+                REQUIRE(ptr->get_name() == "d");
                 REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// d");
                 REQUIRE(ptr->get_signature() == "()");
                 auto& func = dynamic_cast<const cpp_function&>(ptr->get_function());
@@ -599,7 +612,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                         REQUIRE(dynamic_cast<const cpp_member_function*>(&ptr->get_function())
                                 != nullptr);
                         REQUIRE(!ptr->get_function().is_variadic());
-                        REQUIRE(ptr->get_name() == "c<A...>");
+                        REQUIRE(ptr->get_name() == "c");
                         REQUIRE(ptr->get_signature() == "(A...)");
 
                         auto size = 0u;
@@ -623,7 +636,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                         REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// foo");
                         REQUIRE(dynamic_cast<const cpp_constructor*>(&ptr->get_function())
                                 != nullptr);
-                        REQUIRE(ptr->get_name() == "foo<A>");
+                        REQUIRE(ptr->get_name() == "foo");
                         REQUIRE(ptr->get_signature() == "(A)");
 
                         auto size = 0u;
@@ -647,7 +660,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
                         REQUIRE(detail::parse_comment(ptr->get_cursor()) == "/// operator");
                         REQUIRE(dynamic_cast<const cpp_conversion_op*>(&ptr->get_function())
                                 != nullptr);
-                        REQUIRE(ptr->get_name() == "operator T*<T>");
+                        REQUIRE(ptr->get_name() == "operator T*");
                         REQUIRE(ptr->get_signature() == "()");
 
                         auto size = 0u;
@@ -680,7 +693,7 @@ TEST_CASE("cpp_function_template and specialization", "[cpp]")
 
 TEST_CASE("cpp_class_template", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         template <typename T>
@@ -952,7 +965,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
 
 TEST_CASE("cpp_alias_template", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
             /// a

@@ -35,6 +35,24 @@ namespace standardese_tool
         }
     } // namespace detail
 
+    inline bool default_msvc_comp() noexcept
+    {
+#ifdef _MSC_VER
+        return true;
+#else
+        return false;
+#endif
+    }
+
+    inline unsigned default_msvc_version() noexcept
+    {
+#ifdef _MSC_VER
+        return _MSC_VER / 100u;
+#else
+        return 0u;
+#endif
+    }
+
     inline standardese::compile_config parse_config(
         const boost::program_options::variables_map& map)
     {
@@ -60,8 +78,18 @@ namespace standardese_tool
             for (auto& val : undefs->second.as<std::vector<std::string>>())
                 result.remove_macro_definition(val);
 
-        if (map.count("compilation.ms_extensions"))
+        if (map.at("compilation.ms_extensions").as<bool>())
             result.set_flag(compile_flag::ms_extensions);
+
+        if (auto version = map.at("compilation.ms_compatibility").as<unsigned>())
+        {
+            result.set_flag(compile_flag::ms_compatibility);
+            result.set_msvc_compatibility_version(version);
+        }
+
+        auto binary = map.find("compilation.clang_binary");
+        if (binary != map.end())
+            result.set_clang_binary(binary->second.as<std::string>());
 
         return result;
     }
@@ -89,8 +117,13 @@ namespace standardese_tool
 
                     if (erase_prefix(name, "comment.cmd_name_"))
                     {
-                        auto section = p.get_comment_config().get_command(name);
-                        p.get_comment_config().set_command(section, opt.value[0]);
+                        auto cmd = p.get_comment_config().get_command(name);
+                        p.get_comment_config().set_command(cmd, opt.value[0]);
+                    }
+                    else if (erase_prefix(name, "template.cmd_name_"))
+                    {
+                        auto cmd = p.get_template_config().get_command(name);
+                        p.get_template_config().set_command(cmd, opt.value[0]);
                     }
                     else if (erase_prefix(name, "output.section_name_"))
                     {
@@ -123,7 +156,36 @@ namespace standardese_tool
         auto dirs = map.find("compilation.preprocess_dir");
         if (dirs != map.end())
             for (auto& dir : dirs->second.as<std::vector<std::string>>())
-                p->get_preprocessor().add_preprocess_directory(std::move(dir));
+                p->get_preprocessor().whitelist_include_dir(std::move(dir));
+
+        p->get_comment_config().set_command_character(
+            map.at("comment.command_character").as<char>());
+
+        p->get_template_config()
+            .set_delimiters(map.at("template.delimiter_begin").as<std::string>(),
+                            map.at("template.delimiter_end").as<std::string>());
+
+        using standardese::output_flag;
+        p->get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
+        p->get_output_config().set_flag(output_flag::inline_documentation,
+                                        map.at("output.inline_doc").as<bool>());
+        p->get_output_config().set_flag(output_flag::show_modules,
+                                        map.at("output.show_modules").as<bool>());
+        p->get_output_config().set_flag(output_flag::show_macro_replacement,
+                                        map.at("output.show_macro_replacement").as<bool>());
+        p->get_output_config().set_flag(output_flag::show_group_member_id,
+                                        map.at("output.show_group_member_id").as<bool>());
+
+        using standardese::entity_blacklist;
+        auto& blacklist_entity = p->get_output_config().get_blacklist();
+        for (auto& str : map.at("input.blacklist_entity_name").as<std::vector<std::string>>())
+            blacklist_entity.blacklist(str);
+        for (auto& str : map.at("input.blacklist_namespace").as<std::vector<std::string>>())
+            blacklist_entity.blacklist(str);
+        if (map.at("input.require_comment").as<bool>())
+            blacklist_entity.set_option(entity_blacklist::require_comment);
+        if (map.at("input.extract_private").as<bool>())
+            blacklist_entity.set_option(entity_blacklist::extract_private);
 
         return p;
     }
@@ -140,25 +202,23 @@ namespace standardese_tool
         }
 
         configuration(std::unique_ptr<standardese::parser> p, standardese::compile_config c,
-                      boost::program_options::variables_map map)
-        : parser(std::move(p)), compile_config(std::move(c)), map(std::move(map))
+                      boost::program_options::variables_map m)
+        : parser(std::move(p)), compile_config(std::move(c)), map(std::move(m))
         {
-            auto width = this->map.at("output.width").as<unsigned>();
-            for (auto& format_str : this->map.at("output.format").as<std::vector<std::string>>())
+            using namespace standardese;
+
+            auto width = map.at("output.width").as<unsigned>();
+            for (auto& format_str : map.at("output.format").as<std::vector<std::string>>())
             {
-                if (format_str == "commonmark")
-                    formats.emplace_back(new standardese::output_format_markdown(width));
-                else if (format_str == "latex")
-                    formats.emplace_back(new standardese::output_format_latex(width));
-                else if (format_str == "man")
-                    formats.emplace_back(new standardese::output_format_man(width));
-                else if (format_str == "html")
-                    formats.emplace_back(new standardese::output_format_html);
-                else if (format_str == "xml")
-                    formats.emplace_back(new standardese::output_format_xml);
+                auto fmt = make_output_format(format_str, width);
+                if (fmt)
+                    formats.push_back(std::move(fmt));
                 else
-                    throw std::invalid_argument("unknown format '" + format_str + "'");
+                    throw std::logic_error(fmt::format("invalid format name '{}'", format_str));
             }
+
+            if (map.at("jobs").as<unsigned>() == 0)
+                throw std::invalid_argument("number of threads must not be 0");
         }
 
         const char* link_extension() const
@@ -169,17 +229,17 @@ namespace standardese_tool
             return nullptr;
         }
 
-        void set_external(standardese::index& i) const
+        void set_external(standardese::linker& l) const
         {
             // register cppreference.com
-            i.register_external("std::", "http://en.cppreference.com/mwiki/"
+            l.register_external("std::", "http://en.cppreference.com/mwiki/"
                                          "index.php?title=Special%3ASearch&search=$$");
             for (auto& str : map.at("comment.external_doc").as<std::vector<std::string>>())
             {
                 auto sep    = str.find('=');
                 auto prefix = str.substr(0, sep);
                 auto url    = str.substr(sep + 1);
-                i.register_external(std::move(prefix), std::move(url));
+                l.register_external(std::move(prefix), std::move(url));
             }
         }
     };

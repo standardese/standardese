@@ -50,7 +50,25 @@ cpp_name cpp_function_parameter::do_get_unique_name() const
 {
     auto parent = get_semantic_parent();
     assert(parent);
-    return std::string(parent->get_unique_name().c_str()) + "." + get_name().c_str();
+
+    std::string name = get_name().c_str();
+    if (name.empty())
+    {
+        auto i    = 0u;
+        auto func = get_function(*parent);
+        assert(func);
+        for (auto& param : func->get_parameters())
+        {
+            if (&param == this)
+                break;
+            else
+                ++i;
+        }
+
+        name = std::to_string(i);
+    }
+
+    return std::string(parent->get_unique_name().c_str()) + "." + name;
 }
 
 cpp_ptr<cpp_function_base> cpp_function_base::try_parse(translation_unit& p, cpp_cursor cur,
@@ -96,6 +114,104 @@ void cpp_function_base::set_template_specialization_name(cpp_name name)
 cpp_name cpp_function_base::do_get_unique_name() const
 {
     return std::string(get_full_name().c_str()) + get_signature().c_str();
+}
+
+namespace
+{
+    enum copy_or_move
+    {
+        copy_func,
+        move_func,
+        normal_func
+    };
+
+    copy_or_move get_func_kind(const cpp_function_parameter& param, const cpp_entity& c)
+    {
+        auto class_cur  = c.get_cursor();
+        auto param_type = param.get_type().get_cxtype();
+        if (param_type.kind == CXType_LValueReference)
+        {
+            param_type = clang_getPointeeType(param_type);
+            if (class_cur == clang_getTypeDeclaration(param_type))
+                return copy_func;
+        }
+        else if (param_type.kind == CXType_RValueReference)
+        {
+            param_type = clang_getPointeeType(param_type);
+            if (class_cur == clang_getTypeDeclaration(param_type))
+                return move_func;
+        }
+        // wrong type kind
+        return normal_func;
+    }
+
+    bool is_io_operator(const cpp_function_base& func, const char* name)
+    {
+        assert(func.get_parameters().begin() != func.get_parameters().end());
+        auto first = func.get_parameters().begin();
+
+        if (std::strstr(first->get_type().get_name().c_str(), name) == nullptr)
+            return false;
+
+        cpp_name return_type("");
+        if (func.get_entity_type() == cpp_entity::function_t)
+            return_type = static_cast<const cpp_function&>(func).get_return_type().get_name();
+        else if (func.get_entity_type() == cpp_entity::member_function_t)
+            return_type =
+                static_cast<const cpp_member_function&>(func).get_return_type().get_name();
+        else
+            assert(false);
+        return std::strstr(return_type.c_str(), name) != nullptr;
+    }
+}
+
+cpp_operator_kind cpp_function_base::get_operator_kind() const
+{
+    static const char operator_keyword[] = "operator";
+
+    auto name = get_name();
+    if (std::strncmp(name.c_str(), operator_keyword, sizeof(operator_keyword) - 1) != 0)
+        return cpp_operator_none;
+
+    auto ptr = name.c_str() + sizeof(operator_keyword) - 1;
+    while (std::isspace(*ptr))
+        ++ptr;
+
+    if (std::strcmp(ptr, "=") == 0)
+    {
+        if (is_templated())
+            return cpp_assignment_operator;
+
+        assert(has_ast_parent() && get_ast_parent().get_entity_type() == cpp_entity::class_t);
+        auto kind = get_func_kind(*get_parameters().begin(), get_ast_parent());
+        switch (kind)
+        {
+        case copy_func:
+            return cpp_copy_assignment_operator;
+        case move_func:
+            return cpp_move_assignment_operator;
+        case normal_func:
+            break;
+        }
+
+        return cpp_assignment_operator;
+    }
+    else if (std::strcmp(ptr, "==") == 0 || std::strcmp(ptr, "!=") == 0
+             || std::strcmp(ptr, "<") == 0 || std::strcmp(ptr, ">") == 0
+             || std::strcmp(ptr, "<=") == 0 || std::strcmp(ptr, ">=") == 0)
+        return cpp_comparison_operator;
+    else if (std::strcmp(ptr, "[]") == 0)
+        return cpp_subscript_operator;
+    else if (std::strcmp(ptr, "()") == 0)
+        return cpp_function_call_operator;
+    else if (std::strncmp(ptr, "\"\"", 2) == 0)
+        return cpp_user_defined_literal;
+    else if (std::strcmp(ptr, "<<") == 0 && is_io_operator(*this, "ostream"))
+        return cpp_output_operator;
+    else if (std::strcmp(ptr, ">>") == 0 && is_io_operator(*this, "istream"))
+        return cpp_input_operator;
+
+    return cpp_operator;
 }
 
 namespace
@@ -772,6 +888,44 @@ cpp_name cpp_constructor::get_name() const
 cpp_constructor::cpp_constructor(cpp_cursor cur, const cpp_entity& parent, cpp_function_info info)
 : cpp_function_base(get_entity_type(), cur, parent, std::move(info))
 {
+}
+
+cpp_constructor_type cpp_constructor::get_ctor_type() const
+{
+#if CINDEX_VERSION_MINOR >= 34
+    if (clang_CXXConstructor_isDefaultConstructor(get_cursor()))
+        return cpp_default_ctor;
+    else if (clang_CXXConstructor_isCopyConstructor(get_cursor()))
+        return cpp_copy_ctor;
+    else if (clang_CXXConstructor_isMoveConstructor(get_cursor()))
+        return cpp_move_ctor;
+    return cpp_other_ctor;
+#else
+    if (get_parameters().empty() || get_parameters().begin()->has_default_value())
+        // all parameters have defaults
+        return cpp_default_ctor;
+    else if (is_templated())
+        // template can't be copy or move
+        return cpp_other_ctor;
+    else if (std::next(get_parameters().begin()) != get_parameters().end()
+             && !std::next(get_parameters().begin())->has_default_value())
+        // more than one parameter and not default
+        return cpp_other_ctor;
+
+    assert(has_ast_parent() && get_ast_parent().get_entity_type() == cpp_entity::class_t);
+    auto kind = get_func_kind(*get_parameters().begin(), get_ast_parent());
+    switch (kind)
+    {
+    case copy_func:
+        return cpp_copy_ctor;
+    case move_func:
+        return cpp_move_ctor;
+    case normal_func:
+        break;
+    }
+
+    return cpp_other_ctor;
+#endif
 }
 
 cpp_ptr<cpp_destructor> cpp_destructor::parse(translation_unit& tu, cpp_cursor cur,

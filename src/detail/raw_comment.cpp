@@ -61,6 +61,10 @@ namespace
         while (!content.empty() && is_whitespace(content.back()))
             content.pop_back();
 
+        // translate forward slash to backslash
+        if (!content.empty() && content.back() == '/')
+            content.back() = '\\';
+
         return {std::move(content), 1, cur_line - 1};
     }
 
@@ -120,6 +124,12 @@ namespace
                 if (*ptr == '\n')
                     // need to append '\n', otherwise will be skipped
                     content += '\n';
+            }
+            else if (*ptr == '/' && ptr[1] == '\n')
+            {
+                // translate to backslash
+                content += '\\';
+                ++ptr;
             }
             else if (is_c_doc_comment_end(ptr))
                 break;

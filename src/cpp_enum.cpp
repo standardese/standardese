@@ -98,9 +98,10 @@ cpp_name cpp_enum_value::get_scope() const
 
 namespace
 {
-    cpp_name parse_underlying_type(detail::token_stream& stream, bool& is_definition)
+    cpp_name parse_underlying_type(detail::token_stream& stream)
     {
         std::string underlying_type;
+        auto        is_definition = false;
         if (stream.peek().get_value() == ":")
         {
             for (stream.bump(); stream.peek().get_value() != ";"; stream.bump())
@@ -121,6 +122,7 @@ namespace
             is_definition = true;
         }
 
+        assert(is_definition);
         return underlying_type;
     }
 }
@@ -144,10 +146,7 @@ cpp_ptr<cpp_enum> cpp_enum::parse(translation_unit& tu, cpp_cursor cur, const cp
     detail::skip_attribute(stream, cur);
     detail::skip(stream, cur, name.c_str());
 
-    auto is_definition   = false;
-    auto underlying_name = parse_underlying_type(stream, is_definition);
-    if (!is_definition)
-        return nullptr;
+    auto underlying_name = parse_underlying_type(stream);
 
     auto underlying_type = clang_getEnumDeclIntegerType(cur);
     return detail::make_cpp_ptr<cpp_enum>(cur, parent,

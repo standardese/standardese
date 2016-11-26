@@ -29,11 +29,12 @@ namespace
 
     auto standards_initializer = (init_standards(), 0);
 
-    const char* flags[int(compile_flag::count)];
+    const char* flags[int(compile_flag::count)] = {};
 
     void init_flags()
     {
-        flags[int(compile_flag::ms_extensions)] = "-fms-extensions";
+        flags[int(compile_flag::ms_extensions)]    = "-fms-extensions";
+        flags[int(compile_flag::ms_compatibility)] = "-fms-compatibility";
     }
 
     auto flags_initializer = (init_flags(), 0);
@@ -130,10 +131,16 @@ namespace
 
 #define STANDARDESE_DETAIL_STRINGIFY_IMPL(x) #x
 #define STANDARDESE_DETAIL_STRINGIFY(x) STANDARDESE_DETAIL_STRINGIFY_IMPL(x)
+
+    std::string get_clang_binary_default()
+    {
+        return unquote(STANDARDESE_DETAIL_STRINGIFY(CLANG_BINARY));
+    }
 }
 
 compile_config::compile_config(cpp_standard standard, string commands_dir)
-: flags_{"-x", "c++", "-I", unquote(STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR))}
+: flags_{"-x", "c++", "-I", unquote(STANDARDESE_DETAIL_STRINGIFY(LIBCLANG_SYSTEM_INCLUDE_DIR))},
+  clang_binary_(get_clang_binary_default())
 {
     (void)standards_initializer;
 
@@ -148,11 +155,6 @@ compile_config::compile_config(cpp_standard standard, string commands_dir)
 
     if (standard != cpp_standard::count)
         flags_.push_back(standards[int(standard)]);
-
-#ifdef _MSC_VER
-    // automatically enable MS extensions on Windows builds
-    set_flag(compile_flag::ms_extensions);
-#endif
 }
 
 void compile_config::add_macro_definition(string def)
@@ -175,7 +177,15 @@ void compile_config::add_include(string path)
 
 void compile_config::set_flag(compile_flag f)
 {
-    flags_.push_back(flags[int(f)]);
+    auto str = flags[int(f)];
+    assert(str);
+    flags_.push_back(str);
+}
+
+void compile_config::set_msvc_compatibility_version(unsigned version)
+{
+    if (version != 0u)
+        flags_.push_back(fmt::format("-fms-compatibility-version={}", version));
 }
 
 std::vector<const char*> compile_config::get_flags() const
@@ -212,6 +222,11 @@ comment_config::comment_config() : cmd_char_('\\')
 
     STANDARDESE_DETAIL_SET(exclude)
     STANDARDESE_DETAIL_SET(unique_name)
+    STANDARDESE_DETAIL_SET(synopsis)
+
+    STANDARDESE_DETAIL_SET(group)
+    STANDARDESE_DETAIL_SET(module)
+
     STANDARDESE_DETAIL_SET(entity)
     STANDARDESE_DETAIL_SET(file)
     STANDARDESE_DETAIL_SET(param)
@@ -254,7 +269,8 @@ void comment_config::set_command(unsigned t, std::string command)
 output_config::output_config()
 : section_names_(std::size_t(section_type::count)),
   hidden_name_("implementation-defined"),
-  tab_width_(4u)
+  tab_width_(4u),
+  flags_(0u)
 {
 #define STANDARDESE_DETAIL_SET(type, name) section_names_[unsigned(section_type::type)] = name;
 

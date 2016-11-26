@@ -9,7 +9,7 @@
 
 namespace standardese
 {
-    enum cpp_access_specifier_t
+    enum cpp_access_specifier_t : int
     {
         cpp_private,
         cpp_protected,

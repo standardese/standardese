@@ -17,7 +17,8 @@
 #include <standardese/config.hpp>
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_entity_registry.hpp>
-#include <standardese/preprocessor.hpp>
+#include <standardese/cpp_preprocessor.hpp>
+#include <standardese/template_processor.hpp>
 
 #if CINDEX_VERSION_MAJOR != 0
 #error "require libclang version 0.x"
@@ -65,8 +66,6 @@ namespace standardese
     class parser
     {
     public:
-        parser();
-
         explicit parser(std::shared_ptr<spdlog::logger> logger);
 
         parser(parser&&)      = delete;
@@ -116,6 +115,16 @@ namespace standardese
             return output_;
         }
 
+        template_config& get_template_config() STANDARDESE_NOEXCEPT
+        {
+            return template_;
+        }
+
+        const template_config& get_template_config() const STANDARDESE_NOEXCEPT
+        {
+            return template_;
+        }
+
         preprocessor& get_preprocessor() STANDARDESE_NOEXCEPT
         {
             return preprocessor_;
@@ -124,6 +133,11 @@ namespace standardese
         const preprocessor& get_preprocessor() const STANDARDESE_NOEXCEPT
         {
             return preprocessor_;
+        }
+
+        CXIndex get_cxindex() const STANDARDESE_NOEXCEPT
+        {
+            return index_.get();
         }
 
     private:
@@ -135,8 +149,9 @@ namespace standardese
         comment_registry    comment_registry_;
         cpp_entity_registry entity_registry_;
 
-        comment_config comment_;
-        output_config  output_;
+        comment_config  comment_;
+        output_config   output_;
+        template_config template_;
 
         preprocessor preprocessor_;
 

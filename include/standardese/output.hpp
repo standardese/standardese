@@ -14,6 +14,7 @@
 #include <standardese/output_format.hpp>
 #include <standardese/output_stream.hpp>
 #include <standardese/string.hpp>
+#include <standardese/template_processor.hpp>
 
 namespace spdlog
 {
@@ -64,6 +65,13 @@ namespace standardese
             stream_.remove_trailing_line();
         }
 
+        code_block_writer& fill(std::size_t size, char c)
+        {
+            for (std::size_t i = 0u; i != size; ++i)
+                stream_.write_char(c);
+            return *this;
+        }
+
         code_block_writer& operator<<(const char* str)
         {
             stream_.write_str(str, std::strlen(str));
@@ -88,12 +96,8 @@ namespace standardese
             return *this;
         }
 
-        code_block_writer& operator<<(long long value)
-        {
-            return *this << std::to_string(value);
-        }
-
-        code_block_writer& operator<<(unsigned long long value)
+        template <typename T, typename = typename std::enable_if<std::is_integral<T>::value>::type>
+        code_block_writer& operator<<(T value)
         {
             return *this << std::to_string(value);
         }
@@ -117,19 +121,43 @@ namespace standardese
 
     class md_document;
     class index;
+    class linker;
+    struct documentation;
+    class doc_entity;
 
     using path = std::string;
+
+    void normalize_urls(const index& idx, md_container& doc,
+                        const doc_entity* default_context = nullptr);
+
+    struct raw_document
+    {
+        path        file_name;
+        path        file_extension;
+        std::string text;
+
+        raw_document() = default;
+
+        raw_document(path file_name, std::string text);
+    };
 
     class output
     {
     public:
-        output(const index& i, path prefix, output_format_base& format)
-        : prefix_(std::move(prefix)), format_(&format), index_(&i)
+        output(const parser& p, const index& i, path prefix, output_format_base& format)
+        : prefix_(std::move(prefix)), format_(&format), parser_(&p), index_(&i)
         {
         }
 
         void render(const std::shared_ptr<spdlog::logger>& logger, const md_document& document,
                     const char* output_extension = nullptr);
+
+        void render_template(const std::shared_ptr<spdlog::logger>& logger,
+                             const template_file& templ, const documentation& doc,
+                             const char* output_extension);
+
+        void render_raw(const std::shared_ptr<spdlog::logger>& logger,
+                        const raw_document&                    document);
 
         output_format_base& get_format() STANDARDESE_NOEXCEPT
         {
@@ -144,6 +172,7 @@ namespace standardese
     private:
         path                prefix_;
         output_format_base* format_;
+        const parser*       parser_;
         const index*        index_;
     };
 } // namespace standardese

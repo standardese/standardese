@@ -2,9 +2,11 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
-#include <standardese/preprocessor.hpp>
+#include <standardese/cpp_preprocessor.hpp>
 
 #include <catch.hpp>
+
+#include <standardese/doc_entity.hpp>
 
 #include "test_parser.hpp"
 
@@ -12,7 +14,7 @@ using namespace standardese;
 
 TEST_CASE("cpp_macro_definition", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         #include <iostream>
@@ -80,7 +82,7 @@ TEST_CASE("cpp_macro_definition", "[cpp]")
             REQUIRE(macro.get_replacement() == "0");
         }
         else if (e.get_name() == "test")
-            REQUIRE(doc_entity(p, e, "").has_comment());
+            REQUIRE(p.get_comment_registry().lookup_comment(p.get_entity_registry(), e) != nullptr);
         else
             REQUIRE(false);
     }

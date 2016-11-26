@@ -38,6 +38,12 @@ namespace standardese
         }
     };
 
+    class process_error : public std::runtime_error
+    {
+    public:
+        process_error(std::string cmd, int exit_code);
+    };
+
     struct source_location
     {
         std::string entity_name, file_name;

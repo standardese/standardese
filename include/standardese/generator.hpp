@@ -5,8 +5,10 @@
 #ifndef STANDARDESE_GENERATOR_HPP_INCLUDED
 #define STANDARDESE_GENERATOR_HPP_INCLUDED
 
-#include <standardese/md_entity.hpp>
-#include <standardese/synopsis.hpp>
+#include <vector>
+
+#include <standardese/doc_entity.hpp>
+#include <standardese/md_custom.hpp>
 #include <standardese/translation_unit.hpp>
 
 namespace standardese
@@ -14,51 +16,74 @@ namespace standardese
     class parser;
     class index;
 
-    class md_document final : public md_container
+    struct documentation
     {
-    public:
-        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        doc_ptr<doc_entity> file;
+        md_ptr<md_document> document;
+
+        documentation() = default;
+
+        documentation(doc_ptr<doc_entity> f, md_ptr<md_document> doc)
+        : file(std::move(f)), document(std::move(doc))
         {
-            return md_entity::document_t;
+        }
+    };
+
+    documentation generate_doc_file(const parser& p, const index& i, const cpp_file& f,
+                                    std::string name);
+
+    class doc_index final : public doc_entity
+    {
+    protected:
+        void do_generate_documentation(const parser&, const index&, md_document& doc,
+                                       unsigned) const override
+        {
+            for (auto& child : *doc_)
+                doc.add_entity(child.clone(doc));
         }
 
-        static md_ptr<md_document> make(std::string name);
-
-        md_entity_ptr clone() const
+        void do_generate_synopsis(const parser&, code_block_writer&, bool) const override
         {
-            return do_clone(nullptr);
         }
 
-        const std::string& get_output_name() const STANDARDESE_NOEXCEPT
+    private:
+        doc_index(md_document& doc, std::string name)
+        : doc_entity(doc_entity::index_t, nullptr, nullptr), name_(std::move(name)), doc_(&doc)
+        {
+        }
+
+        cpp_name do_get_name() const override
         {
             return name_;
         }
 
-    protected:
-        md_entity_ptr do_clone(const md_entity* parent) const override;
-
-    private:
-        md_document(cmark_node* node, std::string name)
-        : md_container(get_entity_type(), node), name_(std::move(name))
+        cpp_name do_get_unique_name() const override
         {
+            return name_;
         }
 
-        std::string name_;
+        cpp_name do_get_index_name(bool) const override
+        {
+            return name_;
+        }
 
-        friend detail::md_ptr_access;
+        cpp_entity::type do_get_cpp_entity_type() const STANDARDESE_NOEXCEPT override
+        {
+            return cpp_entity::invalid_t;
+        }
+
+        std::string  name_;
+        md_document* doc_;
+
+        friend detail::doc_ptr_access;
     };
 
-    const char* get_entity_type_spelling(cpp_entity::type t);
+    documentation generate_file_index(index& i, std::string name = "standardese_files");
 
-    void generate_doc_entity(const parser& p, const index& i, md_document& document, unsigned level,
-                             const doc_entity& e);
+    documentation generate_entity_index(index& i, std::string name = "standardese_entities");
 
-    md_ptr<md_document> generate_doc_file(const parser& p, const index& i, const cpp_file& f,
-                                          std::string name);
-
-    md_ptr<md_document> generate_file_index(index& i, std::string name = "standardese_files");
-
-    md_ptr<md_document> generate_entity_index(index& i, std::string name = "standardese_entities");
+    documentation generate_module_index(const parser& p, index& i,
+                                        std::string name = "standardese_modules");
 } // namespace standardese
 
 #endif // STANDARDESE_GENERATOR_HPP_INCLUDED

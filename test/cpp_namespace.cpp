@@ -15,7 +15,7 @@ using namespace standardese;
 
 TEST_CASE("cpp_language_linkage", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
             /// a
@@ -77,7 +77,7 @@ TEST_CASE("cpp_language_linkage", "[cpp]")
 
 TEST_CASE("cpp_namespace", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     SECTION("basic parsing")
     {
@@ -162,7 +162,7 @@ TEST_CASE("cpp_namespace", "[cpp]")
 
 TEST_CASE("cpp_namespace_alias", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         namespace foo {}
@@ -272,7 +272,7 @@ TEST_CASE("cpp_namespace_alias", "[cpp]")
 
 TEST_CASE("cpp_using_directive", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         namespace foo {}
@@ -356,7 +356,7 @@ TEST_CASE("cpp_using_directive", "[cpp]")
 
 TEST_CASE("cpp_using_declaration", "[cpp]")
 {
-    parser p;
+    parser p(test_logger);
 
     auto code = R"(
         namespace ns

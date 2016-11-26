@@ -50,7 +50,9 @@ namespace
 
         if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl)
         {
-            detail::skip(stream, cur, {"using", name.c_str(), "="});
+            detail::skip(stream, cur, {"using", name.c_str()});
+            detail::skip_attribute(stream, cur);
+            detail::skip(stream, cur, "=");
 
             while (stream.peek().get_value() != ";")
             {

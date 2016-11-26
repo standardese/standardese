@@ -13,6 +13,8 @@
 
 namespace standardese
 {
+    class doc_entity;
+
     class md_comment final : public md_container
     {
     public:
@@ -53,11 +55,28 @@ namespace standardese
             return md_ptr<md_comment>(static_cast<md_comment*>(entity.release()));
         }
 
+        void set_entity(const doc_entity& entity) const STANDARDESE_NOEXCEPT
+        {
+            entity_ = &entity;
+        }
+
+        bool has_entity() const STANDARDESE_NOEXCEPT
+        {
+            return entity_ != nullptr;
+        }
+
+        const doc_entity& get_entity() const STANDARDESE_NOEXCEPT
+        {
+            return *entity_;
+        }
+
     protected:
         md_entity_ptr do_clone(const md_entity* parent) const override;
 
     private:
         md_comment();
+
+        mutable const doc_entity* entity_;
 
         friend detail::md_ptr_access;
     };
@@ -161,27 +180,12 @@ namespace standardese
     class comment
     {
     public:
-        comment() : content_(md_comment::make()), excluded_(false)
+        comment() : content_(md_comment::make()), group_id_(0u), excluded_(false)
         {
             assert(content_);
         }
 
         bool empty() const STANDARDESE_NOEXCEPT;
-
-        bool has_unique_name_override() const STANDARDESE_NOEXCEPT
-        {
-            return !get_unique_name_override().empty();
-        }
-
-        const std::string& get_unique_name_override() const STANDARDESE_NOEXCEPT
-        {
-            return unique_name_override_;
-        }
-
-        void set_unique_name_override(std::string name)
-        {
-            unique_name_override_ = std::move(name);
-        }
 
         const md_comment& get_content() const STANDARDESE_NOEXCEPT
         {
@@ -198,6 +202,66 @@ namespace standardese
             content_ = std::move(content);
         }
 
+        bool has_unique_name_override() const STANDARDESE_NOEXCEPT
+        {
+            return !get_unique_name_override().empty();
+        }
+
+        const std::string& get_unique_name_override() const STANDARDESE_NOEXCEPT
+        {
+            return unique_name_override_;
+        }
+
+        void set_unique_name_override(std::string name)
+        {
+            unique_name_override_ = std::move(name);
+        }
+
+        bool has_synopsis_override() const STANDARDESE_NOEXCEPT
+        {
+            return !synopsis_override_.empty();
+        }
+
+        const std::string& get_synopsis_override() const STANDARDESE_NOEXCEPT
+        {
+            return synopsis_override_;
+        }
+
+        void set_synopsis_override(std::string synopsis)
+        {
+            synopsis_override_ = std::move(synopsis);
+        }
+
+        bool in_module() const STANDARDESE_NOEXCEPT
+        {
+            return !module_.empty();
+        }
+
+        const std::string& get_module() const STANDARDESE_NOEXCEPT
+        {
+            return module_;
+        }
+
+        void set_module(std::string module)
+        {
+            module_ = std::move(module);
+        }
+
+        bool in_member_group() const STANDARDESE_NOEXCEPT
+        {
+            return group_id_ != 0u;
+        }
+
+        std::size_t member_group_id() const STANDARDESE_NOEXCEPT
+        {
+            return group_id_;
+        }
+
+        void add_to_member_group(std::size_t group_id)
+        {
+            group_id_ = group_id;
+        }
+
         bool is_excluded() const STANDARDESE_NOEXCEPT
         {
             return excluded_;
@@ -210,7 +274,10 @@ namespace standardese
 
     private:
         std::string        unique_name_override_;
+        std::string        synopsis_override_;
+        std::string        module_;
         md_ptr<md_comment> content_;
+        std::size_t        group_id_;
         bool               excluded_;
     };
 
@@ -224,6 +291,8 @@ namespace standardese
 
         const comment* lookup_comment(const cpp_entity_registry& registry,
                                       const cpp_entity&          e) const;
+
+        const comment* lookup_comment(const std::string& module) const;
 
     private:
         mutable std::mutex mutex_;

@@ -31,6 +31,66 @@ namespace standardese
 
         friend detail::md_ptr_access;
     };
+
+    class md_inline_documentation final : public md_container
+    {
+    public:
+        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return md_entity::inline_documentation_t;
+        }
+
+        static md_ptr<md_inline_documentation> make(const md_entity&   parent,
+                                                    const std::string& heading);
+
+        // adds the contents of all paragraphs in container
+        // returns false if any child was not a paragraph
+        bool add_item(const char* name, const char* id, const md_container& container);
+
+        bool empty() const STANDARDESE_NOEXCEPT;
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
+    private:
+        md_inline_documentation(const md_entity& parent);
+
+        friend detail::md_ptr_access;
+    };
+
+    class md_document final : public md_container
+    {
+    public:
+        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return md_entity::document_t;
+        }
+
+        static md_ptr<md_document> make(std::string name);
+
+        md_ptr<md_document> clone() const
+        {
+            return md_ptr<md_document>(static_cast<md_document*>(do_clone(nullptr).release()));
+        }
+
+        const std::string& get_output_name() const STANDARDESE_NOEXCEPT
+        {
+            return name_;
+        }
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
+    private:
+        md_document(cmark_node* node, std::string name)
+        : md_container(get_entity_type(), node), name_(std::move(name))
+        {
+        }
+
+        std::string name_;
+
+        friend detail::md_ptr_access;
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_MD_CUSTOM_HPP_INCLUDED

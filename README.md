@@ -4,9 +4,6 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/1aw8ml5lawu4mtyv/branch/master?svg=true)](https://ci.appveyor.com/project/foonathan/standardese/branch/master)
 [![Join the chat at https://gitter.im/foonathan/standardese](https://badges.gitter.im/foonathan/standardese.svg)](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-> Note: This is an early prototype and highly WIP.
-> Many features are missing and there are probably bugs everywhere.
-
 Standardese aims to be a nextgen [Doxygen](http://doxygen.org).
 It consists of two parts: a library and a tool.
 
@@ -14,7 +11,7 @@ The library aims at becoming *the* documentation frontend that can be easily ext
 It parses C++ code with the help of [libclang](http://clang.llvm.org/doxygen/group__CINDEX.html) and provides access to it.
 
 The tool drives the library to generate documentation for user-specified files.
-It currently only supports Markdown as an output format but might be extended in the future.
+It supports a couple of output formats including Markdown and HTML as well as experimental Latex and Man pages.
 
 Read more in the introductory [blog post](http://foonathan.github.io/blog/2016/05/06/standardese-nextgen-doxygen.html).
 
@@ -29,7 +26,6 @@ namespace std
 {
 
     /// \effects Exchanges values stored in two locations.
-    ///
     /// \requires Type `T` shall be `MoveConstructible` and `MoveAssignable`.
     template <class T>
     void swap(T &a, T &b) noexcept(is_nothrow_move_constructible<T>::value &&
@@ -76,7 +72,7 @@ Standardese aims to provide a documentation in a similar way to the C++ standard
 This means that it provides commands to introduce so called *sections* in the documentation.
 The current sections are all the C++ standard lists in `[structure.specifications]/3` like `\effects`, `\requires`, `\returns` and `\throws`.
 
-For a more complete example check out [this gist](https://gist.github.com/foonathan/14e163b76804b6775d780eabcbaa6a51).
+For a more complete example check out [my Meeting C++ Lightning Talk](https://www.youtube.com/watch?v=zoSGHMi-0lE).
 
 ## Installation
 
@@ -88,7 +84,10 @@ If it isn't found, set the CMake variable `LIBCLANG_INCLUDE_DIR` to the folder w
 `LIBCLANG_LIBRARY` to the library binary and `LIBCLANG_SYSTEM_INCLUDE_DIR` where the system include files are located,
 under a normal (Linux) installation it is `/usr/lib/clang/<version>/include`.
 
-The library requires Boost.Wave (at least 1.55) and the tool requires Boost.ProgramOptions and Boost.Filesystem.
+It also requires a path to the `clang++` binary.
+If that isn't found while building, you need to specify it with the option `compilation.clang_binary`.
+
+The library requires Boost.Filesystem (at least 1.55) and the tool requires Boost.ProgramOptions.
 By default, Boost libraries are linked dynamically (except for Boost.ProgramOptions which is always linked statically),
 but if you wish to link them statically, just add `-DBoost_USE_STATIC_LIBS=ON` to the cmake command.
 
@@ -133,6 +132,7 @@ Basic usage is: `standardese [options] inputs`
 
 The inputs can be both files or directories, in case of directory each file is documented, unless an input option is specified (see below).
 The tool will currently generate a corresponding Markdown file with the documentation for each file it gets as input.
+Files that are not source files (determined by the `input.source_ext` option), will be treated as template files (see below).
 
 > Note: You only need and should give header files to standardese.
 > The source files are unnecessary.
@@ -155,6 +155,9 @@ standardese will pass *all* the flags of all files to libclang.
 
 * The `comment.*` options are related to the syntax of the documentation markup.
 You can set both the leading character and the name for each command, for example.
+
+* The `template.*` options are related to the syntax of the template markup.
+You can set both the delimiters and the name for each command, for example.
 
 * The `output.*` options are related to the output generation.
 It contains an option to set the human readable name of a section, for example.
@@ -225,14 +228,20 @@ Inside the comment you can use arbitrary\* Markdown\* in the documentation comme
 > Inline HTML that isn't a raw HTML block will be treated as literal text.
 > This allows writing `vector<T>` without markup or escaping in the comment, for example.
 
+* Note: CommonMark allows hard line breaks with a backslash at the end of the line.
+But the C preprocessor uses a backslash to combine multiple lines into one.
+For that reason you cannot use a backslash there,
+instead you can use a forward slash. *
+
 #### Linking
 
 To link to an entity, use the syntax `[link-text](<> "unique-name")` (a CommonMark link with empty URL and a title of `unique-name`). If you don't want a special `link-text`, this can be shortened to `[unique-name]()` (a CommonMark link with empty URL and the name of an entity as text).
+You can also use an URL of the following form `[link-text](standardese://unique-name/ "optional-title")` (a normal CommonMark link with the `standardese://` protocol, the '/' at the end is important).
 In either case `standardese` will insert the correct URL by searching for the entity with the given `unique-name`.
 
 The `unique-name` of an entity is the name with all scopes, i.e. `foo::bar::baz`.
 
-* For templates you need to append all parameters, i.e. `foo<A, B, C>`.
+* For templates (but not function templates) you need to append all parameters, i.e. `foo<A, B, C>`.
 
 * For functions you need to append the signature (parameter types and cv and ref qualifier), i.e. `func()`, `bar(int,char)` or `type::foo() const &&`. If the signature is `()`, you can omit it.
 
@@ -249,6 +258,45 @@ Because it is sometimes long and ugly, you can override the unique name via the 
 
 You can also use a short `unique-name` if there aren't multiple entities resolved to the same short name.
 The short name is the `unique-name` but without a signature, i.e. for `foo<T>::func<U>(int) const`, the short name is `foo<T>::func<U>`.
+
+##### Name lookup
+
+If you prefix a unique name with `*` or `?`, this will do a name lookup, looking for the entity.
+This only works inside a comment associated with an entity, not in template files etc.
+
+It does a similar search to the actual name lookup in C++:
+It starts at the associated entity and appends its scope to the partial unique name given,
+going to the next higher entity if no matching entity can be found, etc.
+
+For example:
+
+```cpp
+/// a.
+struct a {};
+
+namespace ns
+{
+    /// ns::a.
+    struct a {};
+    
+    /// [This will link to ::a, no lookup here](standardese://a/).
+    /// [This will link to ns::a](standardese://*a/).
+    void foo();
+    
+    /// b
+    template <typename T>
+    struct b
+    {
+        /// c.      
+        void c();
+        
+        /// [This will link to ns::b<T>::c()](standardese://*c/).
+        void foo();
+    };
+}
+```
+
+##### External links
 
 You can also link to external documentations via the tool option `--comment.external_doc prefix=url`.
 All `unique-name`s starting with `prefix` will be linked to the `url`.
@@ -283,13 +331,59 @@ It is as if the entity never existed in the first place.
 void bar(int a, int c);
 ```
 
-* `entity {unique-name}` - In a comment without a corresponding entity, names the entity to document:
+* `synopsis {string}` - Overrides the synopsis in the output.
+You can pass any string that will be rendered instead of the actual synopsis.
+
+* `group {name}` - Add the entity to a member group.
+A member group consists of multiple entities that are direct members of the same entity (i.e. class, file, namespace,...) which will be grouped together in the output.
+For example:
+```cpp
+/// \group foo
+/// This is in the group `foo`.
+/// Because this is the first entity in the group, it will be the "master".
+/// the group comment will be this comment, the group unique name will be this unique name, ...
+void func();
+
+/// \group foo
+/// This entity will be added to the same group.
+/// As it is not the first occurence of the group,
+/// this comment here will be ignored.
+/// But you can still use commands to modify this entity.
+void func(int);
+
+/// This entity is not part of the group.
+void func(char);
+
+/// \group foo
+/// But this one is (again, comment ignored).
+void func(short);
+```
+This will write the synopsis of all group members together and use the documentation text of the first entity.
+The group name only needs to be unique for one given scope.
+
+* `module {name}` - Add the entity to a module.
+A module is just a way to group entities together,
+it will be inherited by all children.
+There is no need to define a module, but if you do,
+simply use the command in first place of a module and you can add documentation for it:
+```cpp
+/// This is an entity in the module 'bar'.
+/// \module bar
+void foo();
+
+/// \module bar
+/// This is the documentation for the module 'bar',
+/// because the command was the first one.
+```
+
+* `entity {unique-name}` - If put in the first place of a comment, names the entity to document,
+this allows "remote" comments:
 ```cpp
 void foo();
 
+/// \entity foo
 /// This comment has no corresponding entity.
 /// But the command specifies the entity it will belong to.
-/// \entity foo
 ```
 It also mixes with `unique_name` as you might expect.
 
@@ -304,7 +398,7 @@ There are two special sections, `brief` and `details`.
 They are not labeled in the output.
 
 Unlike for a *command* text following a *section* is included in the output.
-A *section* is active for the rest of the paragraph, a hard line break or until another special command is ecnountered.
+A *section* is active for the rest of the paragraph, a hard line break or until another special command is encountered.
 Any `brief` sections will be merged together automatically.
 
 If you don't specify a section for a paragraph, the first paragraph will be implictly `brief`, all others implictly `details`.
@@ -315,17 +409,12 @@ If you don't specify a section for a paragraph, the first paragraph will be impl
 /// This is implictly details.
 /// \effects This is effects.
 /// This is still effects.
-/// \returns This is returns.\ 
+/// \returns This is returns./
 /// Due to the hard break this is details again.
 ///
 /// \notes This is notes.
 /// \notes This is a different notes.
 ```
-
-* Note: if the last character of any line in the source code - even comments - is a backslash,
-the C preprocessor will merge it with the following line.
-To prevent that, you need to put whitespace after the backslash.
-CommonMark will still treat it as a hard line break, but the preprocessor won't. *
 
 ---
 
@@ -357,6 +446,88 @@ For example:
 ///
 /// The `\exclude` is part of the documentation for `bar`.
 void func(int foo, int bar);
+```
+
+### Template syntax overview
+
+If you pass a file that is not a source file, it will be treated as template file and processed.
+This allows advanced control over the output or writing additional documentation files.
+
+standardese will read the file and replace two things:
+
+* URLs with the `standardese://` protocol will be converted to the correct URL for the given entity.
+This allows referring to documentation entities from other files without manually having to deal with the URLs.
+
+* Special commands inside two curly braces by default ('{{ … }}').
+
+> Note: standardese is dumb and does not do any other formatting with the template file otherwise.
+> Most importantly, it will create lot of unnecessary empty lines,
+> so does not really work with formats where newlines are important.
+
+The special commands allow querying standardese for information.
+It will look for delimiters and commands starting with `standardese_`.
+All other commands will be silently ignored.
+
+> This allows mixing "normal" template syntax with standardese syntax.
+> Process the file with standardese, then your template engine.
+
+There are the following commands available,
+`entity` always means the unique name of an entity here.
+
+* `standardese_doc <entity> <format>`: Will be replaced with the documentation output for `entity` in the given `format`.
+For example `{{ standardese_doc file.hpp html }}` will be replaced with the same HTML standardese will generate for the header file `file.hpp`.
+
+* `standardese_doc_text <entity> <format>`: Will be replaced with the comment of `entity` in the given format.
+
+* `standardese_doc_synopsis <entity> <format>`: Will be replaced with the synopsis of `entity` in the given format.
+
+* `standardese_doc_anchor <unique_name> <format>`: If `unique_name` refers to an existing entity, all links to that entity will link to the anchor in the template file generated in the given format.
+Otherwise it will create a new entity named `unique_name` you can link to throughout the documentation.
+
+* `standardese_name/index_name/unique_name <entity>`: Will be replaced with the name/index name/unique name of the given entity (just a raw character sequence without formatting).
+
+* `standardese_module`: Will be replaced by the module name of the given entity (just a raw character sequence without formatting).
+
+* `standardese_for <variable> <entity>`: Will loop over each child of `entity` and copy the processed next block, the unique name of the current child is stored in the given `variable`. For example, this will print the names of all children of an entity:
+```
+{{ standardese_for $child some_entity }}
+    {{ standardese_name $child }}
+{{ standardese_end }}
+```
+
+* `standardese_if/else_if/else <entity> <op> [args...]`: Will ignore a block if a condition is not fulfilled. See below for a list of conditions. For example, this will do something different depending on the unique name of an entity:
+```
+{{ standardese_if $entity name a }}
+    Name is a!
+{{ standardese_else_if $entity name b }}
+    Name is b!
+{{ standardese_else }}
+    Name is something else.
+{{ standardese_end }}
+```
+
+* `standardese_end`: Ends the block that was started last.
+
+There are the following if operations available:
+
+* `<entity> name <name>`: Checks if `entity` has the given unique name.
+
+* `<child> first_child <parent>`: Checks if `child` is the first child of `parent`.
+
+* `<entity> has_children`: Checks if `entity` has children.
+
+* `<entity> inline_entity`: Checks if `entity` is an inline entity (parameter, base class, enum value,...) and inline entities will be shown inline in the documentation output (`output.inline_doc`).
+
+* `<entity> member_group`: Checks if `entity` refers to a member group.
+
+* `<entity> index`: Check if `entity` refers to an index file
+
+You can also provide a default template that can be used to customize the output globally.
+Then there are two special variables available: `$file`, which refers to the current file, and `$format`, which refers to the set output format.
+The most basic template will just generate the output as standardese would do normally:
+
+```cpp
+{{ standardese_doc $file $format }}
 ```
 
 ## Acknowledgements

@@ -9,22 +9,6 @@
 
 using namespace standardese;
 
-CXFile detail::get_range(cpp_cursor cur, unsigned& begin_offset, unsigned& end_offset)
-{
-    auto source = clang_getCursorExtent(cur);
-    auto begin  = clang_getRangeStart(source);
-    auto end    = clang_getRangeEnd(source);
-
-    // translate location into offset and file
-    CXFile file  = nullptr;
-    begin_offset = 0u;
-    end_offset   = 0u;
-    clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
-    clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
-
-    return file;
-}
-
 namespace
 {
     unsigned get_token_offset(CXTranslationUnit tu, CXToken token)
@@ -74,8 +58,8 @@ namespace
         return spelling;
     }
 
-    CXSourceRange get_extent(const translation_unit& tu, cpp_cursor cur, unsigned& end_offset,
-                             const char*& end_token)
+    CXSourceRange get_extent(CXTranslationUnit tu, CXFile file, cpp_cursor cur,
+                             unsigned& end_offset, const char*& end_token)
     {
         end_token = ";";
 
@@ -103,13 +87,13 @@ namespace
                 return CXChildVisit_Continue;
             });
 
-            if (!range_shrunk && get_token_after(tu.get_cxunit(), tu.get_cxfile(), end) != ";")
+            if (!range_shrunk && get_token_after(tu, file, end) != ";")
             {
                 // we do not have a body, but it is not a declaration either
                 do
                 {
-                    end = get_next_location(tu.get_cxunit(), tu.get_cxfile(), end);
-                } while (get_token_after(tu.get_cxunit(), tu.get_cxfile(), end) != ";");
+                    end = get_next_location(tu, file, end);
+                } while (get_token_after(tu, file, end) != ";");
             }
         }
         else if (clang_getCursorKind(cur) == CXCursor_TemplateTypeParameter
@@ -118,16 +102,16 @@ namespace
                  || clang_getCursorKind(cur) == CXCursor_ParmDecl)
         {
             if (clang_getCursorKind(cur) == CXCursor_TemplateTypeParameter
-                && get_token_after(tu.get_cxunit(), tu.get_cxfile(), end) == "(")
+                && get_token_after(tu, file, end) == "(")
             {
                 // if you have decltype as default argument for a type template parameter
-                // libclang doesn't include the arguments
-                auto next = get_next_location(tu.get_cxunit(), tu.get_cxfile(), end);
+                // libclang doesn't include the parameters
+                auto next = get_next_location(tu, file, end);
                 auto prev = end;
                 for (auto paren_count = 1; paren_count != 0;
-                     next             = get_next_location(tu.get_cxunit(), tu.get_cxfile(), next))
+                     next             = get_next_location(tu, file, next))
                 {
-                    auto spelling = get_token_after(tu.get_cxunit(), tu.get_cxfile(), next);
+                    auto spelling = get_token_after(tu, file, next);
                     if (spelling == "(")
                         ++paren_count;
                     else if (spelling == ")")
@@ -142,14 +126,14 @@ namespace
                 range_shrunk = true;
         }
         else if (clang_getCursorKind(cur) == CXCursor_TypeAliasDecl
-                 && get_token_after(tu.get_cxunit(), tu.get_cxfile(), end) != ";")
+                 && get_token_after(tu, file, end) != ";")
         {
             // type alias tokens don't include everything
             do
             {
-                end = get_next_location(tu.get_cxunit(), tu.get_cxfile(), end);
-            } while (get_token_after(tu.get_cxunit(), tu.get_cxfile(), end) != ";");
-            end = get_next_location(tu.get_cxunit(), tu.get_cxfile(), end);
+                end = get_next_location(tu, file, end);
+            } while (get_token_after(tu, file, end) != ";");
+            end = get_next_location(tu, file, end);
         }
 
         clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
@@ -158,16 +142,49 @@ namespace
 
         return clang_getRange(begin, end);
     }
+
+    CXSourceRange get_extent(CXTranslationUnit tu, CXFile file, cpp_cursor cur)
+    {
+        unsigned    unused;
+        const char* unused2;
+        return get_extent(tu, file, cur, unused, unused2);
+    }
 }
 
-detail::tokenizer::tokenizer(const translation_unit& tu, cpp_cursor cur) : tu_(&tu)
+CXFile detail::get_range(const translation_unit& tu, cpp_cursor cur, unsigned& begin_offset,
+                         unsigned& end_offset)
 {
-    clang_tokenize(get_cxunit(), get_extent(tu, cur, end_offset_, end_), &tokens_, &no_tokens_);
+    auto source = get_extent(tu.get_cxunit(), tu.get_cxfile(), cur);
+    return get_range(source, begin_offset, end_offset);
+}
+
+CXFile detail::get_range(CXSourceRange extent, unsigned& begin_offset, unsigned& end_offset)
+{
+    auto begin = clang_getRangeStart(extent);
+    auto end   = clang_getRangeEnd(extent);
+
+    // translate location into offset and file
+    CXFile file  = nullptr;
+    begin_offset = 0u;
+    end_offset   = 0u;
+    clang_getSpellingLocation(begin, &file, nullptr, nullptr, &begin_offset);
+    clang_getSpellingLocation(end, nullptr, nullptr, nullptr, &end_offset);
+
+    return file;
+}
+
+detail::tokenizer::tokenizer(CXTranslationUnit tu, CXFile file, cpp_cursor cur)
+: tu_(tu), file_(file)
+{
+    clang_tokenize(get_cxunit(), get_extent(get_cxunit(), get_cxfile(), cur, end_offset_, end_),
+                   &tokens_, &no_tokens_);
+    assert(tokens_);
 }
 
 detail::tokenizer::~tokenizer() STANDARDESE_NOEXCEPT
 {
-    clang_disposeTokens(get_cxunit(), tokens_, no_tokens_);
+    if (tokens_)
+        clang_disposeTokens(get_cxunit(), tokens_, no_tokens_);
 }
 
 namespace
@@ -196,10 +213,10 @@ detail::token_iterator detail::tokenizer::end() const STANDARDESE_NOEXCEPT
 
 namespace
 {
-    CXSourceRange get_following_range(const translation_unit& tu, unsigned end_offset)
+    CXSourceRange get_following_range(CXTranslationUnit tu, CXFile file, unsigned end_offset)
     {
-        auto begin = clang_getLocationForOffset(tu.get_cxunit(), tu.get_cxfile(), end_offset + 1);
-        auto end   = clang_getLocationForOffset(tu.get_cxunit(), tu.get_cxfile(), end_offset + 2);
+        auto begin = clang_getLocationForOffset(tu, file, end_offset + 1);
+        auto end   = clang_getLocationForOffset(tu, file, end_offset + 2);
         return clang_getRange(begin, end);
     }
 }
@@ -208,7 +225,8 @@ bool detail::tokenizer::need_unmunch() const STANDARDESE_NOEXCEPT
 {
     CXToken* next_tokens;
     unsigned no;
-    clang_tokenize(get_cxunit(), get_following_range(*tu_, end_offset_), &next_tokens, &no);
+    clang_tokenize(get_cxunit(), get_following_range(get_cxunit(), get_cxfile(), end_offset_),
+                   &next_tokens, &no);
 
     assert(no >= 1);
     auto next_spelling = string(clang_getTokenSpelling(get_cxunit(), *next_tokens));
@@ -217,11 +235,6 @@ bool detail::tokenizer::need_unmunch() const STANDARDESE_NOEXCEPT
 
     clang_disposeTokens(get_cxunit(), next_tokens, no);
     return !valid_token;
-}
-
-CXTranslationUnit detail::tokenizer::get_cxunit() const STANDARDESE_NOEXCEPT
-{
-    return tu_->get_cxunit();
 }
 
 void detail::skip_offset(detail::token_stream& stream, unsigned offset)

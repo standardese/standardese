@@ -43,20 +43,7 @@ std::string detail::get_short_id(const std::string& id)
     return id.substr(0, open_paren) + id.substr(close_paren + 1);
 }
 
-std::string detail::escape_unique_name(const char* name)
-{
-    std::string result;
-    for (; *name; ++name)
-        if (*name == '<')
-            result += "__";
-        else if (*name == '>')
-            result += "__";
-        else
-            result += *name;
-    return result;
-}
-
-void index::register_entity(doc_entity entity) const
+void index::register_entity(const doc_entity& entity, std::string output_file) const
 {
     auto id       = detail::get_id(entity.get_unique_name().c_str());
     auto short_id = detail::get_short_id(id);
@@ -70,7 +57,7 @@ void index::register_entity(doc_entity entity) const
         auto iter = entities_.find(short_id);
         if (iter == entities_.end())
         {
-            auto res = entities_.emplace(std::move(short_id), std::make_pair(true, entity)).second;
+            auto res = entities_.emplace(std::move(short_id), std::make_pair(true, &entity)).second;
             assert(res);
             (void)res;
         }
@@ -80,95 +67,71 @@ void index::register_entity(doc_entity entity) const
     }
 
     // insert long id
-    auto pair = entities_.emplace(std::move(id), std::make_pair(false, entity));
+    auto pair = entities_.emplace(std::move(id), std::make_pair(false, &entity));
     if (!pair.second)
         throw std::logic_error(fmt::format("duplicate index registration of an entity named '{}'",
                                            entity.get_unique_name().c_str()));
-    else if (pair.first->second.second.get_entity_type() == cpp_entity::file_t)
+    else if (pair.first->second.second->get_cpp_entity_type() == cpp_entity::file_t)
     {
         using value_type = decltype(files_)::value_type;
         auto pos         = std::lower_bound(files_.begin(), files_.end(), pair.first,
                                     [](value_type a, value_type b) { return a->first < b->first; });
         files_.insert(pos, pair.first);
     }
+
+    if (entity.in_module())
+    {
+        auto pos = std::lower_bound(modules_.begin(), modules_.end(), entity.get_module());
+        modules_.insert(pos, entity.get_module());
+    }
+
+    linker_.register_entity(entity, std::move(output_file));
 }
 
 const doc_entity* index::try_lookup(const std::string& unique_name) const
 {
     std::lock_guard<std::mutex> lock(mutex_);
     auto                        iter = entities_.find(detail::get_id(unique_name));
-    return iter == entities_.end() ? nullptr : &iter->second.second;
+    return iter == entities_.end() ? nullptr : iter->second.second;
 }
 
 const doc_entity& index::lookup(const std::string& unique_name) const
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    return entities_.at(detail::get_id(unique_name)).second;
+    return *entities_.at(detail::get_id(unique_name)).second;
 }
 
-namespace
+const doc_entity* index::try_name_lookup(const doc_entity&  context,
+                                         const std::string& unique_name) const
 {
-    bool matches(const std::string& prefix, const std::string& unique_name)
+    if (unique_name.front() == '?' || unique_name.front() == '*')
     {
-        return unique_name.compare(0, prefix.size(), prefix) == 0;
-    }
+        // first try parameter/base
+        auto name =
+            std::string(context.get_unique_name().c_str()) + "." + (unique_name.c_str() + 1);
+        if (auto entity = try_lookup(name))
+            return entity;
 
-    bool is_valid_url(char c)
-    {
-        return std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~';
-    }
-
-    std::string url_encode(const std::string& url)
-    {
-        std::string result;
-
-        for (auto c : url)
+        // then look for other names
+        for (auto cur = &context; cur; cur = cur->has_parent() ? &cur->get_parent() : nullptr)
         {
-            if (is_valid_url(c))
-                result += c;
-            else
-            {
-                // escape character
-                result += '%';
-                result += fmt::format("{0:x}", int(c));
-            }
+            auto name =
+                std::string(cur->get_unique_name().c_str()) + "::" + (unique_name.c_str() + 1);
+            if (auto entity = try_lookup(name))
+                return entity;
         }
-
-        return result;
     }
 
-    std::string generate(const std::string& url, const std::string& unique_name)
-    {
-        std::string result;
-        for (auto iter = url.begin(); iter != url.end(); ++iter)
-        {
-            if (*iter == '$' && iter != std::prev(url.end()) && *++iter == '$')
-                // sequence of two dollar signs
-                result += url_encode(unique_name);
-            else
-                result += *iter;
-        }
-
-        return result;
-    }
+    return try_lookup(unique_name);
 }
 
-std::string index::get_url(const std::string& unique_name, const char* extension) const
+const doc_entity& index::name_lookup(const doc_entity&  context,
+                                     const std::string& unique_name) const
 {
-    auto entity = try_lookup(unique_name);
-    if (!entity)
-    {
-        for (auto& pair : external_)
-            if (matches(pair.first, unique_name))
-                return generate(pair.second, unique_name);
-        return "";
-    }
-
-    if (entity->get_entity_type() == cpp_entity::file_t)
-        return fmt::format("{}.{}", entity->get_output_name().c_str(), extension);
-    else
-        return fmt::format("{}.{}#{}", entity->get_output_name().c_str(), extension,
-                           detail::escape_unique_name(entity->get_unique_name().c_str()).c_str());
+    auto result = try_name_lookup(context, unique_name);
+    if (!result)
+        throw std::invalid_argument(fmt::format("unable to find entity named '{}'", unique_name));
+    return *result;
 }
 
 void index::namespace_member_impl(ns_member_cb cb, void* data)
@@ -178,18 +141,24 @@ void index::namespace_member_impl(ns_member_cb cb, void* data)
         auto& value = pair.second;
         if (value.first)
             continue; // ignore short names
-        auto& entity = value.second.get_cpp_entity();
-        if (entity.get_entity_type() == cpp_entity::namespace_t
-            || entity.get_entity_type() == cpp_entity::file_t)
+
+        auto& entity = *value.second;
+        if (entity.get_cpp_entity_type() == cpp_entity::namespace_t
+            || entity.get_cpp_entity_type() == cpp_entity::file_t)
             continue;
 
-        // use AST parent, we want the children of namespaces only
-        assert(entity.has_ast_parent());
-        auto& parent      = entity.get_ast_parent();
-        auto  parent_type = parent.get_entity_type();
+        assert(entity.has_parent());
+        auto* parent = &entity.get_parent();
+        if (parent->get_entity_type() == doc_entity::member_group_t)
+        {
+            assert(parent->has_parent());
+            parent = &parent->get_parent();
+        }
+
+        auto parent_type = parent->get_cpp_entity_type();
         if (parent_type == cpp_entity::namespace_t)
-            cb(static_cast<const cpp_namespace*>(&parent), value.second, data);
+            cb(parent, entity, data);
         else if (parent_type == cpp_entity::file_t)
-            cb(nullptr, value.second, data);
+            cb(nullptr, entity, data);
     }
 }

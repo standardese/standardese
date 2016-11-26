@@ -84,6 +84,24 @@ namespace standardese
         }
     };
 
+    enum cpp_operator_kind
+    {
+        cpp_operator_none,
+        cpp_operator,
+
+        cpp_assignment_operator,
+        cpp_copy_assignment_operator,
+        cpp_move_assignment_operator,
+
+        cpp_comparison_operator,
+        cpp_subscript_operator,
+        cpp_function_call_operator,
+        cpp_user_defined_literal,
+
+        cpp_output_operator,
+        cpp_input_operator
+    };
+
     // common stuff for all functions
     class cpp_function_base : public cpp_entity,
                               private cpp_entity_container<cpp_function_parameter>
@@ -142,6 +160,8 @@ namespace standardese
         virtual cpp_name get_signature() const = 0;
 
         bool is_templated() const STANDARDESE_NOEXCEPT;
+
+        cpp_operator_kind get_operator_kind() const;
 
     protected:
         cpp_function_base(cpp_entity::type t, cpp_cursor cur, const cpp_entity& parent,
@@ -349,6 +369,14 @@ namespace standardese
         friend detail::cpp_ptr_access;
     };
 
+    enum cpp_constructor_type
+    {
+        cpp_default_ctor,
+        cpp_copy_ctor,
+        cpp_move_ctor,
+        cpp_other_ctor
+    };
+
     class cpp_constructor final : public cpp_function_base
     {
     public:
@@ -367,6 +395,8 @@ namespace standardese
         {
             return signature_;
         }
+
+        cpp_constructor_type get_ctor_type() const;
 
     private:
         cpp_constructor(cpp_cursor cur, const cpp_entity& parent, cpp_function_info info);
@@ -414,18 +444,36 @@ namespace standardese
 
     namespace detail
     {
-        inline bool is_virtual(const cpp_entity& e)
+        inline cpp_virtual get_virtual(const cpp_entity& e)
         {
             if (e.get_entity_type() == cpp_entity::member_function_t)
-                return standardese::is_virtual(
-                    static_cast<const cpp_member_function&>(e).get_virtual());
+                return static_cast<const cpp_member_function&>(e).get_virtual();
             else if (e.get_entity_type() == cpp_entity::conversion_op_t)
-                return standardese::is_virtual(
-                    static_cast<const cpp_conversion_op&>(e).get_virtual());
+                return static_cast<const cpp_conversion_op&>(e).get_virtual();
             else if (e.get_entity_type() == cpp_entity::destructor_t)
-                return standardese::is_virtual(static_cast<const cpp_destructor&>(e).get_virtual());
+                return static_cast<const cpp_destructor&>(e).get_virtual();
 
-            return false;
+            return cpp_virtual_none;
+        }
+
+        inline cpp_ref_qualifier get_ref_qualifier(const cpp_entity& e)
+        {
+            if (e.get_entity_type() == cpp_entity::member_function_t)
+                return static_cast<const cpp_member_function&>(e).get_ref_qualifier();
+            else if (e.get_entity_type() == cpp_entity::conversion_op_t)
+                return static_cast<const cpp_conversion_op&>(e).get_ref_qualifier();
+
+            return cpp_ref_none;
+        }
+
+        inline cpp_cv get_cv(const cpp_entity& e)
+        {
+            if (e.get_entity_type() == cpp_entity::member_function_t)
+                return static_cast<const cpp_member_function&>(e).get_cv();
+            else if (e.get_entity_type() == cpp_entity::conversion_op_t)
+                return static_cast<const cpp_conversion_op&>(e).get_cv();
+
+            return cpp_cv_none;
         }
     } // namespace detail
 } // namespace standardese

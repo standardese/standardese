@@ -11,7 +11,7 @@
 
 #include <standardese/noexcept.hpp>
 #include <standardese/string.hpp>
-#include <standardese/synopsis.hpp>
+#include <standardese/cpp_entity_blacklist.hpp>
 
 namespace standardese
 {
@@ -28,6 +28,7 @@ namespace standardese
     /// Set of "special" libclang flags.
     enum class compile_flag
     {
+        ms_compatibility,
         ms_extensions,
         count,
     };
@@ -45,6 +46,19 @@ namespace standardese
 
         void set_flag(compile_flag f);
 
+        // major version number
+        void set_msvc_compatibility_version(unsigned version);
+
+        void set_clang_binary(std::string path)
+        {
+            clang_binary_ = std::move(path);
+        }
+
+        const std::string& get_clang_binary() const
+        {
+            return clang_binary_;
+        }
+
         std::vector<const char*> get_flags() const;
 
         std::vector<string>::const_iterator begin() const
@@ -59,6 +73,7 @@ namespace standardese
 
     private:
         std::vector<string> flags_;
+        std::string         clang_binary_;
     };
 
     enum class command_type : unsigned;
@@ -88,6 +103,14 @@ namespace standardese
     private:
         std::map<std::string, unsigned> commands_;
         char cmd_char_;
+    };
+
+    enum class output_flag : unsigned
+    {
+        inline_documentation   = 1,
+        show_modules           = 2,
+        show_macro_replacement = 4,
+        show_group_member_id   = 8
     };
 
     class output_config
@@ -132,11 +155,30 @@ namespace standardese
             return hidden_name_;
         }
 
+        void set_flag(output_flag f) STANDARDESE_NOEXCEPT
+        {
+            flags_ |= unsigned(f);
+        }
+
+        void set_flag(output_flag f, bool value) STANDARDESE_NOEXCEPT
+        {
+            if (value)
+                set_flag(f);
+            else
+                flags_ &= ~unsigned(f);
+        }
+
+        bool is_set(output_flag f) const STANDARDESE_NOEXCEPT
+        {
+            return (flags_ & unsigned(f)) > 0u;
+        }
+
     private:
         entity_blacklist         blacklist_;
         std::vector<std::string> section_names_;
         std::string              hidden_name_;
         unsigned                 tab_width_;
+        unsigned                 flags_;
     };
 } // namespace standardese
 

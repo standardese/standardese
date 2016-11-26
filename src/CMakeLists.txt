@@ -17,10 +17,12 @@ set(header
         ../include/standardese/cpp_class.hpp
         ../include/standardese/cpp_cursor.hpp
         ../include/standardese/cpp_entity.hpp
+        ../include/standardese/cpp_entity_blacklist.hpp
         ../include/standardese/cpp_entity_registry.hpp
         ../include/standardese/cpp_enum.hpp
         ../include/standardese/cpp_function.hpp
         ../include/standardese/cpp_namespace.hpp
+        ../include/standardese/cpp_preprocessor.hpp
         ../include/standardese/cpp_template.hpp
         ../include/standardese/cpp_type.hpp
         ../include/standardese/cpp_variable.hpp
@@ -28,6 +30,7 @@ set(header
         ../include/standardese/error.hpp
         ../include/standardese/generator.hpp
         ../include/standardese/index.hpp
+        ../include/standardese/linker.hpp
         ../include/standardese/md_blocks.hpp
         ../include/standardese/md_custom.hpp
         ../include/standardese/md_entity.hpp
@@ -36,10 +39,9 @@ set(header
         ../include/standardese/output_format.hpp
         ../include/standardese/output_stream.hpp
         ../include/standardese/parser.hpp
-        ../include/standardese/preprocessor.hpp
         ../include/standardese/section.hpp
         ../include/standardese/string.hpp
-        ../include/standardese/synopsis.hpp
+        ../include/standardese/template_processor.hpp
         ../include/standardese/translation_unit.hpp)
 set(src
         detail/parse_utils.cpp
@@ -51,6 +53,7 @@ set(src
         config.cpp
         cpp_class.cpp
         cpp_entity.cpp
+        cpp_entity_blacklist.cpp
         cpp_enum.cpp
         cpp_function.cpp
         cpp_namespace.cpp
@@ -61,6 +64,7 @@ set(src
         error.cpp
         generator.cpp
         index.cpp
+        linker.cpp
         md_blocks.cpp
         md_custom.cpp
         md_entity.cpp
@@ -70,7 +74,7 @@ set(src
         output_stream.cpp
         parser.cpp
         preprocessor.cpp
-        synopsis.cpp
+        template_processor.cpp
         translation_unit.cpp)
 
 add_library(standardese ${detail_header} ${header} ${src})
@@ -85,7 +89,8 @@ target_compile_definitions(standardese PUBLIC
                                 STANDARDESE=1
                                 STANDARDESE_VERSION_MAJOR=${STANDARDESE_VERSION_MAJOR}
                                 STANDARDESE_VERSION_MINOR=${STANDARDESE_VERSION_MINOR}
-                                LIBCLANG_SYSTEM_INCLUDE_DIR="${LIBCLANG_SYSTEM_INCLUDE_DIR}")
+                                LIBCLANG_SYSTEM_INCLUDE_DIR="${LIBCLANG_SYSTEM_INCLUDE_DIR}"
+                                CLANG_BINARY="${CLANG_BINARY}")
 
 # add threading support
 find_package(Threads REQUIRED)
@@ -99,9 +104,12 @@ target_link_libraries(standardese PUBLIC ${LIBCLANG_LIBRARY})
 target_link_libraries(standardese PUBLIC libcmark_static)
 
 # link Boost
-find_package(Boost COMPONENTS wave filesystem system thread date_time chrono REQUIRED)
+find_package(Boost COMPONENTS filesystem system thread date_time chrono REQUIRED)
 target_include_directories(standardese PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${Boost_LIBRARIES})
+
+# use tiny-process-library
+target_include_directories(standardese PRIVATE ${TINY_PROCESS_LIBRARY_INCLUDE_DIR})
 
 # install library
 install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")

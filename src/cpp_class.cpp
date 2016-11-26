@@ -199,8 +199,7 @@ cpp_ptr<cpp_class> cpp_class::parse(translation_unit& tu, cpp_cursor cur, const 
     auto        is_final = false;
     std::string args;
     auto        definition = parse_class(tu, cur, is_final, args);
-    if (!definition)
-        return nullptr;
+    assert(definition);
 
     if (parent.get_entity_type() == cpp_entity::class_template_full_specialization_t
         && parent.get_cursor() == cur)
