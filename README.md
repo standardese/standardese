@@ -72,7 +72,7 @@ Standardese aims to provide a documentation in a similar way to the C++ standard
 This means that it provides commands to introduce so called *sections* in the documentation.
 The current sections are all the C++ standard lists in `[structure.specifications]/3` like `\effects`, `\requires`, `\returns` and `\throws`.
 
-For a more complete example check out [this gist](https://gist.github.com/foonathan/14e163b76804b6775d780eabcbaa6a51).
+For a more complete example check out [my Meeting C++ Lightning Talk](https://www.youtube.com/watch?v=zoSGHMi-0lE).
 
 ## Installation
 
