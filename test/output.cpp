@@ -92,7 +92,7 @@ TEST_CASE("output")
 and a special one [here](standardese://foo()/) as well as one [here](standardese://bar/))";
 
         auto text_written = R"(This is text with a [regular URL](https://foo.bar/baz)
-and a special one [here](my_file.html#foo%28%29) as well as one [here](my_file.html#bar))";
+and a special one [here](my_file.html#foo()) as well as one [here](my_file.html#bar))";
 
         raw_document doc("other_file.md", text);
         REQUIRE(doc.file_name == "other_file");
