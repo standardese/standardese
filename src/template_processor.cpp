@@ -29,6 +29,7 @@ template_config::template_config() : delimiter_begin_("{{"), delimiter_end_("}}"
     set_command(template_command::name, "name");
     set_command(template_command::index_name, "index_name");
     set_command(template_command::unique_name, "unique_name");
+    set_command(template_command::module, "module");
 
     set_command(template_command::for_each, "for");
     set_command(template_command::if_clause, "if");
@@ -657,6 +658,13 @@ raw_document standardese::process_template(const parser& p, const index& i,
             auto entity = s.lookup_var(read_arg(ptr, last));
             if (entity)
                 s.get_buffer() += entity->get_index_name(true).c_str();
+            break;
+        }
+        case template_command::module:
+        {
+            auto entity = s.lookup_var(read_arg(ptr, last));
+            if (entity)
+                s.get_buffer() += entity->get_module();
             break;
         }
 

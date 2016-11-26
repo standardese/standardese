@@ -24,6 +24,7 @@ namespace standardese
         name,
         unique_name,
         index_name,
+        module,
 
         for_each,
         if_clause,

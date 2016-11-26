@@ -484,7 +484,9 @@ For example `{{ standardese_doc file.hpp html }}` will be replaced with the same
 * `standardese_doc_anchor <unique_name> <format>`: If `unique_name` refers to an existing entity, all links to that entity will link to the anchor in the template file generated in the given format.
 Otherwise it will create a new entity named `unique_name` you can link to throughout the documentation.
 
-* `standardese_name/index_name/unique_name <entity>`: Will be replaced with the name/index name/unique name of the given entity, just a raw character sequence without formatting.
+* `standardese_name/index_name/unique_name <entity>`: Will be replaced with the name/index name/unique name of the given entity (just a raw character sequence without formatting).
+
+* `standardese_module`: Will be replaced by the module name of the given entity (just a raw character sequence without formatting).
 
 * `standardese_for <variable> <entity>`: Will loop over each child of `entity` and copy the processed next block, the unique name of the current child is stored in the given `variable`. For example, this will print the names of all children of an entity:
 ```
