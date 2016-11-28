@@ -90,7 +90,7 @@ void detail::write_template_parameters(const parser& par, code_block_writer& out
             else
                 out << ", ";
 
-            detail::synopsis_access::do_generate_synopsis(child, par, out, false);
+            detail::generation_access::do_generate_synopsis(child, par, out, false);
         }
     }
 

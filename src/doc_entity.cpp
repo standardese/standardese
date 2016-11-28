@@ -20,10 +20,17 @@
 
 using namespace standardese;
 
-void detail::synopsis_access::do_generate_synopsis(const doc_entity& e, const parser& p,
-                                                   code_block_writer& out, bool top_level)
+void detail::generation_access::do_generate_synopsis(const doc_entity& e, const parser& p,
+                                                     code_block_writer& out, bool top_level)
 {
     e.do_generate_synopsis(p, out, top_level);
+}
+
+void detail::generation_access::do_generate_documentation_inline(const doc_entity& e,
+                                                                 const parser& p, const index& i,
+                                                                 md_inline_documentation& doc)
+{
+    e.do_generate_documentation_inline(p, i, doc);
 }
 
 bool doc_entity::in_module() const STANDARDESE_NOEXCEPT
@@ -632,6 +639,52 @@ namespace
     {
         return t == cpp_entity::namespace_t || t == cpp_entity::language_linkage_t;
     }
+
+    struct inline_container
+    {
+        md_ptr<md_inline_documentation> parameters, bases, members, enum_values;
+
+        inline_container(md_document& doc)
+        : parameters(md_inline_documentation::make(doc, "Parameters")),
+          bases(md_inline_documentation::make(doc, "Bases")),
+          members(md_inline_documentation::make(doc, "Members")),
+          enum_values(md_inline_documentation::make(doc, "Enum values"))
+        {
+        }
+
+        void add_inlines(const parser& p, const index& i, const doc_entity& container)
+        {
+            for (auto& child : container)
+            {
+                if (is_parameter(child.get_cpp_entity_type()))
+                    detail::generation_access::do_generate_documentation_inline(child, p, i,
+                                                                                *parameters);
+                else if (child.get_cpp_entity_type() == cpp_entity::base_class_t)
+                    detail::generation_access::do_generate_documentation_inline(child, p, i,
+                                                                                *bases);
+                else if (is_member_variable(child.get_cpp_entity_type()))
+                    detail::generation_access::do_generate_documentation_inline(child, p, i,
+                                                                                *members);
+                else if (is_enum_value(child.get_cpp_entity_type()))
+                    detail::generation_access::do_generate_documentation_inline(child, p, i,
+                                                                                *enum_values);
+                else
+                    assert(!is_inline_cpp_entity(child.get_cpp_entity_type()));
+            }
+        }
+
+        void finish(md_document& doc)
+        {
+            if (!parameters->empty())
+                doc.add_entity(std::move(parameters));
+            if (!bases->empty())
+                doc.add_entity(std::move(bases));
+            if (!members->empty())
+                doc.add_entity(std::move(members));
+            if (!enum_values->empty())
+                doc.add_entity(std::move(enum_values));
+        }
+    };
 }
 
 void doc_container_cpp_entity::do_generate_documentation(const parser& p, const index& i,
@@ -646,33 +699,9 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, const 
         // add inline entity comments
         if (p.get_output_config().is_set(output_flag::inline_documentation))
         {
-            auto parameters  = md_inline_documentation::make(doc, "Parameters");
-            auto bases       = md_inline_documentation::make(doc, "Bases");
-            auto members     = md_inline_documentation::make(doc, "Members");
-            auto enum_values = md_inline_documentation::make(doc, "Enum values");
-
-            for (auto& child : *this)
-            {
-                if (is_parameter(child.get_cpp_entity_type()))
-                    child.do_generate_documentation_inline(p, i, *parameters);
-                else if (child.get_cpp_entity_type() == cpp_entity::base_class_t)
-                    child.do_generate_documentation_inline(p, i, *bases);
-                else if (is_member_variable(child.get_cpp_entity_type()))
-                    child.do_generate_documentation_inline(p, i, *members);
-                else if (is_enum_value(child.get_cpp_entity_type()))
-                    child.do_generate_documentation_inline(p, i, *enum_values);
-                else
-                    assert(!is_inline_cpp_entity(child.get_cpp_entity_type()));
-            }
-
-            if (!parameters->empty())
-                doc.add_entity(std::move(parameters));
-            if (!bases->empty())
-                doc.add_entity(std::move(bases));
-            if (!members->empty())
-                doc.add_entity(std::move(members));
-            if (!enum_values->empty())
-                doc.add_entity(std::move(enum_values));
+            inline_container inlines(doc);
+            inlines.add_inlines(p, i, *this);
+            inlines.finish(doc);
         }
     }
 
@@ -756,7 +785,7 @@ namespace
                         last_access = cur_access;
                     }
 
-                    detail::synopsis_access::do_generate_synopsis(child, p, out, false);
+                    detail::generation_access::do_generate_synopsis(child, p, out, false);
                 }
             }
             out.remove_trailing_line();
@@ -803,7 +832,7 @@ namespace
             else
                 out << sep;
 
-            detail::synopsis_access::do_generate_synopsis(child, p, out, false);
+            detail::generation_access::do_generate_synopsis(child, p, out, false);
         }
         out.remove_trailing_line();
         out.unindent(p.get_output_config().get_tab_width());
@@ -879,7 +908,7 @@ void doc_container_cpp_entity::do_generate_synopsis(const parser& p, code_block_
             else
                 out << blankl;
 
-            detail::synopsis_access::do_generate_synopsis(child, p, out, false);
+            detail::generation_access::do_generate_synopsis(child, p, out, false);
         }
         out.remove_trailing_line();
     }
@@ -922,7 +951,7 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
 {
     assert(!empty());
 
-    if (doc_entity_container::begin()->get_entity_type() == doc_entity::cpp_entity_t)
+    if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
     {
         auto& cpp_e = static_cast<const doc_cpp_entity&>(*doc_entity_container::begin());
         doc.add_entity(make_heading(i, cpp_e, doc, level,
@@ -943,6 +972,14 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
     doc.add_entity(out.get_code_block());
 
     doc.add_entity(get_comment().get_content().clone(doc));
+
+    if (p.get_output_config().is_set(output_flag::inline_documentation))
+    {
+        inline_container inlines(doc);
+        for (auto& member : *this)
+            inlines.add_inlines(p, i, member);
+        inlines.finish(doc);
+    }
 }
 
 void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& out,
@@ -964,7 +1001,7 @@ void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& 
             out.fill(p.get_output_config().get_tab_width(), ' ');
         }
 
-        detail::synopsis_access::do_generate_synopsis(child, p, out, top_level);
+        detail::generation_access::do_generate_synopsis(child, p, out, top_level);
     }
 }
 

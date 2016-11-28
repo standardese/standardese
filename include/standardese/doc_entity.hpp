@@ -31,10 +31,14 @@ namespace standardese
 
     namespace detail
     {
-        struct synopsis_access
+        struct generation_access
         {
             static void do_generate_synopsis(const doc_entity& e, const parser& p,
                                              code_block_writer& out, bool top_level);
+
+            static void do_generate_documentation_inline(const doc_entity& e, const parser& p,
+                                                         const index&             i,
+                                                         md_inline_documentation& doc);
         };
     } // namespace detail
 
@@ -170,7 +174,7 @@ namespace standardese
         friend class detail::entity_container;
         friend class doc_container_cpp_entity;
         friend class doc_member_group;
-        friend struct detail::synopsis_access;
+        friend struct detail::generation_access;
     };
 
     namespace detail

@@ -360,6 +360,7 @@ void func(short);
 ```
 This will write the synopsis of all group members together and use the documentation text of the first entity.
 The group name only needs to be unique for one given scope.
+*Note: It will only show inline documentation for children, so don't use it on containers.*
 
 * `module {name}` - Add the entity to a module.
 A module is just a way to group entities together,
