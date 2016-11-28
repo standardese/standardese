@@ -1187,11 +1187,12 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
         auto entity = handle_child_impl(p, i, *res, child, cpp_public, output_name);
         if (!entity)
             continue;
-        i.register_entity(*entity, output_name);
+        auto e_ptr = entity.get();
         if (entity->has_comment() && entity->get_comment().in_member_group())
             handle_group(p, *res->file_, std::move(entity));
         else
             res->file_->add_entity(std::move(entity));
+        i.register_entity(*e_ptr, output_name);
     }
     i.register_entity(*res->file_, std::move(output_name));
 
