@@ -163,9 +163,9 @@ namespace
             return name;
         assert(is_parameter(e.get_entity_type()));
         auto unique_name = e.get_unique_name();
-        for (auto ptr = unique_name.c_str(); *ptr; ++ptr)
-            if (*ptr == '.')
-                return ++ptr;
+        auto pos         = std::strrchr(unique_name.c_str(), '.');
+        if (pos != nullptr)
+            return pos + 1;
         return "";
     }
 
