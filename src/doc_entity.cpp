@@ -1220,6 +1220,9 @@ namespace
                 handle_child(p, i, cont, child, cpp_public, output_file);
             break;
 
+        case cpp_entity::destructor_t:
+            break;
+
         default:
             assert(false);
             break;
