@@ -68,7 +68,7 @@ void index::register_entity(const doc_entity& entity, std::string output_file) c
 
     // insert long id
     auto pair = entities_.emplace(std::move(id), std::make_pair(false, &entity));
-    if (!pair.second)
+    if (!pair.second && entity.get_cpp_entity_type() != cpp_entity::namespace_t)
         throw std::logic_error(fmt::format("duplicate index registration of an entity named '{}'",
                                            entity.get_unique_name().c_str()));
     else if (pair.first->second.second->get_cpp_entity_type() == cpp_entity::file_t)
