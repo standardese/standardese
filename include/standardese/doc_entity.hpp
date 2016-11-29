@@ -203,6 +203,11 @@ namespace standardese
             return *entity_;
         }
 
+        void set_cpp_entity(const cpp_entity& e) STANDARDESE_NOEXCEPT
+        {
+            entity_ = &e;
+        }
+
     protected:
         void do_generate_documentation_base(const parser& p, const index& i, md_document& doc,
                                             unsigned level) const;

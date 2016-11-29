@@ -198,7 +198,7 @@ namespace
         auto text     = md_text::make(*heading, text_str.c_str());
         heading->add_entity(std::move(text));
 
-        auto code = md_code::make(*heading, e.get_cpp_entity().get_full_name().c_str());
+        auto code = md_code::make(*heading, e.get_index_name(true).c_str());
         heading->add_entity(std::move(code));
 
         if (show_module && e.has_comment() && e.get_comment().in_module())
@@ -1104,13 +1104,13 @@ namespace
         }
     }
 
-    void handle_child(const parser& p, const index& i, doc_container_cpp_entity& parent,
+    bool handle_child(const parser& p, const index& i, doc_container_cpp_entity& parent,
                       const cpp_entity& e, cpp_access_specifier_t cur_access,
                       const std::string& output_file)
     {
         auto entity = handle_child_impl(p, i, parent, e, cur_access, output_file);
         if (!entity)
-            return;
+            return false;
 
         auto e_ptr = entity.get();
         if (entity->has_comment() && entity->get_comment().in_member_group())
@@ -1118,6 +1118,7 @@ namespace
         else
             parent.add_entity(std::move(entity));
         i.register_entity(*e_ptr, output_file);
+        return true;
     }
 
     void handle_children(const parser& p, const index& i, std::string output_file,
@@ -1141,9 +1142,17 @@ namespace
             break;
 
         case cpp_entity::function_template_t:
+        {
+            auto any_added = false;
             for (auto& child :
                  static_cast<const cpp_function_template&>(entity).get_template_parameters())
-                handle_child(p, i, cont, child, cpp_public, output_file);
+            {
+                if (handle_child(p, i, cont, child, cpp_public, output_file))
+                    any_added = true;
+            }
+            if (!any_added)
+                cont.set_cpp_entity(*get_function(entity));
+        }
         // fallthrough
         case cpp_entity::function_t:
         case cpp_entity::member_function_t:
@@ -1158,16 +1167,28 @@ namespace
         case cpp_entity::class_template_partial_specialization_t:
             if (entity.get_entity_type() == cpp_entity::class_template_t)
             {
+                auto any_added = false;
                 for (auto& child :
                      static_cast<const cpp_class_template&>(entity).get_template_parameters())
-                    handle_child(p, i, cont, child, cpp_public, output_file);
+                {
+                    if (handle_child(p, i, cont, child, cpp_public, output_file))
+                        any_added = true;
+                }
+                if (!any_added)
+                    cont.set_cpp_entity(*get_class(entity));
             }
             else
             {
+                auto any_added = false;
                 for (auto& child :
                      static_cast<const cpp_class_template_partial_specialization&>(entity)
                          .get_template_parameters())
-                    handle_child(p, i, cont, child, cpp_public, output_file);
+                {
+                    if (handle_child(p, i, cont, child, cpp_public, output_file))
+                        any_added = true;
+                }
+                if (!any_added)
+                    cont.set_cpp_entity(*get_class(entity));
             }
         // fallthrough
         case cpp_entity::class_template_full_specialization_t:
