@@ -808,7 +808,8 @@ namespace
         detail::write_parameters(p, out, e, f);
 
         detail::write_cv_ref(out, detail::get_cv(f), detail::get_ref_qualifier(f));
-        detail::write_noexcept(out, f);
+        detail::write_noexcept(p.get_output_config().is_set(output_flag::show_complex_noexcept),
+                               out, f);
 
         detail::write_override_final(out, detail::get_virtual(f));
 

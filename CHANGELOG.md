@@ -1,3 +1,9 @@
+### Upcoming
+
+### Tool
+
+* Add `output.show_complex_noexcept` option that controls whether complex noexcept expressions will be shown in the synopsis
+
 ## 0.3
 
 ### Documentation

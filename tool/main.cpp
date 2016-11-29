@@ -249,6 +249,8 @@ int main(int argc, char* argv[])
              "the tab width (i.e. number of spaces, won't emit tab) of the code in the synthesis")
             ("output.width", po::value<unsigned>()->default_value(terminal_width),
              "the width of the output (used in e.g. commonmark format)")
+            ("output.show_complex_noexcept", po::value<bool>()->default_value(true)->implicit_value(true),
+            "whether or not complex noexcept expressions will be shown in the synopsis or replaced by \"see below\"")
             ("output.inline_doc", po::value<bool>()->default_value(true)->implicit_value(true),
              "whether or not some entity documentation (parameters etc.) will be shown inline")
             ("output.show_macro_replacement", po::value<bool>()->default_value(false)->implicit_value(true),

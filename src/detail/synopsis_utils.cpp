@@ -192,14 +192,18 @@ void detail::write_parameters(const parser& par, code_block_writer& out,
     out << ')';
 }
 
-void detail::write_noexcept(code_block_writer& out, const cpp_function_base& f)
+void detail::write_noexcept(bool show_complex, code_block_writer& out, const cpp_function_base& f)
 {
     if (f.explicit_noexcept())
     {
         if (f.get_noexcept() == "true")
             out << " noexcept";
-        else
+        else if (f.get_noexcept() == "false")
+            out << " noexcept(false)";
+        else if (show_complex)
             out << " noexcept(" << f.get_noexcept() << ')';
+        else
+            out << " noexcept(see below)";
     }
 }
 

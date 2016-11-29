@@ -167,6 +167,8 @@ namespace standardese_tool
 
         using standardese::output_flag;
         p->get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
+        p->get_output_config().set_flag(output_flag::show_complex_noexcept,
+                                        map.at("output.show_complex_noexcept").as<bool>());
         p->get_output_config().set_flag(output_flag::inline_documentation,
                                         map.at("output.inline_doc").as<bool>());
         p->get_output_config().set_flag(output_flag::show_modules,
