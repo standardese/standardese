@@ -316,6 +316,8 @@ namespace standardese
         {
         }
 
+        cpp_name do_get_unique_name() const override;
+
         cpp_ptr<cpp_class> class_;
 
         friend detail::cpp_ptr_access;

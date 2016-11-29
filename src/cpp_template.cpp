@@ -383,6 +383,11 @@ cpp_ptr<cpp_class_template> cpp_class_template::parse(translation_unit& tu, cpp_
 
 cpp_name cpp_class_template::get_name() const
 {
+    return class_->get_name().c_str();
+}
+
+cpp_name cpp_class_template::do_get_unique_name() const
+{
     return get_template_name(class_->get_name().c_str(), *this);
 }
 
