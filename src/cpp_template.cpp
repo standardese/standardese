@@ -327,7 +327,7 @@ cpp_name cpp_function_template::get_signature() const
 
 cpp_name cpp_function_template::do_get_unique_name() const
 {
-    return std::string(get_full_name().c_str()) + get_signature().c_str();
+    return std::string(cpp_entity::do_get_unique_name().c_str()) + get_signature().c_str();
 }
 
 cpp_function_template::cpp_function_template(cpp_cursor cur, const cpp_entity& parent)
@@ -388,7 +388,7 @@ cpp_name cpp_class_template::get_name() const
 
 cpp_name cpp_class_template::do_get_unique_name() const
 {
-    return get_template_name(class_->get_name().c_str(), *this);
+    return get_template_name(cpp_entity::do_get_unique_name().c_str(), *this);
 }
 
 cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_specialization::parse(

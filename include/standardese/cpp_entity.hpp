@@ -159,9 +159,9 @@ namespace standardese
             cursor_ = cur;
         }
 
-    private:
         virtual cpp_name do_get_unique_name() const;
 
+    private:
         virtual bool is_semantic_parent() const STANDARDESE_NOEXCEPT
         {
             return true;
