@@ -86,6 +86,12 @@ cpp_entity_ptr cpp_entity::try_parse(translation_unit& tu, cpp_cursor cur, const
     case CXCursor_ParmDecl:
         return nullptr;
 
+// ignored, because not needed
+#if CINDEX_VERSION_MINOR >= 35
+    case CXCursor_StaticAssert:
+        return nullptr;
+#endif
+
     default:
         break;
     }
