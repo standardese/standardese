@@ -402,7 +402,7 @@ TEST_CASE("comment-matching", "[doc]")
         /// \unique_name f
         void c(int d, int e);
 
-        /// h<g>
+        /// h
         ///
         /// \param g g-param
         ///

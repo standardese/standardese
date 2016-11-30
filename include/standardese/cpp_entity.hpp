@@ -160,10 +160,7 @@ namespace standardese
         }
 
     private:
-        virtual cpp_name do_get_unique_name() const
-        {
-            return get_full_name();
-        }
+        virtual cpp_name do_get_unique_name() const;
 
         virtual bool is_semantic_parent() const STANDARDESE_NOEXCEPT
         {

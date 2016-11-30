@@ -289,7 +289,7 @@ TEST_CASE("cpp_enum", "[cpp]")
                 for (auto& eval : t)
                 {
                     REQUIRE(eval.get_name() == "d_" + std::to_string(i));
-                    REQUIRE(eval.get_full_name() == "foo<T>::d_" + std::to_string(i));
+                    REQUIRE(eval.get_full_name() == "foo::d_" + std::to_string(i));
 
                     if (eval.get_entity_type() != cpp_entity::expression_enum_value_t)
                     {

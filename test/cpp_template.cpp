@@ -768,7 +768,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             if (c->get_class().get_name() == "a")
             {
                 ++count;
-                REQUIRE(c->get_name() == "a<A>");
+                REQUIRE(c->get_unique_name() == "a<A>");
                 REQUIRE(detail::parse_comment(c->get_cursor()) == "/// a");
                 REQUIRE(c->get_class().get_class_type() == cpp_struct_t);
 
@@ -791,7 +791,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             else if (c->get_class().get_name() == "b")
             {
                 ++count;
-                REQUIRE(c->get_name() == "b<A, B...>");
+                REQUIRE(c->get_unique_name() == "b<A, B...>");
                 REQUIRE(detail::parse_comment(c->get_cursor()) == "/// b");
                 REQUIRE(c->get_class().get_class_type() == cpp_class_t);
 
@@ -822,7 +822,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             else if (c->get_class().get_name() == "c")
             {
                 ++count;
-                REQUIRE(c->get_name() == "c<A>");
+                REQUIRE(c->get_unique_name() == "c<A>");
                 REQUIRE(detail::parse_comment(c->get_cursor()) == "/// c");
                 REQUIRE(c->get_class().get_class_type() == cpp_class_t);
 
@@ -852,7 +852,7 @@ TEST_CASE("cpp_class_template", "[cpp]")
             else if (c->get_class().get_name() == "d")
             {
                 ++count;
-                REQUIRE(c->get_name() == "d<A>");
+                REQUIRE(c->get_unique_name() == "d<A>");
                 REQUIRE(detail::parse_comment(c->get_cursor()) == "/// d");
                 REQUIRE(c->get_class().get_class_type() == cpp_class_t);
 

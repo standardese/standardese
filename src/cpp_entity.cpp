@@ -105,17 +105,33 @@ cpp_name cpp_entity::get_name() const
     return detail::parse_name(cursor_);
 }
 
+namespace
+{
+    std::string get_scope_impl(const cpp_entity& e, bool unique_name)
+    {
+        auto parent = e.get_semantic_parent();
+        if (!parent || parent->get_entity_type() == cpp_entity::file_t)
+            return "";
+        else if (parent->get_entity_type() == cpp_entity::language_linkage_t)
+            return get_scope_impl(*parent, unique_name);
+
+        auto name = unique_name ? parent->get_unique_name() : parent->get_full_name();
+        // remove trailing ::, if any
+        return std::string(name.c_str(), name.end()[-1] == ':' ? name.length() - 2 : name.length());
+    }
+}
+
 cpp_name cpp_entity::get_scope() const
 {
-    auto parent = get_semantic_parent();
-    if (!parent || parent->get_entity_type() == file_t)
-        return "";
-    else if (parent_->get_entity_type() == language_linkage_t)
-        return parent_->get_scope();
+    return get_scope_impl(*this, false);
+}
 
-    auto name = parent->get_full_name();
-    // remove trailing ::, if any
-    return cpp_name(name.c_str(), name.end()[-1] == ':' ? name.length() - 2 : name.length());
+cpp_name cpp_entity::do_get_unique_name() const
+{
+    auto scope = get_scope_impl(*this, true);
+    if (scope.empty())
+        return get_name().c_str();
+    return scope + "::" + get_name().c_str();
 }
 
 cpp_entity::cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent)
