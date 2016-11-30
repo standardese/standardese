@@ -61,12 +61,15 @@ namespace standardese_tool
         auto standard = detail::parse_standard(map.at("compilation.standard").as<std::string>());
         auto dir      = map.find("compilation.commands_dir");
 
-        compile_config result(standard, dir == map.end() ? "" : dir->second.as<std::string>());
+        compile_config result(standard, dir == map.end() ?
+                                            "" :
+                                            fs::system_complete(dir->second.as<std::string>())
+                                                .generic_string());
 
         auto incs = map.find("compilation.include_dir");
         if (incs != map.end())
             for (auto& val : incs->second.as<std::vector<std::string>>())
-                result.add_include(val);
+                result.add_include(fs::system_complete(val).generic_string());
 
         auto defs = map.find("compilation.macro_definition");
         if (defs != map.end())
