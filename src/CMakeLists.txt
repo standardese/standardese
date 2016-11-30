@@ -57,6 +57,7 @@ set(src
         cpp_enum.cpp
         cpp_function.cpp
         cpp_namespace.cpp
+        cpp_preprocessor.cpp
         cpp_template.cpp
         cpp_type.cpp
         cpp_variable.cpp
@@ -73,7 +74,6 @@ set(src
         output_format.cpp
         output_stream.cpp
         parser.cpp
-        preprocessor.cpp
         template_processor.cpp
         translation_unit.cpp)
 

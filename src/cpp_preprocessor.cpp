@@ -90,7 +90,8 @@ namespace
 {
     std::string get_command(const compile_config& c, const char* full_path)
     {
-        std::string cmd(fs::path(c.get_clang_binary()).generic_string() + " -E -C ");
+        std::string cmd(fs::path(c.get_clang_binary()).generic_string()
+                        + " -E -C -Wno-pragma-once-outside-header ");
         for (auto& flag : c)
         {
             cmd += '"' + std::string(flag.c_str()) + '"';
