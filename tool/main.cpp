@@ -53,7 +53,7 @@ void print_usage(const char* exe_name, const po::options_description& generic,
 
 template <typename Generator>
 std::vector<standardese::documentation> generate_documentation(
-    standardese::parser& parser, const po::variables_map& map, standardese_tool::thread_pool& pool,
+    standardese::parser& parser, const po::variables_map& map, std::size_t no_threads,
     std::vector<standardese::template_file>& templates, Generator generate)
 {
     auto input              = map.at("input-files").as<std::vector<fs::path>>();
@@ -71,27 +71,33 @@ std::vector<standardese::documentation> generate_documentation(
     std::vector<std::future<standardese::documentation>> futures;
     futures.reserve(input.size());
 
-    for (auto& path : input)
-        standardese_tool::
-            handle_path(path, source_ext, blacklist_ext, blacklist_file, blacklist_dir,
-                        blacklist_dotfiles, force_blacklist,
-                        [&](bool is_source_file, const fs::path& p, const fs::path& relative) {
-                            if (is_source_file)
-                                futures.push_back(
-                                    standardese_tool::add_job(pool, generate, p, relative));
-                            else
-                            {
-                                std::ifstream file(p.generic_string());
-                                if (!file.is_open())
-                                    parser.get_logger()->error("unable to open template file '{}",
-                                                               p.generic_string());
-                                templates
-                                    .emplace_back(standardese_tool::get_output_name(relative)
-                                                      + relative.extension().generic_string(),
-                                                  std::string(std::istreambuf_iterator<char>(file),
-                                                              std::istreambuf_iterator<char>{}));
-                            }
-                        });
+    {
+        standardese_tool::thread_pool pool(no_threads);
+        for (auto& path : input)
+            standardese_tool::
+                handle_path(path, source_ext, blacklist_ext, blacklist_file, blacklist_dir,
+                            blacklist_dotfiles, force_blacklist,
+                            [&](bool is_source_file, const fs::path& p, const fs::path& relative) {
+                                if (is_source_file)
+                                    futures.push_back(
+                                        standardese_tool::add_job(pool, generate, p, relative));
+                                else
+                                {
+                                    std::ifstream file(p.generic_string());
+                                    if (!file.is_open())
+                                        parser.get_logger()
+                                            ->error("unable to open template file '{}",
+                                                    p.generic_string());
+                                    templates
+                                        .emplace_back(standardese_tool::get_output_name(relative)
+                                                          + relative.extension().generic_string(),
+                                                      std::
+                                                          string(std::istreambuf_iterator<char>(
+                                                                     file),
+                                                                 std::istreambuf_iterator<char>{}));
+                                }
+                            });
+    }
 
     std::vector<standardese::documentation> documentations;
     for (auto& f : futures)
@@ -105,7 +111,7 @@ std::vector<standardese::documentation> generate_documentation(
 }
 
 void write_output_files(const standardese_tool::configuration& config,
-                        const standardese::index& idx, standardese_tool::thread_pool& pool,
+                        const standardese::index& idx, std::size_t no_threads,
                         const standardese::template_file*              default_template,
                         const std::vector<standardese::documentation>& documentations,
                         const std::vector<standardese::raw_document>&  raw_documents)
@@ -126,7 +132,7 @@ void write_output_files(const standardese_tool::configuration& config,
         }
 
         output out(*config.parser, idx, prefix, *format);
-        standardese_tool::for_each(pool, documentations,
+        standardese_tool::for_each(no_threads, documentations,
                                    [](const standardese::documentation& doc) {
                                        return doc.document != nullptr;
                                    },
@@ -142,7 +148,7 @@ void write_output_files(const standardese_tool::configuration& config,
                                            out.render(config.parser->get_logger(), *doc.document,
                                                       config.link_extension());
                                    });
-        standardese_tool::for_each(pool, raw_documents,
+        standardese_tool::for_each(no_threads, raw_documents,
                                    [](const standardese::raw_document&) { return true; },
                                    [&](const standardese::raw_document& doc) {
                                        config.parser->get_logger()
@@ -295,8 +301,8 @@ int main(int argc, char* argv[])
             log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
             log->debug("Using cmark version: {}", CMARK_VERSION_STRING);
 
-            standardese_tool::thread_pool pool(map.at("jobs").as<unsigned>());
-            standardese::index            index;
+            auto               no_threads = map.at("jobs").as<unsigned>();
+            standardese::index index;
             config.set_external(index.get_linker());
 
             // generate documentations
@@ -325,7 +331,8 @@ int main(int argc, char* argv[])
             };
 
             std::vector<template_file> templates;
-            auto documentations = generate_documentation(parser, map, pool, templates, generate);
+            auto                       documentations =
+                generate_documentation(parser, map, no_threads, templates, generate);
 
             // generate indices
             log->info("Generating indices...");
@@ -335,7 +342,7 @@ int main(int argc, char* argv[])
 
             // process templates
             auto raw_documents =
-                standardese_tool::for_each(pool, templates,
+                standardese_tool::for_each(no_threads, templates,
                                            [](const template_file&) { return true; },
                                            [&](const template_file& f) {
                                                log->info("Processing template file '{}'...",
@@ -346,7 +353,8 @@ int main(int argc, char* argv[])
             // write output
             auto templ_path = map.at("template.default_template").as<std::string>();
             if (templ_path.empty())
-                write_output_files(config, index, pool, nullptr, documentations, raw_documents);
+                write_output_files(config, index, no_threads, nullptr, documentations,
+                                   raw_documents);
             else
             {
                 std::ifstream file(templ_path);
@@ -356,7 +364,8 @@ int main(int argc, char* argv[])
                 {
                     template_file templ("", std::string(std::istreambuf_iterator<char>(file),
                                                         std::istreambuf_iterator<char>{}));
-                    write_output_files(config, index, pool, &templ, documentations, raw_documents);
+                    write_output_files(config, index, no_threads, &templ, documentations,
+                                       raw_documents);
                 }
             }
         }
