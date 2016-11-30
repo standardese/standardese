@@ -635,11 +635,6 @@ doc_leave_cpp_entity::doc_leave_cpp_entity(const doc_entity* parent, const cpp_e
 
 namespace
 {
-    bool require_comment_for_doc(cpp_entity::type t)
-    {
-        return t == cpp_entity::namespace_t || t == cpp_entity::language_linkage_t;
-    }
-
     struct inline_container
     {
         md_ptr<md_inline_documentation> parameters, bases, members, enum_values;
@@ -685,12 +680,31 @@ namespace
                 doc.add_entity(std::move(enum_values));
         }
     };
+
+    bool require_comment_for_doc(cpp_entity::type t)
+    {
+        return t == cpp_entity::namespace_t || t == cpp_entity::language_linkage_t;
+    }
+
+    bool has_comment_impl(const doc_entity& e)
+    {
+        auto c = e.has_comment() ? &e.get_comment() : nullptr;
+        return c && (!c->empty() || c->in_member_group());
+    }
+
+    bool requires_comment(const doc_entity& e)
+    {
+        return e.get_cpp_entity_type() != cpp_entity::file_t
+               && e.get_cpp_entity_type() != cpp_entity::namespace_t
+               && e.get_cpp_entity_type() != cpp_entity::language_linkage_t
+               && !is_inline_cpp_entity(e.get_cpp_entity_type());
+    }
 }
 
 void doc_container_cpp_entity::do_generate_documentation(const parser& p, const index& i,
                                                          md_document& doc, unsigned level) const
 {
-    auto generate_doc = !require_comment_for_doc(get_cpp_entity_type()) || has_comment();
+    auto generate_doc = !require_comment_for_doc(get_cpp_entity_type()) || has_comment_impl(*this);
     if (generate_doc)
     {
         // generate heading + synopsis + comment
@@ -712,8 +726,11 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, const 
         if (p.get_output_config().is_set(output_flag::inline_documentation)
             && is_inline_cpp_entity(child.get_cpp_entity_type()))
             continue;
-        child.do_generate_documentation(p, i, doc, generate_doc ? level + 1 : level);
-        any_child = true;
+        else if (!requires_comment(child) || has_comment_impl(child))
+        {
+            child.do_generate_documentation(p, i, doc, generate_doc ? level + 1 : level);
+            any_child = true;
+        }
     }
 
     if (any_child && get_cpp_entity_type() != cpp_entity::file_t)
@@ -1008,25 +1025,9 @@ void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& 
 
 namespace
 {
-    bool has_comment(const comment* c)
-    {
-        return c && (!c->empty() || c->in_member_group());
-    }
-
-    bool requires_comment(const cpp_entity& e)
-    {
-        return e.get_entity_type() != cpp_entity::file_t
-               && e.get_entity_type() != cpp_entity::namespace_t
-               && e.get_entity_type() != cpp_entity::language_linkage_t
-               && !is_inline_cpp_entity(e.get_entity_type());
-    }
-
     bool is_blacklisted(const entity_blacklist& blacklist, const cpp_entity& e, const comment* c)
     {
-        if (requires_comment(e) && blacklist.is_set(entity_blacklist::require_comment)
-            && !has_comment(c))
-            return true;
-        else if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
+        if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
             return true;
         else if (c && c->is_excluded())
             return true;
