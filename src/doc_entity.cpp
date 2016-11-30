@@ -1118,7 +1118,7 @@ namespace
             handle_group(p, parent, std::move(entity));
         else
             parent.add_entity(std::move(entity));
-        i.register_entity(*e_ptr, output_file);
+        i.register_entity(p, *e_ptr, output_file);
         return true;
     }
 
@@ -1254,9 +1254,9 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
             handle_group(p, *res->file_, std::move(entity));
         else
             res->file_->add_entity(std::move(entity));
-        i.register_entity(*e_ptr, output_name);
+        i.register_entity(p, *e_ptr, output_name);
     }
-    i.register_entity(*res->file_, std::move(output_name));
+    i.register_entity(p, *res->file_, std::move(output_name));
 
     return res;
 }
