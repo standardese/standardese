@@ -93,21 +93,26 @@ but if you wish to link them statically, just add `-DBoost_USE_STATIC_LIBS=ON` t
 
 Once built, simply run `standardese --help` for commandline usage.
 
+### Arch Linux
+
+Thanks to [@verri](https://github.com/verri) for maintaining the [AUR package standardese-git](https://aur.archlinux.org/packages/standardese-git/).
+Install it via [yaourt](https://archlinux.fr/yaourt-en) or [makepkg](https://wiki.archlinux.org/index.php/Arch_User_Repository#Build_and_install_the_package).
+
 ### Windows
 
-There is a pre-built binary for Windows 64 Bit, built with Appveyor and MSVC 14.
+There is a pre-built binary for Windows 64 Bit, found in the [release pages](https://github.com/foonathan/standardese/releases), built with Appveyor and MSVC 14.
 You need to install [libclang](http://llvm.org/releases/download.html) but should work out the box otherwise.
 
 ### Travis CI
 
 There are pre-built binaries for Travis CI (both MacOS and Linux), useful for building documentation on your CI system.
-Under Boost you are good to go, but Linux needs an update of libstdc++ and Boost 1.55:
+Under MacOs you are good to go, but Linux needs an update of libstdc++ and Boost 1.55:
 
 ```
 addons:
   apt:
     sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-    packages: ['g++-5', 'libboost1.55-all-dev']<
+    packages: ['g++-5', 'libboost1.55-all-dev']
 ```
 For convenience you can use the script `travis_get_standardese.sh`.
 It will download libclang and the `standardese` binary.
@@ -548,5 +553,7 @@ Thanks a lot to:
 * Victor @vitaut Zverovich, for bugfixes
 
 * John @johnmcfarlane McFarlane, for issue reporting
+
+* Filipe @verri Verri, for maintaining the AUR package
 
 And everyone else who shares and uses this project!
