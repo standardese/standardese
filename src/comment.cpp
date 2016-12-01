@@ -201,6 +201,17 @@ namespace
         }
     }
 
+    bool parent_takes_comment(const cpp_entity& e, const comment_id& e_id)
+    {
+        assert(e_id.is_location());
+        if (!e.get_semantic_parent())
+            return false;
+        auto parent_id = create_location_id(*e.get_semantic_parent());
+        if (!parent_id.is_location())
+            return false;
+        return parent_id.line() == e_id.line();
+    }
+
     bool matches(const cpp_entity& e, const comment_id& id, cpp_cursor cur = {})
     {
         auto& inline_parent = get_inline_parent(e);
@@ -219,6 +230,9 @@ namespace
                 return false;
             else if (id.line() > e_id.line() + 1)
                 // next comment
+                return false;
+            else if (parent_takes_comment(e, e_id))
+                // parent on the same line, so comment can't be for it
                 return false;
 
             return e_id.line() == id.line() || e_id.line() + 1 == id.line();
