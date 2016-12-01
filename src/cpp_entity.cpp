@@ -20,6 +20,22 @@
 
 using namespace standardese;
 
+namespace
+{
+    bool is_friend_declaration(const detail::tokenizer& tokens)
+    {
+        if (tokens.begin()->get_value() == "friend")
+            return true;
+        else if (tokens.begin()->get_value() != "template")
+            return false;
+
+        for (auto token : tokens)
+            if (token.get_value() == "friend")
+                return true;
+        return false;
+    }
+}
+
 cpp_entity_ptr cpp_entity::try_parse(translation_unit& tu, cpp_cursor cur, const cpp_entity& parent)
 {
     auto kind = clang_getCursorKind(cur);
@@ -101,7 +117,7 @@ cpp_entity_ptr cpp_entity::try_parse(translation_unit& tu, cpp_cursor cur, const
     if (tokenizer.begin()->get_value() == "extern")
         return cpp_language_linkage::parse(tu, cur, parent);
     // check for friend
-    else if (tokenizer.begin()->get_value() == "friend")
+    else if (is_friend_declaration(tokenizer))
         // ignore it, the friend function definitions are transformed
         return nullptr;
 
