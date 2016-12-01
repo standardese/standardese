@@ -2,15 +2,17 @@
 # This file is subject to the license terms in the LICENSE file
 # found in the top-level directory of this distribution.
 
-# EXTERNAL
-# makes imported targets available
-get_filename_component(SELF_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
-include(${SELF_DIR}/${CMAKE_BUILD_TYPE}/standardese.cmake)
-find_package(Threads REQUIRED)
+if(NOT STANDARDESE_TOOL)
+    # EXTERNAL
+    # makes imported targets available
+    get_filename_component(SELF_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+    include(${SELF_DIR}/standardese.cmake)
+    find_package(Threads REQUIRED)
 
-# EXTERNAL
-# saves the location of the standardese executable in STANDARDESE_TOOL
-find_program(STANDARDESE_TOOL standardese)
+    # EXTERNAL
+    # saves the location of the standardese executable in STANDARDESE_TOOL
+    find_program(STANDARDESE_TOOL standardese)
+endif()
 
 # EXTERNAL
 # generates documentation for a given target

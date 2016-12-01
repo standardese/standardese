@@ -196,6 +196,15 @@ It will use a custom target that runs standardese.
 You can specify the compilation options and inputs directly in CMake to allow shared variables.
 All other options must be given in a config file.
 
+If you don't have standardese installed, you can also include it directly:
+
+```
+set(STANDARDESE_TOOL /path/to/standardese/binary)
+include(/path/to/standardese/standardese-config.cmake)
+
+# call standardese_generate() like normal
+```
+
 See `standardese-config.cmake` for a documentation of `standardese_generate()`.
 
 ### Documentation syntax overview

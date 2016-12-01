@@ -70,6 +70,7 @@ before_deploy:
   - if [[ $BUILD_TOOL = false ]]; then exit 0; fi
   - mkdir standardese
   - mv tool/standardese standardese
+  - mv $TRAVIS_BUILD_DIR/standardese-config.cmake standardese
   - mv $TRAVIS_BUILD_DIR/*.md standardese
   - mv $TRAVIS_BUILD_DIR/LICENSE standardese
   - tar -czf "$OUTPUT_NAME" standardese/
