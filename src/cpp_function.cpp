@@ -708,7 +708,7 @@ const cpp_entity* cpp_member_function::get_semantic_parent() const STANDARDESE_N
     // we have a friend
     // return the semantic parent of the class it is in
     auto c = cpp_entity::get_semantic_parent();
-    assert(c->get_entity_type() == cpp_entity::class_t);
+    assert(c->get_entity_type() == cpp_entity::class_t || is_type_template(c->get_entity_type()));
     return c->get_semantic_parent();
 }
 
