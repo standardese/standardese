@@ -48,9 +48,12 @@ namespace
         {
             auto diag = clang_getDiagnostic(tu, i);
 
-            auto msg = string(clang_formatDiagnostic(diag, get_diagnostic_options()));
-            if (!std::strstr(msg.c_str(), "cannot be a static member function"))
-                log->error("[compiler] {}", msg.c_str());
+            if (clang_getDiagnosticSeverity(diag) > CXDiagnostic_Warning)
+            {
+                auto msg = string(clang_formatDiagnostic(diag, get_diagnostic_options()));
+                if (!std::strstr(msg.c_str(), "cannot be a static member function"))
+                    log->error("[compiler] {}", msg.c_str());
+            }
 
             clang_disposeDiagnostic(diag);
         }
