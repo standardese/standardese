@@ -13,7 +13,13 @@ using namespace standardese;
 
 namespace
 {
-    CXTranslationUnit get_cxunit(CXIndex index, const compile_config& c, const char* full_path,
+    unsigned get_diagnostic_options()
+    {
+        return CXDiagnostic_DisplayOption;
+    }
+
+    CXTranslationUnit get_cxunit(const std::shared_ptr<spdlog::logger>& log, CXIndex index,
+                                 const compile_config& c, const char* full_path,
                                  const std::string& source)
     {
         auto args = c.get_flags();
@@ -28,9 +34,27 @@ namespace
         CXTranslationUnit tu;
         auto              error = clang_parseTranslationUnit2(index, full_path, args.data(),
                                                  static_cast<int>(args.size()), &file, 1,
-                                                 CXTranslationUnit_Incomplete, &tu);
+                                                 CXTranslationUnit_Incomplete
+#if CINDEX_VERSION_MINOR >= 34
+                                                     | CXTranslationUnit_KeepGoing
+#endif
+                                                 ,
+                                                 &tu);
         if (error != CXError_Success)
             throw libclang_error(error, "CXTranslationUnit (" + std::string(full_path) + ")");
+
+        auto no_diagnostics = clang_getNumDiagnostics(tu);
+        for (auto i = 0u; i != no_diagnostics; ++i)
+        {
+            auto diag = clang_getDiagnostic(tu, i);
+
+            auto msg = string(clang_formatDiagnostic(diag, get_diagnostic_options()));
+            if (!std::strstr(msg.c_str(), "cannot be a static member function"))
+                log->error("[compiler] {}", msg.c_str());
+
+            clang_disposeDiagnostic(diag);
+        }
+
         return tu;
     }
 
@@ -82,7 +106,8 @@ translation_unit parser::parse(const char* full_path, const compile_config& c,
     files_.add_file(std::move(file));
 
     auto preprocessed = preprocessor_.preprocess(*this, c, full_path, *file_ptr);
-    auto tu = get_cxunit(index_.get(), c, full_path, replace_friend_definitions(preprocessed));
+    auto tu =
+        get_cxunit(logger_, index_.get(), c, full_path, replace_friend_definitions(preprocessed));
     parse_comments(*this, file_name, preprocessed);
 
     file_ptr->wrapper_ = detail::tu_wrapper(tu);
@@ -92,7 +117,7 @@ translation_unit parser::parse(const char* full_path, const compile_config& c,
 }
 
 parser::parser(std::shared_ptr<spdlog::logger> logger)
-: index_(clang_createIndex(1, 1)), logger_(std::move(logger))
+: index_(clang_createIndex(1, 0)), logger_(std::move(logger))
 {
 }
 
