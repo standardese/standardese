@@ -154,6 +154,11 @@ namespace
         {
             return (flags & f) != 0;
         }
+
+        bool none_set() const
+        {
+            return flags == 0u;
+        }
     };
 
     // preprocessor line marker
@@ -253,6 +258,7 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
     std::string preprocessed;
 
     auto full_preprocessed = get_full_preprocess_output(p, c, full_path);
+    auto line_no           = 1u;
     auto file_depth        = 0;
     auto was_newl = true, in_c_comment = false, write_char = true;
     for (auto ptr = full_preprocessed.c_str(); *ptr; ++ptr)
@@ -281,6 +287,14 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
                 assert(file_depth <= 1);
                 file_depth = 0;
                 write_char = false;
+
+                if (marker.none_set())
+                {
+                    assert(line_no <= marker.line);
+                    auto diff = marker.line - line_no;
+                    preprocessed.append(diff, '\n');
+                    line_no = marker.line;
+                }
             }
             else if (marker.is_set(line_marker::enter_new))
             {
@@ -300,6 +314,7 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
                     else
                         preprocessed += '"';
                     preprocessed += '\n';
+                    ++line_no;
 
                     // also add include
                     if (is_whitelisted_directory(marker.file_name))
@@ -312,13 +327,19 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
                 }
             }
             else if (marker.is_set(line_marker::enter_old))
+            {
                 --file_depth;
+            }
         }
         else
             was_newl = false;
 
         if (file_depth == 0 && write_char)
+        {
             preprocessed += *ptr;
+            if (*ptr == '\n')
+                ++line_no;
+        }
         else if (file_depth == 0)
             write_char = true;
     }
