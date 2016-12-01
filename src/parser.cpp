@@ -17,6 +17,8 @@ namespace
                                  const std::string& source)
     {
         auto args = c.get_flags();
+        // allow detection of friend definitions
+        args.push_back("-D__standardese_friend=static");
 
         CXUnsavedFile file;
         file.Filename = full_path;
@@ -31,6 +33,43 @@ namespace
             throw libclang_error(error, "CXTranslationUnit (" + std::string(full_path) + ")");
         return tu;
     }
+
+    std::string replace_friend_definitions(const std::string& preprocessed)
+    {
+        std::string output;
+
+        auto last_match = preprocessed.c_str();
+        while (auto match = std::strstr(last_match, "friend"))
+        {
+            output.append(last_match, match);
+
+            auto ptr = match;
+            for (auto paren_count = 0; *ptr && *ptr != ';'; ++ptr)
+            {
+                if (*ptr == '(')
+                    ++paren_count;
+                else if (*ptr == ')')
+                    --paren_count;
+                else if (paren_count == 0 && *ptr == '{')
+                    // friend function definition
+                    break;
+            }
+
+            last_match = ptr;
+            if (!*ptr || *ptr == ';')
+                // other friend, keep
+                output.append(match, ptr);
+            else
+            {
+                // friend function definition, replace keyword
+                output += "__standardese_friend";
+                match += std::strlen("friend");
+                output.append(match, ptr);
+            }
+        }
+        output.append(last_match, &preprocessed.back() + 1);
+        return output;
+    }
 }
 
 translation_unit parser::parse(const char* full_path, const compile_config& c,
@@ -43,7 +82,7 @@ translation_unit parser::parse(const char* full_path, const compile_config& c,
     files_.add_file(std::move(file));
 
     auto preprocessed = preprocessor_.preprocess(*this, c, full_path, *file_ptr);
-    auto tu           = get_cxunit(index_.get(), c, full_path, preprocessed);
+    auto tu = get_cxunit(index_.get(), c, full_path, replace_friend_definitions(preprocessed));
     parse_comments(*this, file_name, preprocessed);
 
     file_ptr->wrapper_ = detail::tu_wrapper(tu);

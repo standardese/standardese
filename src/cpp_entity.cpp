@@ -96,10 +96,14 @@ cpp_entity_ptr cpp_entity::try_parse(translation_unit& tu, cpp_cursor cur, const
         break;
     }
 
-    // check for extern "C" specifier
     detail::tokenizer tokenizer(tu, cur);
+    // check for extern "C" specifier
     if (tokenizer.begin()->get_value() == "extern")
         return cpp_language_linkage::parse(tu, cur, parent);
+    // check for friend
+    else if (tokenizer.begin()->get_value() == "friend")
+        // ignore it, the friend function definitions are transformed
+        return nullptr;
 
     auto spelling = string(clang_getCursorKindSpelling(clang_getCursorKind(cur)));
     throw parse_error(source_location(cur),

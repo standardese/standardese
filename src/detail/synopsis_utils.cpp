@@ -245,6 +245,8 @@ void detail::write_prefix(code_block_writer& out, int virtual_flag, bool constex
 {
     if (virtual_flag == cpp_virtual_static)
         out << "static ";
+    else if (virtual_flag == cpp_virtual_friend)
+        out << "friend ";
     else if (is_virtual(cpp_virtual(virtual_flag)))
         out << "virtual ";
 

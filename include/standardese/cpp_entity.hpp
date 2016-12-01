@@ -141,7 +141,7 @@ namespace standardese
             return *parent_;
         }
 
-        const cpp_entity* get_semantic_parent() const STANDARDESE_NOEXCEPT
+        virtual const cpp_entity* get_semantic_parent() const STANDARDESE_NOEXCEPT
         {
             auto cur = parent_;
             while (cur && !cur->is_semantic_parent())

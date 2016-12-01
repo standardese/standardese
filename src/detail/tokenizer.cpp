@@ -95,6 +95,9 @@ namespace
                     end = get_next_location(tu, file, end);
                 } while (get_token_after(tu, file, end) != ";");
             }
+            else if (clang_getCursorKind(cur) == CXCursor_CXXMethod)
+                // necessary for some reason
+                begin = get_next_location(tu, file, begin, -1);
         }
         else if (clang_getCursorKind(cur) == CXCursor_TemplateTypeParameter
                  || clang_getCursorKind(cur) == CXCursor_NonTypeTemplateParameter

@@ -245,6 +245,8 @@ namespace
                 continue;
             else if (detail::skip_if_token(stream, "static"))
                 minfo.virtual_flag = cpp_virtual_static;
+            else if (detail::skip_if_token(stream, "__standardese_friend"))
+                minfo.virtual_flag = cpp_virtual_friend;
             else if (detail::skip_if_token(stream, "constexpr"))
                 finfo.set_flag(cpp_constexpr_fnc);
             else if (detail::skip_if_token(stream, "virtual"))
@@ -697,6 +699,17 @@ cpp_ptr<cpp_member_function> cpp_member_function::parse(translation_unit& tu, cp
     if (!template_args.empty())
         result->set_template_specialization_name(std::move(template_args));
     return result;
+}
+
+const cpp_entity* cpp_member_function::get_semantic_parent() const STANDARDESE_NOEXCEPT
+{
+    if (info_.virtual_flag != cpp_virtual_friend)
+        return cpp_entity::get_semantic_parent();
+    // we have a friend
+    // return the semantic parent of the class it is in
+    auto c = cpp_entity::get_semantic_parent();
+    assert(c->get_entity_type() == cpp_entity::class_t);
+    return c->get_semantic_parent();
 }
 
 cpp_member_function::cpp_member_function(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref ret,

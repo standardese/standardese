@@ -183,6 +183,189 @@ auto i() -> decltype(d() = '0');)";
     REQUIRE(count == 9u);
 }
 
+TEST_CASE("cpp_friend_function", "[cpp]")
+{
+    parser p(test_logger);
+
+    auto code = R"(
+struct foo
+{
+friend void a(int x, const char *ptr = nullptr) {}
+
+friend int b(int c, ...) try
+{
+    return 0;
+}
+catch (...)
+{
+    return 1;
+}
+
+friend int *c(int a = int(0))
+{
+    return nullptr;
+}
+
+friend char & d() noexcept
+{
+    static char c;
+    return c;
+}
+
+friend const int e() noexcept(false)
+{
+    return 0;
+}
+
+friend int (*f(int a))(volatile char&&)
+{
+    return nullptr;
+}
+
+friend constexpr auto g() -> const char&&
+{
+    return static_cast<const char&&>('a');
+}
+
+friend auto h() noexcept(noexcept(int()))
+{
+    return 0;
+}
+
+friend auto i() -> decltype(0 == '0')
+{
+    return false;
+}
+};)";
+
+    auto tu = parse(p, "cpp_friend_function", code);
+
+    // no need to check the parameters, same code as for variables
+    auto count = 0u;
+    for_each(tu.get_file(), [&](const cpp_entity& s) {
+        REQUIRE(s.get_entity_type() == cpp_entity::class_t);
+        for (auto& e : static_cast<const cpp_class&>(s))
+        {
+            auto& func = dynamic_cast<const cpp_member_function&>(e);
+            REQUIRE(func.get_name() == func.get_full_name());
+            REQUIRE(std::string(func.get_full_name().c_str()) + func.get_signature().c_str()
+                    == func.get_unique_name());
+
+            if (func.get_name() == "a")
+            {
+                ++count;
+                REQUIRE(func.get_return_type().get_name() == "void");
+                REQUIRE(!func.is_constexpr());
+                REQUIRE(!func.is_variadic());
+                REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
+                REQUIRE(no_parameters(func) == 2u);
+                REQUIRE(func.get_signature() == "(int,const char *)");
+                REQUIRE(func.get_definition() == cpp_function_definition_normal);
+            }
+            else if (func.get_name() == "b")
+            {
+                ++count;
+                REQUIRE(func.get_return_type().get_name() == "int");
+                REQUIRE(!func.is_constexpr());
+                REQUIRE(func.is_variadic());
+                REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
+                REQUIRE(no_parameters(func) == 1u);
+                REQUIRE(func.get_signature() == "(int,...)");
+                REQUIRE(func.get_definition() == cpp_function_definition_normal);
+            }
+            else if (func.get_name() == "c")
+            {
+                ++count;
+                REQUIRE(func.get_return_type().get_name() == "int*");
+                REQUIRE(!func.is_constexpr());
+                REQUIRE(!func.is_variadic());
+                REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
+                REQUIRE(no_parameters(func) == 1u);
+                REQUIRE(func.get_signature() == "(int)");
+                REQUIRE(func.get_definition() == cpp_function_definition_normal);
+            }
+            else if (func.get_name() == "d")
+            {
+                ++count;
+                REQUIRE(func.get_return_type().get_name() == "char&");
+                REQUIRE(!func.is_constexpr());
+                REQUIRE(!func.is_variadic());
+                REQUIRE(func.get_noexcept() == "true");
+                REQUIRE(func.explicit_noexcept());
+                REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
+                REQUIRE(func.get_definition() == cpp_function_definition_normal);
+            }
+            else if (func.get_name() == "e")
+            {
+                ++count;
+                REQUIRE(func.get_return_type().get_name() == "const int");
+                REQUIRE(!func.is_constexpr());
+                REQUIRE(!func.is_variadic());
+                REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(func.explicit_noexcept());
+                REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
+                REQUIRE(func.get_definition() == cpp_function_definition_normal);
+            }
+            else if (func.get_name() == "f")
+            {
+                ++count;
+                REQUIRE(func.get_return_type().get_name() == "int(*)(volatile char&&)");
+                REQUIRE(!func.is_constexpr());
+                REQUIRE(!func.is_variadic());
+                REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
+                REQUIRE(no_parameters(func) == 1u);
+                REQUIRE(func.get_signature() == "(int)");
+                REQUIRE(func.get_definition() == cpp_function_definition_normal);
+            }
+            else if (func.get_name() == "g")
+            {
+                ++count;
+                REQUIRE(func.get_return_type().get_name() == "const char&&");
+                REQUIRE(func.is_constexpr());
+                REQUIRE(!func.is_variadic());
+                REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
+                REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
+                REQUIRE(func.get_definition() == cpp_function_definition_normal);
+            }
+            else if (func.get_name() == "h")
+            {
+                ++count;
+                REQUIRE(func.get_return_type().get_name() == "auto");
+                REQUIRE(!func.is_constexpr());
+                REQUIRE(!func.is_variadic());
+                REQUIRE(func.get_noexcept() == "noexcept(int())");
+                REQUIRE(func.explicit_noexcept());
+                REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
+                REQUIRE(func.get_definition() == cpp_function_definition_normal);
+            }
+            else if (func.get_name() == "i")
+            {
+                ++count;
+                REQUIRE(func.get_return_type().get_name() == "decltype(0=='0')");
+                REQUIRE(!func.is_constexpr());
+                REQUIRE(!func.is_variadic());
+                REQUIRE(func.get_noexcept() == "false");
+                REQUIRE(!func.explicit_noexcept());
+                REQUIRE(no_parameters(func) == 0u);
+                REQUIRE(func.get_signature() == "()");
+                REQUIRE(func.get_definition() == cpp_function_definition_normal);
+            }
+            else
+                REQUIRE(false);
+        }
+    });
+    REQUIRE(count == 9u);
+}
+
 TEST_CASE("cpp_member_function", "[cpp]")
 {
     parser p(test_logger);

@@ -45,7 +45,7 @@ cpp_ptr<standardese::cpp_macro_definition> cpp_macro_definition::parse(CXTransla
 
     auto function_like = false;
 #if CINDEX_VERSION_MINOR >= 33
-    function_like = clang_Cursor_isMacroFunctionLike(cur);
+    function_like = clang_Cursor_isMacroFunctionLike(cur) != 0u;
 #else
     // first token after name decides if it is function like
     auto token = tokenizer.begin()[1];
@@ -90,6 +90,9 @@ namespace
 {
     std::string get_command(const compile_config& c, const char* full_path)
     {
+        // -E: print preprocessor output
+        // -C: keep comments
+        // -Wno-pragma-once-outside-header: hide wrong warning
         std::string cmd(fs::path(c.get_clang_binary()).generic_string()
                         + " -E -C -Wno-pragma-once-outside-header ");
         for (auto& flag : c)
