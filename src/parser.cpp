@@ -39,7 +39,7 @@ namespace
         std::string output;
 
         auto last_match = preprocessed.c_str();
-        while (auto match = std::strstr(last_match, "friend"))
+        while (const char* match = std::strstr(last_match, "friend"))
         {
             output.append(last_match, match);
 
