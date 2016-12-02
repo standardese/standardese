@@ -1015,17 +1015,25 @@ void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& 
     {
         if (first)
             first = false;
-        else
+        else if (top_level)
             out << blankl;
+        else
+            out << newl;
 
         ++i;
         if (top_level && p.get_output_config().is_set(output_flag::show_group_member_id))
         {
             out << '(' << i << ')';
-            out.fill(p.get_output_config().get_tab_width(), ' ');
+            out.fill(p.get_output_config().get_tab_width() / 2, ' ');
+            out.indent(p.get_output_config().get_tab_width() / 2 + 3);
         }
 
         detail::generation_access::do_generate_synopsis(child, p, out, top_level);
+
+        if (top_level && p.get_output_config().is_set(output_flag::show_group_member_id))
+        {
+            out.unindent(p.get_output_config().get_tab_width() / 2 + 3);
+        }
     }
 }
 
