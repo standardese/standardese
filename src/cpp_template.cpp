@@ -472,7 +472,12 @@ cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit& tu, cpp_
 
 cpp_name cpp_alias_template::get_name() const
 {
-    return get_template_name(type_->get_name().c_str(), *this);
+    return type_->get_name();
+}
+
+cpp_name cpp_alias_template::do_get_unique_name() const
+{
+    return get_template_name(cpp_entity::do_get_unique_name().c_str(), *this);
 }
 
 const cpp_entity_container<cpp_template_parameter>* standardese::get_template_parameters(
