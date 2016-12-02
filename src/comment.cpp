@@ -93,6 +93,29 @@ bool comment::empty() const STANDARDESE_NOEXCEPT
     return true;
 }
 
+void comment::set_synopsis_override(const std::string& synopsis)
+{
+    synopsis_override_.clear();
+
+    auto escape = false;
+    for (auto c : synopsis)
+        if (c == '\\')
+            escape = true;
+        else if (escape && c == 'n')
+        {
+            escape = false;
+            synopsis_override_ += '\n';
+        }
+        else if (escape)
+        {
+            synopsis_override_ += '\\';
+            synopsis_override_ += c;
+            escape = false;
+        }
+        else
+            synopsis_override_ += c;
+}
+
 string detail::get_unique_name(const doc_entity* parent, const string& unique_name,
                                const comment* c)
 {

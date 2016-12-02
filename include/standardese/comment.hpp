@@ -227,10 +227,7 @@ namespace standardese
             return synopsis_override_;
         }
 
-        void set_synopsis_override(std::string synopsis)
-        {
-            synopsis_override_ = std::move(synopsis);
-        }
+        void set_synopsis_override(const std::string& synopsis);
 
         bool in_module() const STANDARDESE_NOEXCEPT
         {
