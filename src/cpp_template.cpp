@@ -55,7 +55,7 @@ cpp_name cpp_template_parameter::do_get_unique_name() const
         name = std::to_string(i);
     }
 
-    return std::string(parent->get_unique_name().c_str()) + "." + name;
+    return std::string(".") + name;
 }
 
 cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translation_unit& tu,
@@ -278,7 +278,7 @@ namespace
 
     // appends template paramters to name
     template <typename T>
-    cpp_name get_template_name(std::string name, T& result)
+    std::string get_template_name(std::string name, T& result)
     {
         name += "<";
         auto needs_comma = false;
@@ -357,7 +357,7 @@ cpp_name cpp_function_template_specialization::get_signature() const
 
 cpp_name cpp_function_template_specialization::do_get_unique_name() const
 {
-    return std::string(get_full_name().c_str()) + get_signature().c_str();
+    return std::string(cpp_entity::do_get_unique_name().c_str()) + get_signature().c_str();
 }
 
 cpp_function_template_specialization::cpp_function_template_specialization(cpp_cursor        cur,

@@ -111,10 +111,7 @@ namespace standardese
         }
 
         /// \returns A unique name describing one entity.
-        cpp_name get_unique_name() const
-        {
-            return do_get_unique_name();
-        }
+        cpp_name get_unique_name(bool exclude_scope = false) const;
 
         /// \returns The type of the entity.
         type get_entity_type() const STANDARDESE_NOEXCEPT

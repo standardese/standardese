@@ -152,12 +152,21 @@ cpp_name cpp_entity::get_scope() const
     return get_scope_impl(*this, false);
 }
 
+cpp_name cpp_entity::get_unique_name(bool exclude_scope) const
+{
+    if (exclude_scope)
+        return do_get_unique_name();
+    return get_scope_impl(*this, true) + do_get_unique_name().c_str();
+}
+
 cpp_name cpp_entity::do_get_unique_name() const
 {
-    auto scope = get_scope_impl(*this, true);
-    if (scope.empty())
-        return get_name().c_str();
-    return scope + "::" + get_name().c_str();
+    std::string result;
+    if (get_semantic_parent() && get_semantic_parent()->get_entity_type() != cpp_entity::file_t
+        && get_semantic_parent()->get_entity_type() != cpp_entity::language_linkage_t)
+        result += "::";
+    result += get_name().c_str();
+    return result;
 }
 
 cpp_entity::cpp_entity(type t, cpp_cursor cur, const cpp_entity& parent)

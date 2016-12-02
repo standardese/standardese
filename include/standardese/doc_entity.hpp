@@ -455,7 +455,7 @@ namespace standardese
 
         cpp_name do_get_unique_name() const override
         {
-            return file_->get_unique_name();
+            return file_->get_cpp_entity().get_unique_name(true);
         }
 
         cpp_name do_get_index_name(bool full_name) const override

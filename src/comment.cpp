@@ -9,6 +9,7 @@
 
 #include <standardese/detail/raw_comment.hpp>
 #include <standardese/detail/wrapper.hpp>
+#include <standardese/doc_entity.hpp>
 #include <standardese/error.hpp>
 #include <standardese/generator.hpp>
 #include <standardese/index.hpp>
@@ -90,6 +91,20 @@ bool comment::empty() const STANDARDESE_NOEXCEPT
         return get_content().get_brief().empty();
 
     return true;
+}
+
+string detail::get_unique_name(const doc_entity* parent, const string& unique_name,
+                               const comment* c)
+{
+    if (c && c->has_unique_name_override())
+        return c->get_unique_name_override();
+
+    std::string result;
+    if (parent && parent->get_cpp_entity_type() != cpp_entity::file_t
+        && parent->get_cpp_entity_type() != cpp_entity::language_linkage_t)
+        result += parent->get_unique_name().c_str();
+    result += unique_name.c_str();
+    return result;
 }
 
 bool comment_registry::register_comment(comment_id id, comment c) const
@@ -212,7 +227,7 @@ namespace
         return parent_id.line() == e_id.line();
     }
 
-    bool matches(const cpp_entity& e, const comment_id& id, cpp_cursor cur = {})
+    bool matches(const cpp_entity& e, const comment_id& id)
     {
         auto& inline_parent = get_inline_parent(e);
 
@@ -242,7 +257,6 @@ namespace
             if (&inline_parent == &e)
                 // not an entity where an inline location makes sense
                 return false;
-            assert(clang_Cursor_isNull(cur));
 
             auto e_id = create_location_id(e);
             if (id.file_name() != e_id.file_name())
@@ -260,9 +274,15 @@ namespace
         return false;
     }
 
+    comment_id get_name_id(const doc_entity* parent, const cpp_entity& e, const comment* c)
+    {
+        auto result = detail::get_unique_name(parent, e.get_unique_name(true), c);
+        return comment_id(detail::get_id(result.c_str()).c_str());
+    }
+
     template <class Map>
     const comment* lookup_comment_location(Map& comments, const comment_id& id, const cpp_entity& e,
-                                           cpp_cursor cur = {})
+                                           const doc_entity* parent)
     {
         auto iter = comments.lower_bound(id);
         if (iter != comments.end())
@@ -270,21 +290,20 @@ namespace
             // first try the next higher one, i.e. end of same line
             // then try the actual match
             ++iter;
-            if (iter == comments.end() || !matches(e, iter->first, cur))
+            if (iter == comments.end() || !matches(e, iter->first))
             {
                 --iter;
-                if (!matches(e, iter->first, cur))
+                if (!matches(e, iter->first))
                     return nullptr;
             }
 
             if (!iter->second.empty())
                 return &iter->second;
+
             // this command is only used for commands, look for a remote comment
             auto& comment = iter->second;
 
-            iter = comments.find(comment_id(comment.has_unique_name_override() ?
-                                                comment.get_unique_name_override() :
-                                                e.get_unique_name()));
+            iter = comments.find(get_name_id(parent, e, &comment));
             if (iter != comments.end())
                 // add remote content
                 comment.set_content(iter->second.get_content().clone());
@@ -297,13 +316,13 @@ namespace
 }
 
 const comment* comment_registry::lookup_comment(const cpp_entity_registry& registry,
-                                                const cpp_entity&          e) const
+                                                const cpp_entity& e, const doc_entity* parent) const
 {
     std::unique_lock<std::mutex> lock(mutex_);
 
     // first look for comments at the location
     auto location = create_location_id(e);
-    if (auto c = lookup_comment_location(comments_, location, e))
+    if (auto c = lookup_comment_location(comments_, location, e, parent))
         return c;
 
     // then look for comments at alternative locations
@@ -313,18 +332,18 @@ const comment* comment_registry::lookup_comment(const cpp_entity_registry& regis
         auto& alternative = alternatives.first->second;
         auto  definition_location =
             create_location_id(e.get_entity_type(), get_location(alternative));
-        if (auto c = lookup_comment_location(comments_, definition_location, e, alternative))
+        if (auto c = lookup_comment_location(comments_, definition_location, e, parent))
             return c;
     }
 
     // then for comments with the unique name
-    auto id   = detail::get_id(e.get_unique_name().c_str());
+    auto id   = get_name_id(parent, e, nullptr);
     auto iter = comments_.find(comment_id(id));
     if (iter != comments_.end())
         return &iter->second;
 
-    auto short_id = detail::get_short_id(id);
-    if (id == short_id)
+    auto short_id = detail::get_short_id(id.unique_name().c_str());
+    if (id.unique_name() == short_id)
         return nullptr;
     iter = comments_.find(comment_id(short_id));
     if (iter != comments_.end())

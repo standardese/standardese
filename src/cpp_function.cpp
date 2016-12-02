@@ -68,7 +68,7 @@ cpp_name cpp_function_parameter::do_get_unique_name() const
         name = std::to_string(i);
     }
 
-    return std::string(parent->get_unique_name().c_str()) + "." + name;
+    return std::string(".") + name;
 }
 
 cpp_ptr<cpp_function_base> cpp_function_base::try_parse(translation_unit& p, cpp_cursor cur,
@@ -113,7 +113,7 @@ void cpp_function_base::set_template_specialization_name(cpp_name name)
 
 cpp_name cpp_function_base::do_get_unique_name() const
 {
-    return std::string(get_full_name().c_str()) + get_signature().c_str();
+    return std::string(cpp_entity::do_get_unique_name().c_str()) + get_signature().c_str();
 }
 
 namespace

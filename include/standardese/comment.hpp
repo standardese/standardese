@@ -283,14 +283,21 @@ namespace standardese
 
     class cpp_entity;
     class cpp_entity_registry;
+    class doc_entity;
+
+    namespace detail
+    {
+        string get_unique_name(const doc_entity* parent, const string& unique_name,
+                               const comment* c);
+    }
 
     class comment_registry
     {
     public:
         bool register_comment(comment_id id, comment c) const;
 
-        const comment* lookup_comment(const cpp_entity_registry& registry,
-                                      const cpp_entity&          e) const;
+        const comment* lookup_comment(const cpp_entity_registry& registry, const cpp_entity& e,
+                                      const doc_entity* parent) const;
 
         const comment* lookup_comment(const std::string& module) const;
 

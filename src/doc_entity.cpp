@@ -46,6 +46,21 @@ const std::string& doc_entity::get_module() const STANDARDESE_NOEXCEPT
     return has_parent() ? get_parent().get_module() : empty;
 }
 
+cpp_name doc_entity::get_unique_name() const
+{
+    return detail::get_unique_name(has_parent() ? &get_parent() : nullptr, do_get_unique_name(),
+                                   comment_);
+}
+
+doc_entity::doc_entity(doc_entity::type t, const doc_entity* parent,
+                       const comment* c) STANDARDESE_NOEXCEPT : parent_(parent),
+                                                                comment_(c),
+                                                                t_(t)
+{
+    if (comment_)
+        comment_->get_content().set_entity(*this);
+}
+
 namespace
 {
     const char* get_entity_type_spelling(const cpp_entity& e)
@@ -231,7 +246,7 @@ void doc_cpp_entity::do_generate_documentation_base(const parser& p, const index
 
 cpp_name doc_cpp_entity::do_get_unique_name() const
 {
-    return entity_->get_unique_name();
+    return entity_->get_unique_name(true);
 }
 
 cpp_name doc_cpp_entity::do_get_index_name(bool full_name) const
@@ -243,22 +258,6 @@ cpp_name doc_cpp_entity::do_get_index_name(bool full_name) const
     if (auto func = get_function(*entity_))
         name += func->get_signature().c_str();
     return name;
-}
-
-cpp_name doc_entity::get_unique_name() const
-{
-    return has_comment() && get_comment().has_unique_name_override() ?
-               get_comment().get_unique_name_override() :
-               do_get_unique_name();
-}
-
-doc_entity::doc_entity(doc_entity::type t, const doc_entity* parent,
-                       const comment* c) STANDARDESE_NOEXCEPT : parent_(parent),
-                                                                comment_(c),
-                                                                t_(t)
-{
-    if (comment_)
-        comment_->get_content().set_entity(*this);
 }
 
 bool standardese::is_inline_cpp_entity(cpp_entity::type t) STANDARDESE_NOEXCEPT
@@ -1051,7 +1050,7 @@ namespace
             // entity is private and not virtual, and private entities are excluded
             return nullptr;
 
-        auto comment = p.get_comment_registry().lookup_comment(p.get_entity_registry(), e);
+        auto comment = p.get_comment_registry().lookup_comment(p.get_entity_registry(), e, &parent);
         if (is_blacklisted(blacklist, e, comment))
             // entity is blacklisted
             return nullptr;
@@ -1238,7 +1237,7 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
         detail::make_doc_ptr<doc_container_cpp_entity>(nullptr, f,
                                                        p.get_comment_registry()
                                                            .lookup_comment(p.get_entity_registry(),
-                                                                           f));
+                                                                           f, nullptr));
     if (file_ptr->has_comment() && file_ptr->get_comment().has_unique_name_override())
         output_name = file_ptr->get_comment().get_unique_name_override();
 

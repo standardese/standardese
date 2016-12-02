@@ -344,6 +344,7 @@ It is as if the entity never existed in the first place.
 /// \unique_name foo
 void bar(int a, int c);
 ```
+Note that if you override the unique name of a parent entity, this will also affect the unique names of child entities.
 
 * `synopsis {string}` - Overrides the synopsis in the output.
 You can pass any string that will be rendered instead of the actual synopsis.
