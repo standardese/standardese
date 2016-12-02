@@ -248,6 +248,9 @@ namespace standardese
 
         void add_entity(const cpp_entity* this_entity, cpp_entity_ptr entity)
         {
+            if (!entity)
+                return;
+
             if (this_entity
                 && (!entity->has_ast_parent() || &entity->get_ast_parent() != this_entity))
                 entity->parent_ = this_entity;

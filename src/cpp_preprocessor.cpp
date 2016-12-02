@@ -35,6 +35,25 @@ using namespace standardese;
 
 namespace fs = boost::filesystem;
 
+namespace
+{
+    const char* guard_suffixes[] = {"_HPP_INCLUDED", "_H_INCLUDED"};
+
+    // dumb heuristic
+    bool is_guard(const std::string& name)
+    {
+        for (auto suffix : guard_suffixes)
+        {
+            auto length = std::strlen(suffix);
+            if (name.size() <= length)
+                continue;
+            else if (std::strncmp(name.c_str() + name.size() - length, suffix, length) == 0)
+                return true;
+        }
+        return false;
+    }
+}
+
 cpp_ptr<standardese::cpp_macro_definition> cpp_macro_definition::parse(CXTranslationUnit tu,
                                                                        CXFile file, cpp_cursor cur,
                                                                        const cpp_entity& parent)
@@ -42,6 +61,8 @@ cpp_ptr<standardese::cpp_macro_definition> cpp_macro_definition::parse(CXTransla
     detail::tokenizer tokenizer(tu, file, cur);
 
     std::string name = tokenizer.begin()[0].get_value().c_str();
+    if (is_guard(name))
+        return nullptr;
 
     auto function_like = false;
 #if CINDEX_VERSION_MINOR >= 33
