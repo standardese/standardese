@@ -967,7 +967,14 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
 {
     assert(!empty());
 
-    if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
+    if (get_comment().has_group_name())
+    {
+        auto heading = md_heading::make(doc, level);
+        heading->add_entity(md_text::make(*heading, get_comment().get_group_name().c_str()));
+        heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
+        doc.add_entity(std::move(heading));
+    }
+    else if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
     {
         auto& cpp_e = static_cast<const doc_cpp_entity&>(*doc_entity_container::begin());
         doc.add_entity(make_heading(i, cpp_e, doc, level,
@@ -977,6 +984,7 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
     {
         auto heading = md_heading::make(doc, level);
         heading->add_entity(md_text::make(*heading, "Member group"));
+        heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
         doc.add_entity(std::move(heading));
     }
 

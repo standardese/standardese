@@ -349,14 +349,15 @@ Note that if you override the unique name of a parent entity, this will also aff
 * `synopsis {string}` - Overrides the synopsis in the output.
 You can pass any string that will be rendered instead of the actual synopsis.
 
-* `group {name}` - Add the entity to a member group.
+* `group <name> [heading]` - Add the entity to a member group.
 A member group consists of multiple entities that are direct members of the same entity (i.e. class, file, namespace,...) which will be grouped together in the output.
 For example:
 ```cpp
-/// \group foo
+/// \group foo A heading
 /// This is in the group `foo`.
 /// Because this is the first entity in the group, it will be the "master".
 /// the group comment will be this comment, the group unique name will be this unique name, ...
+/// The optional heading (everything after the first whitespace) will be shown as heading in the output.
 void func();
 
 /// \group foo

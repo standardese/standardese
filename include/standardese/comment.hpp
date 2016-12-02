@@ -262,6 +262,21 @@ namespace standardese
             group_id_ = group_id;
         }
 
+        bool has_group_name() const STANDARDESE_NOEXCEPT
+        {
+            return !group_name_.empty();
+        }
+
+        const std::string& get_group_name() const STANDARDESE_NOEXCEPT
+        {
+            return group_name_;
+        }
+
+        void set_group_name(std::string name)
+        {
+            group_name_ = std::move(name);
+        }
+
         bool is_excluded() const STANDARDESE_NOEXCEPT
         {
             return excluded_;
@@ -276,6 +291,7 @@ namespace standardese
         std::string        unique_name_override_;
         std::string        synopsis_override_;
         std::string        module_;
+        std::string        group_name_;
         md_ptr<md_comment> content_;
         std::size_t        group_id_;
         bool               excluded_;

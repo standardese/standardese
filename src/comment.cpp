@@ -602,10 +602,10 @@ namespace
         const parser*                 parser_;
     };
 
-    std::size_t get_group_id(const char* name)
+    std::size_t get_group_id(const char* name, const char* end)
     {
         using hash = std::hash<std::string>;
-        auto res   = hash{}(name);
+        auto res   = hash{}(std::string(name, end));
         return res == 0u ? 19937u : res; // must not be 0
     }
 
@@ -642,9 +642,16 @@ namespace
                 stack.info().comment.set_synopsis_override(read_argument(text, command_str));
                 break;
             case command_type::group:
-                stack.info().comment.add_to_member_group(
-                    get_group_id(read_argument(text, command_str)));
+            {
+                auto arg    = read_argument(text, command_str);
+                auto end_id = arg;
+                while (*end_id && !std::isspace(*end_id))
+                    ++end_id;
+                stack.info().comment.add_to_member_group(get_group_id(arg, end_id));
+                if (*end_id)
+                    stack.info().comment.set_group_name(end_id);
                 break;
+            }
             case command_type::module:
                 if (!first)
                     stack.info().comment.set_module(read_argument(text, command_str));
