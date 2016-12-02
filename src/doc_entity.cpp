@@ -234,10 +234,7 @@ void doc_cpp_entity::do_generate_documentation_base(const parser& p, const index
                                 p.get_output_config().is_set(output_flag::show_modules)));
 
     code_block_writer out(doc);
-    if (has_comment() && get_comment().has_synopsis_override())
-        out << get_comment().get_synopsis_override();
-    else
-        do_generate_synopsis(p, out, true);
+    do_generate_synopsis(p, out, true);
     doc.add_entity(out.get_code_block());
 
     if (has_comment())
@@ -391,6 +388,12 @@ namespace
 void doc_inline_cpp_entity::do_generate_synopsis(const parser& p, code_block_writer& out,
                                                  bool) const
 {
+    if (has_comment() && get_comment().has_synopsis_override())
+    {
+        out << get_comment().get_synopsis_override();
+        return;
+    }
+
     switch (get_cpp_entity_type())
     {
     case cpp_entity::signed_enum_value_t:
@@ -547,6 +550,12 @@ namespace
 
 void doc_leave_cpp_entity::do_generate_synopsis(const parser& p, code_block_writer& out, bool) const
 {
+    if (has_comment() && get_comment().has_synopsis_override())
+    {
+        out << get_comment().get_synopsis_override();
+        return;
+    }
+
     switch (get_cpp_entity_type())
     {
     case cpp_entity::macro_definition_t:
@@ -893,6 +902,12 @@ namespace
 void doc_container_cpp_entity::do_generate_synopsis(const parser& p, code_block_writer& out,
                                                     bool top_level) const
 {
+    if (has_comment() && get_comment().has_synopsis_override())
+    {
+        out << get_comment().get_synopsis_override();
+        return;
+    }
+
     // write template parameters, if there are any
     if (is_template(get_cpp_entity_type()))
         detail::write_template_parameters(p, out, *this);
@@ -989,10 +1004,7 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
     }
 
     code_block_writer out(doc);
-    if (get_comment().has_synopsis_override())
-        out << get_comment().get_synopsis_override();
-    else
-        do_generate_synopsis(p, out, true);
+    do_generate_synopsis(p, out, true);
     doc.add_entity(out.get_code_block());
 
     doc.add_entity(get_comment().get_content().clone(doc));
