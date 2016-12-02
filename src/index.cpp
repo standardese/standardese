@@ -35,13 +35,27 @@ std::string detail::get_id(const std::string& unique_name)
 
 std::string detail::get_short_id(const std::string& id)
 {
-    auto open_paren = id.find('(');
-    if (open_paren == std::string::npos)
-        return id;
-    auto close_paren = id.rfind(')');
-    assert(id.at(close_paren) == ')');
+    std::string result;
 
-    return id.substr(0, open_paren) + id.substr(close_paren + 1);
+    auto skip = false;
+    for (auto c : id)
+    {
+        if (c == '(')
+            skip = true;
+        else if (c == '.')
+        {
+            result += '.';
+            skip = false;
+        }
+        else if (c == '<')
+            skip = true;
+        else if (c == '>')
+            skip = false;
+        else if (!skip)
+            result += c;
+    }
+
+    return result;
 }
 
 void index::register_entity(const parser& p, const doc_entity& entity,

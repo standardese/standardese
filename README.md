@@ -271,7 +271,7 @@ Because it is sometimes long and ugly, you can override the unique name via the 
 > Usually numbering would be a good choice, so `bar() (1)` or similar.
 
 You can also use a short `unique-name` if there aren't multiple entities resolved to the same short name.
-The short name is the `unique-name` but without a signature, i.e. for `foo<T>::func<U>(int) const`, the short name is `foo<T>::func<U>`.
+The short name is the `unique-name` but without a signature or template parameters, i.e. for `foo<T>::func<U>(int) const`, the short name is `foo::func`.
 
 ##### Name lookup
 
