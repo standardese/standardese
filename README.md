@@ -348,7 +348,7 @@ Note that if you override the unique name of a parent entity, this will also aff
 
 * `synopsis {string}` - Overrides the synopsis in the output.
 You can pass any string that will be rendered instead of the actual synopsis.
-Use `\n` to render a newline, use `\<` and `\>` to render `<` and `>`, respectively.
+Use `\n` to render a newline, use `\t` to render a tab and use `\<` and `\>` to render `<` and `>`, respectively.
 
 * `group <name> [heading]` - Add the entity to a member group.
 A member group consists of multiple entities that are direct members of the same entity (i.e. class, file, namespace,...) which will be grouped together in the output.

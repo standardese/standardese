@@ -227,7 +227,7 @@ namespace standardese
             return synopsis_override_;
         }
 
-        void set_synopsis_override(const std::string& synopsis);
+        void set_synopsis_override(const std::string& synopsis, unsigned tab_width);
 
         bool in_module() const STANDARDESE_NOEXCEPT
         {

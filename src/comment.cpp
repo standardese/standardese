@@ -93,7 +93,7 @@ bool comment::empty() const STANDARDESE_NOEXCEPT
     return true;
 }
 
-void comment::set_synopsis_override(const std::string& synopsis)
+void comment::set_synopsis_override(const std::string& synopsis, unsigned tab_width)
 {
     synopsis_override_.clear();
 
@@ -105,6 +105,11 @@ void comment::set_synopsis_override(const std::string& synopsis)
         {
             escape = false;
             synopsis_override_ += '\n';
+        }
+        else if (escape && c == 't')
+        {
+            escape = false;
+            synopsis_override_ += std::string(tab_width, ' ');
         }
         else if (escape)
         {
@@ -662,7 +667,8 @@ namespace
                 stack.info().comment.set_unique_name_override(read_argument(text, command_str));
                 break;
             case command_type::synopsis:
-                stack.info().comment.set_synopsis_override(read_argument(text, command_str));
+                stack.info().comment.set_synopsis_override(read_argument(text, command_str),
+                                                           p.get_output_config().get_tab_width());
                 break;
             case command_type::group:
             {
