@@ -992,7 +992,7 @@ TEST_CASE("cpp_alias_template", "[cpp]")
         auto& alias = dynamic_cast<const cpp_alias_template&>(e);
         auto& type  = alias.get_type();
 
-        if (alias.get_name() == "a<T>")
+        if (alias.get_unique_name() == "a<T>")
         {
             ++count;
             REQUIRE(detail::parse_comment(alias.get_cursor()) == "/// a");
@@ -1000,7 +1000,7 @@ TEST_CASE("cpp_alias_template", "[cpp]")
             REQUIRE(type.get_target().get_name() == "T");
             REQUIRE(type.get_target().get_full_name() == "T");
         }
-        else if (alias.get_name() == "b<T>")
+        else if (alias.get_unique_name() == "b<T>")
         {
             ++count;
             REQUIRE(detail::parse_comment(alias.get_cursor()) == "/// b");
@@ -1008,7 +1008,7 @@ TEST_CASE("cpp_alias_template", "[cpp]")
             REQUIRE(type.get_target().get_name() == "foo<T>");
             REQUIRE(type.get_target().get_full_name() == "foo<T>");
         }
-        else if (alias.get_name() == "c<T>")
+        else if (alias.get_unique_name() == "c<T>")
         {
             ++count;
             REQUIRE(detail::parse_comment(alias.get_cursor()) == "/// c");

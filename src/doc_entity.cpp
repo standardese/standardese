@@ -813,9 +813,12 @@ namespace
         detail::write_prefix(out, detail::get_virtual(f), f.is_constexpr());
 
         if (f.get_entity_type() == cpp_entity::function_t)
-            out << static_cast<const cpp_function&>(f).get_return_type().get_name() << ' ';
+            out << detail::get_ref_name(p, static_cast<const cpp_function&>(f).get_return_type())
+                << ' ';
         else if (f.get_entity_type() == cpp_entity::member_function_t)
-            out << static_cast<const cpp_member_function&>(f).get_return_type().get_name() << ' ';
+            out << detail::get_ref_name(p, static_cast<const cpp_member_function&>(f)
+                                               .get_return_type())
+                << ' ';
 
         detail::write_parameters(p, out, e, f);
 
