@@ -84,7 +84,8 @@ namespace standardese
 
         static cpp_ptr<standardese::cpp_macro_definition> parse(CXTranslationUnit tu, CXFile file,
                                                                 cpp_cursor        cur,
-                                                                const cpp_entity& parent);
+                                                                const cpp_entity& parent,
+                                                                unsigned          line_no);
 
         cpp_name get_name() const override
         {

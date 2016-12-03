@@ -56,7 +56,8 @@ namespace
 
 cpp_ptr<standardese::cpp_macro_definition> cpp_macro_definition::parse(CXTranslationUnit tu,
                                                                        CXFile file, cpp_cursor cur,
-                                                                       const cpp_entity& parent)
+                                                                       const cpp_entity& parent,
+                                                                       unsigned          line_no)
 {
     detail::tokenizer tokenizer(tu, file, cur);
 
@@ -99,12 +100,8 @@ cpp_ptr<standardese::cpp_macro_definition> cpp_macro_definition::parse(CXTransla
             detail::append_token(replacement, iter->get_value());
     }
 
-    auto     loc = clang_getCursorLocation(cur);
-    unsigned line;
-    clang_getSpellingLocation(loc, nullptr, &line, nullptr, nullptr);
-
     return detail::make_cpp_ptr<cpp_macro_definition>(parent, std::move(name), std::move(params),
-                                                      std::move(replacement), line);
+                                                      std::move(replacement), line_no);
 }
 
 namespace
@@ -115,7 +112,7 @@ namespace
         // -C: keep comments
         // -Wno-pragma-once-outside-header: hide wrong warning
         std::string cmd(fs::path(c.get_clang_binary()).generic_string()
-                        + " -E -C -Wno-pragma-once-outside-header ");
+                        + " -E -CC -Wno-pragma-once-outside-header ");
         for (auto& flag : c)
         {
             cmd += '"' + std::string(flag.c_str()) + '"';
@@ -261,13 +258,24 @@ namespace
         return tu;
     }
 
-    void add_macros(const parser& p, const compile_config& c, const char* full_path, cpp_file& file)
+    void add_macros(const parser& p, const compile_config& c, const char* full_path, cpp_file& file,
+                    const std::vector<unsigned>& fake_lines)
     {
         detail::tu_wrapper tu(get_cxunit(p.get_cxindex(), c, full_path));
         auto               cxfile = clang_getFile(tu.get(), full_path);
+        auto               iter   = fake_lines.begin();
+
         detail::visit_tu(tu.get(), cxfile, [&](cpp_cursor cur, cpp_cursor) {
             if (clang_getCursorKind(cur) == CXCursor_MacroDefinition)
-                file.add_entity(cpp_macro_definition::parse(tu.get(), cxfile, cur, file));
+            {
+                auto     loc = clang_getCursorLocation(cur);
+                unsigned line;
+                clang_getSpellingLocation(loc, nullptr, &line, nullptr, nullptr);
+
+                iter = std::lower_bound(iter, fake_lines.end(), line);
+                file.add_entity(cpp_macro_definition::parse(tu.get(), cxfile, cur, file,
+                                                            (iter - fake_lines.begin()) + line));
+            }
             return CXChildVisit_Continue;
         });
     }
@@ -276,7 +284,8 @@ namespace
 std::string preprocessor::preprocess(const parser& p, const compile_config& c,
                                      const char* full_path, cpp_file& file) const
 {
-    std::string preprocessed;
+    std::string           preprocessed;
+    std::vector<unsigned> fake_lines;
 
     auto full_preprocessed = get_full_preprocess_output(p, c, full_path);
     auto line_no           = 1u;
@@ -292,6 +301,11 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
         {
             in_c_comment = false;
             was_newl     = false;
+            // add an additional newline
+            // this allows using c style doc comments in macros
+            // normally macros would all be one line, so each entity gets the same comment
+            preprocessed += '\n';
+            fake_lines.push_back(line_no);
         }
         else if (*ptr == '/' && ptr[1] == '*')
         {
@@ -311,9 +325,11 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
 
                 if (marker.none_set())
                 {
-                    assert(line_no <= marker.line);
-                    auto diff = marker.line - line_no;
-                    preprocessed.append(diff, '\n');
+                    if (line_no < marker.line)
+                    {
+                        auto diff = marker.line - line_no;
+                        preprocessed.append(diff, '\n');
+                    }
                     line_no = marker.line;
                 }
             }
@@ -365,7 +381,7 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
             write_char = true;
     }
 
-    add_macros(p, c, full_path, file);
+    add_macros(p, c, full_path, file, fake_lines);
     return preprocessed;
 }
 
