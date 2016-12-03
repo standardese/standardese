@@ -126,7 +126,7 @@ void detail::write_bases(const parser& par, code_block_writer& out,
         auto& base  = static_cast<const cpp_base_class&>(doc_e.get_cpp_entity());
 
         if (comma)
-            out << ", ";
+            out << ',' << newl << "  ";
         else
         {
             comma = true;
