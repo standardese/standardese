@@ -157,8 +157,16 @@ namespace
         static auto lookup = "0123456789ABCDEF";
 
         auto ptr = std::strchr(lookup, std::toupper(c));
-        assert(ptr);
-        return unsigned(ptr - lookup);
+        return ptr ? unsigned(ptr - lookup) : unsigned(-1);
+    }
+
+    unsigned parse_hex_char(const char* ptr)
+    {
+        auto a = get_hex_digit(ptr[1]);
+        auto b = get_hex_digit(ptr[2]);
+        if (a == unsigned(-1) || b == unsigned(-1))
+            return 256;
+        return a * 16 + b;
     }
 
     std::string unescape(const char* begin, const char* end)
@@ -171,10 +179,14 @@ namespace
             else if (*ptr == '%')
             {
                 // on the fly hexadecimal parsing
-                auto number = get_hex_digit(ptr[1]) * 16 + get_hex_digit(ptr[2]);
-                result += char(number);
-
-                ptr += 2; // ignore next 2 + 1 (++ptr at the end of the loop)
+                auto number = parse_hex_char(ptr);
+                if (number >= 256)
+                    result += '%';
+                else
+                {
+                    result += char(number);
+                    ptr += 2; // ignore next 2 + 1 (++ptr at the end of the loop)
+                }
             }
             else
                 result += *ptr;

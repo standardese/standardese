@@ -393,7 +393,7 @@ namespace standardese
 
         cpp_name do_get_unique_name() const override
         {
-            return doc_entity_container::begin()->do_get_unique_name();
+            return "";
         }
 
         cpp_entity::type do_get_cpp_entity_type() const STANDARDESE_NOEXCEPT override
