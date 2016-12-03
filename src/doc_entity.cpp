@@ -1077,7 +1077,7 @@ namespace
             // entity is private and not virtual, and private entities are excluded
             return nullptr;
 
-        auto comment = p.get_comment_registry().lookup_comment(p.get_entity_registry(), e, &parent);
+        auto comment = p.get_comment_registry().lookup_comment(e, &parent);
         if (is_blacklisted(blacklist, e, comment))
             // entity is blacklisted
             return nullptr;
@@ -1261,10 +1261,8 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
                                   const cpp_file& f)
 {
     auto file_ptr =
-        detail::make_doc_ptr<doc_container_cpp_entity>(nullptr, f,
-                                                       p.get_comment_registry()
-                                                           .lookup_comment(p.get_entity_registry(),
-                                                                           f, nullptr));
+        detail::make_doc_ptr<doc_container_cpp_entity>(nullptr, f, p.get_comment_registry()
+                                                                       .lookup_comment(f, nullptr));
     if (file_ptr->has_comment() && file_ptr->get_comment().has_unique_name_override())
         output_name = file_ptr->get_comment().get_unique_name_override();
 

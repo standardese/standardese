@@ -35,7 +35,7 @@ const comment& parse_comment(parser& p, std::string source)
     auto  tu     = parse(p, "md_comment", (source + "\nint a;").c_str());
     auto& entity = *tu.get_file().begin();
 
-    auto res = p.get_comment_registry().lookup_comment(p.get_entity_registry(), entity, nullptr);
+    auto res = p.get_comment_registry().lookup_comment(entity, nullptr);
     REQUIRE(res);
     return *res;
 }

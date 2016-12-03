@@ -82,8 +82,7 @@ TEST_CASE("cpp_macro_definition", "[cpp]")
             REQUIRE(macro.get_replacement() == "0");
         }
         else if (e.get_name() == "test")
-            REQUIRE(p.get_comment_registry().lookup_comment(p.get_entity_registry(), e, nullptr)
-                    != nullptr);
+            REQUIRE(p.get_comment_registry().lookup_comment(e, nullptr) != nullptr);
         else
             REQUIRE(false);
     }

@@ -46,8 +46,7 @@ namespace standardese
 
         inline bool is_blacklisted(const parser& p, const cpp_entity& e)
         {
-            auto comment =
-                p.get_comment_registry().lookup_comment(p.get_entity_registry(), e, nullptr);
+            auto comment = p.get_comment_registry().lookup_comment(e, nullptr);
             return is_blacklisted(p, e, comment);
         }
 

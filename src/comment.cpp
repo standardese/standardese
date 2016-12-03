@@ -343,8 +343,7 @@ namespace
     }
 }
 
-const comment* comment_registry::lookup_comment(const cpp_entity_registry& registry,
-                                                const cpp_entity& e, const doc_entity* parent) const
+const comment* comment_registry::lookup_comment(const cpp_entity& e, const doc_entity* parent) const
 {
     std::unique_lock<std::mutex> lock(mutex_);
 
@@ -352,17 +351,6 @@ const comment* comment_registry::lookup_comment(const cpp_entity_registry& regis
     auto location = create_location_id(e);
     if (auto c = lookup_comment_location(comments_, location, e, parent))
         return c;
-
-    // then look for comments at alternative locations
-    for (auto alternatives = registry.get_alternatives(e.get_cursor());
-         alternatives.first != alternatives.second; ++alternatives.first)
-    {
-        auto& alternative = alternatives.first->second;
-        auto  definition_location =
-            create_location_id(e.get_entity_type(), get_location(alternative));
-        if (auto c = lookup_comment_location(comments_, definition_location, e, parent))
-            return c;
-    }
 
     // then for comments with the unique name
     auto id   = get_name_id(parent, e, nullptr);
