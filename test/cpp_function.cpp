@@ -75,7 +75,7 @@ auto i() -> decltype(d() = '0');)";
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 2u);
-                REQUIRE(func.get_signature() == "(int,const char *)");
+                REQUIRE(func.get_signature() == "(int, const char *)");
                 REQUIRE(func.get_definition() == cpp_function_declaration);
             }
             else if (func.get_name() == "b")
@@ -87,7 +87,7 @@ auto i() -> decltype(d() = '0');)";
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 1u);
-                REQUIRE(func.get_signature() == "(int,...)");
+                REQUIRE(func.get_signature() == "(int, ...)");
                 REQUIRE(func.get_definition() == cpp_function_definition_normal);
             }
             else if (func.get_name() == "c")
@@ -260,7 +260,7 @@ friend auto i() -> decltype(0 == '0')
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 2u);
-                REQUIRE(func.get_signature() == "(int,const char *)");
+                REQUIRE(func.get_signature() == "(int, const char *)");
                 REQUIRE(func.get_definition() == cpp_function_definition_normal);
             }
             else if (func.get_name() == "b")
@@ -272,7 +272,7 @@ friend auto i() -> decltype(0 == '0')
                 REQUIRE(func.get_noexcept() == "false");
                 REQUIRE(!func.explicit_noexcept());
                 REQUIRE(no_parameters(func) == 1u);
-                REQUIRE(func.get_signature() == "(int,...)");
+                REQUIRE(func.get_signature() == "(int, ...)");
                 REQUIRE(func.get_definition() == cpp_function_definition_normal);
             }
             else if (func.get_name() == "c")
@@ -830,7 +830,7 @@ TEST_CASE("cpp_constructor", "[cpp]")
                 REQUIRE(ctor.get_noexcept() == "false");
                 REQUIRE(!ctor.explicit_noexcept());
                 REQUIRE(ctor.get_definition() == cpp_function_declaration);
-                REQUIRE(ctor.get_signature() == "(foo &&,int)");
+                REQUIRE(ctor.get_signature() == "(foo &&, int)");
                 REQUIRE(ctor.get_ctor_type() == cpp_move_ctor);
             }
             else
