@@ -95,7 +95,7 @@ namespace
 
 void linker::register_entity(const doc_entity& e, std::string output_file) const
 {
-    auto loc = location(get_documented_entity(e), std::move(output_file));
+    auto loc = location(get_documented_entity(e), "doc_" + std::move(output_file));
 
     std::unique_lock<std::mutex> lock(mutex_);
     auto                         res = locations_.emplace(&e, std::move(loc));
