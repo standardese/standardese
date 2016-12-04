@@ -32,7 +32,7 @@ endif()
 # PREPROCESS_DIRECTORY - same as -P <arg> for standardese for each argument
 # INPUT - the input files given to standardese
 # all paths must be absolute (e.g. through CMAKE_CURRENT_SOURCE_DIR or similar)
-# or relative to the working directory of standardese which is ${CMAKE_CURRENT_BINARY_DIR}/standardese_${target}
+# or relative to the working directory of standardese which is ${CMAKE_CURRENT_SOURCE_DIR}
 function(standardese_generate target)
     cmake_parse_arguments(STANDARDESE "ALL" # no arg
                                       "CONFIG" # single arg
@@ -77,8 +77,8 @@ function(standardese_generate target)
 
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/standardese_${target})
     add_custom_target(standardese_${target} ${all}
-                      ${STANDARDESE_TOOL} ${options}
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/standardese_${target}
+                      ${STANDARDESE_TOOL} ${options} --output.prefix=${CMAKE_CURRENT_BINARY_DIR}/standardese_${target}/
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                       COMMENT "Generating documentation for target ${target}..."
                       VERBATIM)
 

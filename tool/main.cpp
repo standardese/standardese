@@ -112,7 +112,7 @@ std::vector<standardese::documentation> generate_documentation(
 
 void write_output_files(const standardese_tool::configuration& config,
                         const standardese::index& idx, std::size_t no_threads,
-                        const standardese::template_file*              default_template,
+                        const standardese::template_file* default_template, fs::path prefix,
                         const std::vector<standardese::documentation>& documentations,
                         const std::vector<standardese::raw_document>&  raw_documents)
 {
@@ -123,15 +123,11 @@ void write_output_files(const standardese_tool::configuration& config,
         config.parser->get_logger()->info("Writing files for output format {}...",
                                           format->extension());
 
-        path prefix;
-        if (config.formats.size() > 1u)
-        {
-            fs::create_directories(format->extension());
-            prefix = format->extension();
-            prefix += '/'; // hope that every platform handles it
-        }
+        auto prefix_dir = prefix.parent_path();
+        if (!prefix_dir.empty())
+            fs::create_directories(prefix_dir);
 
-        output out(*config.parser, idx, prefix, *format);
+        output out(*config.parser, idx, prefix.generic_string(), *format);
         standardese_tool::for_each(no_threads, documentations,
                                    [](const standardese::documentation& doc) {
                                        return doc.document != nullptr;
@@ -249,6 +245,9 @@ int main(int argc, char* argv[])
              "the output format used (commonmark, latex, man, html, xml)")
             ("output.link_extension", po::value<std::string>(),
              "the file extension of the links to entities, useful if you convert standardese output to a different format and change the extension")
+            ("output.prefix",
+            po::value<std::string>()->default_value(""),
+            "a prefix that will be added to all output files")
             ("output.section_name_", po::value<std::string>(),
              "override output name for the section following the name_ (e.g. output.section_name_requires=Require)")
             ("output.tab_width", po::value<unsigned>()->default_value(4),
@@ -352,8 +351,9 @@ int main(int argc, char* argv[])
 
             // write output
             auto templ_path = map.at("template.default_template").as<std::string>();
+            auto prefix     = map.at("output.prefix").as<std::string>();
             if (templ_path.empty())
-                write_output_files(config, index, no_threads, nullptr, documentations,
+                write_output_files(config, index, no_threads, nullptr, prefix, documentations,
                                    raw_documents);
             else
             {
@@ -364,7 +364,7 @@ int main(int argc, char* argv[])
                 {
                     template_file templ("", std::string(std::istreambuf_iterator<char>(file),
                                                         std::istreambuf_iterator<char>{}));
-                    write_output_files(config, index, no_threads, &templ, documentations,
+                    write_output_files(config, index, no_threads, &templ, prefix, documentations,
                                        raw_documents);
                 }
             }
