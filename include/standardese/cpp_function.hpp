@@ -240,6 +240,7 @@ namespace standardese
 
     enum cpp_virtual
     {
+        cpp_virtual_friend,
         cpp_virtual_static,
         cpp_virtual_none,
         cpp_virtual_pure,
@@ -250,7 +251,7 @@ namespace standardese
 
     inline bool is_virtual(cpp_virtual virt) STANDARDESE_NOEXCEPT
     {
-        return virt != cpp_virtual_static && virt != cpp_virtual_none;
+        return virt != cpp_virtual_friend && virt != cpp_virtual_static && virt != cpp_virtual_none;
     }
 
     inline bool is_overriden(cpp_virtual virt) STANDARDESE_NOEXCEPT
@@ -306,6 +307,8 @@ namespace standardese
         {
             return signature_;
         }
+
+        const cpp_entity* get_semantic_parent() const STANDARDESE_NOEXCEPT override;
 
     private:
         cpp_member_function(cpp_cursor cur, const cpp_entity& parent, cpp_type_ref ret,

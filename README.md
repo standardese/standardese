@@ -93,21 +93,26 @@ but if you wish to link them statically, just add `-DBoost_USE_STATIC_LIBS=ON` t
 
 Once built, simply run `standardese --help` for commandline usage.
 
+### Arch Linux
+
+Thanks to [@verri](https://github.com/verri) for maintaining the [AUR package standardese-git](https://aur.archlinux.org/packages/standardese-git/).
+Install it via [yaourt](https://archlinux.fr/yaourt-en) or [makepkg](https://wiki.archlinux.org/index.php/Arch_User_Repository#Build_and_install_the_package).
+
 ### Windows
 
-There is a pre-built binary for Windows 64 Bit, built with Appveyor and MSVC 14.
+There is a pre-built binary for Windows 64 Bit, found in the [release pages](https://github.com/foonathan/standardese/releases), built with Appveyor and MSVC 14.
 You need to install [libclang](http://llvm.org/releases/download.html) but should work out the box otherwise.
 
 ### Travis CI
 
 There are pre-built binaries for Travis CI (both MacOS and Linux), useful for building documentation on your CI system.
-Under Boost you are good to go, but Linux needs an update of libstdc++ and Boost 1.55:
+Under MacOs you are good to go, but Linux needs an update of libstdc++ and Boost 1.55:
 
 ```
 addons:
   apt:
     sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-    packages: ['g++-5', 'libboost1.55-all-dev']<
+    packages: ['g++-5', 'libboost1.55-all-dev']
 ```
 For convenience you can use the script `travis_get_standardese.sh`.
 It will download libclang and the `standardese` binary.
@@ -191,6 +196,15 @@ It will use a custom target that runs standardese.
 You can specify the compilation options and inputs directly in CMake to allow shared variables.
 All other options must be given in a config file.
 
+If you don't have standardese installed, you can also include it directly:
+
+```
+set(STANDARDESE_TOOL /path/to/standardese/binary)
+include(/path/to/standardese/standardese-config.cmake)
+
+# call standardese_generate() like normal
+```
+
 See `standardese-config.cmake` for a documentation of `standardese_generate()`.
 
 ### Documentation syntax overview
@@ -257,7 +271,7 @@ Because it is sometimes long and ugly, you can override the unique name via the 
 > Usually numbering would be a good choice, so `bar() (1)` or similar.
 
 You can also use a short `unique-name` if there aren't multiple entities resolved to the same short name.
-The short name is the `unique-name` but without a signature, i.e. for `foo<T>::func<U>(int) const`, the short name is `foo<T>::func<U>`.
+The short name is the `unique-name` but without a signature or template parameters, i.e. for `foo<T>::func<U>(int) const`, the short name is `foo::func`.
 
 ##### Name lookup
 
@@ -330,18 +344,21 @@ It is as if the entity never existed in the first place.
 /// \unique_name foo
 void bar(int a, int c);
 ```
+Note that if you override the unique name of a parent entity, this will also affect the unique names of child entities.
 
 * `synopsis {string}` - Overrides the synopsis in the output.
 You can pass any string that will be rendered instead of the actual synopsis.
+Use `\n` to render a newline, use `\t` to render a tab and use `\<` and `\>` to render `<` and `>`, respectively.
 
-* `group {name}` - Add the entity to a member group.
+* `group <name> [heading]` - Add the entity to a member group.
 A member group consists of multiple entities that are direct members of the same entity (i.e. class, file, namespace,...) which will be grouped together in the output.
 For example:
 ```cpp
-/// \group foo
+/// \group foo A heading
 /// This is in the group `foo`.
 /// Because this is the first entity in the group, it will be the "master".
 /// the group comment will be this comment, the group unique name will be this unique name, ...
+/// The optional heading (everything after the first whitespace) will be shown as heading in the output.
 void func();
 
 /// \group foo
@@ -360,6 +377,7 @@ void func(short);
 ```
 This will write the synopsis of all group members together and use the documentation text of the first entity.
 The group name only needs to be unique for one given scope.
+*Note: It will only show inline documentation for children, so don't use it on containers.*
 
 * `module {name}` - Add the entity to a module.
 A module is just a way to group entities together,
@@ -547,5 +565,7 @@ Thanks a lot to:
 * Victor @vitaut Zverovich, for bugfixes
 
 * John @johnmcfarlane McFarlane, for issue reporting
+
+* Filipe @verri Verri, for maintaining the AUR package
 
 And everyone else who shares and uses this project!

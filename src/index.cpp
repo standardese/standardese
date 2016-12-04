@@ -10,6 +10,7 @@
 
 #include <standardese/comment.hpp>
 #include <standardese/cpp_namespace.hpp>
+#include <standardese/parser.hpp>
 
 using namespace standardese;
 
@@ -34,16 +35,31 @@ std::string detail::get_id(const std::string& unique_name)
 
 std::string detail::get_short_id(const std::string& id)
 {
-    auto open_paren = id.find('(');
-    if (open_paren == std::string::npos)
-        return id;
-    auto close_paren = id.rfind(')');
-    assert(id.at(close_paren) == ')');
+    std::string result;
 
-    return id.substr(0, open_paren) + id.substr(close_paren + 1);
+    auto skip = false;
+    for (auto c : id)
+    {
+        if (c == '(')
+            skip = true;
+        else if (c == '.')
+        {
+            result += '.';
+            skip = false;
+        }
+        else if (c == '<')
+            skip = true;
+        else if (c == '>')
+            skip = false;
+        else if (!skip)
+            result += c;
+    }
+
+    return result;
 }
 
-void index::register_entity(const doc_entity& entity, std::string output_file) const
+void index::register_entity(const parser& p, const doc_entity& entity,
+                            std::string output_file) const
 {
     auto id       = detail::get_id(entity.get_unique_name().c_str());
     auto short_id = detail::get_short_id(id);
@@ -68,9 +84,9 @@ void index::register_entity(const doc_entity& entity, std::string output_file) c
 
     // insert long id
     auto pair = entities_.emplace(std::move(id), std::make_pair(false, &entity));
-    if (!pair.second)
-        throw std::logic_error(fmt::format("duplicate index registration of an entity named '{}'",
-                                           entity.get_unique_name().c_str()));
+    if (!pair.second && entity.get_cpp_entity_type() != cpp_entity::namespace_t)
+        p.get_logger()->warn("duplicate index registration of an entity named '{}'",
+                             entity.get_unique_name().c_str());
     else if (pair.first->second.second->get_cpp_entity_type() == cpp_entity::file_t)
     {
         using value_type = decltype(files_)::value_type;

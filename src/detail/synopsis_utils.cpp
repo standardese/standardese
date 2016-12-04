@@ -90,7 +90,7 @@ void detail::write_template_parameters(const parser& par, code_block_writer& out
             else
                 out << ", ";
 
-            detail::synopsis_access::do_generate_synopsis(child, par, out, false);
+            detail::generation_access::do_generate_synopsis(child, par, out, false);
         }
     }
 
@@ -126,7 +126,7 @@ void detail::write_bases(const parser& par, code_block_writer& out,
         auto& base  = static_cast<const cpp_base_class&>(doc_e.get_cpp_entity());
 
         if (comma)
-            out << ", ";
+            out << ',' << newl << "  ";
         else
         {
             comma = true;
@@ -192,14 +192,18 @@ void detail::write_parameters(const parser& par, code_block_writer& out,
     out << ')';
 }
 
-void detail::write_noexcept(code_block_writer& out, const cpp_function_base& f)
+void detail::write_noexcept(bool show_complex, code_block_writer& out, const cpp_function_base& f)
 {
     if (f.explicit_noexcept())
     {
         if (f.get_noexcept() == "true")
             out << " noexcept";
-        else
+        else if (f.get_noexcept() == "false")
+            out << " noexcept(false)";
+        else if (show_complex)
             out << " noexcept(" << f.get_noexcept() << ')';
+        else
+            out << " noexcept(see below)";
     }
 }
 
@@ -241,6 +245,8 @@ void detail::write_prefix(code_block_writer& out, int virtual_flag, bool constex
 {
     if (virtual_flag == cpp_virtual_static)
         out << "static ";
+    else if (virtual_flag == cpp_virtual_friend)
+        out << "friend ";
     else if (is_virtual(cpp_virtual(virtual_flag)))
         out << "virtual ";
 

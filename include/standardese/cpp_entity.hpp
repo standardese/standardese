@@ -111,10 +111,7 @@ namespace standardese
         }
 
         /// \returns A unique name describing one entity.
-        cpp_name get_unique_name() const
-        {
-            return do_get_unique_name();
-        }
+        cpp_name get_unique_name(bool exclude_scope = false) const;
 
         /// \returns The type of the entity.
         type get_entity_type() const STANDARDESE_NOEXCEPT
@@ -141,7 +138,7 @@ namespace standardese
             return *parent_;
         }
 
-        const cpp_entity* get_semantic_parent() const STANDARDESE_NOEXCEPT
+        virtual const cpp_entity* get_semantic_parent() const STANDARDESE_NOEXCEPT
         {
             auto cur = parent_;
             while (cur && !cur->is_semantic_parent())
@@ -159,12 +156,9 @@ namespace standardese
             cursor_ = cur;
         }
 
-    private:
-        virtual cpp_name do_get_unique_name() const
-        {
-            return get_full_name();
-        }
+        virtual cpp_name do_get_unique_name() const;
 
+    private:
         virtual bool is_semantic_parent() const STANDARDESE_NOEXCEPT
         {
             return true;
@@ -254,6 +248,9 @@ namespace standardese
 
         void add_entity(const cpp_entity* this_entity, cpp_entity_ptr entity)
         {
+            if (!entity)
+                return;
+
             if (this_entity
                 && (!entity->has_ast_parent() || &entity->get_ast_parent() != this_entity))
                 entity->parent_ = this_entity;

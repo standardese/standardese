@@ -92,6 +92,17 @@ namespace
                 link.set_destination(destination.c_str());
         });
     }
+
+    std::string normalize_escape(const cpp_name& name)
+    {
+        std::string result;
+        for (auto c : name)
+            if (c == '/')
+                result += "$";
+            else
+                result += c;
+        return result;
+    }
 }
 
 void standardese::normalize_urls(const index& idx, md_container& document,
@@ -108,7 +119,7 @@ void standardese::normalize_urls(const index& idx, md_container& document,
         auto entity = context ? idx.try_name_lookup(*context, str) : idx.try_lookup(str);
         if (entity)
             link.set_destination(
-                (std::string("standardese://") + entity->get_unique_name().c_str() + '/').c_str());
+                ("standardese://" + normalize_escape(entity->get_unique_name()) + '/').c_str());
     });
 }
 
@@ -140,14 +151,10 @@ void output::render_template(const std::shared_ptr<spdlog::logger>& logger,
                              const template_file& templ, const documentation& doc,
                              const char* output_extension)
 {
-    if (!output_extension)
-        output_extension = format_->extension();
+    auto document      = process_template(*parser_, *index_, templ, format_, &doc);
+    document.file_name = doc.document->get_output_name();
 
-    auto document           = process_template(*parser_, *index_, templ, format_, &doc);
-    document.file_name      = doc.document->get_output_name();
-    document.file_extension = output_extension;
-
-    render_raw(logger, document);
+    render_raw(logger, document, output_extension);
 }
 
 namespace
@@ -157,8 +164,16 @@ namespace
         static auto lookup = "0123456789ABCDEF";
 
         auto ptr = std::strchr(lookup, std::toupper(c));
-        assert(ptr);
-        return unsigned(ptr - lookup);
+        return ptr ? unsigned(ptr - lookup) : unsigned(-1);
+    }
+
+    unsigned parse_hex_char(const char* ptr)
+    {
+        auto a = get_hex_digit(ptr[1]);
+        auto b = get_hex_digit(ptr[2]);
+        if (a == unsigned(-1) || b == unsigned(-1))
+            return 256;
+        return a * 16 + b;
     }
 
     std::string unescape(const char* begin, const char* end)
@@ -168,13 +183,19 @@ namespace
         {
             if (*ptr == '\\')
                 ; // ignore
+            else if (*ptr == '$')
+                result += '/';
             else if (*ptr == '%')
             {
                 // on the fly hexadecimal parsing
-                auto number = get_hex_digit(ptr[1]) * 16 + get_hex_digit(ptr[2]);
-                result += char(number);
-
-                ptr += 2; // ignore next 2 + 1 (++ptr at the end of the loop)
+                auto number = parse_hex_char(ptr);
+                if (number >= 256)
+                    result += '%';
+                else
+                {
+                    result += char(number);
+                    ptr += 2; // ignore next 2 + 1 (++ptr at the end of the loop)
+                }
             }
             else
                 result += *ptr;
@@ -183,8 +204,12 @@ namespace
     }
 }
 
-void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw_document& document)
+void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw_document& document,
+                        const char* output_extension)
 {
+    if (!output_extension)
+        output_extension = format_->extension();
+
     auto extension =
         document.file_extension.empty() ? format_->extension() : document.file_extension;
     file_output output(prefix_ + document.file_name + '.' + extension);
@@ -203,7 +228,7 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
             end = &document.text.back() + 1;
 
         auto name = unescape(entity_name, end);
-        auto url  = index_->get_linker().get_url(*index_, nullptr, name, format_->extension());
+        auto url  = index_->get_linker().get_url(*index_, nullptr, name, output_extension);
         if (url.empty())
         {
             logger->warn("unable to resolve link to an entity named '{}'", name);
@@ -213,7 +238,7 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         else
         {
             output.write_str(url.c_str(), url.size());
-            last_match = entity_name + name.size() + 1;
+            last_match = end + 1;
         }
     }
     // write remainder of file

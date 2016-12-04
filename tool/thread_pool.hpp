@@ -28,31 +28,29 @@ namespace standardese_tool
     }
 
     template <typename Container, typename Predicate, typename Func>
-    auto for_each(thread_pool& pool, const Container& cont, const Predicate& p, const Func& f) ->
-        typename std::enable_if<std::is_same<decltype(f(cont[0])), void>::value>::type
+    auto for_each(std::size_t no_threads, const Container& cont, const Predicate& p, const Func& f)
+        -> typename std::enable_if<std::is_same<decltype(f(cont[0])), void>::value>::type
     {
-        std::vector<std::future<void>> futures;
-        futures.reserve(cont.size());
-
+        thread_pool pool(no_threads);
         for (auto& elem : cont)
             if (p(elem))
-                futures.push_back(add_job(pool, f, std::ref(elem)));
-
-        for (auto& future : futures)
-            future.wait();
+                add_job(pool, f, std::ref(elem));
     }
 
     template <typename Container, typename Predicate, typename Func>
-    auto for_each(thread_pool& pool, const Container& cont, const Predicate& p, const Func& f) ->
-        typename std::enable_if<!std::is_same<decltype(f(cont[0])), void>::value,
-                                std::vector<decltype(f(cont[0]))>>::type
+    auto for_each(std::size_t no_threads, const Container& cont, const Predicate& p, const Func& f)
+        -> typename std::enable_if<!std::is_same<decltype(f(cont[0])), void>::value,
+                                   std::vector<decltype(f(cont[0]))>>::type
     {
         std::vector<std::future<decltype(f(cont[0]))>> futures;
         futures.reserve(cont.size());
 
-        for (auto& elem : cont)
-            if (p(elem))
-                futures.push_back(add_job(pool, f, std::ref(elem)));
+        {
+            thread_pool pool(no_threads);
+            for (auto& elem : cont)
+                if (p(elem))
+                    futures.push_back(add_job(pool, f, std::ref(elem)));
+        }
 
         std::vector<decltype(f(cont[0]))> results;
         results.reserve(futures.size());

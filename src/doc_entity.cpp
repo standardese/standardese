@@ -20,10 +20,17 @@
 
 using namespace standardese;
 
-void detail::synopsis_access::do_generate_synopsis(const doc_entity& e, const parser& p,
-                                                   code_block_writer& out, bool top_level)
+void detail::generation_access::do_generate_synopsis(const doc_entity& e, const parser& p,
+                                                     code_block_writer& out, bool top_level)
 {
     e.do_generate_synopsis(p, out, top_level);
+}
+
+void detail::generation_access::do_generate_documentation_inline(const doc_entity& e,
+                                                                 const parser& p, const index& i,
+                                                                 md_inline_documentation& doc)
+{
+    e.do_generate_documentation_inline(p, i, doc);
 }
 
 bool doc_entity::in_module() const STANDARDESE_NOEXCEPT
@@ -37,6 +44,21 @@ const std::string& doc_entity::get_module() const STANDARDESE_NOEXCEPT
     if (has_comment() && get_comment().in_module())
         return get_comment().get_module();
     return has_parent() ? get_parent().get_module() : empty;
+}
+
+cpp_name doc_entity::get_unique_name() const
+{
+    return detail::get_unique_name(has_parent() ? &get_parent() : nullptr, do_get_unique_name(),
+                                   comment_);
+}
+
+doc_entity::doc_entity(doc_entity::type t, const doc_entity* parent,
+                       const comment* c) STANDARDESE_NOEXCEPT : parent_(parent),
+                                                                comment_(c),
+                                                                t_(t)
+{
+    if (comment_)
+        comment_->get_content().set_entity(*this);
 }
 
 namespace
@@ -191,7 +213,7 @@ namespace
         auto text     = md_text::make(*heading, text_str.c_str());
         heading->add_entity(std::move(text));
 
-        auto code = md_code::make(*heading, e.get_cpp_entity().get_full_name().c_str());
+        auto code = md_code::make(*heading, e.get_index_name(true).c_str());
         heading->add_entity(std::move(code));
 
         if (show_module && e.has_comment() && e.get_comment().in_module())
@@ -212,10 +234,7 @@ void doc_cpp_entity::do_generate_documentation_base(const parser& p, const index
                                 p.get_output_config().is_set(output_flag::show_modules)));
 
     code_block_writer out(doc);
-    if (has_comment() && get_comment().has_synopsis_override())
-        out << get_comment().get_synopsis_override();
-    else
-        do_generate_synopsis(p, out, true);
+    do_generate_synopsis(p, out, true);
     doc.add_entity(out.get_code_block());
 
     if (has_comment())
@@ -224,34 +243,20 @@ void doc_cpp_entity::do_generate_documentation_base(const parser& p, const index
 
 cpp_name doc_cpp_entity::do_get_unique_name() const
 {
-    return entity_->get_unique_name();
+    return entity_->get_unique_name(true);
 }
 
 cpp_name doc_cpp_entity::do_get_index_name(bool full_name) const
 {
     if (get_cpp_entity_type() == cpp_entity::namespace_t)
         return entity_->get_full_name();
-    auto name =
+    auto result =
         std::string(full_name ? entity_->get_full_name().c_str() : entity_->get_name().c_str());
-    if (auto func = get_function(*entity_))
-        name += func->get_signature().c_str();
-    return name;
-}
-
-cpp_name doc_entity::get_unique_name() const
-{
-    return has_comment() && get_comment().has_unique_name_override() ?
-               get_comment().get_unique_name_override() :
-               do_get_unique_name();
-}
-
-doc_entity::doc_entity(doc_entity::type t, const doc_entity* parent,
-                       const comment* c) STANDARDESE_NOEXCEPT : parent_(parent),
-                                                                comment_(c),
-                                                                t_(t)
-{
-    if (comment_)
-        comment_->get_content().set_entity(*this);
+    if (full_name)
+        return result;
+    else if (auto func = get_function(*entity_))
+        result += func->get_signature().c_str();
+    return result;
 }
 
 bool standardese::is_inline_cpp_entity(cpp_entity::type t) STANDARDESE_NOEXCEPT
@@ -389,6 +394,12 @@ namespace
 void doc_inline_cpp_entity::do_generate_synopsis(const parser& p, code_block_writer& out,
                                                  bool) const
 {
+    if (has_comment() && get_comment().has_synopsis_override())
+    {
+        out << get_comment().get_synopsis_override();
+        return;
+    }
+
     switch (get_cpp_entity_type())
     {
     case cpp_entity::signed_enum_value_t:
@@ -545,6 +556,12 @@ namespace
 
 void doc_leave_cpp_entity::do_generate_synopsis(const parser& p, code_block_writer& out, bool) const
 {
+    if (has_comment() && get_comment().has_synopsis_override())
+    {
+        out << get_comment().get_synopsis_override();
+        return;
+    }
+
     switch (get_cpp_entity_type())
     {
     case cpp_entity::macro_definition_t:
@@ -628,43 +645,41 @@ doc_leave_cpp_entity::doc_leave_cpp_entity(const doc_entity* parent, const cpp_e
 
 namespace
 {
-    bool require_comment_for_doc(cpp_entity::type t)
+    struct inline_container
     {
-        return t == cpp_entity::namespace_t || t == cpp_entity::language_linkage_t;
-    }
-}
+        md_ptr<md_inline_documentation> parameters, bases, members, enum_values;
 
-void doc_container_cpp_entity::do_generate_documentation(const parser& p, const index& i,
-                                                         md_document& doc, unsigned level) const
-{
-    auto generate_doc = !require_comment_for_doc(get_cpp_entity_type()) || has_comment();
-    if (generate_doc)
-    {
-        // generate heading + synopsis + comment
-        do_generate_documentation_base(p, i, doc, level);
-
-        // add inline entity comments
-        if (p.get_output_config().is_set(output_flag::inline_documentation))
+        inline_container(md_document& doc)
+        : parameters(md_inline_documentation::make(doc, "Parameters")),
+          bases(md_inline_documentation::make(doc, "Bases")),
+          members(md_inline_documentation::make(doc, "Members")),
+          enum_values(md_inline_documentation::make(doc, "Enum values"))
         {
-            auto parameters  = md_inline_documentation::make(doc, "Parameters");
-            auto bases       = md_inline_documentation::make(doc, "Bases");
-            auto members     = md_inline_documentation::make(doc, "Members");
-            auto enum_values = md_inline_documentation::make(doc, "Enum values");
+        }
 
-            for (auto& child : *this)
+        void add_inlines(const parser& p, const index& i, const doc_entity& container)
+        {
+            for (auto& child : container)
             {
                 if (is_parameter(child.get_cpp_entity_type()))
-                    child.do_generate_documentation_inline(p, i, *parameters);
+                    detail::generation_access::do_generate_documentation_inline(child, p, i,
+                                                                                *parameters);
                 else if (child.get_cpp_entity_type() == cpp_entity::base_class_t)
-                    child.do_generate_documentation_inline(p, i, *bases);
+                    detail::generation_access::do_generate_documentation_inline(child, p, i,
+                                                                                *bases);
                 else if (is_member_variable(child.get_cpp_entity_type()))
-                    child.do_generate_documentation_inline(p, i, *members);
+                    detail::generation_access::do_generate_documentation_inline(child, p, i,
+                                                                                *members);
                 else if (is_enum_value(child.get_cpp_entity_type()))
-                    child.do_generate_documentation_inline(p, i, *enum_values);
+                    detail::generation_access::do_generate_documentation_inline(child, p, i,
+                                                                                *enum_values);
                 else
                     assert(!is_inline_cpp_entity(child.get_cpp_entity_type()));
             }
+        }
 
+        void finish(md_document& doc)
+        {
             if (!parameters->empty())
                 doc.add_entity(std::move(parameters));
             if (!bases->empty())
@@ -673,6 +688,44 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, const 
                 doc.add_entity(std::move(members));
             if (!enum_values->empty())
                 doc.add_entity(std::move(enum_values));
+        }
+    };
+
+    bool require_comment_for_doc(cpp_entity::type t)
+    {
+        return t == cpp_entity::namespace_t || t == cpp_entity::language_linkage_t;
+    }
+
+    bool has_comment_impl(const doc_entity& e)
+    {
+        auto c = e.has_comment() ? &e.get_comment() : nullptr;
+        return c && (!c->empty() || c->in_member_group());
+    }
+
+    bool requires_comment(const doc_entity& e)
+    {
+        return e.get_cpp_entity_type() != cpp_entity::file_t
+               && e.get_cpp_entity_type() != cpp_entity::namespace_t
+               && e.get_cpp_entity_type() != cpp_entity::language_linkage_t
+               && !is_inline_cpp_entity(e.get_cpp_entity_type());
+    }
+}
+
+void doc_container_cpp_entity::do_generate_documentation(const parser& p, const index& i,
+                                                         md_document& doc, unsigned level) const
+{
+    auto generate_doc = !require_comment_for_doc(get_cpp_entity_type()) || has_comment_impl(*this);
+    if (generate_doc)
+    {
+        // generate heading + synopsis + comment
+        do_generate_documentation_base(p, i, doc, level);
+
+        // add inline entity comments
+        if (p.get_output_config().is_set(output_flag::inline_documentation))
+        {
+            inline_container inlines(doc);
+            inlines.add_inlines(p, i, *this);
+            inlines.finish(doc);
         }
     }
 
@@ -683,8 +736,11 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, const 
         if (p.get_output_config().is_set(output_flag::inline_documentation)
             && is_inline_cpp_entity(child.get_cpp_entity_type()))
             continue;
-        child.do_generate_documentation(p, i, doc, generate_doc ? level + 1 : level);
-        any_child = true;
+        else if (!requires_comment(child) || has_comment_impl(child))
+        {
+            child.do_generate_documentation(p, i, doc, generate_doc ? level + 1 : level);
+            any_child = true;
+        }
     }
 
     if (any_child && get_cpp_entity_type() != cpp_entity::file_t)
@@ -756,7 +812,7 @@ namespace
                         last_access = cur_access;
                     }
 
-                    detail::synopsis_access::do_generate_synopsis(child, p, out, false);
+                    detail::generation_access::do_generate_synopsis(child, p, out, false);
                 }
             }
             out.remove_trailing_line();
@@ -772,14 +828,18 @@ namespace
         detail::write_prefix(out, detail::get_virtual(f), f.is_constexpr());
 
         if (f.get_entity_type() == cpp_entity::function_t)
-            out << static_cast<const cpp_function&>(f).get_return_type().get_name() << ' ';
+            out << detail::get_ref_name(p, static_cast<const cpp_function&>(f).get_return_type())
+                << ' ';
         else if (f.get_entity_type() == cpp_entity::member_function_t)
-            out << static_cast<const cpp_member_function&>(f).get_return_type().get_name() << ' ';
+            out << detail::get_ref_name(p, static_cast<const cpp_member_function&>(f)
+                                               .get_return_type())
+                << ' ';
 
         detail::write_parameters(p, out, e, f);
 
         detail::write_cv_ref(out, detail::get_cv(f), detail::get_ref_qualifier(f));
-        detail::write_noexcept(out, f);
+        detail::write_noexcept(p.get_output_config().is_set(output_flag::show_complex_noexcept),
+                               out, f);
 
         detail::write_override_final(out, detail::get_virtual(f));
 
@@ -803,7 +863,7 @@ namespace
             else
                 out << sep;
 
-            detail::synopsis_access::do_generate_synopsis(child, p, out, false);
+            detail::generation_access::do_generate_synopsis(child, p, out, false);
         }
         out.remove_trailing_line();
         out.unindent(p.get_output_config().get_tab_width());
@@ -848,6 +908,12 @@ namespace
 void doc_container_cpp_entity::do_generate_synopsis(const parser& p, code_block_writer& out,
                                                     bool top_level) const
 {
+    if (has_comment() && get_comment().has_synopsis_override())
+    {
+        out << get_comment().get_synopsis_override();
+        return;
+    }
+
     // write template parameters, if there are any
     if (is_template(get_cpp_entity_type()))
         detail::write_template_parameters(p, out, *this);
@@ -879,7 +945,7 @@ void doc_container_cpp_entity::do_generate_synopsis(const parser& p, code_block_
             else
                 out << blankl;
 
-            detail::synopsis_access::do_generate_synopsis(child, p, out, false);
+            detail::generation_access::do_generate_synopsis(child, p, out, false);
         }
         out.remove_trailing_line();
     }
@@ -922,7 +988,14 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
 {
     assert(!empty());
 
-    if (doc_entity_container::begin()->get_entity_type() == doc_entity::cpp_entity_t)
+    if (get_comment().has_group_name())
+    {
+        auto heading = md_heading::make(doc, level);
+        heading->add_entity(md_text::make(*heading, get_comment().get_group_name().c_str()));
+        heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
+        doc.add_entity(std::move(heading));
+    }
+    else if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
     {
         auto& cpp_e = static_cast<const doc_cpp_entity&>(*doc_entity_container::begin());
         doc.add_entity(make_heading(i, cpp_e, doc, level,
@@ -932,17 +1005,23 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
     {
         auto heading = md_heading::make(doc, level);
         heading->add_entity(md_text::make(*heading, "Member group"));
+        heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
         doc.add_entity(std::move(heading));
     }
 
     code_block_writer out(doc);
-    if (get_comment().has_synopsis_override())
-        out << get_comment().get_synopsis_override();
-    else
-        do_generate_synopsis(p, out, true);
+    do_generate_synopsis(p, out, true);
     doc.add_entity(out.get_code_block());
 
     doc.add_entity(get_comment().get_content().clone(doc));
+
+    if (p.get_output_config().is_set(output_flag::inline_documentation))
+    {
+        inline_container inlines(doc);
+        for (auto& member : *this)
+            inlines.add_inlines(p, i, member);
+        inlines.finish(doc);
+    }
 }
 
 void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& out,
@@ -954,41 +1033,33 @@ void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& 
     {
         if (first)
             first = false;
-        else
+        else if (top_level)
             out << blankl;
+        else
+            out << newl;
 
         ++i;
         if (top_level && p.get_output_config().is_set(output_flag::show_group_member_id))
         {
             out << '(' << i << ')';
-            out.fill(p.get_output_config().get_tab_width(), ' ');
+            out.fill(p.get_output_config().get_tab_width() / 2, ' ');
+            out.indent(p.get_output_config().get_tab_width() / 2 + 3);
         }
 
-        detail::synopsis_access::do_generate_synopsis(child, p, out, top_level);
+        detail::generation_access::do_generate_synopsis(child, p, out, top_level);
+
+        if (top_level && p.get_output_config().is_set(output_flag::show_group_member_id))
+        {
+            out.unindent(p.get_output_config().get_tab_width() / 2 + 3);
+        }
     }
 }
 
 namespace
 {
-    bool has_comment(const comment* c)
-    {
-        return c && (!c->empty() || c->in_member_group());
-    }
-
-    bool requires_comment(const cpp_entity& e)
-    {
-        return e.get_entity_type() != cpp_entity::file_t
-               && e.get_entity_type() != cpp_entity::namespace_t
-               && e.get_entity_type() != cpp_entity::language_linkage_t
-               && !is_inline_cpp_entity(e.get_entity_type());
-    }
-
     bool is_blacklisted(const entity_blacklist& blacklist, const cpp_entity& e, const comment* c)
     {
-        if (requires_comment(e) && blacklist.is_set(entity_blacklist::require_comment)
-            && !has_comment(c))
-            return true;
-        else if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
+        if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
             return true;
         else if (c && c->is_excluded())
             return true;
@@ -1012,7 +1083,7 @@ namespace
             // entity is private and not virtual, and private entities are excluded
             return nullptr;
 
-        auto comment = p.get_comment_registry().lookup_comment(p.get_entity_registry(), e);
+        auto comment = p.get_comment_registry().lookup_comment(e, &parent);
         if (is_blacklisted(blacklist, e, comment))
             // entity is blacklisted
             return nullptr;
@@ -1067,20 +1138,21 @@ namespace
         }
     }
 
-    void handle_child(const parser& p, const index& i, doc_container_cpp_entity& parent,
+    bool handle_child(const parser& p, const index& i, doc_container_cpp_entity& parent,
                       const cpp_entity& e, cpp_access_specifier_t cur_access,
                       const std::string& output_file)
     {
         auto entity = handle_child_impl(p, i, parent, e, cur_access, output_file);
         if (!entity)
-            return;
+            return false;
 
         auto e_ptr = entity.get();
         if (entity->has_comment() && entity->get_comment().in_member_group())
             handle_group(p, parent, std::move(entity));
         else
             parent.add_entity(std::move(entity));
-        i.register_entity(*e_ptr, output_file);
+        i.register_entity(p, *e_ptr, output_file);
+        return true;
     }
 
     void handle_children(const parser& p, const index& i, std::string output_file,
@@ -1104,9 +1176,17 @@ namespace
             break;
 
         case cpp_entity::function_template_t:
+        {
+            auto any_added = false;
             for (auto& child :
                  static_cast<const cpp_function_template&>(entity).get_template_parameters())
-                handle_child(p, i, cont, child, cpp_public, output_file);
+            {
+                if (handle_child(p, i, cont, child, cpp_public, output_file))
+                    any_added = true;
+            }
+            if (!any_added)
+                cont.set_cpp_entity(*get_function(entity));
+        }
         // fallthrough
         case cpp_entity::function_t:
         case cpp_entity::member_function_t:
@@ -1121,16 +1201,28 @@ namespace
         case cpp_entity::class_template_partial_specialization_t:
             if (entity.get_entity_type() == cpp_entity::class_template_t)
             {
+                auto any_added = false;
                 for (auto& child :
                      static_cast<const cpp_class_template&>(entity).get_template_parameters())
-                    handle_child(p, i, cont, child, cpp_public, output_file);
+                {
+                    if (handle_child(p, i, cont, child, cpp_public, output_file))
+                        any_added = true;
+                }
+                if (!any_added)
+                    cont.set_cpp_entity(*get_class(entity));
             }
             else
             {
+                auto any_added = false;
                 for (auto& child :
                      static_cast<const cpp_class_template_partial_specialization&>(entity)
                          .get_template_parameters())
-                    handle_child(p, i, cont, child, cpp_public, output_file);
+                {
+                    if (handle_child(p, i, cont, child, cpp_public, output_file))
+                        any_added = true;
+                }
+                if (!any_added)
+                    cont.set_cpp_entity(*get_class(entity));
             }
         // fallthrough
         case cpp_entity::class_template_full_specialization_t:
@@ -1161,6 +1253,9 @@ namespace
                 handle_child(p, i, cont, child, cpp_public, output_file);
             break;
 
+        case cpp_entity::destructor_t:
+            break;
+
         default:
             assert(false);
             break;
@@ -1172,10 +1267,8 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
                                   const cpp_file& f)
 {
     auto file_ptr =
-        detail::make_doc_ptr<doc_container_cpp_entity>(nullptr, f,
-                                                       p.get_comment_registry()
-                                                           .lookup_comment(p.get_entity_registry(),
-                                                                           f));
+        detail::make_doc_ptr<doc_container_cpp_entity>(nullptr, f, p.get_comment_registry()
+                                                                       .lookup_comment(f, nullptr));
     if (file_ptr->has_comment() && file_ptr->get_comment().has_unique_name_override())
         output_name = file_ptr->get_comment().get_unique_name_override();
 
@@ -1187,13 +1280,14 @@ doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string o
         auto entity = handle_child_impl(p, i, *res, child, cpp_public, output_name);
         if (!entity)
             continue;
-        i.register_entity(*entity, output_name);
+        auto e_ptr = entity.get();
         if (entity->has_comment() && entity->get_comment().in_member_group())
             handle_group(p, *res->file_, std::move(entity));
         else
             res->file_->add_entity(std::move(entity));
+        i.register_entity(p, *e_ptr, output_name);
     }
-    i.register_entity(*res->file_, std::move(output_name));
+    i.register_entity(p, *res->file_, std::move(output_name));
 
     return res;
 }

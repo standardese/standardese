@@ -227,10 +227,7 @@ namespace standardese
             return synopsis_override_;
         }
 
-        void set_synopsis_override(std::string synopsis)
-        {
-            synopsis_override_ = std::move(synopsis);
-        }
+        void set_synopsis_override(const std::string& synopsis, unsigned tab_width);
 
         bool in_module() const STANDARDESE_NOEXCEPT
         {
@@ -262,6 +259,21 @@ namespace standardese
             group_id_ = group_id;
         }
 
+        bool has_group_name() const STANDARDESE_NOEXCEPT
+        {
+            return !group_name_.empty();
+        }
+
+        const std::string& get_group_name() const STANDARDESE_NOEXCEPT
+        {
+            return group_name_;
+        }
+
+        void set_group_name(std::string name)
+        {
+            group_name_ = std::move(name);
+        }
+
         bool is_excluded() const STANDARDESE_NOEXCEPT
         {
             return excluded_;
@@ -276,6 +288,7 @@ namespace standardese
         std::string        unique_name_override_;
         std::string        synopsis_override_;
         std::string        module_;
+        std::string        group_name_;
         md_ptr<md_comment> content_;
         std::size_t        group_id_;
         bool               excluded_;
@@ -283,14 +296,20 @@ namespace standardese
 
     class cpp_entity;
     class cpp_entity_registry;
+    class doc_entity;
+
+    namespace detail
+    {
+        string get_unique_name(const doc_entity* parent, const string& unique_name,
+                               const comment* c);
+    }
 
     class comment_registry
     {
     public:
         bool register_comment(comment_id id, comment c) const;
 
-        const comment* lookup_comment(const cpp_entity_registry& registry,
-                                      const cpp_entity&          e) const;
+        const comment* lookup_comment(const cpp_entity& e, const doc_entity* parent) const;
 
         const comment* lookup_comment(const std::string& module) const;
 

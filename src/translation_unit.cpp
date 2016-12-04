@@ -57,22 +57,17 @@ const cpp_entity_registry& translation_unit::get_registry() const STANDARDESE_NO
 
 namespace
 {
-    bool handle_cursor(translation_unit& tu, cpp_cursor cur)
+    bool handle_cursor(cpp_cursor cur)
     {
         auto kind = clang_getCursorKind(cur);
-        if (kind == CXCursor_Namespace || kind == CXCursor_LinkageSpec)
-            // always handle those
-            return true;
-        else if (kind == CXCursor_StructDecl || kind == CXCursor_ClassDecl
-                 || kind == CXCursor_UnionDecl || kind == CXCursor_EnumDecl
-                 || kind == CXCursor_ClassTemplate
-                 || kind == CXCursor_ClassTemplatePartialSpecialization)
+        if (kind == CXCursor_StructDecl || kind == CXCursor_ClassDecl || kind == CXCursor_UnionDecl
+            || kind == CXCursor_EnumDecl || kind == CXCursor_ClassTemplate
+            || kind == CXCursor_ClassTemplatePartialSpecialization)
             // handle those if this is a definition
             return clang_isCursorDefinition(cur) != 0;
 
-        // otherwise, return if that is the canonical cursor
-        // or a full specialization
-        return cur == clang_getCanonicalCursor(cur) || is_full_specialization(tu, cur);
+        // handle the rest all the time
+        return true;
     }
 }
 
@@ -91,46 +86,28 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
 
         try
         {
-            if (handle_cursor(*this, cur))
+            if (!handle_cursor(cur))
+                return CXChildVisit_Continue;
+            else if (get_parser().get_logger()->level() <= spdlog::level::debug)
             {
-                if (get_parser().get_logger()->level() <= spdlog::level::debug)
-                {
-                    auto location = source_location(cur);
-                    get_parser()
-                        .get_logger()
-                        ->debug("parsing entity '{}' ({}:{}) of type '{}'",
-                                string(clang_getCursorDisplayName(cur)).c_str(), location.file_name,
-                                location.line,
-                                string(clang_getCursorKindSpelling(clang_getCursorKind(cur)))
-                                    .c_str());
-                }
-
-                auto entity = cpp_entity::try_parse(*this, cur, stack.cur_parent());
-                if (!entity)
-                    return CXChildVisit_Continue;
-
-                get_parser().get_entity_registry().register_entity(*entity);
-
-                auto container = stack.add_entity(std::move(entity), parent);
-                if (container)
-                    return CXChildVisit_Recurse;
+                auto location = source_location(cur);
+                get_parser()
+                    .get_logger()
+                    ->debug("parsing entity '{}' ({}:{}) of type '{}'",
+                            string(clang_getCursorDisplayName(cur)).c_str(), location.file_name,
+                            location.line,
+                            string(clang_getCursorKindSpelling(clang_getCursorKind(cur))).c_str());
             }
-            else
-            {
-                if (get_parser().get_logger()->level() <= spdlog::level::debug)
-                {
-                    auto location = source_location(cur);
-                    get_parser()
-                        .get_logger()
-                        ->debug("rejected entity '{}' ({}:{}) of type '{}'",
-                                string(clang_getCursorDisplayName(cur)).c_str(), location.file_name,
-                                location.line,
-                                string(clang_getCursorKindSpelling(clang_getCursorKind(cur)))
-                                    .c_str());
-                }
 
-                get_parser().get_entity_registry().register_alternative(cur);
-            }
+            auto entity = cpp_entity::try_parse(*this, cur, stack.cur_parent());
+            if (!entity)
+                return CXChildVisit_Continue;
+
+            get_parser().get_entity_registry().register_entity(*entity);
+
+            auto container = stack.add_entity(std::move(entity), parent);
+            if (container)
+                return CXChildVisit_Recurse;
 
             return CXChildVisit_Continue;
         }

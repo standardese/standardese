@@ -9,6 +9,7 @@
 
 #include <standardese/detail/raw_comment.hpp>
 #include <standardese/detail/wrapper.hpp>
+#include <standardese/doc_entity.hpp>
 #include <standardese/error.hpp>
 #include <standardese/generator.hpp>
 #include <standardese/index.hpp>
@@ -92,6 +93,48 @@ bool comment::empty() const STANDARDESE_NOEXCEPT
     return true;
 }
 
+void comment::set_synopsis_override(const std::string& synopsis, unsigned tab_width)
+{
+    synopsis_override_.clear();
+
+    auto escape = false;
+    for (auto c : synopsis)
+        if (c == '\\')
+            escape = true;
+        else if (escape && c == 'n')
+        {
+            escape = false;
+            synopsis_override_ += '\n';
+        }
+        else if (escape && c == 't')
+        {
+            escape = false;
+            synopsis_override_ += std::string(tab_width, ' ');
+        }
+        else if (escape)
+        {
+            synopsis_override_ += '\\';
+            synopsis_override_ += c;
+            escape = false;
+        }
+        else
+            synopsis_override_ += c;
+}
+
+string detail::get_unique_name(const doc_entity* parent, const string& unique_name,
+                               const comment* c)
+{
+    if (c && c->has_unique_name_override())
+        return c->get_unique_name_override();
+
+    std::string result;
+    if (parent && parent->get_cpp_entity_type() != cpp_entity::file_t
+        && parent->get_cpp_entity_type() != cpp_entity::language_linkage_t)
+        result += parent->get_unique_name().c_str();
+    result += unique_name.c_str();
+    return result;
+}
+
 bool comment_registry::register_comment(comment_id id, comment c) const
 {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -163,9 +206,9 @@ namespace
             return name;
         assert(is_parameter(e.get_entity_type()));
         auto unique_name = e.get_unique_name();
-        for (auto ptr = unique_name.c_str(); *ptr; ++ptr)
-            if (*ptr == '.')
-                return ++ptr;
+        auto pos         = std::strrchr(unique_name.c_str(), '.');
+        if (pos != nullptr)
+            return pos + 1;
         return "";
     }
 
@@ -201,7 +244,18 @@ namespace
         }
     }
 
-    bool matches(const cpp_entity& e, const comment_id& id, cpp_cursor cur = {})
+    bool parent_takes_comment(const cpp_entity& e, const comment_id& e_id)
+    {
+        assert(e_id.is_location());
+        if (!e.get_semantic_parent())
+            return false;
+        auto parent_id = create_location_id(*e.get_semantic_parent());
+        if (!parent_id.is_location())
+            return false;
+        return parent_id.line() == e_id.line();
+    }
+
+    bool matches(const cpp_entity& e, const comment_id& id)
     {
         auto& inline_parent = get_inline_parent(e);
 
@@ -220,6 +274,9 @@ namespace
             else if (id.line() > e_id.line() + 1)
                 // next comment
                 return false;
+            else if (parent_takes_comment(e, e_id))
+                // parent on the same line, so comment can't be for it
+                return false;
 
             return e_id.line() == id.line() || e_id.line() + 1 == id.line();
         }
@@ -228,7 +285,6 @@ namespace
             if (&inline_parent == &e)
                 // not an entity where an inline location makes sense
                 return false;
-            assert(clang_Cursor_isNull(cur));
 
             auto e_id = create_location_id(e);
             if (id.file_name() != e_id.file_name())
@@ -246,9 +302,15 @@ namespace
         return false;
     }
 
+    comment_id get_name_id(const doc_entity* parent, const cpp_entity& e, const comment* c)
+    {
+        auto result = detail::get_unique_name(parent, e.get_unique_name(true), c);
+        return comment_id(detail::get_id(result.c_str()).c_str());
+    }
+
     template <class Map>
     const comment* lookup_comment_location(Map& comments, const comment_id& id, const cpp_entity& e,
-                                           cpp_cursor cur = {})
+                                           const doc_entity* parent)
     {
         auto iter = comments.lower_bound(id);
         if (iter != comments.end())
@@ -256,21 +318,20 @@ namespace
             // first try the next higher one, i.e. end of same line
             // then try the actual match
             ++iter;
-            if (iter == comments.end() || !matches(e, iter->first, cur))
+            if (iter == comments.end() || !matches(e, iter->first))
             {
                 --iter;
-                if (!matches(e, iter->first, cur))
+                if (!matches(e, iter->first))
                     return nullptr;
             }
 
             if (!iter->second.empty())
                 return &iter->second;
+
             // this command is only used for commands, look for a remote comment
             auto& comment = iter->second;
 
-            iter = comments.find(comment_id(comment.has_unique_name_override() ?
-                                                comment.get_unique_name_override() :
-                                                e.get_unique_name()));
+            iter = comments.find(get_name_id(parent, e, &comment));
             if (iter != comments.end())
                 // add remote content
                 comment.set_content(iter->second.get_content().clone());
@@ -282,35 +343,23 @@ namespace
     }
 }
 
-const comment* comment_registry::lookup_comment(const cpp_entity_registry& registry,
-                                                const cpp_entity&          e) const
+const comment* comment_registry::lookup_comment(const cpp_entity& e, const doc_entity* parent) const
 {
     std::unique_lock<std::mutex> lock(mutex_);
 
     // first look for comments at the location
     auto location = create_location_id(e);
-    if (auto c = lookup_comment_location(comments_, location, e))
+    if (auto c = lookup_comment_location(comments_, location, e, parent))
         return c;
 
-    // then look for comments at alternative locations
-    for (auto alternatives = registry.get_alternatives(e.get_cursor());
-         alternatives.first != alternatives.second; ++alternatives.first)
-    {
-        auto& alternative = alternatives.first->second;
-        auto  definition_location =
-            create_location_id(e.get_entity_type(), get_location(alternative));
-        if (auto c = lookup_comment_location(comments_, definition_location, e, alternative))
-            return c;
-    }
-
     // then for comments with the unique name
-    auto id   = detail::get_id(e.get_unique_name().c_str());
+    auto id   = get_name_id(parent, e, nullptr);
     auto iter = comments_.find(comment_id(id));
     if (iter != comments_.end())
         return &iter->second;
 
-    auto short_id = detail::get_short_id(id);
-    if (id == short_id)
+    auto short_id = detail::get_short_id(id.unique_name().c_str());
+    if (id.unique_name() == short_id)
         return nullptr;
     iter = comments_.find(comment_id(short_id));
     if (iter != comments_.end())
@@ -569,10 +618,10 @@ namespace
         const parser*                 parser_;
     };
 
-    std::size_t get_group_id(const char* name)
+    std::size_t get_group_id(const char* name, const char* end)
     {
         using hash = std::hash<std::string>;
-        auto res   = hash{}(name);
+        auto res   = hash{}(std::string(name, end));
         return res == 0u ? 19937u : res; // must not be 0
     }
 
@@ -606,12 +655,20 @@ namespace
                 stack.info().comment.set_unique_name_override(read_argument(text, command_str));
                 break;
             case command_type::synopsis:
-                stack.info().comment.set_synopsis_override(read_argument(text, command_str));
+                stack.info().comment.set_synopsis_override(read_argument(text, command_str),
+                                                           p.get_output_config().get_tab_width());
                 break;
             case command_type::group:
-                stack.info().comment.add_to_member_group(
-                    get_group_id(read_argument(text, command_str)));
+            {
+                auto arg    = read_argument(text, command_str);
+                auto end_id = arg;
+                while (*end_id && !std::isspace(*end_id))
+                    ++end_id;
+                stack.info().comment.add_to_member_group(get_group_id(arg, end_id));
+                if (*end_id)
+                    stack.info().comment.set_group_name(end_id);
                 break;
+            }
             case command_type::module:
                 if (!first)
                     stack.info().comment.set_module(read_argument(text, command_str));

@@ -35,17 +35,39 @@ using namespace standardese;
 
 namespace fs = boost::filesystem;
 
+namespace
+{
+    const char* guard_suffixes[] = {"_HPP_INCLUDED", "_H_INCLUDED"};
+
+    // dumb heuristic
+    bool is_guard(const std::string& name)
+    {
+        for (auto suffix : guard_suffixes)
+        {
+            auto length = std::strlen(suffix);
+            if (name.size() <= length)
+                continue;
+            else if (std::strncmp(name.c_str() + name.size() - length, suffix, length) == 0)
+                return true;
+        }
+        return false;
+    }
+}
+
 cpp_ptr<standardese::cpp_macro_definition> cpp_macro_definition::parse(CXTranslationUnit tu,
                                                                        CXFile file, cpp_cursor cur,
-                                                                       const cpp_entity& parent)
+                                                                       const cpp_entity& parent,
+                                                                       unsigned          line_no)
 {
     detail::tokenizer tokenizer(tu, file, cur);
 
     std::string name = tokenizer.begin()[0].get_value().c_str();
+    if (is_guard(name))
+        return nullptr;
 
     auto function_like = false;
 #if CINDEX_VERSION_MINOR >= 33
-    function_like = clang_Cursor_isMacroFunctionLike(cur);
+    function_like = clang_Cursor_isMacroFunctionLike(cur) != 0u;
 #else
     // first token after name decides if it is function like
     auto token = tokenizer.begin()[1];
@@ -78,19 +100,19 @@ cpp_ptr<standardese::cpp_macro_definition> cpp_macro_definition::parse(CXTransla
             detail::append_token(replacement, iter->get_value());
     }
 
-    auto     loc = clang_getCursorLocation(cur);
-    unsigned line;
-    clang_getSpellingLocation(loc, nullptr, &line, nullptr, nullptr);
-
     return detail::make_cpp_ptr<cpp_macro_definition>(parent, std::move(name), std::move(params),
-                                                      std::move(replacement), line);
+                                                      std::move(replacement), line_no);
 }
 
 namespace
 {
     std::string get_command(const compile_config& c, const char* full_path)
     {
-        std::string cmd(fs::path(c.get_clang_binary()).generic_string() + " -E -C ");
+        // -E: print preprocessor output
+        // -C: keep comments
+        // -Wno-pragma-once-outside-header: hide wrong warning
+        std::string cmd(fs::path(c.get_clang_binary()).generic_string()
+                        + " -E -CC -Wno-pragma-once-outside-header ");
         for (auto& flag : c)
         {
             cmd += '"' + std::string(flag.c_str()) + '"';
@@ -149,6 +171,11 @@ namespace
         bool is_set(flag_t f) const
         {
             return (flags & f) != 0;
+        }
+
+        bool none_set() const
+        {
+            return flags == 0u;
         }
     };
 
@@ -231,13 +258,24 @@ namespace
         return tu;
     }
 
-    void add_macros(const parser& p, const compile_config& c, const char* full_path, cpp_file& file)
+    void add_macros(const parser& p, const compile_config& c, const char* full_path, cpp_file& file,
+                    const std::vector<unsigned>& fake_lines)
     {
         detail::tu_wrapper tu(get_cxunit(p.get_cxindex(), c, full_path));
         auto               cxfile = clang_getFile(tu.get(), full_path);
+        auto               iter   = fake_lines.begin();
+
         detail::visit_tu(tu.get(), cxfile, [&](cpp_cursor cur, cpp_cursor) {
             if (clang_getCursorKind(cur) == CXCursor_MacroDefinition)
-                file.add_entity(cpp_macro_definition::parse(tu.get(), cxfile, cur, file));
+            {
+                auto     loc = clang_getCursorLocation(cur);
+                unsigned line;
+                clang_getSpellingLocation(loc, nullptr, &line, nullptr, nullptr);
+
+                iter = std::lower_bound(iter, fake_lines.end(), line);
+                file.add_entity(cpp_macro_definition::parse(tu.get(), cxfile, cur, file,
+                                                            (iter - fake_lines.begin()) + line));
+            }
             return CXChildVisit_Continue;
         });
     }
@@ -246,9 +284,11 @@ namespace
 std::string preprocessor::preprocess(const parser& p, const compile_config& c,
                                      const char* full_path, cpp_file& file) const
 {
-    std::string preprocessed;
+    std::string           preprocessed;
+    std::vector<unsigned> fake_lines;
 
     auto full_preprocessed = get_full_preprocess_output(p, c, full_path);
+    auto line_no           = 1u;
     auto file_depth        = 0;
     auto was_newl = true, in_c_comment = false, write_char = true;
     for (auto ptr = full_preprocessed.c_str(); *ptr; ++ptr)
@@ -261,6 +301,11 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
         {
             in_c_comment = false;
             was_newl     = false;
+            // add an additional newline
+            // this allows using c style doc comments in macros
+            // normally macros would all be one line, so each entity gets the same comment
+            preprocessed += '\n';
+            fake_lines.push_back(line_no);
         }
         else if (*ptr == '/' && ptr[1] == '*')
         {
@@ -277,6 +322,16 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
                 assert(file_depth <= 1);
                 file_depth = 0;
                 write_char = false;
+
+                if (marker.none_set())
+                {
+                    if (line_no < marker.line)
+                    {
+                        auto diff = marker.line - line_no;
+                        preprocessed.append(diff, '\n');
+                    }
+                    line_no = marker.line;
+                }
             }
             else if (marker.is_set(line_marker::enter_new))
             {
@@ -296,6 +351,7 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
                     else
                         preprocessed += '"';
                     preprocessed += '\n';
+                    ++line_no;
 
                     // also add include
                     if (is_whitelisted_directory(marker.file_name))
@@ -308,18 +364,24 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
                 }
             }
             else if (marker.is_set(line_marker::enter_old))
+            {
                 --file_depth;
+            }
         }
         else
             was_newl = false;
 
         if (file_depth == 0 && write_char)
+        {
             preprocessed += *ptr;
+            if (*ptr == '\n')
+                ++line_no;
+        }
         else if (file_depth == 0)
             write_char = true;
     }
 
-    add_macros(p, c, full_path, file);
+    add_macros(p, c, full_path, file, fake_lines);
     return preprocessed;
 }
 

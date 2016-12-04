@@ -33,6 +33,8 @@ namespace
                 result += c;
             else if (c == '<' || c == '>')
                 result += '-';
+            else if (c == ' ')
+                ; // ignore
             else
             {
                 // escape character
@@ -71,18 +73,35 @@ void linker::register_external(std::string prefix, std::string url)
     res.first->second = std::move(url);
 }
 
+namespace
+{
+    const doc_entity& get_documented_entity(const doc_entity& e)
+    {
+        auto result = &e;
+        if (e.has_comment() && e.get_comment().in_member_group())
+        {
+            assert(e.has_parent()
+                   && e.get_parent().get_entity_type() == doc_entity::member_group_t);
+            result = &e.get_parent();
+        }
+        else
+        {
+            while (result->has_parent()
+                   && (!result->has_comment() || result->get_comment().empty()))
+                result = &result->get_parent();
+            assert(result);
+        }
+
+        return *result;
+    }
+}
+
 void linker::register_entity(const doc_entity& e, std::string output_file) const
 {
-    auto entity = &e;
-    if (entity->has_comment() && entity->get_comment().in_member_group())
-    {
-        assert(entity->has_parent()
-               && entity->get_parent().get_entity_type() == doc_entity::member_group_t);
-        entity = &entity->get_parent();
-    }
+    auto loc = location(get_documented_entity(e), "doc_" + std::move(output_file));
 
     std::unique_lock<std::mutex> lock(mutex_);
-    auto res = locations_.emplace(&e, location(*entity, std::move(output_file)));
+    auto                         res = locations_.emplace(&e, std::move(loc));
     if (!res.second)
         throw std::logic_error(fmt::format("linker: duplicate registration of entity '{}'",
                                            e.get_unique_name().c_str()));

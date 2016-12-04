@@ -9,6 +9,7 @@ build_script:
 
   - cmd: mkdir standardese && cd standardese
   - cmd: copy ..\tool\Release\standardese.exe .
+  - cmd: copy ..\..\standardese-config.cmake .
   - cmd: copy ..\..\LICENSE .
   - cmd: copy ..\..\*.md .
   - cmd: cd ..\

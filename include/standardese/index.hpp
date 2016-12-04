@@ -30,7 +30,8 @@ namespace standardese
     class index
     {
     public:
-        void register_entity(const doc_entity& entity, std::string output_name) const;
+        void register_entity(const parser& p, const doc_entity& entity,
+                             std::string output_name) const;
 
         const doc_entity* try_lookup(const std::string& unique_name) const;
 

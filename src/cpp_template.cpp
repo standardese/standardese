@@ -55,7 +55,7 @@ cpp_name cpp_template_parameter::do_get_unique_name() const
         name = std::to_string(i);
     }
 
-    return std::string(parent->get_unique_name().c_str()) + "." + name;
+    return std::string(".") + name;
 }
 
 cpp_ptr<cpp_template_type_parameter> cpp_template_type_parameter::parse(translation_unit& tu,
@@ -278,7 +278,7 @@ namespace
 
     // appends template paramters to name
     template <typename T>
-    cpp_name get_template_name(std::string name, T& result)
+    std::string get_template_name(std::string name, T& result)
     {
         name += "<";
         auto needs_comma = false;
@@ -327,7 +327,7 @@ cpp_name cpp_function_template::get_signature() const
 
 cpp_name cpp_function_template::do_get_unique_name() const
 {
-    return std::string(get_full_name().c_str()) + get_signature().c_str();
+    return std::string(cpp_entity::do_get_unique_name().c_str()) + get_signature().c_str();
 }
 
 cpp_function_template::cpp_function_template(cpp_cursor cur, const cpp_entity& parent)
@@ -357,7 +357,7 @@ cpp_name cpp_function_template_specialization::get_signature() const
 
 cpp_name cpp_function_template_specialization::do_get_unique_name() const
 {
-    return std::string(get_full_name().c_str()) + get_signature().c_str();
+    return std::string(cpp_entity::do_get_unique_name().c_str()) + get_signature().c_str();
 }
 
 cpp_function_template_specialization::cpp_function_template_specialization(cpp_cursor        cur,
@@ -383,7 +383,12 @@ cpp_ptr<cpp_class_template> cpp_class_template::parse(translation_unit& tu, cpp_
 
 cpp_name cpp_class_template::get_name() const
 {
-    return get_template_name(class_->get_name().c_str(), *this);
+    return class_->get_name().c_str();
+}
+
+cpp_name cpp_class_template::do_get_unique_name() const
+{
+    return get_template_name(cpp_entity::do_get_unique_name().c_str(), *this);
 }
 
 cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_specialization::parse(
@@ -467,7 +472,12 @@ cpp_ptr<cpp_alias_template> cpp_alias_template::parse(translation_unit& tu, cpp_
 
 cpp_name cpp_alias_template::get_name() const
 {
-    return get_template_name(type_->get_name().c_str(), *this);
+    return type_->get_name();
+}
+
+cpp_name cpp_alias_template::do_get_unique_name() const
+{
+    return get_template_name(cpp_entity::do_get_unique_name().c_str(), *this);
 }
 
 const cpp_entity_container<cpp_template_parameter>* standardese::get_template_parameters(

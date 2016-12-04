@@ -1,3 +1,29 @@
+## 0.3-1
+
+### Documentation
+
+* Now generates inline docs for member groups as well
+* Now generates synopsis for undocumented entities again
+* Hide template parameters in class names
+* Add support for `\n` and `\t` in synopsis override
+* Add support for documentation comments in macros
+* Add `doc_` prefix to all documentation output files
+
+### Library
+
+* Allow multiple registration of entities (warning, not a critical error)
+* Ignore `static_assert` silently
+* Add support for friend function definitiones
+* Add heuristic for include guard detection
+* Improve libclang diagnostic output
+* Various other bugfixes
+
+### Tool
+
+* Add `output.show_complex_noexcept` option that controls whether complex noexcept expressions will be shown in the synopsis
+* Add `output.prefix` option that sets a global prefix for all output
+* Improve standardese-config.cmake
+
 ## 0.3
 
 ### Documentation
