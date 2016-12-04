@@ -92,6 +92,17 @@ namespace
                 link.set_destination(destination.c_str());
         });
     }
+
+    std::string normalize_escape(const cpp_name& name)
+    {
+        std::string result;
+        for (auto c : name)
+            if (c == '/')
+                result += "$";
+            else
+                result += c;
+        return result;
+    }
 }
 
 void standardese::normalize_urls(const index& idx, md_container& document,
@@ -108,7 +119,7 @@ void standardese::normalize_urls(const index& idx, md_container& document,
         auto entity = context ? idx.try_name_lookup(*context, str) : idx.try_lookup(str);
         if (entity)
             link.set_destination(
-                (std::string("standardese://") + entity->get_unique_name().c_str() + '/').c_str());
+                ("standardese://" + normalize_escape(entity->get_unique_name()) + '/').c_str());
     });
 }
 
@@ -172,6 +183,8 @@ namespace
         {
             if (*ptr == '\\')
                 ; // ignore
+            else if (*ptr == '$')
+                result += '/';
             else if (*ptr == '%')
             {
                 // on the fly hexadecimal parsing
