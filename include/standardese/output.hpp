@@ -154,10 +154,10 @@ namespace standardese
 
         void render_template(const std::shared_ptr<spdlog::logger>& logger,
                              const template_file& templ, const documentation& doc,
-                             const char* output_extension);
+                             const char* output_extension = nullptr);
 
-        void render_raw(const std::shared_ptr<spdlog::logger>& logger,
-                        const raw_document&                    document);
+        void render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw_document& document,
+                        const char* output_extension = nullptr);
 
         output_format_base& get_format() STANDARDESE_NOEXCEPT
         {

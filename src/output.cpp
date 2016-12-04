@@ -140,14 +140,10 @@ void output::render_template(const std::shared_ptr<spdlog::logger>& logger,
                              const template_file& templ, const documentation& doc,
                              const char* output_extension)
 {
-    if (!output_extension)
-        output_extension = format_->extension();
+    auto document      = process_template(*parser_, *index_, templ, format_, &doc);
+    document.file_name = doc.document->get_output_name();
 
-    auto document           = process_template(*parser_, *index_, templ, format_, &doc);
-    document.file_name      = doc.document->get_output_name();
-    document.file_extension = output_extension;
-
-    render_raw(logger, document);
+    render_raw(logger, document, output_extension);
 }
 
 namespace
@@ -195,8 +191,12 @@ namespace
     }
 }
 
-void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw_document& document)
+void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw_document& document,
+                        const char* output_extension)
 {
+    if (!output_extension)
+        output_extension = format_->extension();
+
     auto extension =
         document.file_extension.empty() ? format_->extension() : document.file_extension;
     file_output output(prefix_ + document.file_name + '.' + extension);
@@ -215,7 +215,7 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
             end = &document.text.back() + 1;
 
         auto name = unescape(entity_name, end);
-        auto url  = index_->get_linker().get_url(*index_, nullptr, name, format_->extension());
+        auto url  = index_->get_linker().get_url(*index_, nullptr, name, output_extension);
         if (url.empty())
         {
             logger->warn("unable to resolve link to an entity named '{}'", name);
