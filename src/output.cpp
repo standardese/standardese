@@ -225,7 +225,7 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         else
         {
             output.write_str(url.c_str(), url.size());
-            last_match = entity_name + name.size() + 1;
+            last_match = end + 1;
         }
     }
     // write remainder of file

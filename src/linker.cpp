@@ -33,6 +33,8 @@ namespace
                 result += c;
             else if (c == '<' || c == '>')
                 result += '-';
+            else if (c == ' ')
+                ; // ignore
             else
             {
                 // escape character
@@ -84,7 +86,8 @@ namespace
         }
         else
         {
-            while (result->has_parent() && !result->has_comment())
+            while (result->has_parent()
+                   && (!result->has_comment() || result->get_comment().empty()))
                 result = &result->get_parent();
             assert(result);
         }
