@@ -250,7 +250,13 @@ cpp_name doc_cpp_entity::do_get_index_name(bool full_name) const
 {
     if (get_cpp_entity_type() == cpp_entity::namespace_t)
         return entity_->get_full_name();
-    return std::string(full_name ? entity_->get_full_name().c_str() : entity_->get_name().c_str());
+    auto result =
+        std::string(full_name ? entity_->get_full_name().c_str() : entity_->get_name().c_str());
+    if (full_name)
+        return result;
+    else if (auto func = get_function(*entity_))
+        result += func->get_signature().c_str();
+    return result;
 }
 
 bool standardese::is_inline_cpp_entity(cpp_entity::type t) STANDARDESE_NOEXCEPT

@@ -589,13 +589,17 @@ namespace
         for (auto& param : parameters)
         {
             result += param.get_type().get_full_name().c_str();
-            result += ',';
+            result += ", ";
         }
-        if (result.back() == ',')
+        auto end = result.c_str() + result.size();
+        if (end[-1] == ' ' && end[-2] == ',')
+        {
             result.pop_back();
+            result.pop_back();
+        }
 
         if (variadic)
-            result += ",...";
+            result += ", ...";
 
         result += ")";
         return result;
