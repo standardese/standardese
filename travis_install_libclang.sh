@@ -33,6 +33,8 @@ if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     export CLANG_BINARY=$LLVM_DIR/bin/clang++
 
     export LD_LIBRARY_PATH=$LLVM_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+    export PATH=$LLVM_DIR/bin${PATH:+:$PATH}
+    
 elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     wget --no-check-certificate http://llvm.org/releases/$LLVM_VERSION/clang+llvm-$LLVM_VERSION-x86_64-apple-darwin.tar.xz -O llvm-$LLVM_VERSION.xz
 
@@ -47,6 +49,7 @@ elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     export CLANG_BINARY=$LLVM_DIR/bin/clang++
 
     export DYLD_LIBRARY_PATH=$LLVM_DIR/lib${DYLD_LIBRARY_PATH:+:$DY_LD_LIBRARY_PATH}
+    export PATH=$LLVM_DIR/bin${PATH:+:$PATH}
 else
     echo "unknown Travis OS" >&2
     cd $pwd_save
