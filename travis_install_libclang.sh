@@ -12,11 +12,8 @@
 # it listens to:
 # LLVM_VERSION - the version of LLVM to use, default is 3.8.0
 
-pwd_save=$PWD
-cd ../
-
 if [ -z $LLVM_VERSION ]; then
-    LLVM_VERSION="3.8.0"
+    LLVM_VERSION="3.9.0"
 fi
 
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
@@ -52,8 +49,6 @@ elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     export PATH=$LLVM_DIR/bin${PATH:+:$PATH}
 else
     echo "unknown Travis OS" >&2
-    cd $pwd_save
-    unset pwd_save
     return 1
 fi
 
@@ -61,7 +56,4 @@ echo "LLVM_DIR: $LLVM_DIR"
 echo "LIBCLANG_LIBRARY: $LIBCLANG_LIBRARY"
 echo "LIBCLANG_INCLUDE_DIR: $LIBCLANG_INCLUDE_DIR"
 echo "LIBCLANG_SYSTEM_INCLUDE_DIR: $LIBCLANG_SYSTEM_INCLUDE_DIR"
-
-cd $pwd_save
-unset pwd_save
 
