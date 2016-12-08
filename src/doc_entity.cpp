@@ -230,6 +230,11 @@ namespace
 void doc_cpp_entity::do_generate_documentation_base(const parser& p, const index& i,
                                                     md_document& doc, unsigned level) const
 {
+    if (!has_comment()
+        || p.get_output_config().get_blacklist().is_blacklisted(entity_blacklist::documentation,
+                                                                get_cpp_entity()))
+        return;
+
     doc.add_entity(make_heading(i, *this, doc, level,
                                 p.get_output_config().is_set(output_flag::show_modules)));
 
@@ -270,8 +275,7 @@ void doc_inline_cpp_entity::do_generate_documentation(const parser& p, const ind
 {
     assert(!p.get_output_config().is_set(output_flag::inline_documentation));
 
-    if (has_comment())
-        do_generate_documentation_base(p, i, doc, level);
+    do_generate_documentation_base(p, i, doc, level);
 }
 
 void doc_inline_cpp_entity::do_generate_documentation_inline(const parser& p, const index& i,
@@ -1059,7 +1063,9 @@ namespace
 {
     bool is_blacklisted(const entity_blacklist& blacklist, const cpp_entity& e, const comment* c)
     {
-        if (blacklist.is_blacklisted(entity_blacklist::documentation, e))
+        if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
+            // only ignore synopsis blacklisted entities
+            // documentation blacklists should still be included
             return true;
         else if (c && c->is_excluded())
             return true;
