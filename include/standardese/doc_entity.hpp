@@ -209,7 +209,7 @@ namespace standardese
         }
 
     protected:
-        void do_generate_documentation_base(const parser& p, const index& i, md_document& doc,
+        bool do_generate_documentation_base(const parser& p, const index& i, md_document& doc,
                                             unsigned level) const;
 
         doc_cpp_entity(const doc_entity* parent, const cpp_entity& e, const comment* c)

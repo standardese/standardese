@@ -225,15 +225,26 @@ namespace
 
         return heading;
     }
+
+    bool has_comment_impl(const doc_entity& e)
+    {
+        auto c = e.has_comment() ? &e.get_comment() : nullptr;
+        return c && (!c->empty() || c->in_member_group());
+    }
+
+    bool requires_comment_for_doc(const doc_entity& e)
+    {
+        return e.get_cpp_entity_type() != cpp_entity::file_t;
+    }
 }
 
-void doc_cpp_entity::do_generate_documentation_base(const parser& p, const index& i,
+bool doc_cpp_entity::do_generate_documentation_base(const parser& p, const index& i,
                                                     md_document& doc, unsigned level) const
 {
-    if (!has_comment()
+    if ((requires_comment_for_doc(*this) && !has_comment_impl(*this))
         || p.get_output_config().get_blacklist().is_blacklisted(entity_blacklist::documentation,
                                                                 get_cpp_entity()))
-        return;
+        return false;
 
     doc.add_entity(make_heading(i, *this, doc, level,
                                 p.get_output_config().is_set(output_flag::show_modules)));
@@ -244,6 +255,8 @@ void doc_cpp_entity::do_generate_documentation_base(const parser& p, const index
 
     if (has_comment())
         doc.add_entity(get_comment().get_content().clone(doc));
+
+    return true;
 }
 
 cpp_name doc_cpp_entity::do_get_unique_name() const
@@ -695,35 +708,19 @@ namespace
         }
     };
 
-    bool require_comment_for_doc(cpp_entity::type t)
-    {
-        return t == cpp_entity::namespace_t || t == cpp_entity::language_linkage_t;
-    }
-
-    bool has_comment_impl(const doc_entity& e)
-    {
-        auto c = e.has_comment() ? &e.get_comment() : nullptr;
-        return c && (!c->empty() || c->in_member_group());
-    }
-
     bool requires_comment(const doc_entity& e)
     {
-        return e.get_cpp_entity_type() != cpp_entity::file_t
-               && e.get_cpp_entity_type() != cpp_entity::namespace_t
-               && e.get_cpp_entity_type() != cpp_entity::language_linkage_t
-               && !is_inline_cpp_entity(e.get_cpp_entity_type());
+        return requires_comment_for_doc(e) && e.get_cpp_entity_type() != cpp_entity::namespace_t
+               && e.get_cpp_entity_type() != cpp_entity::language_linkage_t;
     }
 }
 
 void doc_container_cpp_entity::do_generate_documentation(const parser& p, const index& i,
                                                          md_document& doc, unsigned level) const
 {
-    auto generate_doc = !require_comment_for_doc(get_cpp_entity_type()) || has_comment_impl(*this);
+    auto generate_doc = do_generate_documentation_base(p, i, doc, level);
     if (generate_doc)
     {
-        // generate heading + synopsis + comment
-        do_generate_documentation_base(p, i, doc, level);
-
         // add inline entity comments
         if (p.get_output_config().is_set(output_flag::inline_documentation))
         {
