@@ -76,7 +76,7 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
 {
     detail::scope_stack stack(file_);
 
-    detail::visit_tu(get_cxunit(), get_cxfile(), [&](cpp_cursor cur, cpp_cursor parent) {
+    detail::visit_tu(get_cxunit(), path, [&](cpp_cursor cur, cpp_cursor parent) {
         stack.pop_if_needed(parent);
 
         if (clang_getCursorSemanticParent(cur) != parent

@@ -42,7 +42,7 @@ std::vector<standardese::cpp_ptr<T>> parse_entity(standardese::translation_unit&
 {
     std::vector<standardese::cpp_ptr<T>> result;
 
-    standardese::detail::visit_tu(unit.get_cxunit(), unit.get_cxfile(),
+    standardese::detail::visit_tu(unit.get_cxunit(), unit.get_path().c_str(),
                                   [&](CXCursor cur, CXCursor) {
                                       if (clang_getCursorKind(cur) == kind)
                                       {

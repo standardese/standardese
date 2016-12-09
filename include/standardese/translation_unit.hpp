@@ -95,13 +95,13 @@ namespace standardese
     namespace detail
     {
         template <typename Func>
-        void visit_tu(CXTranslationUnit tu, CXFile file, Func f)
+        void visit_tu(CXTranslationUnit tu, const char* full_path, Func f)
         {
             struct data_t
             {
-                Func*  func;
-                string file_name;
-            } data{&f, clang_getFileName(file)};
+                Func*       func;
+                const char* full_path;
+            } data{&f, full_path};
 
             auto visitor_impl = [](CXCursor cursor, CXCursor parent,
                                    CXClientData client_data) -> CXChildVisitResult {
@@ -112,11 +112,7 @@ namespace standardese
                 clang_getPresumedLocation(location, &cx_file_name, nullptr, nullptr);
 
                 string file_name(cx_file_name);
-                // if file_name ends with the file name of the TU
-                // (ends because file_name is the full path, not just the name)
-                if (file_name.length() < data->file_name.length()
-                    || std::strcmp(file_name.end() - data->file_name.length(),
-                                   data->file_name.c_str()))
+                if (file_name != data->full_path)
                     return CXChildVisit_Continue;
                 return (*data->func)(cursor, parent);
             };

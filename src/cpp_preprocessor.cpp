@@ -265,7 +265,7 @@ namespace
         auto               cxfile = clang_getFile(tu.get(), full_path);
         auto               iter   = fake_lines.begin();
 
-        detail::visit_tu(tu.get(), cxfile, [&](cpp_cursor cur, cpp_cursor) {
+        detail::visit_tu(tu.get(), full_path, [&](cpp_cursor cur, cpp_cursor) {
             if (clang_getCursorKind(cur) == CXCursor_MacroDefinition)
             {
                 auto     loc = clang_getCursorLocation(cur);
