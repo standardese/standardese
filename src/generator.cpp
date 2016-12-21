@@ -33,7 +33,7 @@ namespace
 
         // add link to entity
         auto link = md_link::make(paragraph, "", e.get_unique_name().c_str());
-        link->add_entity(md_text::make(*link, e.get_index_name(full_name).c_str()));
+        link->add_entity(md_text::make(*link, e.get_index_name(full_name, true).c_str()));
         paragraph.add_entity(std::move(link));
 
         // add brief comment to it
@@ -116,7 +116,7 @@ documentation standardese::generate_entity_index(index& i, std::string name)
             make_index_item(i, *list, e, false);
         else
         {
-            auto ns_name = ns->get_index_name(false);
+            auto ns_name = ns->get_index_name(false, true);
             auto iter    = ns_lists.find(ns_name.c_str());
             if (iter == ns_lists.end())
             {

@@ -657,7 +657,7 @@ raw_document standardese::process_template(const parser& p, const index& i,
         {
             auto entity = s.lookup_var(read_arg(ptr, last));
             if (entity)
-                s.get_buffer() += entity->get_index_name(true).c_str();
+                s.get_buffer() += entity->get_index_name(true, true).c_str();
             break;
         }
         case template_command::module:

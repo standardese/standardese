@@ -213,7 +213,7 @@ namespace
         auto text     = md_text::make(*heading, text_str.c_str());
         heading->add_entity(std::move(text));
 
-        auto code = md_code::make(*heading, e.get_index_name(true).c_str());
+        auto code = md_code::make(*heading, e.get_index_name(true, false).c_str());
         heading->add_entity(std::move(code));
 
         if (show_module && e.has_comment() && e.get_comment().in_module())
@@ -264,13 +264,13 @@ cpp_name doc_cpp_entity::do_get_unique_name() const
     return entity_->get_unique_name(true);
 }
 
-cpp_name doc_cpp_entity::do_get_index_name(bool full_name) const
+cpp_name doc_cpp_entity::do_get_index_name(bool full_name, bool signature) const
 {
     if (get_cpp_entity_type() == cpp_entity::namespace_t)
         return entity_->get_full_name();
     auto result =
         std::string(full_name ? entity_->get_full_name().c_str() : entity_->get_name().c_str());
-    if (full_name)
+    if (!signature)
         return result;
     else if (auto func = get_function(*entity_))
         result += func->get_signature().c_str();

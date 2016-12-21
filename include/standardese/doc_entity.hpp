@@ -75,9 +75,9 @@ namespace standardese
             return do_get_name();
         }
 
-        cpp_name get_index_name(bool full_name) const
+        cpp_name get_index_name(bool full_name, bool signature) const
         {
-            return do_get_index_name(full_name);
+            return do_get_index_name(full_name, signature);
         }
 
         cpp_entity::type get_cpp_entity_type() const STANDARDESE_NOEXCEPT
@@ -159,9 +159,9 @@ namespace standardese
                                           bool top_level) const = 0;
 
     private:
-        virtual cpp_name do_get_name() const                     = 0;
-        virtual cpp_name do_get_unique_name() const              = 0;
-        virtual cpp_name do_get_index_name(bool full_name) const = 0;
+        virtual cpp_name do_get_name() const        = 0;
+        virtual cpp_name do_get_unique_name() const = 0;
+        virtual cpp_name do_get_index_name(bool full_name, bool signature) const = 0;
 
         virtual cpp_entity::type do_get_cpp_entity_type() const STANDARDESE_NOEXCEPT = 0;
 
@@ -225,7 +225,7 @@ namespace standardese
 
         cpp_name do_get_unique_name() const override;
 
-        cpp_name do_get_index_name(bool full_name) const override;
+        cpp_name do_get_index_name(bool full_name, bool signature) const override;
 
         cpp_entity::type do_get_cpp_entity_type() const STANDARDESE_NOEXCEPT override
         {
@@ -386,9 +386,9 @@ namespace standardese
             return doc_entity_container::begin()->do_get_name();
         }
 
-        cpp_name do_get_index_name(bool full_name) const override
+        cpp_name do_get_index_name(bool full_name, bool signature) const override
         {
-            return doc_entity_container::begin()->do_get_index_name(full_name);
+            return doc_entity_container::begin()->do_get_index_name(full_name, signature);
         }
 
         cpp_name do_get_unique_name() const override
@@ -458,9 +458,9 @@ namespace standardese
             return file_->get_cpp_entity().get_unique_name(true);
         }
 
-        cpp_name do_get_index_name(bool full_name) const override
+        cpp_name do_get_index_name(bool full_name, bool signature) const override
         {
-            return file_->get_index_name(full_name);
+            return file_->get_index_name(full_name, signature);
         }
 
         cpp_entity::type do_get_cpp_entity_type() const STANDARDESE_NOEXCEPT override

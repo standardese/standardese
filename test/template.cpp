@@ -98,7 +98,7 @@ a
         auto generated = R"(
 b,
 b(),
-b,
+b(),
 )";
         REQUIRE(process_template(p, idx, template_file("template.md", code)).text == generated);
     }
