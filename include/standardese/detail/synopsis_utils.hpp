@@ -61,9 +61,7 @@ namespace standardese
 
         inline bool is_blacklisted(const parser& par, const cpp_type_ref& ref)
         {
-            auto decl = ref.get_declaration();
-            if (decl == cpp_cursor())
-                return false;
+            auto decl   = ref.get_declaration();
             auto entity = par.get_entity_registry().try_lookup(decl);
             if (!entity)
                 return false;

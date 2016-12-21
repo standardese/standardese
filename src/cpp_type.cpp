@@ -9,6 +9,7 @@
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/translation_unit.hpp>
+#include <clang-c/Index.h>
 
 using namespace standardese;
 
@@ -23,7 +24,27 @@ cpp_type_ref::cpp_type_ref(cpp_name name, CXType type) : name_(std::move(name)),
 
 cpp_cursor cpp_type_ref::get_declaration() const STANDARDESE_NOEXCEPT
 {
-    return clang_getTypeDeclaration(type_);
+    auto decl = clang_getTypeDeclaration(type_);
+    // check if we have a specialized cursor
+    // this also works for members of templates
+    auto special_decl = clang_getSpecializedCursorTemplate(decl);
+    if (!clang_Cursor_isNull(special_decl))
+        return special_decl;
+    else if (clang_getCursorKind(decl) == CXCursor_TypeAliasDecl
+             || clang_getCursorKind(decl) == CXCursor_TypedefDecl)
+    {
+        // clang_getSpecializedCursorTemplate() does not work for typedefs in a class template
+        // so workaround and return the specialization of a the parent template instead
+        auto cur = clang_getCursorSemanticParent(decl);
+        while (!clang_Cursor_isNull(cur))
+        {
+            auto special_cur = clang_getSpecializedCursorTemplate(cur);
+            if (!clang_Cursor_isNull(special_cur))
+                return special_cur;
+            cur = clang_getCursorSemanticParent(decl);
+        }
+    }
+    return decl;
 }
 
 cpp_name cpp_type_ref::get_full_name() const STANDARDESE_NOEXCEPT
