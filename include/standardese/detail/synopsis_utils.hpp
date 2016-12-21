@@ -99,7 +99,8 @@ namespace standardese
         void write_parameters(const parser& par, code_block_writer& out,
                               const doc_container_cpp_entity& cont, const cpp_function_base& f);
         void write_cv_ref(code_block_writer& out, int cv, int ref);
-        void write_noexcept(bool show_complex, code_block_writer& out, const cpp_function_base& f);
+        void write_noexcept(const char* complex_name, code_block_writer& out,
+                            const cpp_function_base& f);
         void write_override_final(code_block_writer& out, int virtual_flag);
         void write_definition(code_block_writer& out, const cpp_function_base& f);
     }
