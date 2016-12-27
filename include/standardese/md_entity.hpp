@@ -41,6 +41,7 @@ namespace standardese
             thematic_break_t,
 
             inline_documentation_t,
+            code_block_advanced_t,
 
             _end_block,
             _begin_inline = _end_block,
@@ -140,8 +141,8 @@ namespace standardese
     {
         return t == md_entity::thematic_break_t || t == md_entity::code_block_t
                || t == md_entity::text_t || t == md_entity::soft_break_t
-               || t == md_entity::line_break_t || t == md_entity::code_t
-               || t == md_entity::anchor_t;
+               || t == md_entity::line_break_t || t == md_entity::code_t || t == md_entity::anchor_t
+               || t == md_entity::code_block_advanced_t;
     }
 
     inline bool is_container(md_entity::type t) STANDARDESE_NOEXCEPT

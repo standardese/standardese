@@ -32,6 +32,31 @@ namespace standardese
         friend detail::md_ptr_access;
     };
 
+    class md_code_block;
+
+    class md_code_block_advanced final : public md_leave
+    {
+    public:
+        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
+        {
+            return md_entity::code_block_advanced_t;
+        }
+
+        static md_ptr<md_code_block_advanced> make(const md_code_block& cb);
+        static md_ptr<md_code_block_advanced> make(const md_entity& parent, const char* code,
+                                                   const char* lang);
+
+    protected:
+        md_entity_ptr do_clone(const md_entity* parent) const override;
+
+    private:
+        md_code_block_advanced(const md_entity& parent, const char* code, const char* lang);
+
+        md_code_block_advanced(const md_entity& parent, cmark_node* node);
+
+        friend detail::md_ptr_access;
+    };
+
     class md_inline_documentation final : public md_container
     {
     public:

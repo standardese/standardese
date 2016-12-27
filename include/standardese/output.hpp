@@ -10,6 +10,7 @@
 #include <ostream>
 
 #include <standardese/md_blocks.hpp>
+#include <standardese/md_custom.hpp>
 #include <standardese/noexcept.hpp>
 #include <standardese/output_format.hpp>
 #include <standardese/output_stream.hpp>
@@ -45,9 +46,12 @@ namespace standardese
         {
         }
 
-        md_ptr<md_code_block> get_code_block(const char* fence = "cpp")
+        md_entity_ptr get_code_block(bool use_advanced, const char* fence = "cpp")
         {
-            return md_code_block::make(*parent_, stream_.get_string().c_str(), fence);
+            if (use_advanced)
+                return md_code_block_advanced::make(*parent_, stream_.get_string().c_str(), fence);
+            else
+                return md_code_block::make(*parent_, stream_.get_string().c_str(), fence);
         }
 
         void indent(unsigned width)

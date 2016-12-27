@@ -251,7 +251,8 @@ bool doc_cpp_entity::do_generate_documentation_base(const parser& p, const index
 
     code_block_writer out(doc);
     do_generate_synopsis(p, out, true);
-    doc.add_entity(out.get_code_block());
+    doc.add_entity(
+        out.get_code_block(p.get_output_config().is_set(output_flag::use_advanced_code_block)));
 
     if (has_comment())
         doc.add_entity(get_comment().get_content().clone(doc));
@@ -1014,7 +1015,8 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
 
     code_block_writer out(doc);
     do_generate_synopsis(p, out, true);
-    doc.add_entity(out.get_code_block());
+    doc.add_entity(
+        out.get_code_block(p.get_output_config().is_set(output_flag::use_advanced_code_block)));
 
     doc.add_entity(get_comment().get_content().clone(doc));
 

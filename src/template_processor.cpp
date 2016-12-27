@@ -509,7 +509,8 @@ namespace
         auto              doc = md_document::make("");
         code_block_writer writer(*doc);
         entity->generate_synopsis(vars.get_parser(), writer);
-        doc->add_entity(writer.get_code_block());
+        doc->add_entity(writer.get_code_block(
+            vars.get_parser().get_output_config().is_set(output_flag::use_advanced_code_block)));
 
         return doc;
     }

@@ -91,7 +91,7 @@ std::string get_synopsis(const parser& p, const doc_entity& e)
     auto              doc = md_document::make("");
     code_block_writer cb(*doc);
     e.generate_synopsis(p, cb);
-    return cb.get_code_block()->get_string();
+    return static_cast<md_code_block&>(*cb.get_code_block(false)).get_string();
 }
 
 std::string get_synopsis(const parser& p, const doc_file& file, const cpp_entity& e)
