@@ -249,10 +249,9 @@ bool doc_cpp_entity::do_generate_documentation_base(const parser& p, const index
     doc.add_entity(make_heading(i, *this, doc, level,
                                 p.get_output_config().is_set(output_flag::show_modules)));
 
-    code_block_writer out(doc);
+    code_block_writer out(doc, p.get_output_config().is_set(output_flag::use_advanced_code_block));
     do_generate_synopsis(p, out, true);
-    doc.add_entity(
-        out.get_code_block(p.get_output_config().is_set(output_flag::use_advanced_code_block)));
+    doc.add_entity(out.get_code_block());
 
     if (has_comment())
         doc.add_entity(get_comment().get_content().clone(doc));
@@ -1013,10 +1012,9 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
         doc.add_entity(std::move(heading));
     }
 
-    code_block_writer out(doc);
+    code_block_writer out(doc, p.get_output_config().is_set(output_flag::use_advanced_code_block));
     do_generate_synopsis(p, out, true);
-    doc.add_entity(
-        out.get_code_block(p.get_output_config().is_set(output_flag::use_advanced_code_block)));
+    doc.add_entity(out.get_code_block());
 
     doc.add_entity(get_comment().get_content().clone(doc));
 
@@ -1047,7 +1045,7 @@ void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& 
         if (top_level && p.get_output_config().is_set(output_flag::show_group_member_id))
         {
             out << '(' << i << ')';
-            out.fill(p.get_output_config().get_tab_width() / 2, ' ');
+            out.fill_ws(p.get_output_config().get_tab_width() / 2);
             out.indent(p.get_output_config().get_tab_width() / 2 + 3);
         }
 

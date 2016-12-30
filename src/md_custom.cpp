@@ -87,17 +87,7 @@ namespace
         else
             result += "<code>";
 
-        for (auto ptr = code; *ptr; ++ptr)
-        {
-            if (*ptr == '&')
-                result += "&amp;";
-            else if (*ptr == '<')
-                result += "&lt;";
-            else if (*ptr == '>')
-                result += "&gt;";
-            else
-                result += *ptr;
-        }
+        result += code;
 
         result += "</code>";
         result += "</pre>";

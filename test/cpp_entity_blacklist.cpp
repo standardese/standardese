@@ -89,9 +89,9 @@ TEST_CASE("entity_blacklist")
 std::string get_synopsis(const parser& p, const doc_entity& e)
 {
     auto              doc = md_document::make("");
-    code_block_writer cb(*doc);
+    code_block_writer cb(*doc, false);
     e.generate_synopsis(p, cb);
-    return static_cast<md_code_block&>(*cb.get_code_block(false)).get_string();
+    return static_cast<md_code_block&>(*cb.get_code_block()).get_string();
 }
 
 std::string get_synopsis(const parser& p, const doc_file& file, const cpp_entity& e)
