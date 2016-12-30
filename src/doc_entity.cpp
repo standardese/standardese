@@ -1074,6 +1074,13 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
 void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& out,
                                             bool top_level) const
 {
+    if (!top_level && !get_comment().get_group_name().empty())
+    {
+        out << "//=== ";
+        out.write_link(top_level, get_comment().get_group_name(), begin()->get_unique_name());
+        out << " ===//" << newl;
+    }
+
     auto first = true;
     auto i     = 0u;
     for (auto& child : static_cast<const doc_entity_container&>(*this))
