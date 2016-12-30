@@ -68,12 +68,25 @@ namespace standardese
             return is_blacklisted(par, *entity);
         }
 
+        struct ref_name
+        {
+            string name;
+            string unique_name;
+
+            ref_name(string name, string uname = "") : name(name), unique_name(uname)
+            {
+            }
+        };
+
         template <CXCursorKind Kind>
-        string get_ref_name(const parser& par, const basic_cpp_entity_ref<Kind>& ref)
+        ref_name get_ref_name(const parser& par, const basic_cpp_entity_ref<Kind>& ref)
         {
             if (is_blacklisted(par, ref))
-                return par.get_output_config().get_hidden_name();
-            return ref.get_name();
+                return string(par.get_output_config().get_hidden_name());
+            auto entity = ref.get(par.get_entity_registry());
+            if (!entity)
+                return ref.get_name();
+            return ref_name(ref.get_name(), entity->get_unique_name());
         }
 
         inline string get_ref_name(const parser& par, const cpp_type_ref& ref)

@@ -387,7 +387,10 @@ namespace
         if (!param.get_name().empty())
             (out << ' ').write_link(top_level, param.get_name(), param.get_unique_name());
         if (param.has_default_template())
-            out << " = " << detail::get_ref_name(p, param.get_default_template());
+        {
+            auto def = detail::get_ref_name(p, param.get_default_template());
+            (out << " = ").write_link(false, def.name, def.unique_name);
+        }
     }
 
     void do_write_synopsis_template_param(const parser& p, code_block_writer& out, bool top_level,
@@ -526,19 +529,23 @@ namespace
     void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
                            const cpp_namespace_alias& ns)
     {
-        (out << "namespace ").write_link(top_level, ns.get_name(), ns.get_unique_name())
-            << " = " << detail::get_ref_name(par, ns.get_target()) << ';';
+        (out << "namespace ").write_link(top_level, ns.get_name(), ns.get_unique_name()) << " = ";
+        auto target = detail::get_ref_name(par, ns.get_target());
+        out.write_link(false, target.name, target.unique_name);
+        out << ';';
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_using_directive& u)
     {
-        out << "using namespace " << detail::get_ref_name(par, u.get_target()) << ';';
+        auto target = detail::get_ref_name(par, u.get_target());
+        (out << "using namespace ").write_link(false, target.name, target.unique_name) << ';';
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out,
                            const cpp_using_declaration& u)
     {
-        out << "using " << detail::get_ref_name(par, u.get_target()) << ';';
+        auto target = detail::get_ref_name(par, u.get_target());
+        (out << "using ").write_link(false, target.name, target.unique_name) << ';';
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
