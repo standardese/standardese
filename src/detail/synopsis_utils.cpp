@@ -15,51 +15,13 @@ void detail::write_type_value_default(const parser& par, code_block_writer& out,
                                       const cpp_name& unique_name, const std::string& def,
                                       bool variadic)
 {
-    std::string type_name = get_ref_name(par, type).c_str();
+    auto type_name = get_ref_name(par, type);
+    out.write_link(false, type_name.name, type_name.unique_name);
+    if (variadic)
+        out << " ...";
 
     if (!name.empty())
-    {
-        auto pos = type_name.find("(*");
-        if (pos != std::string::npos)
-        {
-            for (auto i = 0u; i <= pos + 1; ++i)
-                out << type_name[i];
-
-            if (variadic)
-                out << " ... ";
-            out.write_link(top_level, name, unique_name);
-
-            for (auto i = pos + 2; i != type_name.size(); ++i)
-                out << type_name[i];
-        }
-        else
-        {
-            pos = type_name.find('[');
-            if (pos != std::string::npos)
-            {
-                for (auto i = 0u; i != pos; ++i)
-                    out << type_name[i];
-                if (variadic)
-                    out << " ...";
-                (out << ' ').write_link(top_level, name, unique_name);
-                for (auto i = pos; i != type_name.size(); ++i)
-                    out << type_name[i];
-            }
-            else
-            {
-                out << type_name;
-                if (variadic)
-                    out << " ...";
-                (out << ' ').write_link(top_level, name, unique_name);
-            }
-        }
-    }
-    else
-    {
-        out << type_name;
-        if (variadic)
-            out << " ...";
-    }
+        (out << ' ').write_link(top_level, name, unique_name);
 
     if (!def.empty())
         out << " = " << def;
@@ -150,7 +112,8 @@ void detail::write_bases(const parser& par, code_block_writer& out,
             break;
         }
 
-        out << get_ref_name(par, base.get_type());
+        auto base_name = get_ref_name(par, base.get_type());
+        out.write_link(false, base_name.name, base_name.unique_name);
     }
 
     if (comma)

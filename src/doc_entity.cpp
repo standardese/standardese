@@ -341,10 +341,15 @@ namespace
 
         if (param.is_variadic())
             out << " ...";
+
         if (!param.get_name().empty())
             (out << ' ').write_link(top_level, param.get_name(), param.get_unique_name());
+
         if (param.has_default_type())
-            out << " = " << detail::get_ref_name(p, param.get_default_type());
+        {
+            auto def_name = detail::get_ref_name(p, param.get_default_type());
+            (out << " = ").write_link(false, def_name.name, def_name.unique_name);
+        }
     }
 
     void do_write_synopsis_template_param(const parser& p, code_block_writer& out, bool top_level,
@@ -462,8 +467,10 @@ void doc_inline_cpp_entity::do_generate_synopsis(const parser& p, code_block_wri
 
     case cpp_entity::base_class_t:
     {
-        auto& base = static_cast<const cpp_base_class&>(get_cpp_entity());
-        out << to_string(base.get_access()) << ' ' << detail::get_ref_name(p, base.get_type());
+        auto& base      = static_cast<const cpp_base_class&>(get_cpp_entity());
+        auto  base_name = detail::get_ref_name(p, base.get_type());
+        (out << to_string(base.get_access()) << ' ')
+            .write_link(top_level, base_name.name, base_name.unique_name);
     }
 
     case cpp_entity::file_t:
@@ -551,8 +558,9 @@ namespace
     void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
                            const cpp_type_alias& a)
     {
-        (out << "using ").write_link(top_level, a.get_name(), a.get_unique_name())
-            << " = " << detail::get_ref_name(par, a.get_target()) << ';';
+        auto target = detail::get_ref_name(par, a.get_target());
+        (out << "using ").write_link(top_level, a.get_name(), a.get_unique_name()) << " = ";
+        out.write_link(false, target.name, target.unique_name) << ';';
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
@@ -853,12 +861,18 @@ namespace
         detail::write_prefix(out, detail::get_virtual(f), f.is_constexpr());
 
         if (f.get_entity_type() == cpp_entity::function_t)
-            out << detail::get_ref_name(p, static_cast<const cpp_function&>(f).get_return_type())
-                << ' ';
+        {
+            auto ret_name =
+                detail::get_ref_name(p, static_cast<const cpp_function&>(f).get_return_type());
+            out.write_link(false, ret_name.name, ret_name.unique_name) << ' ';
+        }
         else if (f.get_entity_type() == cpp_entity::member_function_t)
-            out << detail::get_ref_name(p, static_cast<const cpp_member_function&>(f)
-                                               .get_return_type())
-                << ' ';
+        {
+            auto ret_name =
+                detail::get_ref_name(p,
+                                     static_cast<const cpp_member_function&>(f).get_return_type());
+            out.write_link(false, ret_name.name, ret_name.unique_name) << ' ';
+        }
 
         detail::write_parameters(p, out, top_level, e, f);
 
@@ -908,7 +922,11 @@ namespace
         if (entity.get_cpp_entity().get_name().empty() || top_level)
         {
             if (!e.get_underlying_type().get_name().empty())
-                out << newl << ": " << detail::get_ref_name(p, e.get_underlying_type());
+            {
+                auto type_name = detail::get_ref_name(p, e.get_underlying_type());
+                out << newl << ": ";
+                out.write_link(false, type_name.name, type_name.unique_name);
+            }
 
             out << newl;
             do_write_synopsis_container(p, out, entity, ",\n");

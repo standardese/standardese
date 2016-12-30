@@ -50,24 +50,6 @@ namespace standardese
             return is_blacklisted(p, e, comment);
         }
 
-        template <CXCursorKind Kind>
-        bool is_blacklisted(const parser& par, const basic_cpp_entity_ref<Kind>& ref)
-        {
-            auto target = ref.get(par.get_entity_registry());
-            if (!target)
-                return false;
-            return is_blacklisted(par, *target);
-        }
-
-        inline bool is_blacklisted(const parser& par, const cpp_type_ref& ref)
-        {
-            auto decl   = ref.get_declaration();
-            auto entity = par.get_entity_registry().try_lookup(decl);
-            if (!entity)
-                return false;
-            return is_blacklisted(par, *entity);
-        }
-
         struct ref_name
         {
             string name;
@@ -81,19 +63,25 @@ namespace standardese
         template <CXCursorKind Kind>
         ref_name get_ref_name(const parser& par, const basic_cpp_entity_ref<Kind>& ref)
         {
-            if (is_blacklisted(par, ref))
-                return string(par.get_output_config().get_hidden_name());
             auto entity = ref.get(par.get_entity_registry());
             if (!entity)
                 return ref.get_name();
+            else if (is_blacklisted(par, *entity))
+                return string(par.get_output_config().get_hidden_name());
+
             return ref_name(ref.get_name(), entity->get_unique_name());
         }
 
-        inline string get_ref_name(const parser& par, const cpp_type_ref& ref)
+        inline ref_name get_ref_name(const parser& par, const cpp_type_ref& ref)
         {
-            if (is_blacklisted(par, ref))
-                return par.get_output_config().get_hidden_name();
-            return ref.get_name();
+            auto decl   = ref.get_declaration();
+            auto entity = par.get_entity_registry().try_lookup(decl);
+            if (!entity)
+                return ref.get_name();
+            else if (is_blacklisted(par, *entity))
+                return string(par.get_output_config().get_hidden_name());
+
+            return ref_name(ref.get_name(), entity->get_unique_name());
         }
 
         void write_type_value_default(const parser& par, code_block_writer& out, bool top_level,
