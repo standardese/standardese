@@ -211,6 +211,13 @@ namespace standardese
         {
             return md_ptr_access::make<T>(std::forward<Args>(args)...);
         }
+
+        template <typename T>
+        md_ptr<T> clone_md_ptr(const md_ptr<T>& ptr, const md_entity& parent)
+        {
+            auto raw = ptr->clone(parent).release();
+            return md_ptr<T>(static_cast<T*>(raw));
+        }
     } // namespace detail
 } // namespace standardese
 

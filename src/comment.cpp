@@ -512,8 +512,9 @@ namespace
 
         void push(md_entity_ptr e)
         {
-            if (!cur_inline_)
-                stack_.emplace(std::move(e));
+            stack_.emplace(std::move(e));
+            if (cur_inline_)
+                inline_depth_++;
         }
 
         comment_info& push(comment_info info)
@@ -525,7 +526,7 @@ namespace
 
         md_container& top() const
         {
-            if (cur_inline_)
+            if (cur_inline_ && inline_depth_ == 0u)
             {
                 auto& comment = cur_inline_->comment.get_content();
                 if (std::next(comment.begin()) == comment.end())
@@ -567,8 +568,10 @@ namespace
         void pop()
         {
             assert(!stack_.empty());
-            pop_info();
-            // also need to pop() the parent paragraph it is in
+            if (inline_depth_ == 0u)
+                pop_info();
+            else
+                --inline_depth_;
 
             auto container = std::move(stack_.top());
             stack_.pop();
@@ -590,7 +593,11 @@ namespace
         void pop_info()
         {
             if (cur_inline_)
+            {
+                while (inline_depth_ != 0u)
+                    pop();
                 register_comment(*parser_, *cur_inline_);
+            }
             cur_inline_.reset(nullptr);
         }
 
@@ -629,6 +636,7 @@ namespace
         std::unique_ptr<comment_info> cur_inline_; // that's a lazy optional emulation, right there
         comment_info*                 info_;
         const parser*                 parser_;
+        unsigned                      inline_depth_ = 0;
     };
 
     std::size_t get_group_id(const char* name, const char* end)
