@@ -769,6 +769,9 @@ namespace
             || e.get_cpp_entity_type() == cpp_entity::class_template_partial_specialization_t)
             detail::write_class_name(out, top_level, e.get_cpp_entity().get_name(),
                                      e.get_cpp_entity().get_unique_name(), c.get_class_type());
+        else if (e.get_cpp_entity_type() == cpp_entity::class_template_t)
+            detail::write_class_name(out, top_level, e.get_cpp_entity().get_name(),
+                                     e.get_cpp_entity().get_unique_name(), c.get_class_type());
         else
             detail::write_class_name(out, top_level, c.get_name(), c.get_unique_name(),
                                      c.get_class_type());
