@@ -83,7 +83,7 @@ namespace standardese
             return ref.get_name();
         }
 
-        void write_type_value_default(const parser& par, code_block_writer& out,
+        void write_type_value_default(const parser& par, code_block_writer& out, bool top_level,
                                       const cpp_type_ref& type, const cpp_name& name,
                                       const cpp_name& unique_name, const std::string& def = "",
                                       bool variadic = false);
@@ -91,14 +91,14 @@ namespace standardese
         void write_template_parameters(const parser& par, code_block_writer& out,
                                        const doc_container_cpp_entity& cont);
 
-        void write_class_name(code_block_writer& out, const cpp_name& name,
+        void write_class_name(code_block_writer& out, bool top_level, const cpp_name& name,
                               const cpp_name& unique_name, int class_type);
         void write_bases(const parser& par, code_block_writer& out,
                          const doc_container_cpp_entity& cont, const cpp_class& c);
 
         void write_prefix(code_block_writer& out, int virtual_flag, bool constexpr_f,
                           bool explicit_f = false);
-        void write_parameters(const parser& par, code_block_writer& out,
+        void write_parameters(const parser& par, code_block_writer& out, bool top_level,
                               const doc_container_cpp_entity& cont, const cpp_function_base& f);
         void write_cv_ref(code_block_writer& out, int cv, int ref);
         void write_noexcept(const char* complex_name, code_block_writer& out,

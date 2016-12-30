@@ -98,11 +98,11 @@ namespace standardese
             return *this;
         }
 
-        code_block_writer& write_link(const string& str, const string& unique_name)
+        code_block_writer& write_link(bool top_level, const string& str, const string& unique_name)
         {
             if (str.empty())
                 return *this;
-            else if (!use_advanced_ || unique_name.empty())
+            else if (!use_advanced_ || top_level || unique_name.empty())
                 return *this << str;
             write_c_str(
                 fmt::format("<a href='standardese://{}/'>{}</a>", unique_name.c_str(), str.c_str())
