@@ -507,7 +507,8 @@ namespace
             return nullptr;
 
         auto              doc = md_document::make("");
-        code_block_writer writer(*doc);
+        code_block_writer writer(*doc, vars.get_parser().get_output_config().is_set(
+                                           output_flag::use_advanced_code_block));
         entity->generate_synopsis(vars.get_parser(), writer);
         doc->add_entity(writer.get_code_block());
 

@@ -10,55 +10,18 @@
 
 using namespace standardese;
 
-void detail::write_type_value_default(const parser& par, code_block_writer& out,
+void detail::write_type_value_default(const parser& par, code_block_writer& out, bool top_level,
                                       const cpp_type_ref& type, const cpp_name& name,
-                                      const std::string& def, bool variadic)
+                                      const cpp_name& unique_name, const std::string& def,
+                                      bool variadic)
 {
-    std::string type_name = get_ref_name(par, type).c_str();
+    auto type_name = get_ref_name(par, type);
+    out.write_link(false, type_name.name, type_name.unique_name);
+    if (variadic)
+        out << " ...";
 
     if (!name.empty())
-    {
-        auto pos = type_name.find("(*");
-        if (pos != std::string::npos)
-        {
-            for (auto i = 0u; i <= pos + 1; ++i)
-                out << type_name[i];
-
-            if (variadic)
-                out << " ... ";
-            out << name;
-
-            for (auto i = pos + 2; i != type_name.size(); ++i)
-                out << type_name[i];
-        }
-        else
-        {
-            pos = type_name.find('[');
-            if (pos != std::string::npos)
-            {
-                for (auto i = 0u; i != pos; ++i)
-                    out << type_name[i];
-                if (variadic)
-                    out << " ...";
-                out << ' ' << name;
-                for (auto i = pos; i != type_name.size(); ++i)
-                    out << type_name[i];
-            }
-            else
-            {
-                out << type_name;
-                if (variadic)
-                    out << " ...";
-                out << ' ' << name;
-            }
-        }
-    }
-    else
-    {
-        out << type_name;
-        if (variadic)
-            out << " ...";
-    }
+        (out << ' ').write_link(top_level, name, unique_name);
 
     if (!def.empty())
         out << " = " << def;
@@ -97,7 +60,8 @@ void detail::write_template_parameters(const parser& par, code_block_writer& out
     out << ">" << newl;
 }
 
-void detail::write_class_name(code_block_writer& out, const cpp_name& name, int class_type)
+void detail::write_class_name(code_block_writer& out, bool top_level, const cpp_name& name,
+                              const cpp_name& unique_name, int class_type)
 {
     switch (static_cast<cpp_class_type>(class_type))
     {
@@ -111,7 +75,7 @@ void detail::write_class_name(code_block_writer& out, const cpp_name& name, int 
         out << "union ";
     }
 
-    out << name;
+    out.write_link(top_level, name, unique_name);
 }
 
 void detail::write_bases(const parser& par, code_block_writer& out,
@@ -148,21 +112,25 @@ void detail::write_bases(const parser& par, code_block_writer& out,
             break;
         }
 
-        out << get_ref_name(par, base.get_type());
+        auto base_name = get_ref_name(par, base.get_type());
+        out.write_link(false, base_name.name, base_name.unique_name);
     }
 
     if (comma)
         out << newl;
 }
 
-void detail::write_parameters(const parser& par, code_block_writer& out,
+void detail::write_parameters(const parser& par, code_block_writer& out, bool top_level,
                               const doc_container_cpp_entity& cont, const cpp_function_base& f)
 
 {
     if (cont.get_cpp_entity_type() == cpp_entity::function_template_specialization_t)
-        out << cont.get_cpp_entity().get_name() << '(';
+        out.write_link(top_level, cont.get_cpp_entity().get_name(),
+                       cont.get_cpp_entity().get_unique_name());
     else
-        out << f.get_name() << '(';
+        out.write_link(top_level, f.get_name(), f.get_unique_name());
+
+    out << '(';
 
     auto need = false;
     for (auto& child : cont)
@@ -178,8 +146,8 @@ void detail::write_parameters(const parser& par, code_block_writer& out,
         else
             need = true;
 
-        detail::write_type_value_default(par, out, p.get_type(), p.get_name(),
-                                         p.get_default_value());
+        detail::write_type_value_default(par, out, false, p.get_type(), p.get_name(),
+                                         p.get_unique_name(), p.get_default_value());
     }
 
     if (f.is_variadic())

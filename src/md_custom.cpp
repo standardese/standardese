@@ -52,6 +52,61 @@ md_section::md_section(const md_entity& parent, const std::string& section_text)
     add_entity(std::move(buffer_text));
 }
 
+md_ptr<md_code_block_advanced> md_code_block_advanced::make(const md_code_block& cb)
+{
+    return detail::make_md_ptr<md_code_block_advanced>(cb.get_parent(), cb.get_string(),
+                                                       cb.get_fence_info());
+}
+
+md_ptr<md_code_block_advanced> md_code_block_advanced::make(const md_entity& parent,
+                                                            const char* code, const char* lang)
+{
+    return detail::make_md_ptr<md_code_block_advanced>(parent, code, lang);
+}
+
+md_entity_ptr md_code_block_advanced::do_clone(const md_entity* parent) const
+{
+    assert(parent);
+    auto node = cmark_node_new(CMARK_NODE_HTML_BLOCK);
+    cmark_node_set_literal(node, cmark_node_get_literal(get_node()));
+    return detail::make_md_ptr<md_code_block_advanced>(*parent, node);
+}
+
+namespace
+{
+    std::string get_html(const char* lang, const char* code)
+    {
+        std::string result;
+        result += "<pre>";
+        if (lang && *lang)
+        {
+            result += "<code class=\"language-";
+            result += lang;
+            result += "\">";
+        }
+        else
+            result += "<code>";
+
+        result += code;
+
+        result += "</code>";
+        result += "</pre>";
+        return result;
+    }
+}
+
+md_code_block_advanced::md_code_block_advanced(const md_entity& parent, const char* code,
+                                               const char* lang)
+: md_leave(get_entity_type(), cmark_node_new(CMARK_NODE_HTML_BLOCK), parent)
+{
+    cmark_node_set_literal(get_node(), get_html(lang, code).c_str());
+}
+
+md_code_block_advanced::md_code_block_advanced(const md_entity& parent, cmark_node* node)
+: md_leave(get_entity_type(), node, parent)
+{
+}
+
 md_ptr<md_inline_documentation> md_inline_documentation::make(const md_entity&   parent,
                                                               const std::string& heading)
 {
