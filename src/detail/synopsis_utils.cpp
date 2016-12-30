@@ -12,7 +12,8 @@ using namespace standardese;
 
 void detail::write_type_value_default(const parser& par, code_block_writer& out,
                                       const cpp_type_ref& type, const cpp_name& name,
-                                      const std::string& def, bool variadic)
+                                      const cpp_name& unique_name, const std::string& def,
+                                      bool variadic)
 {
     std::string type_name = get_ref_name(par, type).c_str();
 
@@ -26,7 +27,7 @@ void detail::write_type_value_default(const parser& par, code_block_writer& out,
 
             if (variadic)
                 out << " ... ";
-            out << name;
+            out.write_link(name, unique_name);
 
             for (auto i = pos + 2; i != type_name.size(); ++i)
                 out << type_name[i];
@@ -40,7 +41,7 @@ void detail::write_type_value_default(const parser& par, code_block_writer& out,
                     out << type_name[i];
                 if (variadic)
                     out << " ...";
-                out << ' ' << name;
+                (out << ' ').write_link(name, unique_name);
                 for (auto i = pos; i != type_name.size(); ++i)
                     out << type_name[i];
             }
@@ -49,7 +50,7 @@ void detail::write_type_value_default(const parser& par, code_block_writer& out,
                 out << type_name;
                 if (variadic)
                     out << " ...";
-                out << ' ' << name;
+                (out << ' ').write_link(name, unique_name);
             }
         }
     }
@@ -97,7 +98,8 @@ void detail::write_template_parameters(const parser& par, code_block_writer& out
     out << ">" << newl;
 }
 
-void detail::write_class_name(code_block_writer& out, const cpp_name& name, int class_type)
+void detail::write_class_name(code_block_writer& out, const cpp_name& name,
+                              const cpp_name& unique_name, int class_type)
 {
     switch (static_cast<cpp_class_type>(class_type))
     {
@@ -111,7 +113,7 @@ void detail::write_class_name(code_block_writer& out, const cpp_name& name, int 
         out << "union ";
     }
 
-    out << name;
+    out.write_link(name, unique_name);
 }
 
 void detail::write_bases(const parser& par, code_block_writer& out,
@@ -160,9 +162,11 @@ void detail::write_parameters(const parser& par, code_block_writer& out,
 
 {
     if (cont.get_cpp_entity_type() == cpp_entity::function_template_specialization_t)
-        out << cont.get_cpp_entity().get_name() << '(';
+        out.write_link(cont.get_cpp_entity().get_name(), cont.get_cpp_entity().get_unique_name());
     else
-        out << f.get_name() << '(';
+        out.write_link(f.get_name(), f.get_unique_name());
+
+    out << '(';
 
     auto need = false;
     for (auto& child : cont)

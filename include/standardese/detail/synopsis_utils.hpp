@@ -85,12 +85,14 @@ namespace standardese
 
         void write_type_value_default(const parser& par, code_block_writer& out,
                                       const cpp_type_ref& type, const cpp_name& name,
-                                      const std::string& def = "", bool variadic = false);
+                                      const cpp_name& unique_name, const std::string& def = "",
+                                      bool variadic = false);
 
         void write_template_parameters(const parser& par, code_block_writer& out,
                                        const doc_container_cpp_entity& cont);
 
-        void write_class_name(code_block_writer& out, const cpp_name& name, int class_type);
+        void write_class_name(code_block_writer& out, const cpp_name& name,
+                              const cpp_name& unique_name, int class_type);
         void write_bases(const parser& par, code_block_writer& out,
                          const doc_container_cpp_entity& cont, const cpp_class& c);
 

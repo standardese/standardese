@@ -9,6 +9,8 @@
 #include <string>
 #include <ostream>
 
+#include <spdlog/fmt/fmt.h>
+
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_custom.hpp>
 #include <standardese/noexcept.hpp>
@@ -80,25 +82,37 @@ namespace standardese
 
         code_block_writer& operator<<(const char* str)
         {
-            write_str(str, std::strlen(str));
+            write_str_escaped(str, std::strlen(str));
             return *this;
         }
 
         code_block_writer& operator<<(const std::string& str)
         {
-            write_str(str.c_str(), str.size());
+            write_str_escaped(str.c_str(), str.size());
             return *this;
         }
 
         code_block_writer& operator<<(const string& str)
         {
-            write_str(str.c_str(), str.length());
+            write_str_escaped(str.c_str(), str.length());
+            return *this;
+        }
+
+        code_block_writer& write_link(const string& str, const string& unique_name)
+        {
+            if (str.empty())
+                return *this;
+            else if (!use_advanced_ || unique_name.empty())
+                return *this << str;
+            write_c_str(
+                fmt::format("<a href='standardese://{}/'>{}</a>", unique_name.c_str(), str.c_str())
+                    .c_str());
             return *this;
         }
 
         code_block_writer& operator<<(char c)
         {
-            write_str(&c, 1);
+            write_str_escaped(&c, 1);
             return *this;
         }
 
@@ -126,7 +140,7 @@ namespace standardese
             stream_.write_str(str, std::strlen(str));
         }
 
-        void write_str(const char* str, std::size_t size)
+        void write_str_escaped(const char* str, std::size_t size)
         {
             if (!use_advanced_)
                 stream_.write_str(str, size);
