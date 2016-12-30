@@ -264,6 +264,8 @@ int main(int argc, char* argv[])
              "whether or not the replacement of macros will be shown")
             ("output.show_group_member_id", po::value<bool>()->default_value(true)->implicit_value(true),
              "whether or not to show the index of member group members in the synopsis")
+            ("output.show_group_output_section", po::value<bool>()->default_value(true)->implicit_value(true),
+            "whether or not member groups have an implicit output section")
             ("output.show_modules", po::value<bool>()->default_value(true)->implicit_value(true),
             "whether or not the module of an entity is shown in the documentation");
     // clang-format on
