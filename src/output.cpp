@@ -82,7 +82,9 @@ namespace
         std::string result;
         for (auto c : name)
             if (c == '/')
-                result += "$";
+                result += "%2F";
+            else if (c == '&')
+                result += "%26";
             else
                 result += c;
         return result;
