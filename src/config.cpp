@@ -223,6 +223,7 @@ comment_config::comment_config() : cmd_char_('\\')
     STANDARDESE_DETAIL_SET(exclude)
     STANDARDESE_DETAIL_SET(unique_name)
     STANDARDESE_DETAIL_SET(synopsis)
+    STANDARDESE_DETAIL_SET(synopsis_return)
 
     STANDARDESE_DETAIL_SET(group)
     STANDARDESE_DETAIL_SET(module)

@@ -856,11 +856,14 @@ namespace
     }
 
     void do_write_synopsis(const parser& p, code_block_writer& out, bool top_level,
-                           const doc_container_cpp_entity& e, const cpp_function_base& f)
+                           const doc_container_cpp_entity& e, const cpp_function_base& f,
+                           const comment& c)
     {
         detail::write_prefix(out, detail::get_virtual(f), f.is_constexpr());
 
-        if (f.get_entity_type() == cpp_entity::function_t)
+        if (c.has_return_type_override())
+            out << c.get_synopsis_override() << ' ';
+        else if (f.get_entity_type() == cpp_entity::function_t)
         {
             auto ret_name =
                 detail::get_ref_name(p, static_cast<const cpp_function&>(f).get_return_type());
@@ -967,7 +970,7 @@ void doc_container_cpp_entity::do_generate_synopsis(const parser& p, code_block_
     if (auto c = get_class(get_cpp_entity()))
         do_write_synopsis(p, out, top_level, *this, *c);
     else if (auto func = get_function(get_cpp_entity()))
-        do_write_synopsis(p, out, top_level, *this, *func);
+        do_write_synopsis(p, out, top_level, *this, *func, get_comment());
     else if (get_cpp_entity_type() == cpp_entity::enum_t)
         do_write_synopsis(p, out, top_level, *this, static_cast<const cpp_enum&>(get_cpp_entity()));
     else if (get_cpp_entity_type() == cpp_entity::alias_template_t)

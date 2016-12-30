@@ -39,6 +39,7 @@ namespace standardese
         exclude,
         unique_name,
         synopsis,
+        synopsis_return,
 
         group,
         module,

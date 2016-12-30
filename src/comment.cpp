@@ -93,32 +93,45 @@ bool comment::empty() const STANDARDESE_NOEXCEPT
     return true;
 }
 
+namespace
+{
+    void set_synopsis(std::string& result, const std::string& synopsis, unsigned tab_width)
+    {
+        auto escape = false;
+        for (auto c : synopsis)
+            if (c == '\\')
+                escape = true;
+            else if (escape && c == 'n')
+            {
+                escape = false;
+                result += '\n';
+            }
+            else if (escape && c == 't')
+            {
+                escape = false;
+                result += std::string(tab_width, ' ');
+            }
+            else if (escape)
+            {
+                result += '\\';
+                result += c;
+                escape = false;
+            }
+            else
+                result += c;
+    }
+}
+
 void comment::set_synopsis_override(const std::string& synopsis, unsigned tab_width)
 {
     synopsis_override_.clear();
+    set_synopsis(synopsis_override_, synopsis, tab_width);
+}
 
-    auto escape = false;
-    for (auto c : synopsis)
-        if (c == '\\')
-            escape = true;
-        else if (escape && c == 'n')
-        {
-            escape = false;
-            synopsis_override_ += '\n';
-        }
-        else if (escape && c == 't')
-        {
-            escape = false;
-            synopsis_override_ += std::string(tab_width, ' ');
-        }
-        else if (escape)
-        {
-            synopsis_override_ += '\\';
-            synopsis_override_ += c;
-            escape = false;
-        }
-        else
-            synopsis_override_ += c;
+void comment::set_return_type_override(const std::string& return_type, unsigned tab_width)
+{
+    synopsis_override_ = '\r';
+    set_synopsis(synopsis_override_, return_type, tab_width);
 }
 
 string detail::get_unique_name(const doc_entity* parent, const string& unique_name,
@@ -657,6 +670,11 @@ namespace
             case command_type::synopsis:
                 stack.info().comment.set_synopsis_override(read_argument(text, command_str),
                                                            p.get_output_config().get_tab_width());
+                break;
+            case command_type::synopsis_return:
+                stack.info()
+                    .comment.set_return_type_override(read_argument(text, command_str),
+                                                      p.get_output_config().get_tab_width());
                 break;
             case command_type::group:
             {

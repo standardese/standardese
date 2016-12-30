@@ -350,6 +350,8 @@ Note that if you override the unique name of a parent entity, this will also aff
 You can pass any string that will be rendered instead of the actual synopsis.
 Use `\n` to render a newline, use `\t` to render a tab and use `\<` and `\>` to render `<` and `>`, respectively.
 
+* `synopsis_return {string}` - Like `synopsis`, but only overrides the return type of the function.
+
 * `group <name> [heading]` - Add the entity to a member group.
 A member group consists of multiple entities that are direct members of the same entity (i.e. class, file, namespace,...) which will be grouped together in the output.
 For example:

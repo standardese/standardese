@@ -219,7 +219,12 @@ namespace standardese
 
         bool has_synopsis_override() const STANDARDESE_NOEXCEPT
         {
-            return !synopsis_override_.empty();
+            return !synopsis_override_.empty() && synopsis_override_[0] != '\r';
+        }
+
+        bool has_return_type_override() const STANDARDESE_NOEXCEPT
+        {
+            return !synopsis_override_.empty() && synopsis_override_[0] == '\r';
         }
 
         const std::string& get_synopsis_override() const STANDARDESE_NOEXCEPT
@@ -228,6 +233,8 @@ namespace standardese
         }
 
         void set_synopsis_override(const std::string& synopsis, unsigned tab_width);
+
+        void set_return_type_override(const std::string& return_type, unsigned tab_width);
 
         bool in_module() const STANDARDESE_NOEXCEPT
         {
