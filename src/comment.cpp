@@ -669,6 +669,14 @@ namespace
                     stack.info().comment.set_group_name(end_id);
                 break;
             }
+            case command_type::output_section:
+            {
+                auto arg = read_argument(text, command_str);
+                // add to member group with single element
+                stack.info().comment.add_to_unique_member_group();
+                stack.info().comment.set_group_name(arg);
+                break;
+            }
             case command_type::module:
                 if (!first)
                     stack.info().comment.set_module(read_argument(text, command_str));

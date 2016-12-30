@@ -249,14 +249,24 @@ namespace standardese
             return group_id_ != 0u;
         }
 
+        bool in_unique_member_group() const STANDARDESE_NOEXCEPT
+        {
+            return group_id_ == std::size_t(-1);
+        }
+
         std::size_t member_group_id() const STANDARDESE_NOEXCEPT
         {
             return group_id_;
         }
 
-        void add_to_member_group(std::size_t group_id)
+        void add_to_member_group(std::size_t group_id) STANDARDESE_NOEXCEPT
         {
             group_id_ = group_id;
+        }
+
+        void add_to_unique_member_group() STANDARDESE_NOEXCEPT
+        {
+            group_id_ = std::size_t(-1);
         }
 
         bool has_group_name() const STANDARDESE_NOEXCEPT

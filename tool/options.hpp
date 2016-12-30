@@ -182,6 +182,8 @@ namespace standardese_tool
                                         map.at("output.show_complex_noexcept").as<bool>());
         p->get_output_config().set_flag(output_flag::show_group_member_id,
                                         map.at("output.show_group_member_id").as<bool>());
+        p->get_output_config().set_flag(output_flag::show_group_output_section,
+                                        map.at("output.show_group_output_section").as<bool>());
 
         using standardese::entity_blacklist;
         auto& blacklist_entity = p->get_output_config().get_blacklist();

@@ -1074,6 +1074,17 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
 void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& out,
                                             bool top_level) const
 {
+    if (!top_level && (get_comment().in_unique_member_group()
+                       || p.get_output_config().is_set(output_flag::show_group_output_section))
+        && get_comment().has_group_name())
+    {
+        out << "//=== ";
+        out.write_link(top_level, get_comment().get_group_name(), begin()->get_unique_name());
+        out << " ===//" << newl;
+    }
+
+    auto show_numbers = top_level && !get_comment().in_unique_member_group()
+                        && p.get_output_config().is_set(output_flag::show_group_member_id);
     auto first = true;
     auto i     = 0u;
     for (auto& child : static_cast<const doc_entity_container&>(*this))
@@ -1086,7 +1097,7 @@ void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& 
             out << newl;
 
         ++i;
-        if (top_level && p.get_output_config().is_set(output_flag::show_group_member_id))
+        if (show_numbers)
         {
             out << '(' << i << ')';
             out.fill_ws(p.get_output_config().get_tab_width() / 2);
@@ -1095,10 +1106,8 @@ void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& 
 
         detail::generation_access::do_generate_synopsis(child, p, out, top_level);
 
-        if (top_level && p.get_output_config().is_set(output_flag::show_group_member_id))
-        {
+        if (show_numbers)
             out.unindent(p.get_output_config().get_tab_width() / 2 + 3);
-        }
     }
 }
 
@@ -1157,15 +1166,18 @@ namespace
     void handle_group(const parser& p, doc_container_cpp_entity& parent, doc_entity_ptr entity)
     {
         doc_member_group* group = nullptr;
-        for (auto& child : parent)
+        if (!entity->get_comment().in_unique_member_group())
         {
-            if (child.get_entity_type() == doc_entity::member_group_t)
+            for (auto& child : parent)
             {
-                auto& g = static_cast<doc_member_group&>(child);
-                if (g.group_id() == entity->get_comment().member_group_id())
+                if (child.get_entity_type() == doc_entity::member_group_t)
                 {
-                    group = &g;
-                    break;
+                    auto& g = static_cast<doc_member_group&>(child);
+                    if (g.group_id() == entity->get_comment().member_group_id())
+                    {
+                        group = &g;
+                        break;
+                    }
                 }
             }
         }
