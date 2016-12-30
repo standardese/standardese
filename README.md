@@ -394,6 +394,37 @@ void foo();
 /// because the command was the first one.
 ```
 
+* `output_section {name}` - Generates a little section comment in the synopsis above the entity.
+This is implictly used for member groups with the group name as output section name.
+Given the following input:
+```cpp
+/// Some int getter.
+/// \output_section Getter functions
+int get_i();
+
+/// Some float getter.
+float get_f();
+
+/// Some int setter.
+/// \output_section Setter functions
+void set_i(int val);
+
+/// Some float setter.
+void set_f(float f);
+```
+It will generate a synopsis like this:
+```cpp
+//=== Getter functions ===//
+int get_i();
+
+float get_f();
+
+//=== Setter functions ===//
+void set_i(int val);
+
+void set_f(float f);
+```
+
 * `entity {unique-name}` - If put in the first place of a comment, names the entity to document,
 this allows "remote" comments:
 ```cpp

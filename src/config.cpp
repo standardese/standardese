@@ -226,6 +226,7 @@ comment_config::comment_config() : cmd_char_('\\')
 
     STANDARDESE_DETAIL_SET(group)
     STANDARDESE_DETAIL_SET(module)
+    STANDARDESE_DETAIL_SET(output_section)
 
     STANDARDESE_DETAIL_SET(entity)
     STANDARDESE_DETAIL_SET(file)

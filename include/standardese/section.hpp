@@ -42,6 +42,7 @@ namespace standardese
 
         group,
         module,
+        output_section,
 
         entity,
         file,
