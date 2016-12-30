@@ -10,10 +10,10 @@
 # LIBCLANG_INCLUDE_DIR - path to the libclang include directory# LIBCLANG_SYSTEM_INCLUDE_DIR - path to the clang system header files
 # CLANG_BINARY - path to the clang++ binary
 # it listens to:
-# LLVM_VERSION - the version of LLVM to use, default is 3.9.1
+# LLVM_VERSION - the version of LLVM to use, default is 3.9.0
 
 if [ -z $LLVM_VERSION ]; then
-    LLVM_VERSION="3.9.1"
+    LLVM_VERSION="3.9.0"
 fi
 
 if [ "$TRAVIS_OS_NAME" = "linux" ]; then
