@@ -714,7 +714,8 @@ namespace
                                                   p.get_output_config().get_section_name(section));
 
                 auto paragraph = md_paragraph::make(*list);
-                paragraph->add_entity(md_text::make(stack.top(), ptr));
+                if (*ptr)
+                    paragraph->add_entity(md_text::make(stack.top(), ptr));
 
                 list->add_item(section_arg.c_str(), "", *paragraph);
 
@@ -853,7 +854,8 @@ namespace
                 {
                     // we have a section argument
                     auto paragraph = md_paragraph::make(*doc);
-                    paragraph->add_entity(md_text::make(*paragraph, ptr));
+                    if (*ptr)
+                        paragraph->add_entity(md_text::make(*paragraph, ptr));
                     doc->add_item(section_arg.c_str(), "", *paragraph);
                     return true;
                 }
