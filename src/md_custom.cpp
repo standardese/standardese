@@ -135,7 +135,17 @@ bool md_inline_documentation::add_item(const char* name, const char* id,
     item_paragraph->add_entity(md_anchor::make(*item_paragraph, id));
     if (std::strcmp(name, "_") != 0)
     {
-        item_paragraph->add_entity(md_code::make(*item_paragraph, name));
+        std::string name_str(name);
+        if (name_str.front() == '[' && name_str.back() == ']')
+        {
+            name_str.pop_back();
+
+            auto link = md_link::make(*item_paragraph, "", "");
+            link->add_entity(md_text::make(*link, name_str.c_str() + 1));
+            item_paragraph->add_entity(std::move(link));
+        }
+        else
+            item_paragraph->add_entity(md_code::make(*item_paragraph, name));
         item_paragraph->add_entity(md_text::make(*item_paragraph, " - "));
     }
 
