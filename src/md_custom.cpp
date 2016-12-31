@@ -146,7 +146,9 @@ bool md_inline_documentation::add_item(const char* name, const char* id,
         }
         else
             item_paragraph->add_entity(md_code::make(*item_paragraph, name));
-        item_paragraph->add_entity(md_text::make(*item_paragraph, " - "));
+
+        if (!container.empty())
+            item_paragraph->add_entity(md_text::make(*item_paragraph, " - "));
     }
 
     // generate content
