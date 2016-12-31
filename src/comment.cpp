@@ -504,6 +504,33 @@ namespace
         return string;
     }
 
+    std::string read_section_arg(const md_text& text, const std::string& command, const char*& ptr)
+    {
+        ptr = text.get_string() + command.size() + (command.empty() ? 0u : 1u);
+        while (std::isspace(*ptr))
+            ++ptr;
+
+        auto arg = ptr;
+        while (*ptr && !std::isspace(*ptr))
+            ++ptr;
+
+        auto end = ptr;
+        while (std::isspace(*ptr))
+            ++ptr;
+
+        if (*ptr == '-')
+        {
+            // found argument
+            ++ptr;
+            while (std::isspace(*ptr))
+                ++ptr;
+            return std::string(arg, end);
+        }
+        // no argument
+        ptr = nullptr;
+        return "";
+    }
+
     class container_stack
     {
     public:
@@ -525,6 +552,13 @@ namespace
             return *cur_inline_;
         }
 
+        md_inline_documentation* cur_inline_doc() const
+        {
+            return stack_.top().ptr->get_entity_type() == md_entity::inline_documentation_t ?
+                       static_cast<md_inline_documentation*>(stack_.top().ptr.get()) :
+                       nullptr;
+        }
+
         md_container& top() const
         {
             if (cur_inline_ && inline_depth_ == 0u)
@@ -541,9 +575,9 @@ namespace
             }
             else if (stack_.empty())
                 return info_->comment.get_content();
-            else if (stack_.top().ptr->get_entity_type() == md_entity::inline_documentation_t)
+            else if (auto doc = cur_inline_doc())
             {
-                auto& item = static_cast<md_inline_documentation&>(*stack_.top().ptr).get_item();
+                auto& item = doc->get_item();
                 assert(is_container(item.back().get_entity_type()));
                 return static_cast<md_container&>(item.back());
             }
@@ -669,22 +703,12 @@ namespace
             auto section = make_section(command);
 
             // look for section argument
-            auto arg = read_argument(text, command_str);
+            const char* ptr         = nullptr;
+            auto        section_arg = read_section_arg(text, command_str, ptr);
 
-            auto ptr = arg;
-            while (*ptr && !std::isspace(*ptr))
-                ++ptr;
-            auto end = ptr;
-            while (std::isspace(*ptr))
-                ++ptr;
-
-            if (*ptr == '-')
+            if (ptr)
             {
                 // we got a section argument
-                ++ptr;
-                while (std::isspace(*ptr))
-                    ++ptr;
-
                 auto list =
                     md_inline_documentation::make(stack.top(),
                                                   p.get_output_config().get_section_name(section));
@@ -692,7 +716,6 @@ namespace
                 auto paragraph = md_paragraph::make(*list);
                 paragraph->add_entity(md_text::make(stack.top(), ptr));
 
-                std::string section_arg(arg, end);
                 list->add_item(section_arg.c_str(), "", *paragraph);
 
                 stack.pop();
@@ -818,8 +841,26 @@ namespace
             }
         }
         else if (command_str.empty())
-            // not a command, just add
+        {
+            // not a command
+            if (auto doc = stack.cur_inline_doc())
+            {
+                // look for section argument
+                const char* ptr         = nullptr;
+                auto        section_arg = read_section_arg(text, command_str, ptr);
+
+                if (ptr)
+                {
+                    // we have a section argument
+                    auto paragraph = md_paragraph::make(*doc);
+                    paragraph->add_entity(md_text::make(*paragraph, ptr));
+                    doc->add_item(section_arg.c_str(), "", *paragraph);
+                    return true;
+                }
+            }
+            // just add text as a whole
             stack.top().add_entity(std::move(text_entity));
+        }
         else if (command == static_cast<unsigned int>(command_type::invalid))
             throw comment_parse_error(fmt::format("invalid command name '{}'", command_str), text);
 
