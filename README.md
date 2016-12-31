@@ -490,6 +490,17 @@ For example:
 
 This will generate a list of possible return values in the output.
 
+This is also how the `see` section is intended:
+
+```cpp
+/// Some documentation...
+/// \see [this_type] - Put a describition here (optional)
+/// [this_func()] -
+/// [std::vector<T>] -
+```
+
+It will generate a "See also:" list in the output with links to the entities.
+
 ---
 
 A *inline* is a special kind of command.
