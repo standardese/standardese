@@ -470,6 +470,7 @@ If you don't specify a section for a paragraph, the first paragraph will be impl
 
 If you have a section with the form `\<section> <arg> - <text>`, it will generate a key value list in the output.
 Then you can also add other key-value pairs in each line.
+Use `_` as argument for an empty key.
 The value consists of CommonnMark inline formatting until the reset of the section or a new key is encountered.
 For example:
 

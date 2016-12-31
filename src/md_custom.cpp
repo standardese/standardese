@@ -133,8 +133,11 @@ bool md_inline_documentation::add_item(const char* name, const char* id,
     // generate "heading"
     auto item_paragraph = md_paragraph::make(*item);
     item_paragraph->add_entity(md_anchor::make(*item_paragraph, id));
-    item_paragraph->add_entity(md_code::make(*item_paragraph, name));
-    item_paragraph->add_entity(md_text::make(*item_paragraph, " - "));
+    if (std::strcmp(name, "_") != 0)
+    {
+        item_paragraph->add_entity(md_code::make(*item_paragraph, name));
+        item_paragraph->add_entity(md_text::make(*item_paragraph, " - "));
+    }
 
     // generate content
     auto first      = true;
