@@ -106,6 +106,8 @@ void standardese::normalize_urls(const index& idx, md_container& document,
         if (entity)
             link.set_destination(
                 ("standardese://" + normalize_escape(entity->get_unique_name()) + '/').c_str());
+        else
+            link.set_destination(("standardese://" + str + '/').c_str());
     });
 }
 
