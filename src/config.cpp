@@ -217,6 +217,8 @@ comment_config::comment_config() : cmd_char_('\\')
     STANDARDESE_DETAIL_SET(error_conditions)
     STANDARDESE_DETAIL_SET(notes)
 
+    STANDARDESE_DETAIL_SET(see)
+
 #undef STANDARDESE_DETAIL_SET
 #define STANDARDESE_DETAIL_SET(type) set_command(unsigned(command_type::type), #type);
 
@@ -289,6 +291,8 @@ output_config::output_config()
     STANDARDESE_DETAIL_SET(remarks, "Remarks")
     STANDARDESE_DETAIL_SET(error_conditions, "Error conditions")
     STANDARDESE_DETAIL_SET(notes, "Notes")
+
+    STANDARDESE_DETAIL_SET(see, "See also")
 
 #undef STANDARDESE_DETAIL_SET
 }

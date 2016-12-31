@@ -28,6 +28,8 @@ namespace standardese
         error_conditions,
         notes,
 
+        see,
+
         count,
         invalid = count
     };
