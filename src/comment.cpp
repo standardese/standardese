@@ -494,9 +494,10 @@ namespace
         remove_argument_string(text, command, 1u);
     }
 
-    const char* read_argument(const md_text& text, const std::string& command)
+    const char* read_argument(const md_text& text, const std::string& command,
+                              unsigned additional_offset = 0u)
     {
-        auto string = text.get_string() + command.size() + 1;
+        auto string = text.get_string() + command.size() + 1 + additional_offset;
         while (std::isspace(*string))
             ++string;
 
@@ -656,11 +657,40 @@ namespace
         auto command     = p.get_comment_config().try_get_command(command_str);
         if (is_section(command))
         {
-            auto  section   = make_section(command);
-            auto& paragraph = stack.new_paragraph(); // start a new paragraph for the section
-            paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
-            remove_command_string(text, command_str);       // remove the command of the string
-            stack.top().add_entity(std::move(text_entity)); // add the text
+            auto section = make_section(command);
+
+            // start a new paragraph for the section
+            stack.new_paragraph().set_section_type(section,
+                                                   p.get_output_config().get_section_name(section));
+
+            // look for section argument
+            auto arg = read_argument(text, command_str);
+
+            auto ptr = arg;
+            while (*ptr && !std::isspace(*ptr))
+                ++ptr;
+            auto end = ptr;
+            while (std::isspace(*ptr))
+                ++ptr;
+
+            if (*ptr == '-')
+            {
+                // we got a section argument
+                ++ptr;
+                while (std::isspace(*ptr))
+                    ++ptr;
+
+                std::string section_arg(arg, end);
+                stack.top().add_entity(md_code::make(stack.top(), section_arg.c_str()));
+                stack.top().add_entity(md_text::make(stack.top(), " - "));
+                stack.top().add_entity(md_text::make(stack.top(), ptr));
+            }
+            else
+            {
+                // no section argument, add text as a whole
+                remove_command_string(text, command_str);
+                stack.top().add_entity(std::move(text_entity));
+            }
 
             return true;
         }
