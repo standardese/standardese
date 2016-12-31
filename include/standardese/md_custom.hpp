@@ -57,6 +57,8 @@ namespace standardese
         friend detail::md_ptr_access;
     };
 
+    class md_list_item;
+
     class md_inline_documentation final : public md_container
     {
     public:
@@ -68,9 +70,13 @@ namespace standardese
         static md_ptr<md_inline_documentation> make(const md_entity&   parent,
                                                     const std::string& heading);
 
+        md_entity& add_entity(md_entity_ptr entity) override;
+
         // adds the contents of all paragraphs in container
         // returns false if any child was not a paragraph
         bool add_item(const char* name, const char* id, const md_container& container);
+
+        md_list_item& get_item() STANDARDESE_NOEXCEPT;
 
         bool empty() const STANDARDESE_NOEXCEPT;
 

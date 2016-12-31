@@ -539,7 +539,16 @@ namespace
                 }
                 return static_cast<md_container&>(comment.back());
             }
-            return stack_.empty() ? info_->comment.get_content() : *stack_.top().ptr;
+            else if (stack_.empty())
+                return info_->comment.get_content();
+            else if (stack_.top().ptr->get_entity_type() == md_entity::inline_documentation_t)
+            {
+                auto& item = static_cast<md_inline_documentation&>(*stack_.top().ptr).get_item();
+                assert(is_container(item.back().get_entity_type()));
+                return static_cast<md_container&>(item.back());
+            }
+
+            return *stack_.top().ptr;
         }
 
         comment_info& info()
@@ -659,10 +668,6 @@ namespace
         {
             auto section = make_section(command);
 
-            // start a new paragraph for the section
-            stack.new_paragraph().set_section_type(section,
-                                                   p.get_output_config().get_section_name(section));
-
             // look for section argument
             auto arg = read_argument(text, command_str);
 
@@ -680,14 +685,25 @@ namespace
                 while (std::isspace(*ptr))
                     ++ptr;
 
+                auto list =
+                    md_inline_documentation::make(stack.top(),
+                                                  p.get_output_config().get_section_name(section));
+
+                auto paragraph = md_paragraph::make(*list);
+                paragraph->add_entity(md_text::make(stack.top(), ptr));
+
                 std::string section_arg(arg, end);
-                stack.top().add_entity(md_code::make(stack.top(), section_arg.c_str()));
-                stack.top().add_entity(md_text::make(stack.top(), " - "));
-                stack.top().add_entity(md_text::make(stack.top(), ptr));
+                list->add_item(section_arg.c_str(), "", *paragraph);
+
+                stack.pop();
+                stack.push(std::move(list));
             }
             else
             {
                 // no section argument, add text as a whole
+                stack.new_paragraph().set_section_type(section,
+                                                       p.get_output_config().get_section_name(
+                                                           section));
                 remove_command_string(text, command_str);
                 stack.top().add_entity(std::move(text_entity));
             }

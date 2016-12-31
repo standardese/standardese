@@ -115,10 +115,10 @@ md_ptr<md_inline_documentation> md_inline_documentation::make(const md_entity&  
     // heading
     auto paragraph = md_paragraph::make(*res);
     paragraph->add_entity(md_strong::make(*paragraph, (heading + ":").c_str()));
-    res->add_entity(std::move(paragraph));
+    res->md_container::add_entity(std::move(paragraph));
 
     // list
-    res->add_entity(md_list::make_bullet(*res));
+    res->md_container::add_entity(md_list::make_bullet(*res));
 
     return res;
 }
@@ -141,18 +141,23 @@ bool md_inline_documentation::add_item(const char* name, const char* id,
     auto ignore_any = false;
     for (auto& child : container)
     {
-        if (child.get_entity_type() != md_entity::paragraph_t)
+        if (is_inline(child.get_entity_type()))
+            item_paragraph->add_entity(child.clone(*item_paragraph));
+        else if (child.get_entity_type() != md_entity::paragraph_t)
         {
             ignore_any = true;
             continue;
         }
-        else if (first)
-            first = false;
         else
-            item_paragraph->add_entity(md_soft_break::make(*item_paragraph));
+        {
+            if (first)
+                first = false;
+            else
+                item_paragraph->add_entity(md_soft_break::make(*item_paragraph));
 
-        for (auto& child_child : static_cast<const md_container&>(child))
-            item_paragraph->add_entity(child_child.clone(*item));
+            for (auto& child_child : static_cast<const md_container&>(child))
+                item_paragraph->add_entity(child_child.clone(*item));
+        }
     }
 
     item->add_entity(std::move(item_paragraph));
@@ -176,13 +181,29 @@ md_entity_ptr md_inline_documentation::do_clone(const md_entity* parent) const
 
     auto res = detail::make_md_ptr<md_inline_documentation>(*parent);
     for (auto& child : *this)
-        res->add_entity(child.clone(*res));
+        res->md_container::add_entity(child.clone(*res));
     return std::move(res);
 }
 
 md_inline_documentation::md_inline_documentation(const md_entity& parent)
 : md_container(get_entity_type(), cmark_node_new(CMARK_NODE_CUSTOM_BLOCK), parent)
 {
+}
+
+md_list_item& md_inline_documentation::get_item() STANDARDESE_NOEXCEPT
+{
+    assert(back().get_entity_type() == md_entity::list_t);
+    auto& list = static_cast<md_list&>(back());
+    return static_cast<md_list_item&>(list.back());
+}
+
+md_entity& md_inline_documentation::add_entity(md_entity_ptr entity)
+{
+    auto& item = get_item();
+    assert(is_container(item.back().get_entity_type()));
+    static_cast<md_container&>(item.back()).add_entity(std::move(entity));
+
+    return *this;
 }
 
 md_ptr<md_document> md_document::make(std::string name)
