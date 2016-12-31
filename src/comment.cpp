@@ -494,13 +494,41 @@ namespace
         remove_argument_string(text, command, 1u);
     }
 
-    const char* read_argument(const md_text& text, const std::string& command)
+    const char* read_argument(const md_text& text, const std::string& command,
+                              unsigned additional_offset = 0u)
     {
-        auto string = text.get_string() + command.size() + 1;
+        auto string = text.get_string() + command.size() + 1 + additional_offset;
         while (std::isspace(*string))
             ++string;
 
         return string;
+    }
+
+    std::string read_section_arg(const md_text& text, const std::string& command, const char*& ptr)
+    {
+        ptr = text.get_string() + command.size() + (command.empty() ? 0u : 1u);
+        while (std::isspace(*ptr))
+            ++ptr;
+
+        auto arg = ptr;
+        while (*ptr && !std::isspace(*ptr))
+            ++ptr;
+
+        auto end = ptr;
+        while (std::isspace(*ptr))
+            ++ptr;
+
+        if (*ptr == '-')
+        {
+            // found argument
+            ++ptr;
+            while (std::isspace(*ptr))
+                ++ptr;
+            return std::string(arg, end);
+        }
+        // no argument
+        ptr = nullptr;
+        return "";
     }
 
     class container_stack
@@ -524,6 +552,13 @@ namespace
             return *cur_inline_;
         }
 
+        md_inline_documentation* cur_inline_doc() const
+        {
+            return stack_.top().ptr->get_entity_type() == md_entity::inline_documentation_t ?
+                       static_cast<md_inline_documentation*>(stack_.top().ptr.get()) :
+                       nullptr;
+        }
+
         md_container& top() const
         {
             if (cur_inline_ && inline_depth_ == 0u)
@@ -538,7 +573,16 @@ namespace
                 }
                 return static_cast<md_container&>(comment.back());
             }
-            return stack_.empty() ? info_->comment.get_content() : *stack_.top().ptr;
+            else if (stack_.empty())
+                return info_->comment.get_content();
+            else if (auto doc = cur_inline_doc())
+            {
+                auto& item = doc->get_item();
+                assert(is_container(item.back().get_entity_type()));
+                return static_cast<md_container&>(item.back());
+            }
+
+            return *stack_.top().ptr;
         }
 
         comment_info& info()
@@ -656,11 +700,36 @@ namespace
         auto command     = p.get_comment_config().try_get_command(command_str);
         if (is_section(command))
         {
-            auto  section   = make_section(command);
-            auto& paragraph = stack.new_paragraph(); // start a new paragraph for the section
-            paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
-            remove_command_string(text, command_str);       // remove the command of the string
-            stack.top().add_entity(std::move(text_entity)); // add the text
+            auto section = make_section(command);
+
+            // look for section argument
+            const char* ptr         = nullptr;
+            auto        section_arg = read_section_arg(text, command_str, ptr);
+
+            if (ptr)
+            {
+                // we got a section argument
+                auto list =
+                    md_inline_documentation::make(stack.top(),
+                                                  p.get_output_config().get_section_name(section));
+
+                auto paragraph = md_paragraph::make(*list);
+                paragraph->add_entity(md_text::make(stack.top(), ptr));
+
+                list->add_item(section_arg.c_str(), "", *paragraph);
+
+                stack.pop();
+                stack.push(std::move(list));
+            }
+            else
+            {
+                // no section argument, add text as a whole
+                stack.new_paragraph().set_section_type(section,
+                                                       p.get_output_config().get_section_name(
+                                                           section));
+                remove_command_string(text, command_str);
+                stack.top().add_entity(std::move(text_entity));
+            }
 
             return true;
         }
@@ -772,8 +841,26 @@ namespace
             }
         }
         else if (command_str.empty())
-            // not a command, just add
+        {
+            // not a command
+            if (auto doc = stack.cur_inline_doc())
+            {
+                // look for section argument
+                const char* ptr         = nullptr;
+                auto        section_arg = read_section_arg(text, command_str, ptr);
+
+                if (ptr)
+                {
+                    // we have a section argument
+                    auto paragraph = md_paragraph::make(*doc);
+                    paragraph->add_entity(md_text::make(*paragraph, ptr));
+                    doc->add_item(section_arg.c_str(), "", *paragraph);
+                    return true;
+                }
+            }
+            // just add text as a whole
             stack.top().add_entity(std::move(text_entity));
+        }
         else if (command == static_cast<unsigned int>(command_type::invalid))
             throw comment_parse_error(fmt::format("invalid command name '{}'", command_str), text);
 

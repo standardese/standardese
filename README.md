@@ -468,6 +468,28 @@ If you don't specify a section for a paragraph, the first paragraph will be impl
 /// \notes This is a different notes.
 ```
 
+If you have a section with the form `\<section> <arg> - <text>`, it will generate a key value list in the output.
+Then you can also add other key-value pairs in each line.
+Use `_` as argument for an empty key.
+Surround the argument in `[<arg>]` and it will create a link where `<arg>` is also the destination,
+i.e. like a regular entity link of the form `[<arg>]()`.
+
+* Note: Due to implementation reason you can't use a real CommonMark link as key. *
+
+The value consists of CommonnMark inline formatting until the reset of the section or a new key is encountered.
+For example:
+
+```cpp
+/// This is documentation text (implictly brief btw).
+/// \returns 0 - Everything okay (first key-value pair).
+/// 1 - There was an input error (second key-value pair).
+/// This is *still* the second key-value pair.
+///
+/// This is normal text as the paragraph ended.
+```
+
+This will generate a list of possible return values in the output.
+
 ---
 
 A *inline* is a special kind of command.
