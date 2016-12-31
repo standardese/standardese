@@ -15,6 +15,10 @@ if(NOT STANDARDESE_TOOL)
 endif()
 
 # EXTERNAL
+# saves the location of the clang++ binary in STANDARDESE_CLANG_BINARY
+find_program(STANDARDESE_CLANG_BINARY clang++)
+
+# EXTERNAL
 # generates documentation for a given target
 # will create a custom target standardese_${target} that will run standardese with given options
 # usage:
@@ -77,7 +81,9 @@ function(standardese_generate target)
 
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/standardese_${target})
     add_custom_target(standardese_${target} ${all}
-                      ${STANDARDESE_TOOL} ${options} --output.prefix=${CMAKE_CURRENT_BINARY_DIR}/standardese_${target}/
+                      ${STANDARDESE_TOOL} ${options}
+                            --output.prefix=${CMAKE_CURRENT_BINARY_DIR}/standardese_${target}/
+                            --compilation.clang_binary=${STANDARDESE_CLANG_BINARY}
                       WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                       COMMENT "Generating documentation for target ${target}..."
                       VERBATIM)

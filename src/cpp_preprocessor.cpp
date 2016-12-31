@@ -265,7 +265,7 @@ namespace
         auto               cxfile = clang_getFile(tu.get(), full_path);
         auto               iter   = fake_lines.begin();
 
-        detail::visit_tu(tu.get(), cxfile, [&](cpp_cursor cur, cpp_cursor) {
+        detail::visit_tu(tu.get(), full_path, [&](cpp_cursor cur, cpp_cursor) {
             if (clang_getCursorKind(cur) == CXCursor_MacroDefinition)
             {
                 auto     loc = clang_getCursorLocation(cur);
@@ -304,8 +304,11 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
             // add an additional newline
             // this allows using c style doc comments in macros
             // normally macros would all be one line, so each entity gets the same comment
-            preprocessed += '\n';
-            fake_lines.push_back(line_no);
+            if (file_depth == 0)
+            {
+                preprocessed += '\n';
+                fake_lines.push_back(line_no);
+            }
         }
         else if (*ptr == '/' && ptr[1] == '*')
         {

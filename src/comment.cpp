@@ -93,32 +93,45 @@ bool comment::empty() const STANDARDESE_NOEXCEPT
     return true;
 }
 
+namespace
+{
+    void set_synopsis(std::string& result, const std::string& synopsis, unsigned tab_width)
+    {
+        auto escape = false;
+        for (auto c : synopsis)
+            if (c == '\\')
+                escape = true;
+            else if (escape && c == 'n')
+            {
+                escape = false;
+                result += '\n';
+            }
+            else if (escape && c == 't')
+            {
+                escape = false;
+                result += std::string(tab_width, ' ');
+            }
+            else if (escape)
+            {
+                result += '\\';
+                result += c;
+                escape = false;
+            }
+            else
+                result += c;
+    }
+}
+
 void comment::set_synopsis_override(const std::string& synopsis, unsigned tab_width)
 {
     synopsis_override_.clear();
+    set_synopsis(synopsis_override_, synopsis, tab_width);
+}
 
-    auto escape = false;
-    for (auto c : synopsis)
-        if (c == '\\')
-            escape = true;
-        else if (escape && c == 'n')
-        {
-            escape = false;
-            synopsis_override_ += '\n';
-        }
-        else if (escape && c == 't')
-        {
-            escape = false;
-            synopsis_override_ += std::string(tab_width, ' ');
-        }
-        else if (escape)
-        {
-            synopsis_override_ += '\\';
-            synopsis_override_ += c;
-            escape = false;
-        }
-        else
-            synopsis_override_ += c;
+void comment::set_return_type_override(const std::string& return_type, unsigned tab_width)
+{
+    synopsis_override_ = '\r';
+    set_synopsis(synopsis_override_, return_type, tab_width);
 }
 
 string detail::get_unique_name(const doc_entity* parent, const string& unique_name,
@@ -481,13 +494,41 @@ namespace
         remove_argument_string(text, command, 1u);
     }
 
-    const char* read_argument(const md_text& text, const std::string& command)
+    const char* read_argument(const md_text& text, const std::string& command,
+                              unsigned additional_offset = 0u)
     {
-        auto string = text.get_string() + command.size() + 1;
+        auto string = text.get_string() + command.size() + 1 + additional_offset;
         while (std::isspace(*string))
             ++string;
 
         return string;
+    }
+
+    std::string read_section_arg(const md_text& text, const std::string& command, const char*& ptr)
+    {
+        ptr = text.get_string() + command.size() + (command.empty() ? 0u : 1u);
+        while (std::isspace(*ptr))
+            ++ptr;
+
+        auto arg = ptr;
+        while (*ptr && !std::isspace(*ptr))
+            ++ptr;
+
+        auto end = ptr;
+        while (std::isspace(*ptr))
+            ++ptr;
+
+        if (*ptr == '-')
+        {
+            // found argument
+            ++ptr;
+            while (std::isspace(*ptr))
+                ++ptr;
+            return std::string(arg, end);
+        }
+        // no argument
+        ptr = nullptr;
+        return "";
     }
 
     class container_stack
@@ -499,8 +540,9 @@ namespace
 
         void push(md_entity_ptr e)
         {
-            if (!cur_inline_)
-                stack_.emplace(std::move(e));
+            stack_.emplace(std::move(e));
+            if (cur_inline_)
+                inline_depth_++;
         }
 
         comment_info& push(comment_info info)
@@ -510,9 +552,16 @@ namespace
             return *cur_inline_;
         }
 
+        md_inline_documentation* cur_inline_doc() const
+        {
+            return stack_.top().ptr->get_entity_type() == md_entity::inline_documentation_t ?
+                       static_cast<md_inline_documentation*>(stack_.top().ptr.get()) :
+                       nullptr;
+        }
+
         md_container& top() const
         {
-            if (cur_inline_)
+            if (cur_inline_ && inline_depth_ == 0u)
             {
                 auto& comment = cur_inline_->comment.get_content();
                 if (std::next(comment.begin()) == comment.end())
@@ -524,7 +573,16 @@ namespace
                 }
                 return static_cast<md_container&>(comment.back());
             }
-            return stack_.empty() ? info_->comment.get_content() : *stack_.top().ptr;
+            else if (stack_.empty())
+                return info_->comment.get_content();
+            else if (auto doc = cur_inline_doc())
+            {
+                auto& item = doc->get_item();
+                assert(is_container(item.back().get_entity_type()));
+                return static_cast<md_container&>(item.back());
+            }
+
+            return *stack_.top().ptr;
         }
 
         comment_info& info()
@@ -554,8 +612,10 @@ namespace
         void pop()
         {
             assert(!stack_.empty());
-            pop_info();
-            // also need to pop() the parent paragraph it is in
+            if (inline_depth_ == 0u)
+                pop_info();
+            else
+                --inline_depth_;
 
             auto container = std::move(stack_.top());
             stack_.pop();
@@ -577,7 +637,11 @@ namespace
         void pop_info()
         {
             if (cur_inline_)
+            {
+                while (inline_depth_ != 0u)
+                    pop();
                 register_comment(*parser_, *cur_inline_);
+            }
             cur_inline_.reset(nullptr);
         }
 
@@ -616,6 +680,7 @@ namespace
         std::unique_ptr<comment_info> cur_inline_; // that's a lazy optional emulation, right there
         comment_info*                 info_;
         const parser*                 parser_;
+        unsigned                      inline_depth_ = 0;
     };
 
     std::size_t get_group_id(const char* name, const char* end)
@@ -635,11 +700,37 @@ namespace
         auto command     = p.get_comment_config().try_get_command(command_str);
         if (is_section(command))
         {
-            auto  section   = make_section(command);
-            auto& paragraph = stack.new_paragraph(); // start a new paragraph for the section
-            paragraph.set_section_type(section, p.get_output_config().get_section_name(section));
-            remove_command_string(text, command_str);       // remove the command of the string
-            stack.top().add_entity(std::move(text_entity)); // add the text
+            auto section = make_section(command);
+
+            // look for section argument
+            const char* ptr         = nullptr;
+            auto        section_arg = read_section_arg(text, command_str, ptr);
+
+            if (ptr)
+            {
+                // we got a section argument
+                auto list =
+                    md_inline_documentation::make(stack.top(),
+                                                  p.get_output_config().get_section_name(section));
+
+                auto paragraph = md_paragraph::make(*list);
+                if (*ptr)
+                    paragraph->add_entity(md_text::make(stack.top(), ptr));
+
+                list->add_item(section_arg.c_str(), "", *paragraph);
+
+                stack.pop();
+                stack.push(std::move(list));
+            }
+            else
+            {
+                // no section argument, add text as a whole
+                stack.new_paragraph().set_section_type(section,
+                                                       p.get_output_config().get_section_name(
+                                                           section));
+                remove_command_string(text, command_str);
+                stack.top().add_entity(std::move(text_entity));
+            }
 
             return true;
         }
@@ -658,6 +749,11 @@ namespace
                 stack.info().comment.set_synopsis_override(read_argument(text, command_str),
                                                            p.get_output_config().get_tab_width());
                 break;
+            case command_type::synopsis_return:
+                stack.info()
+                    .comment.set_return_type_override(read_argument(text, command_str),
+                                                      p.get_output_config().get_tab_width());
+                break;
             case command_type::group:
             {
                 auto arg    = read_argument(text, command_str);
@@ -667,6 +763,14 @@ namespace
                 stack.info().comment.add_to_member_group(get_group_id(arg, end_id));
                 if (*end_id)
                     stack.info().comment.set_group_name(end_id);
+                break;
+            }
+            case command_type::output_section:
+            {
+                auto arg = read_argument(text, command_str);
+                // add to member group with single element
+                stack.info().comment.add_to_unique_member_group();
+                stack.info().comment.set_group_name(arg);
                 break;
             }
             case command_type::module:
@@ -738,8 +842,27 @@ namespace
             }
         }
         else if (command_str.empty())
-            // not a command, just add
+        {
+            // not a command
+            if (auto doc = stack.cur_inline_doc())
+            {
+                // look for section argument
+                const char* ptr         = nullptr;
+                auto        section_arg = read_section_arg(text, command_str, ptr);
+
+                if (ptr)
+                {
+                    // we have a section argument
+                    auto paragraph = md_paragraph::make(*doc);
+                    if (*ptr)
+                        paragraph->add_entity(md_text::make(*paragraph, ptr));
+                    doc->add_item(section_arg.c_str(), "", *paragraph);
+                    return true;
+                }
+            }
+            // just add text as a whole
             stack.top().add_entity(std::move(text_entity));
+        }
         else if (command == static_cast<unsigned int>(command_type::invalid))
             throw comment_parse_error(fmt::format("invalid command name '{}'", command_str), text);
 

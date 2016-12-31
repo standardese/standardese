@@ -219,7 +219,12 @@ namespace standardese
 
         bool has_synopsis_override() const STANDARDESE_NOEXCEPT
         {
-            return !synopsis_override_.empty();
+            return !synopsis_override_.empty() && synopsis_override_[0] != '\r';
+        }
+
+        bool has_return_type_override() const STANDARDESE_NOEXCEPT
+        {
+            return !synopsis_override_.empty() && synopsis_override_[0] == '\r';
         }
 
         const std::string& get_synopsis_override() const STANDARDESE_NOEXCEPT
@@ -228,6 +233,8 @@ namespace standardese
         }
 
         void set_synopsis_override(const std::string& synopsis, unsigned tab_width);
+
+        void set_return_type_override(const std::string& return_type, unsigned tab_width);
 
         bool in_module() const STANDARDESE_NOEXCEPT
         {
@@ -249,14 +256,24 @@ namespace standardese
             return group_id_ != 0u;
         }
 
+        bool in_unique_member_group() const STANDARDESE_NOEXCEPT
+        {
+            return group_id_ == std::size_t(-1);
+        }
+
         std::size_t member_group_id() const STANDARDESE_NOEXCEPT
         {
             return group_id_;
         }
 
-        void add_to_member_group(std::size_t group_id)
+        void add_to_member_group(std::size_t group_id) STANDARDESE_NOEXCEPT
         {
             group_id_ = group_id;
+        }
+
+        void add_to_unique_member_group() STANDARDESE_NOEXCEPT
+        {
+            group_id_ = std::size_t(-1);
         }
 
         bool has_group_name() const STANDARDESE_NOEXCEPT

@@ -62,7 +62,7 @@ namespace standardese
             return name_;
         }
 
-        cpp_name do_get_index_name(bool) const override
+        cpp_name do_get_index_name(bool, bool) const override
         {
             return name_;
         }

@@ -177,7 +177,7 @@ md_paragraph& standardese::make_list_item_paragraph(md_list& list)
 md_ptr<md_code_block> md_code_block::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_CODE_BLOCK);
-    return detail::make_md_ptr<md_code_block>(cur, parent);
+    return detail::clone_md_ptr(detail::make_md_ptr<md_code_block>(cur, parent), parent);
 }
 
 md_ptr<standardese::md_code_block> md_code_block::make(const md_entity& parent, const char* code,
@@ -207,7 +207,7 @@ md_entity_ptr md_code_block::do_clone(const md_entity* parent) const
 md_ptr<md_paragraph> md_paragraph::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_PARAGRAPH);
-    return detail::make_md_ptr<md_paragraph>(cur, parent);
+    return detail::clone_md_ptr(detail::make_md_ptr<md_paragraph>(cur, parent), parent);
 }
 
 md_ptr<md_paragraph> md_paragraph::make(const md_entity& parent)
@@ -264,7 +264,7 @@ md_entity_ptr md_paragraph::do_clone(const md_entity* parent) const
         skip_soft_break = false;
         result->add_entity(child.clone(*result));
     }
-    return result->empty() ? nullptr : std::move(result);
+    return std::move(result);
 }
 
 md_paragraph::md_paragraph(cmark_node* node, const md_entity& parent)
@@ -277,7 +277,7 @@ md_paragraph::md_paragraph(cmark_node* node, const md_entity& parent)
 md_ptr<md_heading> md_heading::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_HEADING);
-    return detail::make_md_ptr<md_heading>(cur, parent);
+    return detail::clone_md_ptr(detail::make_md_ptr<md_heading>(cur, parent), parent);
 }
 
 md_ptr<md_heading> md_heading::make(const md_entity& parent, int level)
@@ -309,7 +309,7 @@ md_entity_ptr md_heading::do_clone(const md_entity* parent) const
 md_ptr<md_thematic_break> md_thematic_break::parse(cmark_node* cur, const md_entity& parent)
 {
     assert(cmark_node_get_type(cur) == CMARK_NODE_THEMATIC_BREAK);
-    return detail::make_md_ptr<md_thematic_break>(cur, parent);
+    return detail::clone_md_ptr(detail::make_md_ptr<md_thematic_break>(cur, parent), parent);
 }
 
 md_ptr<md_thematic_break> md_thematic_break::make(const md_entity& parent)

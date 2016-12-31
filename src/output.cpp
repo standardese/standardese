@@ -77,28 +77,14 @@ namespace
         return text.get_string();
     }
 
-    void resolve_urls(const std::shared_ptr<spdlog::logger>& logger, const index& i,
-                      md_document& document, const char* extension)
-    {
-        for_each_entity_reference(document, [&](const doc_entity* context, md_link& link) {
-            auto str = get_entity_name(link);
-            if (str.empty())
-                return;
-
-            auto destination = i.get_linker().get_url(i, context, str, extension);
-            if (destination.empty())
-                logger->warn("unable to resolve link to an entity named '{}'", str);
-            else
-                link.set_destination(destination.c_str());
-        });
-    }
-
     std::string normalize_escape(const cpp_name& name)
     {
         std::string result;
         for (auto c : name)
             if (c == '/')
-                result += "$";
+                result += "%2F";
+            else if (c == '&')
+                result += "%26";
             else
                 result += c;
         return result;
@@ -120,6 +106,8 @@ void standardese::normalize_urls(const index& idx, md_container& document,
         if (entity)
             link.set_destination(
                 ("standardese://" + normalize_escape(entity->get_unique_name()) + '/').c_str());
+        else
+            link.set_destination(("standardese://" + str + '/').c_str());
     });
 }
 
@@ -137,14 +125,17 @@ raw_document::raw_document(path fname, std::string text)
 void output::render(const std::shared_ptr<spdlog::logger>& logger, const md_document& doc,
                     const char* output_extension)
 {
-    if (!output_extension)
-        output_extension = format_->extension();
-
+    // normalize URLs
     auto document = md_ptr<md_document>(static_cast<md_document*>(doc.clone().release()));
-    resolve_urls(logger, *index_, *document, output_extension);
+    normalize_urls(*index_, *document);
 
-    file_output output(prefix_ + document->get_output_name() + '.' + output_extension);
-    format_->render(output, *document);
+    // get string
+    string_output str;
+    format_->render(str, *document);
+
+    // get raw_document
+    raw_document raw(document->get_output_name(), str.get_string());
+    render_raw(logger, raw, output_extension);
 }
 
 void output::render_template(const std::shared_ptr<spdlog::logger>& logger,

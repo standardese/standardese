@@ -170,16 +170,20 @@ namespace standardese_tool
 
         using standardese::output_flag;
         p->get_output_config().set_tab_width(map.at("output.tab_width").as<unsigned>());
-        p->get_output_config().set_flag(output_flag::show_complex_noexcept,
-                                        map.at("output.show_complex_noexcept").as<bool>());
         p->get_output_config().set_flag(output_flag::inline_documentation,
                                         map.at("output.inline_doc").as<bool>());
+        p->get_output_config().set_flag(output_flag::use_advanced_code_block,
+                                        map.at("output.advanced_code_block").as<bool>());
         p->get_output_config().set_flag(output_flag::show_modules,
                                         map.at("output.show_modules").as<bool>());
         p->get_output_config().set_flag(output_flag::show_macro_replacement,
                                         map.at("output.show_macro_replacement").as<bool>());
+        p->get_output_config().set_flag(output_flag::show_complex_noexcept,
+                                        map.at("output.show_complex_noexcept").as<bool>());
         p->get_output_config().set_flag(output_flag::show_group_member_id,
                                         map.at("output.show_group_member_id").as<bool>());
+        p->get_output_config().set_flag(output_flag::show_group_output_section,
+                                        map.at("output.show_group_output_section").as<bool>());
 
         using standardese::entity_blacklist;
         auto& blacklist_entity = p->get_output_config().get_blacklist();

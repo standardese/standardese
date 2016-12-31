@@ -217,15 +217,19 @@ comment_config::comment_config() : cmd_char_('\\')
     STANDARDESE_DETAIL_SET(error_conditions)
     STANDARDESE_DETAIL_SET(notes)
 
+    STANDARDESE_DETAIL_SET(see)
+
 #undef STANDARDESE_DETAIL_SET
 #define STANDARDESE_DETAIL_SET(type) set_command(unsigned(command_type::type), #type);
 
     STANDARDESE_DETAIL_SET(exclude)
     STANDARDESE_DETAIL_SET(unique_name)
     STANDARDESE_DETAIL_SET(synopsis)
+    STANDARDESE_DETAIL_SET(synopsis_return)
 
     STANDARDESE_DETAIL_SET(group)
     STANDARDESE_DETAIL_SET(module)
+    STANDARDESE_DETAIL_SET(output_section)
 
     STANDARDESE_DETAIL_SET(entity)
     STANDARDESE_DETAIL_SET(file)
@@ -268,7 +272,7 @@ void comment_config::set_command(unsigned t, std::string command)
 
 output_config::output_config()
 : section_names_(std::size_t(section_type::count)),
-  hidden_name_("implementation-defined"),
+  hidden_name_("*see-below*"),
   tab_width_(4u),
   flags_(0u)
 {
@@ -287,6 +291,8 @@ output_config::output_config()
     STANDARDESE_DETAIL_SET(remarks, "Remarks")
     STANDARDESE_DETAIL_SET(error_conditions, "Error conditions")
     STANDARDESE_DETAIL_SET(notes, "Notes")
+
+    STANDARDESE_DETAIL_SET(see, "See also")
 
 #undef STANDARDESE_DETAIL_SET
 }

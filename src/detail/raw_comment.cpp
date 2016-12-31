@@ -164,6 +164,19 @@ namespace
         return false;
     }
 
+    std::string escape_html(const std::string& str)
+    {
+        std::string result;
+        for (auto c : str)
+            if (c == '<')
+                result += "\\<";
+            else if (c == '>')
+                result += "\\>";
+            else
+                result += c;
+        return result;
+    }
+
     std::vector<detail::raw_comment> normalize(
         const std::vector<std::pair<detail::raw_comment, comment_style>>& comments)
     {
@@ -188,6 +201,9 @@ namespace
 
             results.emplace_back(std::move(cur_content), cur_count, cur_end);
         }
+
+        for (auto& comment : results)
+            comment.content = escape_html(comment.content);
 
         return results;
     }

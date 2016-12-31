@@ -134,10 +134,10 @@ namespace standardese
                 static_cast<std::string*>(get_storage())->~basic_string();
         }
 
-        std::aligned_storage<(sizeof(std::string) > sizeof(CXString)) ?
-                                 sizeof(std::string) :
-                                 sizeof(CXString)>::type storage_;
-        std::size_t                                      length_;
+        std::aligned_storage<(sizeof(std::string) > sizeof(CXString)) ? sizeof(std::string) :
+                                                                        sizeof(CXString)>::type
+                    storage_;
+        std::size_t length_;
         enum
         {
             cx_string,

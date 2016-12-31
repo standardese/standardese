@@ -82,7 +82,7 @@ namespace
         {
             assert(e.has_parent()
                    && e.get_parent().get_entity_type() == doc_entity::member_group_t);
-            result = &e.get_parent();
+            result = &*static_cast<const doc_member_group&>(e.get_parent()).begin();
         }
         else
         {

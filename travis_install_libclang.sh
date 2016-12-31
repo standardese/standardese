@@ -10,7 +10,7 @@
 # LIBCLANG_INCLUDE_DIR - path to the libclang include directory# LIBCLANG_SYSTEM_INCLUDE_DIR - path to the clang system header files
 # CLANG_BINARY - path to the clang++ binary
 # it listens to:
-# LLVM_VERSION - the version of LLVM to use, default is 3.8.0
+# LLVM_VERSION - the version of LLVM to use, default is 3.9.0
 
 if [ -z $LLVM_VERSION ]; then
     LLVM_VERSION="3.9.0"
@@ -31,7 +31,7 @@ if [ "$TRAVIS_OS_NAME" = "linux" ]; then
 
     export LD_LIBRARY_PATH=$LLVM_DIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
     export PATH=$LLVM_DIR/bin${PATH:+:$PATH}
-    
+
 elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     wget --no-check-certificate http://llvm.org/releases/$LLVM_VERSION/clang+llvm-$LLVM_VERSION-x86_64-apple-darwin.tar.xz -O llvm-$LLVM_VERSION.xz
 

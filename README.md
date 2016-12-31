@@ -350,6 +350,8 @@ Note that if you override the unique name of a parent entity, this will also aff
 You can pass any string that will be rendered instead of the actual synopsis.
 Use `\n` to render a newline, use `\t` to render a tab and use `\<` and `\>` to render `<` and `>`, respectively.
 
+* `synopsis_return {string}` - Like `synopsis`, but only overrides the return type of the function.
+
 * `group <name> [heading]` - Add the entity to a member group.
 A member group consists of multiple entities that are direct members of the same entity (i.e. class, file, namespace,...) which will be grouped together in the output.
 For example:
@@ -394,6 +396,38 @@ void foo();
 /// because the command was the first one.
 ```
 
+* `output_section {name}` - Generates a little section comment in the synopsis above the entity.
+This is implictly used for member groups with the group name as output section name,
+if the option `output.show_group_output_section` is `true` (the default).
+Given the following input:
+```cpp
+/// Some int getter.
+/// \output_section Getter functions
+int get_i();
+
+/// Some float getter.
+float get_f();
+
+/// Some int setter.
+/// \output_section Setter functions
+void set_i(int val);
+
+/// Some float setter.
+void set_f(float f);
+```
+It will generate a synopsis like this:
+```cpp
+//=== Getter functions ===//
+int get_i();
+
+float get_f();
+
+//=== Setter functions ===//
+void set_i(int val);
+
+void set_f(float f);
+```
+
 * `entity {unique-name}` - If put in the first place of a comment, names the entity to document,
 this allows "remote" comments:
 ```cpp
@@ -433,6 +467,39 @@ If you don't specify a section for a paragraph, the first paragraph will be impl
 /// \notes This is notes.
 /// \notes This is a different notes.
 ```
+
+If you have a section with the form `\<section> <arg> - <text>`, it will generate a key value list in the output.
+Then you can also add other key-value pairs in each line.
+Use `_` as argument for an empty key.
+Surround the argument in `[<arg>]` and it will create a link where `<arg>` is also the destination,
+i.e. like a regular entity link of the form `[<arg>]()`.
+
+* Note: Due to implementation reason you can't use a real CommonMark link as key. *
+
+The value consists of CommonnMark inline formatting until the reset of the section or a new key is encountered.
+For example:
+
+```cpp
+/// This is documentation text (implictly brief btw).
+/// \returns 0 - Everything okay (first key-value pair).
+/// 1 - There was an input error (second key-value pair).
+/// This is *still* the second key-value pair.
+///
+/// This is normal text as the paragraph ended.
+```
+
+This will generate a list of possible return values in the output.
+
+This is also how the `see` section is intended:
+
+```cpp
+/// Some documentation...
+/// \see [this_type] - Put a describition here (optional)
+/// [this_func()] -
+/// [std::vector<T>] -
+```
+
+It will generate a "See also:" list in the output with links to the entities.
 
 ---
 

@@ -1,3 +1,22 @@
+## 0.3-2
+
+### Documentation
+
+* New `output_section` command to render an output section heading in synopsis
+* New comment section arguments for e.g. return value/description pairs or exception type documentation (see documentation for more info)
+* New `see` comment section to list related entities using the comment sections arguments (see documentation as well)
+
+### Library
+
+* Improved blacklisting support
+* Hidden name is now `*see-below*`
+* Module index shows function signatures
+
+### Tool
+
+* Add `output.advanced_code_block` option to enable/disable new advanced code blocks that links to entities (enabled by default)
+* Add `output.show_group_output_section` to enable implicit output sections for member groups (enabled by default)
+
 ## 0.3-1
 
 ### Documentation

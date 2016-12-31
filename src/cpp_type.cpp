@@ -9,6 +9,7 @@
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/detail/tokenizer.hpp>
 #include <standardese/translation_unit.hpp>
+#include <clang-c/Index.h>
 
 using namespace standardese;
 
@@ -21,11 +22,6 @@ cpp_type_ref::cpp_type_ref(cpp_name name, CXType type) : name_(std::move(name)),
 {
 }
 
-cpp_cursor cpp_type_ref::get_declaration() const STANDARDESE_NOEXCEPT
-{
-    return clang_getTypeDeclaration(type_);
-}
-
 cpp_name cpp_type_ref::get_full_name() const STANDARDESE_NOEXCEPT
 {
     std::string name = detail::parse_name(type_).c_str();
@@ -36,6 +32,58 @@ cpp_name cpp_type_ref::get_full_name() const STANDARDESE_NOEXCEPT
         detail::erase_template_args(name);
 
     return name;
+}
+
+namespace
+{
+    CXType get_pointee(CXType type)
+    {
+        if (type.kind == CXType_Pointer || type.kind == CXType_LValueReference
+            || type.kind == CXType_RValueReference)
+            return clang_getPointeeType(type);
+        return type;
+    }
+}
+
+CXType cpp_type_ref::get_underlying_cxtype() const STANDARDESE_NOEXCEPT
+{
+    auto result = get_pointee(type_);
+
+    auto element = clang_getElementType(type_);
+    if (element.kind != CXType_Invalid)
+        result = element;
+
+    return get_pointee(result);
+}
+
+cpp_cursor cpp_type_ref::get_declaration() const STANDARDESE_NOEXCEPT
+{
+    return standardese::get_declaration(get_underlying_cxtype());
+}
+
+cpp_cursor standardese::get_declaration(CXType t) STANDARDESE_NOEXCEPT
+{
+    auto decl = clang_getTypeDeclaration(t);
+    // check if we have a specialized cursor
+    // this also works for members of templates
+    auto special_decl = clang_getSpecializedCursorTemplate(decl);
+    if (!clang_Cursor_isNull(special_decl))
+        return special_decl;
+    else if (clang_getCursorKind(decl) == CXCursor_TypeAliasDecl
+             || clang_getCursorKind(decl) == CXCursor_TypedefDecl)
+    {
+        // clang_getSpecializedCursorTemplate() does not work for typedefs in a class template
+        // so workaround and return the specialization of a the parent template instead
+        auto cur = clang_getCursorSemanticParent(decl);
+        while (clang_getCursorKind(cur) != CXCursor_TranslationUnit && !clang_Cursor_isNull(cur))
+        {
+            auto special_cur = clang_getSpecializedCursorTemplate(cur);
+            if (!clang_Cursor_isNull(special_cur))
+                return special_cur;
+            cur = clang_getCursorSemanticParent(decl);
+        }
+    }
+    return decl;
 }
 
 namespace

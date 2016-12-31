@@ -7,6 +7,7 @@
 
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_entity_registry.hpp>
+#include <clang-c/Index.h>
 
 namespace standardese
 {
@@ -26,8 +27,6 @@ namespace standardese
     public:
         cpp_type_ref(cpp_name name, CXType type);
 
-        cpp_cursor get_declaration() const STANDARDESE_NOEXCEPT;
-
         const cpp_name& get_name() const STANDARDESE_NOEXCEPT
         {
             return name_;
@@ -40,15 +39,16 @@ namespace standardese
             return type_;
         }
 
-        bool is_invalid() const STANDARDESE_NOEXCEPT
-        {
-            return clang_isInvalid(clang_getCursorKind(get_declaration())) == 1u;
-        }
+        CXType get_underlying_cxtype() const STANDARDESE_NOEXCEPT;
+
+        cpp_cursor get_declaration() const STANDARDESE_NOEXCEPT;
 
     private:
         cpp_name name_;
         CXType   type_;
     };
+
+    cpp_cursor get_declaration(CXType type) STANDARDESE_NOEXCEPT;
 
     inline bool operator==(const cpp_type_ref& a, const cpp_type_ref& b) STANDARDESE_NOEXCEPT
     {

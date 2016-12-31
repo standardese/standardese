@@ -28,6 +28,8 @@ namespace standardese
         error_conditions,
         notes,
 
+        see,
+
         count,
         invalid = count
     };
@@ -39,9 +41,11 @@ namespace standardese
         exclude,
         unique_name,
         synopsis,
+        synopsis_return,
 
         group,
         module,
+        output_section,
 
         entity,
         file,

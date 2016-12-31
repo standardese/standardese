@@ -50,58 +50,60 @@ namespace standardese
             return is_blacklisted(p, e, comment);
         }
 
-        template <CXCursorKind Kind>
-        bool is_blacklisted(const parser& par, const basic_cpp_entity_ref<Kind>& ref)
+        struct ref_name
         {
-            auto target = ref.get(par.get_entity_registry());
-            if (!target)
-                return false;
-            return is_blacklisted(par, *target);
+            string name;
+            string unique_name;
+
+            ref_name(string name, string uname = "") : name(name), unique_name(uname)
+            {
+            }
+        };
+
+        template <CXCursorKind Kind>
+        ref_name get_ref_name(const parser& par, const basic_cpp_entity_ref<Kind>& ref)
+        {
+            auto entity = ref.get(par.get_entity_registry());
+            if (!entity)
+                return ref.get_name();
+            else if (is_blacklisted(par, *entity))
+                return string(par.get_output_config().get_hidden_name());
+
+            return ref_name(ref.get_name(), entity->get_unique_name());
         }
 
-        inline bool is_blacklisted(const parser& par, const cpp_type_ref& ref)
+        inline ref_name get_ref_name(const parser& par, const cpp_type_ref& ref)
         {
-            auto decl = ref.get_declaration();
-            if (decl == cpp_cursor())
-                return false;
+            auto decl   = ref.get_declaration();
             auto entity = par.get_entity_registry().try_lookup(decl);
             if (!entity)
-                return false;
-            return is_blacklisted(par, *entity);
+                return ref.get_name();
+            else if (is_blacklisted(par, *entity))
+                return string(par.get_output_config().get_hidden_name());
+
+            return ref_name(ref.get_name(), entity->get_unique_name());
         }
 
-        template <CXCursorKind Kind>
-        string get_ref_name(const parser& par, const basic_cpp_entity_ref<Kind>& ref)
-        {
-            if (is_blacklisted(par, ref))
-                return par.get_output_config().get_hidden_name();
-            return ref.get_name();
-        }
-
-        inline string get_ref_name(const parser& par, const cpp_type_ref& ref)
-        {
-            if (is_blacklisted(par, ref))
-                return par.get_output_config().get_hidden_name();
-            return ref.get_name();
-        }
-
-        void write_type_value_default(const parser& par, code_block_writer& out,
+        void write_type_value_default(const parser& par, code_block_writer& out, bool top_level,
                                       const cpp_type_ref& type, const cpp_name& name,
-                                      const std::string& def = "", bool variadic = false);
+                                      const cpp_name& unique_name, const std::string& def = "",
+                                      bool variadic = false);
 
         void write_template_parameters(const parser& par, code_block_writer& out,
                                        const doc_container_cpp_entity& cont);
 
-        void write_class_name(code_block_writer& out, const cpp_name& name, int class_type);
+        void write_class_name(code_block_writer& out, bool top_level, const cpp_name& name,
+                              const cpp_name& unique_name, int class_type);
         void write_bases(const parser& par, code_block_writer& out,
                          const doc_container_cpp_entity& cont, const cpp_class& c);
 
         void write_prefix(code_block_writer& out, int virtual_flag, bool constexpr_f,
                           bool explicit_f = false);
-        void write_parameters(const parser& par, code_block_writer& out,
+        void write_parameters(const parser& par, code_block_writer& out, bool top_level,
                               const doc_container_cpp_entity& cont, const cpp_function_base& f);
         void write_cv_ref(code_block_writer& out, int cv, int ref);
-        void write_noexcept(bool show_complex, code_block_writer& out, const cpp_function_base& f);
+        void write_noexcept(const char* complex_name, code_block_writer& out,
+                            const cpp_function_base& f);
         void write_override_final(code_block_writer& out, int virtual_flag);
         void write_definition(code_block_writer& out, const cpp_function_base& f);
     }
