@@ -333,8 +333,11 @@ A text that begins with a *command* doesn't appear in the output documentation a
 
 There are the following *commands*:
 
-* `exclude` - Manually excludes an entity from the documentation. It won't appear at all, not even in the synopsis.
+* `exclude {arg}` - Manually excludes an entity or part of it from the documentation.
+If you don't specify an argument, it won't appear at all, not even in the synopsis.
 It is as if the entity never existed in the first place.
+If you specify `return` as argument, the return type of the function will be hidden in the synopsis.
+If you specify `target` as argument, the target of the namespace/type alias or underlying type of the enum will be hidden in the synopsis.
 
 * `unique_name {name}` - Overrides the unique name of an entity (e.g. for linking):
 ```cpp

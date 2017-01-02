@@ -272,7 +272,7 @@ void comment_config::set_command(unsigned t, std::string command)
 
 output_config::output_config()
 : section_names_(std::size_t(section_type::count)),
-  hidden_name_("*see-below*"),
+  hidden_name_("'hidden'"),
   tab_width_(4u),
   flags_(0u)
 {

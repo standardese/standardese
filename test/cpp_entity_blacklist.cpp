@@ -288,4 +288,37 @@ GENERATE(foo)
         auto tu = parse(p, "synopsis_extensive_preprocessor", code);
         REQUIRE(get_synopsis(tu) == synopsis);
     }
+    SECTION("exclusion")
+    {
+        auto code = R"(
+/// \exclude
+void foo();
+
+/// \exclude return
+int bar();
+
+/// \exclude target
+using baz = int;
+
+/// \exclude target
+enum : int
+{
+    a,
+};
+)";
+
+        auto synopsis = std::string(R"('hidden' bar();
+
+using baz = 'hidden';
+
+enum_
+: 'hidden'
+{
+    a
+};)");
+        std::replace(synopsis.begin(), synopsis.end(), '_', ' ');
+
+        auto tu = parse(p, "synopsis_exclusion", code);
+        REQUIRE(get_synopsis(tu) == synopsis);
+    }
 }

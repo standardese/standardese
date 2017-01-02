@@ -796,8 +796,16 @@ namespace
             switch (make_command(command))
             {
             case command_type::exclude:
-                stack.info().comment.set_excluded(true);
+            {
+                auto arg = read_argument(text, command_str);
+                if (std::strcmp(arg, "return") == 0)
+                    stack.info().comment.set_excluded(exclude_mode::return_type);
+                else if (std::strcmp(arg, "target") == 0)
+                    stack.info().comment.set_excluded(exclude_mode::target);
+                else
+                    stack.info().comment.set_excluded(exclude_mode::entity);
                 break;
+            }
             case command_type::unique_name:
                 stack.info().comment.set_unique_name_override(read_argument(text, command_str));
                 break;

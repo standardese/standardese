@@ -535,11 +535,16 @@ void doc_leave_cpp_entity::do_generate_documentation(const parser& p, const inde
 namespace
 {
     void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
-                           const cpp_namespace_alias& ns)
+                           const cpp_namespace_alias& ns, const comment* c)
     {
         (out << "namespace ").write_link(top_level, ns.get_name(), ns.get_unique_name()) << " = ";
-        auto target = detail::get_ref_name(par, ns.get_target());
-        out.write_link(false, target.name, target.unique_name);
+        if (c && c->get_excluded() == exclude_mode::target)
+            out << par.get_output_config().get_hidden_name();
+        else
+        {
+            auto target = detail::get_ref_name(par, ns.get_target());
+            out.write_link(false, target.name, target.unique_name);
+        }
         out << ';';
     }
 
@@ -559,9 +564,14 @@ namespace
     void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
                            const doc_cpp_entity& e, const cpp_type_alias& a)
     {
-        auto target = detail::get_ref_name(par, a.get_target());
         (out << "using ").write_link(top_level, a.get_name(), e.get_unique_name()) << " = ";
-        out.write_link(false, target.name, target.unique_name) << ';';
+        if (e.has_comment() && e.get_comment().get_excluded() == exclude_mode::target)
+            out << par.get_output_config().get_hidden_name() << ';';
+        else
+        {
+            auto target = detail::get_ref_name(par, a.get_target());
+            out.write_link(false, target.name, target.unique_name) << ';';
+        }
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
@@ -619,7 +629,8 @@ void doc_leave_cpp_entity::do_generate_synopsis(const parser& p, code_block_writ
 
     case cpp_entity::namespace_alias_t:
         do_write_synopsis(p, out, top_level,
-                          static_cast<const cpp_namespace_alias&>(get_cpp_entity()));
+                          static_cast<const cpp_namespace_alias&>(get_cpp_entity()),
+                          has_comment() ? &get_comment() : nullptr);
         break;
     case cpp_entity::using_directive_t:
         do_write_synopsis(p, out, static_cast<const cpp_using_directive&>(get_cpp_entity()));
@@ -867,6 +878,8 @@ namespace
 
         if (c && c->has_return_type_override())
             out << c->get_synopsis_override() << ' ';
+        else if (c && c->get_excluded() == exclude_mode::return_type)
+            out << p.get_output_config().get_hidden_name() << ' ';
         else if (f.get_entity_type() == cpp_entity::function_t)
         {
             auto ret_name =
@@ -929,9 +942,15 @@ namespace
         {
             if (!e.get_underlying_type().get_name().empty())
             {
-                auto type_name = detail::get_ref_name(p, e.get_underlying_type());
                 out << newl << ": ";
-                out.write_link(false, type_name.name, type_name.unique_name);
+                if (entity.has_comment()
+                    && entity.get_comment().get_excluded() == exclude_mode::target)
+                    out << p.get_output_config().get_hidden_name();
+                else
+                {
+                    auto type_name = detail::get_ref_name(p, e.get_underlying_type());
+                    out.write_link(false, type_name.name, type_name.unique_name);
+                }
             }
 
             out << newl;

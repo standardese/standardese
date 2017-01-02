@@ -177,10 +177,18 @@ namespace standardese
         friend detail::comment_compare;
     };
 
+    enum class exclude_mode
+    {
+        no,
+        entity,
+        return_type,
+        target
+    };
+
     class comment
     {
     public:
-        comment() : content_(md_comment::make()), group_id_(0u), excluded_(false)
+        comment() : content_(md_comment::make()), group_id_(0u), excluded_(exclude_mode::no)
         {
             assert(content_);
         }
@@ -293,12 +301,17 @@ namespace standardese
 
         bool is_excluded() const STANDARDESE_NOEXCEPT
         {
+            return excluded_ == exclude_mode::entity;
+        }
+
+        exclude_mode get_excluded() const STANDARDESE_NOEXCEPT
+        {
             return excluded_;
         }
 
-        void set_excluded(bool b) STANDARDESE_NOEXCEPT
+        void set_excluded(exclude_mode m) STANDARDESE_NOEXCEPT
         {
-            excluded_ = b;
+            excluded_ = m;
         }
 
     private:
@@ -308,7 +321,7 @@ namespace standardese
         std::string        group_name_;
         md_ptr<md_comment> content_;
         std::size_t        group_id_;
-        bool               excluded_;
+        exclude_mode       excluded_;
     };
 
     class cpp_entity;
