@@ -345,6 +345,8 @@ It is as if the entity never existed in the first place.
 void bar(int a, int c);
 ```
 Note that if you override the unique name of a parent entity, this will also affect the unique names of child entities.
+If the unique name starts with '*' or '?', it will be a *relative* unique name,
+i.e. the unique name of the parent entity will be prepended to it (with seperator '::' if needed).
 
 * `synopsis {string}` - Overrides the synopsis in the output.
 You can pass any string that will be rendered instead of the actual synopsis.

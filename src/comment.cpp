@@ -134,34 +134,73 @@ void comment::set_return_type_override(const std::string& return_type, unsigned 
     set_synopsis(synopsis_override_, return_type, tab_width);
 }
 
+namespace
+{
+    bool need_parent_name(const cpp_entity* parent)
+    {
+        return parent && parent->get_entity_type() != cpp_entity::file_t
+               && parent->get_entity_type() != cpp_entity::language_linkage_t;
+    }
+
+    bool need_parent_name(const doc_entity* parent)
+    {
+        return parent && parent->get_cpp_entity_type() != cpp_entity::file_t
+               && parent->get_cpp_entity_type() != cpp_entity::language_linkage_t;
+    }
+
+    bool use_unique_name(const comment* c)
+    {
+        return c && c->has_unique_name_override() && c->get_unique_name_override()[0] != '*'
+               && c->get_unique_name_override()[0] != '?';
+    }
+
+    void append_unique_name(std::string& result, const comment* c, const string& unique_name)
+    {
+        if (c && c->has_unique_name_override())
+        {
+            assert(c->get_unique_name_override()[0] == '*'
+                   || c->get_unique_name_override()[0] == '?');
+            if (c->get_unique_name_override()[1] != '.' && c->get_unique_name_override()[1] != ':')
+                result += "::";
+            result += c->get_unique_name_override().c_str() + 1;
+        }
+        else
+            result += unique_name.c_str();
+    }
+}
+
 string detail::get_unique_name(const parser& p, const cpp_entity* parent, const string& unique_name,
                                const comment* c)
 {
-    if (c && c->has_unique_name_override())
+    if (use_unique_name(c))
         return c->get_unique_name_override();
 
     std::string result;
-    if (parent && parent->get_entity_type() != cpp_entity::file_t
-        && parent->get_entity_type() != cpp_entity::language_linkage_t)
+    if (need_parent_name(parent))
         result +=
             detail::get_unique_name(p, parent->get_semantic_parent(), parent->get_unique_name(true),
                                     p.get_comment_registry().lookup_comment(*parent, nullptr))
                 .c_str();
-    result += unique_name.c_str();
+    append_unique_name(result, c, unique_name);
     return result;
 }
 
 string detail::get_unique_name(const doc_entity* parent, const string& unique_name,
                                const comment* c)
 {
-    if (c && c->has_unique_name_override())
+    if (use_unique_name(c))
         return c->get_unique_name_override();
 
     std::string result;
-    if (parent && parent->get_cpp_entity_type() != cpp_entity::file_t
-        && parent->get_cpp_entity_type() != cpp_entity::language_linkage_t)
-        result += parent->get_unique_name().c_str();
-    result += unique_name.c_str();
+    if (need_parent_name(parent))
+    {
+        if (parent->get_entity_type() == doc_entity::member_group_t && parent->has_parent())
+            // use parent of group
+            result += parent->get_parent().get_unique_name().c_str();
+        else if (parent->get_entity_type() != doc_entity::member_group_t)
+            result += parent->get_unique_name().c_str();
+    }
+    append_unique_name(result, c, unique_name);
     return result;
 }
 
