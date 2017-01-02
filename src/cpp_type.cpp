@@ -80,7 +80,7 @@ cpp_cursor standardese::get_declaration(CXType t) STANDARDESE_NOEXCEPT
             auto special_cur = clang_getSpecializedCursorTemplate(cur);
             if (!clang_Cursor_isNull(special_cur))
                 return special_cur;
-            cur = clang_getCursorSemanticParent(decl);
+            cur = clang_getCursorSemanticParent(cur);
         }
     }
     return decl;
