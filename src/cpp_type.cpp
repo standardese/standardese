@@ -1,4 +1,4 @@
-// Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -80,7 +80,7 @@ cpp_cursor standardese::get_declaration(CXType t) STANDARDESE_NOEXCEPT
             auto special_cur = clang_getSpecializedCursorTemplate(cur);
             if (!clang_Cursor_isNull(special_cur))
                 return special_cur;
-            cur = clang_getCursorSemanticParent(decl);
+            cur = clang_getCursorSemanticParent(cur);
         }
     }
     return decl;

@@ -1,4 +1,4 @@
-// Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -42,6 +42,11 @@ namespace standardese
         CXType get_underlying_cxtype() const STANDARDESE_NOEXCEPT;
 
         cpp_cursor get_declaration() const STANDARDESE_NOEXCEPT;
+
+        const cpp_entity* get(const cpp_entity_registry& e) const STANDARDESE_NOEXCEPT
+        {
+            return e.try_lookup(get_declaration());
+        }
 
     private:
         cpp_name name_;

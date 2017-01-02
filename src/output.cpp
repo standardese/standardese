@@ -1,4 +1,4 @@
-// Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -76,19 +76,22 @@ namespace
         auto& text = static_cast<const md_text&>(*link.begin());
         return text.get_string();
     }
+}
 
-    std::string normalize_escape(const cpp_name& name)
+std::string standardese::detail::normalize_url(const char* str)
+{
+    std::string result;
+    while (*str)
     {
-        std::string result;
-        for (auto c : name)
-            if (c == '/')
-                result += "%2F";
-            else if (c == '&')
-                result += "%26";
-            else
-                result += c;
-        return result;
+        auto c = *str++;
+        if (c == '/')
+            result += "%2F";
+        else if (c == '&')
+            result += "%26";
+        else
+            result += c;
     }
+    return result;
 }
 
 void standardese::normalize_urls(const index& idx, md_container& document,
@@ -105,7 +108,8 @@ void standardese::normalize_urls(const index& idx, md_container& document,
         auto entity = context ? idx.try_name_lookup(*context, str) : idx.try_lookup(str);
         if (entity)
             link.set_destination(
-                ("standardese://" + normalize_escape(entity->get_unique_name()) + '/').c_str());
+                ("standardese://" + detail::normalize_url(entity->get_unique_name().c_str()) + '/')
+                    .c_str());
         else
             link.set_destination(("standardese://" + str + '/').c_str());
     });
@@ -218,9 +222,13 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         if (end == nullptr)
             end = &document.text.back() + 1;
 
-        auto name = unescape(entity_name, end);
-        auto url  = index_->get_linker().get_url(*index_, nullptr, name, output_extension);
-        if (url.empty())
+        auto name       = unescape(entity_name, end);
+        auto maybe_link = name.back() == '?';
+        if (maybe_link)
+            name.pop_back();
+
+        auto url = index_->get_linker().get_url(*index_, nullptr, name, output_extension);
+        if (url.empty() && !maybe_link)
         {
             logger->warn("unable to resolve link to an entity named '{}'", name);
             output.write_str(match, entity_name - match);
@@ -228,7 +236,10 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         }
         else
         {
-            output.write_str(url.c_str(), url.size());
+            if (url.empty() && maybe_link)
+                logger->debug("unable to resolve maybe link to an entity named '{}", name);
+            else
+                output.write_str(url.c_str(), url.size());
             last_match = end + 1;
         }
     }

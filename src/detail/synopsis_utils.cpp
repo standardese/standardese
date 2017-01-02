@@ -1,4 +1,4 @@
-// Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -125,10 +125,9 @@ void detail::write_parameters(const parser& par, code_block_writer& out, bool to
 
 {
     if (cont.get_cpp_entity_type() == cpp_entity::function_template_specialization_t)
-        out.write_link(top_level, cont.get_cpp_entity().get_name(),
-                       cont.get_cpp_entity().get_unique_name());
+        out.write_link(top_level, cont.get_cpp_entity().get_name(), cont.get_unique_name());
     else
-        out.write_link(top_level, f.get_name(), f.get_unique_name());
+        out.write_link(top_level, f.get_name(), cont.get_unique_name());
 
     out << '(';
 
@@ -146,8 +145,8 @@ void detail::write_parameters(const parser& par, code_block_writer& out, bool to
         else
             need = true;
 
-        detail::write_type_value_default(par, out, false, p.get_type(), p.get_name(),
-                                         p.get_unique_name(), p.get_default_value());
+        detail::write_type_value_default(par, out, false, p.get_type(), p.get_name(), "",
+                                         p.get_default_value());
     }
 
     if (f.is_variadic())

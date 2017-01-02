@@ -1,4 +1,4 @@
-# Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+# Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
 # This file is subject to the license terms in the LICENSE file
 # found in the top-level directory of this distribution.
 
@@ -6,7 +6,7 @@
 # usage: STANDARDESE_TAG=tag . travis_get_standardese.sh
 # requires that a recent libstdc++ and Boost 1.55 is installed (under Linux)
 # will download libclang itself
-# result is folder standardese in the current directory 
+# result is folder standardese in the current directory
 
 wget https://raw.githubusercontent.com/foonathan/standardese/$STANDARDESE_TAG/travis_install_libclang.sh
 . travis_install_libclang.sh

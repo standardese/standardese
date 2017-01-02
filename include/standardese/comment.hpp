@@ -1,4 +1,4 @@
-// Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -177,10 +177,18 @@ namespace standardese
         friend detail::comment_compare;
     };
 
+    enum class exclude_mode
+    {
+        no,
+        entity,
+        return_type,
+        target
+    };
+
     class comment
     {
     public:
-        comment() : content_(md_comment::make()), group_id_(0u), excluded_(false)
+        comment() : content_(md_comment::make()), group_id_(0u), excluded_(exclude_mode::no)
         {
             assert(content_);
         }
@@ -293,12 +301,17 @@ namespace standardese
 
         bool is_excluded() const STANDARDESE_NOEXCEPT
         {
+            return excluded_ == exclude_mode::entity;
+        }
+
+        exclude_mode get_excluded() const STANDARDESE_NOEXCEPT
+        {
             return excluded_;
         }
 
-        void set_excluded(bool b) STANDARDESE_NOEXCEPT
+        void set_excluded(exclude_mode m) STANDARDESE_NOEXCEPT
         {
-            excluded_ = b;
+            excluded_ = m;
         }
 
     private:
@@ -308,15 +321,19 @@ namespace standardese
         std::string        group_name_;
         md_ptr<md_comment> content_;
         std::size_t        group_id_;
-        bool               excluded_;
+        exclude_mode       excluded_;
     };
 
     class cpp_entity;
     class cpp_entity_registry;
     class doc_entity;
+    class parser;
 
     namespace detail
     {
+        string get_unique_name(const parser& p, const cpp_entity* parent, const string& unique_name,
+                               const comment* c);
+
         string get_unique_name(const doc_entity* parent, const string& unique_name,
                                const comment* c);
     }

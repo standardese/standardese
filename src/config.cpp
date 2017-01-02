@@ -1,4 +1,4 @@
-// Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -272,7 +272,7 @@ void comment_config::set_command(unsigned t, std::string command)
 
 output_config::output_config()
 : section_names_(std::size_t(section_type::count)),
-  hidden_name_("*see-below*"),
+  hidden_name_("'hidden'"),
   tab_width_(4u),
   flags_(0u)
 {

@@ -1,4 +1,4 @@
-// Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -36,6 +36,8 @@ namespace standardese
         {
             constexpr blankl_t(){};
         };
+
+        std::string normalize_url(const char* str);
     }
 
     constexpr detail::newl_t   newl;
@@ -104,9 +106,9 @@ namespace standardese
                 return *this;
             else if (!use_advanced_ || top_level || unique_name.empty())
                 return *this << str;
-            write_c_str(
-                fmt::format("<a href='standardese://{}/'>{}</a>", unique_name.c_str(), str.c_str())
-                    .c_str());
+            write_c_str(fmt::format("<a href='standardese://{}?/'>{}</a>",
+                                    detail::normalize_url(unique_name.c_str()), str.c_str())
+                            .c_str());
             return *this;
         }
 

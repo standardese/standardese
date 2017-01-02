@@ -1,4 +1,4 @@
-// Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -23,7 +23,7 @@ std::string detail::get_id(const std::string& unique_name)
         else
             result += c;
 
-    if (result.end()[-1] == ')' && result.end()[-2] == '(')
+    if (result.size() >= 2 && result.end()[-1] == ')' && result.end()[-2] == '(')
     {
         // ends with ()
         result.pop_back();
@@ -38,14 +38,25 @@ std::string detail::get_short_id(const std::string& id)
     std::string result;
 
     auto skip = false;
-    for (auto c : id)
+    for (auto ptr = id.c_str(); *ptr; ++ptr)
     {
+        auto c = *ptr;
         if (c == '(')
             skip = true;
         else if (c == '.')
         {
-            result += '.';
-            skip = false;
+            if (ptr[1] == '.')
+            {
+                // ... token
+                assert(ptr[2] == '.');
+                ptr += 2; // skip token as well
+            }
+            else
+            {
+                // next token is '.' separator for parameter
+                result += '.';
+                skip = false;
+            }
         }
         else if (c == '<')
             skip = true;

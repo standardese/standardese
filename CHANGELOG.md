@@ -1,3 +1,18 @@
+## 0.3-3
+
+### Documentation
+
+* Optional arguments for `exclude` to specify what to exclude (return type, target)
+* Advanced code block does not generate links to parameters now
+
+### Library
+
+* Bugfixes in various functions
+
+### Build system
+
+* Now correctly installs cmark subdirectory
+
 ## 0.3-2
 
 ### Documentation
