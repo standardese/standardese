@@ -222,9 +222,13 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         if (end == nullptr)
             end = &document.text.back() + 1;
 
-        auto name = unescape(entity_name, end);
-        auto url  = index_->get_linker().get_url(*index_, nullptr, name, output_extension);
-        if (url.empty())
+        auto name       = unescape(entity_name, end);
+        auto maybe_link = name.back() == '?';
+        if (maybe_link)
+            name.pop_back();
+
+        auto url = index_->get_linker().get_url(*index_, nullptr, name, output_extension);
+        if (url.empty() && !maybe_link)
         {
             logger->warn("unable to resolve link to an entity named '{}'", name);
             output.write_str(match, entity_name - match);
@@ -232,7 +236,10 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         }
         else
         {
-            output.write_str(url.c_str(), url.size());
+            if (maybe_link)
+                logger->debug("unable to resolve maybe link to an entity named '{}", name);
+            else
+                output.write_str(url.c_str(), url.size());
             last_match = end + 1;
         }
     }

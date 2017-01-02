@@ -106,7 +106,7 @@ namespace standardese
                 return *this;
             else if (!use_advanced_ || top_level || unique_name.empty())
                 return *this << str;
-            write_c_str(fmt::format("<a href='standardese://{}/'>{}</a>",
+            write_c_str(fmt::format("<a href='standardese://{}?/'>{}</a>",
                                     detail::normalize_url(unique_name.c_str()), str.c_str())
                             .c_str());
             return *this;
