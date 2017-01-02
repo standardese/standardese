@@ -38,14 +38,25 @@ std::string detail::get_short_id(const std::string& id)
     std::string result;
 
     auto skip = false;
-    for (auto c : id)
+    for (auto ptr = id.c_str(); *ptr; ++ptr)
     {
+        auto c = *ptr;
         if (c == '(')
             skip = true;
         else if (c == '.')
         {
-            result += '.';
-            skip = false;
+            if (ptr[1] == '.')
+            {
+                // ... token
+                assert(ptr[2] == '.');
+                ptr += 2; // skip token as well
+            }
+            else
+            {
+                // next token is '.' separator for parameter
+                result += '.';
+                skip = false;
+            }
         }
         else if (c == '<')
             skip = true;
