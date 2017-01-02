@@ -303,11 +303,12 @@ void doc_inline_cpp_entity::do_generate_documentation_inline(const parser& p, co
 namespace
 {
     template <class EnumValue>
-    void do_write_synopsis_enum_value(code_block_writer& out, bool top_level, const EnumValue& e)
+    void do_write_synopsis_enum_value(code_block_writer& out, bool top_level,
+                                      const doc_cpp_entity& e, const EnumValue& val)
     {
-        out.write_link(top_level, e.get_name(), e.get_unique_name());
-        if (e.is_explicitly_given())
-            out << " = " << e.get_value();
+        out.write_link(top_level, val.get_name(), e.get_unique_name());
+        if (val.is_explicitly_given())
+            out << " = " << val.get_value();
     }
 
     void do_write_synopsis_member_variable(const parser& p, code_block_writer& out, bool top_level,
@@ -330,6 +331,7 @@ namespace
     }
 
     void do_write_synopsis_template_param(const parser& p, code_block_writer& out, bool top_level,
+                                          const doc_cpp_entity&              e,
                                           const cpp_template_type_parameter& param)
     {
         if (param.get_keyword() == cpp_template_parameter::cpp_typename)
@@ -343,7 +345,7 @@ namespace
             out << " ...";
 
         if (!param.get_name().empty())
-            (out << ' ').write_link(top_level, param.get_name(), param.get_unique_name());
+            (out << ' ').write_link(top_level, param.get_name(), e.get_unique_name());
 
         if (param.has_default_type())
         {
@@ -353,29 +355,39 @@ namespace
     }
 
     void do_write_synopsis_template_param(const parser& p, code_block_writer& out, bool top_level,
+                                          const doc_cpp_entity&                  e,
                                           const cpp_non_type_template_parameter& param)
     {
         detail::write_type_value_default(p, out, top_level, param.get_type(), param.get_name(),
-                                         param.get_unique_name(), param.get_default_value(),
+                                         e.get_unique_name(), param.get_default_value(),
                                          param.is_variadic());
     }
 
     void do_write_synopsis_template_param(const parser& p, code_block_writer& out, bool top_level,
+                                          const doc_cpp_entity&         e,
                                           const cpp_template_parameter& param);
 
     void do_write_synopsis_template_param(const parser& p, code_block_writer& out, bool top_level,
+                                          const doc_cpp_entity&                  e,
                                           const cpp_template_template_parameter& param)
     {
         out << "template <";
 
         auto first = true;
-        for (auto& child : param)
+        for (auto& child : e)
         {
+            assert(child.get_entity_type() == doc_entity::cpp_entity_t);
+            assert(is_template_parameter(child.get_cpp_entity_type()));
+
             if (first)
                 first = false;
             else
                 out << ", ";
-            do_write_synopsis_template_param(p, out, false, child);
+
+            auto& cpp_child = static_cast<const doc_cpp_entity&>(child);
+            do_write_synopsis_template_param(p, out, false, cpp_child,
+                                             static_cast<const cpp_template_parameter&>(
+                                                 cpp_child.get_cpp_entity()));
         }
 
         out << "> ";
@@ -390,7 +402,7 @@ namespace
         if (param.is_variadic())
             out << " ...";
         if (!param.get_name().empty())
-            (out << ' ').write_link(top_level, param.get_name(), param.get_unique_name());
+            (out << ' ').write_link(top_level, param.get_name(), e.get_unique_name());
         if (param.has_default_template())
         {
             auto def = detail::get_ref_name(p, param.get_default_template());
@@ -399,18 +411,19 @@ namespace
     }
 
     void do_write_synopsis_template_param(const parser& p, code_block_writer& out, bool top_level,
+                                          const doc_cpp_entity&         e,
                                           const cpp_template_parameter& param)
     {
         if (param.get_entity_type() == cpp_entity::template_type_parameter_t)
-            do_write_synopsis_template_param(p, out, top_level,
+            do_write_synopsis_template_param(p, out, top_level, e,
                                              static_cast<const cpp_template_type_parameter&>(
                                                  param));
         else if (param.get_entity_type() == cpp_entity::non_type_template_parameter_t)
-            do_write_synopsis_template_param(p, out, top_level,
+            do_write_synopsis_template_param(p, out, top_level, e,
                                              static_cast<const cpp_non_type_template_parameter&>(
                                                  param));
         else if (param.get_entity_type() == cpp_entity::template_template_parameter_t)
-            do_write_synopsis_template_param(p, out, top_level,
+            do_write_synopsis_template_param(p, out, top_level, e,
                                              static_cast<const cpp_template_template_parameter&>(
                                                  param));
         else
@@ -430,16 +443,17 @@ void doc_inline_cpp_entity::do_generate_synopsis(const parser& p, code_block_wri
     switch (get_cpp_entity_type())
     {
     case cpp_entity::signed_enum_value_t:
-        do_write_synopsis_enum_value(out, top_level,
+        do_write_synopsis_enum_value(out, top_level, *this,
                                      static_cast<const cpp_signed_enum_value&>(get_cpp_entity()));
         break;
     case cpp_entity::unsigned_enum_value_t:
-        do_write_synopsis_enum_value(out, top_level,
+        do_write_synopsis_enum_value(out, top_level, *this,
                                      static_cast<const cpp_unsigned_enum_value&>(get_cpp_entity()));
         break;
     case cpp_entity::expression_enum_value_t:
-        do_write_synopsis_enum_value(out, top_level, static_cast<const cpp_expression_enum_value&>(
-                                                         get_cpp_entity()));
+        do_write_synopsis_enum_value(out, top_level, *this,
+                                     static_cast<const cpp_expression_enum_value&>(
+                                         get_cpp_entity()));
         break;
 
     case cpp_entity::function_parameter_t:
@@ -460,7 +474,7 @@ void doc_inline_cpp_entity::do_generate_synopsis(const parser& p, code_block_wri
     case cpp_entity::template_type_parameter_t:
     case cpp_entity::non_type_template_parameter_t:
     case cpp_entity::template_template_parameter_t:
-        do_write_synopsis_template_param(p, out, top_level,
+        do_write_synopsis_template_param(p, out, top_level, *this,
                                          static_cast<const cpp_template_parameter&>(
                                              get_cpp_entity()));
         break;
@@ -556,15 +570,15 @@ namespace
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
-                           const cpp_type_alias& a)
+                           const doc_cpp_entity& e, const cpp_type_alias& a)
     {
         auto target = detail::get_ref_name(par, a.get_target());
-        (out << "using ").write_link(top_level, a.get_name(), a.get_unique_name()) << " = ";
+        (out << "using ").write_link(top_level, a.get_name(), e.get_unique_name()) << " = ";
         out.write_link(false, target.name, target.unique_name) << ';';
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
-                           const cpp_variable& v)
+                           const doc_cpp_entity& e, const cpp_variable& v)
     {
         if (v.get_ast_parent().get_entity_type() == cpp_entity::class_t)
             out << "static ";
@@ -573,7 +587,7 @@ namespace
             out << "thread_local ";
 
         detail::write_type_value_default(par, out, top_level, v.get_type(), v.get_name(),
-                                         v.get_unique_name(), v.get_initializer());
+                                         e.get_unique_name(), v.get_initializer());
         out << ';';
     }
 
@@ -586,9 +600,10 @@ namespace
     }
 
     void do_write_synopsis(const parser&, code_block_writer& out, bool top_level,
-                           const cpp_macro_definition& m, bool show_replacement)
+                           const doc_cpp_entity& e, const cpp_macro_definition& m,
+                           bool show_replacement)
     {
-        (out << "#define ").write_link(top_level, m.get_name(), m.get_unique_name())
+        (out << "#define ").write_link(top_level, m.get_name(), e.get_unique_name())
             << m.get_parameter_string();
         if (show_replacement)
             out << ' ' << m.get_replacement();
@@ -607,7 +622,7 @@ void doc_leave_cpp_entity::do_generate_synopsis(const parser& p, code_block_writ
     switch (get_cpp_entity_type())
     {
     case cpp_entity::macro_definition_t:
-        do_write_synopsis(p, out, top_level,
+        do_write_synopsis(p, out, top_level, *this,
                           static_cast<const cpp_macro_definition&>(get_cpp_entity()),
                           p.get_output_config().is_set(output_flag::show_macro_replacement));
         break;
@@ -627,11 +642,13 @@ void doc_leave_cpp_entity::do_generate_synopsis(const parser& p, code_block_writ
         break;
 
     case cpp_entity::type_alias_t:
-        do_write_synopsis(p, out, top_level, static_cast<const cpp_type_alias&>(get_cpp_entity()));
+        do_write_synopsis(p, out, top_level, *this,
+                          static_cast<const cpp_type_alias&>(get_cpp_entity()));
         break;
 
     case cpp_entity::variable_t:
-        do_write_synopsis(p, out, top_level, static_cast<const cpp_variable&>(get_cpp_entity()));
+        do_write_synopsis(p, out, top_level, *this,
+                          static_cast<const cpp_variable&>(get_cpp_entity()));
         break;
 
     case cpp_entity::file_t:
@@ -783,12 +800,12 @@ namespace
         if (e.get_cpp_entity_type() == cpp_entity::class_template_full_specialization_t
             || e.get_cpp_entity_type() == cpp_entity::class_template_partial_specialization_t)
             detail::write_class_name(out, top_level, e.get_cpp_entity().get_name(),
-                                     e.get_cpp_entity().get_unique_name(), c.get_class_type());
+                                     e.get_unique_name(), c.get_class_type());
         else if (e.get_cpp_entity_type() == cpp_entity::class_template_t)
             detail::write_class_name(out, top_level, e.get_cpp_entity().get_name(),
-                                     e.get_cpp_entity().get_unique_name(), c.get_class_type());
+                                     e.get_unique_name(), c.get_class_type());
         else
-            detail::write_class_name(out, top_level, c.get_name(), c.get_unique_name(),
+            detail::write_class_name(out, top_level, c.get_name(), e.get_unique_name(),
                                      c.get_class_type());
 
         if (e.get_cpp_entity().get_name().empty() || top_level)
@@ -920,8 +937,7 @@ namespace
         out << "enum ";
         if (e.is_scoped())
             out << "class ";
-        out.write_link(top_level, entity.get_cpp_entity().get_name(),
-                       entity.get_cpp_entity().get_unique_name());
+        out.write_link(top_level, entity.get_cpp_entity().get_name(), entity.get_unique_name());
         if (entity.get_cpp_entity().get_name().empty() || top_level)
         {
             if (!e.get_underlying_type().get_name().empty())
@@ -942,7 +958,8 @@ namespace
     {
         if (ns.is_inline())
             out << "inline ";
-        (out << "namespace ").write_link(top_level, ns.get_name(), ns.get_unique_name()) << newl;
+        (out << "namespace ").write_link(top_level, ns.get_name(), entity.get_unique_name())
+            << newl;
         do_write_synopsis_container(p, out, entity, blankl);
     }
 
@@ -975,7 +992,7 @@ void doc_container_cpp_entity::do_generate_synopsis(const parser& p, code_block_
     else if (get_cpp_entity_type() == cpp_entity::enum_t)
         do_write_synopsis(p, out, top_level, *this, static_cast<const cpp_enum&>(get_cpp_entity()));
     else if (get_cpp_entity_type() == cpp_entity::alias_template_t)
-        do_write_synopsis(p, out, top_level,
+        do_write_synopsis(p, out, top_level, *this,
                           static_cast<const cpp_alias_template&>(get_cpp_entity()).get_type());
     else if (get_cpp_entity_type() == cpp_entity::namespace_t)
         do_write_synopsis(p, out, top_level, *this,

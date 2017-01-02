@@ -125,10 +125,9 @@ void detail::write_parameters(const parser& par, code_block_writer& out, bool to
 
 {
     if (cont.get_cpp_entity_type() == cpp_entity::function_template_specialization_t)
-        out.write_link(top_level, cont.get_cpp_entity().get_name(),
-                       cont.get_cpp_entity().get_unique_name());
+        out.write_link(top_level, cont.get_cpp_entity().get_name(), cont.get_unique_name());
     else
-        out.write_link(top_level, f.get_name(), f.get_unique_name());
+        out.write_link(top_level, f.get_name(), cont.get_unique_name());
 
     out << '(';
 
