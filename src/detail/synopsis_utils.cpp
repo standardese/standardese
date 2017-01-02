@@ -145,8 +145,8 @@ void detail::write_parameters(const parser& par, code_block_writer& out, bool to
         else
             need = true;
 
-        detail::write_type_value_default(par, out, false, p.get_type(), p.get_name(),
-                                         p.get_unique_name(), p.get_default_value());
+        detail::write_type_value_default(par, out, false, p.get_type(), p.get_name(), "",
+                                         p.get_default_value());
     }
 
     if (f.is_variadic())

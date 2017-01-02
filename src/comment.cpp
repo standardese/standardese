@@ -134,6 +134,23 @@ void comment::set_return_type_override(const std::string& return_type, unsigned 
     set_synopsis(synopsis_override_, return_type, tab_width);
 }
 
+string detail::get_unique_name(const parser& p, const cpp_entity* parent, const string& unique_name,
+                               const comment* c)
+{
+    if (c && c->has_unique_name_override())
+        return c->get_unique_name_override();
+
+    std::string result;
+    if (parent && parent->get_entity_type() != cpp_entity::file_t
+        && parent->get_entity_type() != cpp_entity::language_linkage_t)
+        result +=
+            detail::get_unique_name(p, parent->get_semantic_parent(), parent->get_unique_name(true),
+                                    p.get_comment_registry().lookup_comment(*parent, nullptr))
+                .c_str();
+    result += unique_name.c_str();
+    return result;
+}
+
 string detail::get_unique_name(const doc_entity* parent, const string& unique_name,
                                const comment* c)
 {

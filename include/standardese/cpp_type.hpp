@@ -43,6 +43,11 @@ namespace standardese
 
         cpp_cursor get_declaration() const STANDARDESE_NOEXCEPT;
 
+        const cpp_entity* get(const cpp_entity_registry& e) const STANDARDESE_NOEXCEPT
+        {
+            return e.try_lookup(get_declaration());
+        }
+
     private:
         cpp_name name_;
         CXType   type_;

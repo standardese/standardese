@@ -314,9 +314,13 @@ namespace standardese
     class cpp_entity;
     class cpp_entity_registry;
     class doc_entity;
+    class parser;
 
     namespace detail
     {
+        string get_unique_name(const parser& p, const cpp_entity* parent, const string& unique_name,
+                               const comment* c);
+
         string get_unique_name(const doc_entity* parent, const string& unique_name,
                                const comment* c);
     }

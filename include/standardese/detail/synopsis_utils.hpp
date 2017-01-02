@@ -20,8 +20,6 @@ namespace standardese
 {
     namespace detail
     {
-        bool is_blacklisted(const parser& p, const cpp_entity& e);
-
         inline bool is_blacklisted(const parser& p, const cpp_entity& e, const comment* c)
         {
             if (c && c->is_excluded())
@@ -30,7 +28,10 @@ namespace standardese
                          .get_blacklist()
                          .is_blacklisted(entity_blacklist::synopsis, e))
                 return true;
-            return e.get_semantic_parent() ? is_blacklisted(p, *e.get_semantic_parent()) : false;
+            return e.get_semantic_parent() ?
+                       is_blacklisted(p, *e.get_semantic_parent(),
+                                      p.get_comment_registry().lookup_comment(e, nullptr)) :
+                       false;
         }
 
         inline bool is_blacklisted(const parser& p, const doc_entity& e)
@@ -44,12 +45,6 @@ namespace standardese
             return e.has_parent() ? is_blacklisted(p, e.get_parent()) : false;
         }
 
-        inline bool is_blacklisted(const parser& p, const cpp_entity& e)
-        {
-            auto comment = p.get_comment_registry().lookup_comment(e, nullptr);
-            return is_blacklisted(p, e, comment);
-        }
-
         struct ref_name
         {
             string name;
@@ -60,28 +55,19 @@ namespace standardese
             }
         };
 
-        template <CXCursorKind Kind>
-        ref_name get_ref_name(const parser& par, const basic_cpp_entity_ref<Kind>& ref)
+        template <class Ref>
+        ref_name get_ref_name(const parser& par, Ref ref)
         {
             auto entity = ref.get(par.get_entity_registry());
             if (!entity)
                 return ref.get_name();
-            else if (is_blacklisted(par, *entity))
+            auto comment = par.get_comment_registry().lookup_comment(*entity, nullptr);
+            if (is_blacklisted(par, *entity, comment))
                 return string(par.get_output_config().get_hidden_name());
 
-            return ref_name(ref.get_name(), entity->get_unique_name());
-        }
-
-        inline ref_name get_ref_name(const parser& par, const cpp_type_ref& ref)
-        {
-            auto decl   = ref.get_declaration();
-            auto entity = par.get_entity_registry().try_lookup(decl);
-            if (!entity)
-                return ref.get_name();
-            else if (is_blacklisted(par, *entity))
-                return string(par.get_output_config().get_hidden_name());
-
-            return ref_name(ref.get_name(), entity->get_unique_name());
+            return ref_name(ref.get_name(),
+                            detail::get_unique_name(par, entity->get_semantic_parent(),
+                                                    entity->get_unique_name(true), comment));
         }
 
         void write_type_value_default(const parser& par, code_block_writer& out, bool top_level,
