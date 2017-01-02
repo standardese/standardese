@@ -23,7 +23,7 @@ std::string detail::get_id(const std::string& unique_name)
         else
             result += c;
 
-    if (result.end()[-1] == ')' && result.end()[-2] == '(')
+    if (result.size() >= 2 && result.end()[-1] == ')' && result.end()[-2] == '(')
     {
         // ends with ()
         result.pop_back();
