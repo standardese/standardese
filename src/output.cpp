@@ -236,7 +236,7 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         }
         else
         {
-            if (maybe_link)
+            if (url.empty() && maybe_link)
                 logger->debug("unable to resolve maybe link to an entity named '{}", name);
             else
                 output.write_str(url.c_str(), url.size());
