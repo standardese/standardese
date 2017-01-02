@@ -330,8 +330,7 @@ namespace
         out << ';';
     }
 
-    void do_write_synopsis_template_param(const parser& p, code_block_writer& out, bool top_level,
-                                          const doc_cpp_entity&              e,
+    void do_write_synopsis_template_param(const parser& p, code_block_writer& out,
                                           const cpp_template_type_parameter& param)
     {
         if (param.get_keyword() == cpp_template_parameter::cpp_typename)
@@ -345,7 +344,7 @@ namespace
             out << " ...";
 
         if (!param.get_name().empty())
-            (out << ' ').write_link(top_level, param.get_name(), e.get_unique_name());
+            out << ' ' << param.get_name();
 
         if (param.has_default_type())
         {
@@ -354,40 +353,30 @@ namespace
         }
     }
 
-    void do_write_synopsis_template_param(const parser& p, code_block_writer& out, bool top_level,
-                                          const doc_cpp_entity&                  e,
+    void do_write_synopsis_template_param(const parser& p, code_block_writer& out,
                                           const cpp_non_type_template_parameter& param)
     {
-        detail::write_type_value_default(p, out, top_level, param.get_type(), param.get_name(),
-                                         e.get_unique_name(), param.get_default_value(),
-                                         param.is_variadic());
+        detail::write_type_value_default(p, out, false, param.get_type(), param.get_name(), "",
+                                         param.get_default_value(), param.is_variadic());
     }
 
-    void do_write_synopsis_template_param(const parser& p, code_block_writer& out, bool top_level,
-                                          const doc_cpp_entity&         e,
+    void do_write_synopsis_template_param(const parser& p, code_block_writer& out,
                                           const cpp_template_parameter& param);
 
-    void do_write_synopsis_template_param(const parser& p, code_block_writer& out, bool top_level,
-                                          const doc_cpp_entity&                  e,
+    void do_write_synopsis_template_param(const parser& p, code_block_writer& out,
                                           const cpp_template_template_parameter& param)
     {
         out << "template <";
 
         auto first = true;
-        for (auto& child : e)
+        for (auto& child : param)
         {
-            assert(child.get_entity_type() == doc_entity::cpp_entity_t);
-            assert(is_template_parameter(child.get_cpp_entity_type()));
-
             if (first)
                 first = false;
             else
                 out << ", ";
 
-            auto& cpp_child = static_cast<const doc_cpp_entity&>(child);
-            do_write_synopsis_template_param(p, out, false, cpp_child,
-                                             static_cast<const cpp_template_parameter&>(
-                                                 cpp_child.get_cpp_entity()));
+            do_write_synopsis_template_param(p, out, child);
         }
 
         out << "> ";
@@ -402,7 +391,7 @@ namespace
         if (param.is_variadic())
             out << " ...";
         if (!param.get_name().empty())
-            (out << ' ').write_link(top_level, param.get_name(), e.get_unique_name());
+            out << ' ' << param.get_name();
         if (param.has_default_template())
         {
             auto def = detail::get_ref_name(p, param.get_default_template());
@@ -410,20 +399,19 @@ namespace
         }
     }
 
-    void do_write_synopsis_template_param(const parser& p, code_block_writer& out, bool top_level,
-                                          const doc_cpp_entity&         e,
+    void do_write_synopsis_template_param(const parser& p, code_block_writer& out,
                                           const cpp_template_parameter& param)
     {
         if (param.get_entity_type() == cpp_entity::template_type_parameter_t)
-            do_write_synopsis_template_param(p, out, top_level, e,
+            do_write_synopsis_template_param(p, out,
                                              static_cast<const cpp_template_type_parameter&>(
                                                  param));
         else if (param.get_entity_type() == cpp_entity::non_type_template_parameter_t)
-            do_write_synopsis_template_param(p, out, top_level, e,
+            do_write_synopsis_template_param(p, out,
                                              static_cast<const cpp_non_type_template_parameter&>(
                                                  param));
         else if (param.get_entity_type() == cpp_entity::template_template_parameter_t)
-            do_write_synopsis_template_param(p, out, top_level, e,
+            do_write_synopsis_template_param(p, out,
                                              static_cast<const cpp_template_template_parameter&>(
                                                  param));
         else
@@ -474,9 +462,8 @@ void doc_inline_cpp_entity::do_generate_synopsis(const parser& p, code_block_wri
     case cpp_entity::template_type_parameter_t:
     case cpp_entity::non_type_template_parameter_t:
     case cpp_entity::template_template_parameter_t:
-        do_write_synopsis_template_param(p, out, top_level, *this,
-                                         static_cast<const cpp_template_parameter&>(
-                                             get_cpp_entity()));
+        do_write_synopsis_template_param(p, out, static_cast<const cpp_template_parameter&>(
+                                                     get_cpp_entity()));
         break;
 
     case cpp_entity::base_class_t:
