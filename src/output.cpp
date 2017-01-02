@@ -76,19 +76,22 @@ namespace
         auto& text = static_cast<const md_text&>(*link.begin());
         return text.get_string();
     }
+}
 
-    std::string normalize_escape(const cpp_name& name)
+std::string standardese::detail::normalize_url(const char* str)
+{
+    std::string result;
+    while (*str)
     {
-        std::string result;
-        for (auto c : name)
-            if (c == '/')
-                result += "%2F";
-            else if (c == '&')
-                result += "%26";
-            else
-                result += c;
-        return result;
+        auto c = *str++;
+        if (c == '/')
+            result += "%2F";
+        else if (c == '&')
+            result += "%26";
+        else
+            result += c;
     }
+    return result;
 }
 
 void standardese::normalize_urls(const index& idx, md_container& document,
@@ -105,7 +108,8 @@ void standardese::normalize_urls(const index& idx, md_container& document,
         auto entity = context ? idx.try_name_lookup(*context, str) : idx.try_lookup(str);
         if (entity)
             link.set_destination(
-                ("standardese://" + normalize_escape(entity->get_unique_name()) + '/').c_str());
+                ("standardese://" + detail::normalize_url(entity->get_unique_name().c_str()) + '/')
+                    .c_str());
         else
             link.set_destination(("standardese://" + str + '/').c_str());
     });

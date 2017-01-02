@@ -36,6 +36,8 @@ namespace standardese
         {
             constexpr blankl_t(){};
         };
+
+        std::string normalize_url(const char* str);
     }
 
     constexpr detail::newl_t   newl;
@@ -104,9 +106,9 @@ namespace standardese
                 return *this;
             else if (!use_advanced_ || top_level || unique_name.empty())
                 return *this << str;
-            write_c_str(
-                fmt::format("<a href='standardese://{}/'>{}</a>", unique_name.c_str(), str.c_str())
-                    .c_str());
+            write_c_str(fmt::format("<a href='standardese://{}/'>{}</a>",
+                                    detail::normalize_url(unique_name.c_str()), str.c_str())
+                            .c_str());
             return *this;
         }
 
