@@ -59,7 +59,7 @@ namespace
         }
     }
 
-    std::string get_entity_name(const md_link& link)
+    std::string get_entity_name(md_link& link)
     {
         if (*link.get_destination())
         {
@@ -73,8 +73,13 @@ namespace
         else if (link.begin()->get_entity_type() != md_entity::text_t)
             // must be a text
             return "";
-        auto& text = static_cast<const md_text&>(*link.begin());
-        return text.get_string();
+
+        auto& text   = static_cast<md_text&>(*link.begin());
+        auto  string = std::string(text.get_string());
+        if (string.front() == '*' || string.front() == '?')
+            // remove name lookup stuff
+            text.set_string(string.c_str() + 1);
+        return string;
     }
 }
 
