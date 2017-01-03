@@ -235,9 +235,9 @@ namespace standardese
             return !synopsis_override_.empty() && synopsis_override_[0] == '\r';
         }
 
-        const std::string& get_synopsis_override() const STANDARDESE_NOEXCEPT
+        const char* get_synopsis_override() const STANDARDESE_NOEXCEPT
         {
-            return synopsis_override_;
+            return synopsis_override_.c_str() + 1;
         }
 
         void set_synopsis_override(const std::string& synopsis, unsigned tab_width);
