@@ -823,6 +823,8 @@ namespace
                 while (*end_id && !std::isspace(*end_id))
                     ++end_id;
                 stack.info().comment.add_to_member_group(get_group_id(arg, end_id));
+                while (*end_id && std::isspace(*end_id))
+                    ++end_id;
                 if (*end_id)
                     stack.info().comment.set_group_name(end_id);
                 break;
