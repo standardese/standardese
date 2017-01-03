@@ -8,6 +8,7 @@
 #include <clang-c/Index.h>
 
 #include <standardese/noexcept.hpp>
+#include <standardese/string.hpp>
 
 namespace standardese
 {
@@ -22,29 +23,42 @@ namespace standardese
         cpp_cursor(CXCursor cur) STANDARDESE_NOEXCEPT : CXCursor(cur)
         {
         }
+
+        string get_usr() const STANDARDESE_NOEXCEPT
+        {
+            return clang_getCursorUSR(*this);
+        }
     };
 
     inline bool operator==(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
     {
-        return clang_equalCursors(a, b) == 1u;
+        return a.get_usr() == b.get_usr();
     }
 
     inline bool operator!=(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
     {
         return !(a == b);
     }
-} // namespace standardese
 
-namespace std
-{
-    template <>
-    struct hash<standardese::cpp_cursor>
+    inline bool operator<(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
     {
-        std::size_t operator()(const standardese::cpp_cursor& cur) const STANDARDESE_NOEXCEPT
-        {
-            return clang_hashCursor(cur);
-        }
-    };
-} // namespace std
+        return a.get_usr() < b.get_usr();
+    }
+
+    inline bool operator<=(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
+    {
+        return a.get_usr() < b.get_usr();
+    }
+
+    inline bool operator>(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
+    {
+        return a.get_usr() > b.get_usr();
+    }
+
+    inline bool operator>=(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
+    {
+        return a.get_usr() >= b.get_usr();
+    }
+} // namespace standardese
 
 #endif //STANDARDESE_CPP_CURSOR_HPP_INCLUDED

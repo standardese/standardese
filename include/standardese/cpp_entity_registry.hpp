@@ -5,8 +5,8 @@
 #ifndef STANDARDESE_CPP_ENTITY_REGISTRY_HPP_INCLUDED
 #define STANDARDESE_CPP_ENTITY_REGISTRY_HPP_INCLUDED
 
+#include <map>
 #include <mutex>
-#include <unordered_map>
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/cpp_entity.hpp>
@@ -36,8 +36,8 @@ namespace standardese
         }
 
     private:
-        mutable std::mutex mutex_, mutex_alternatives_;
-        mutable std::unordered_map<cpp_cursor, const cpp_entity*> map_;
+        mutable std::mutex mutex_;
+        mutable std::map<cpp_cursor, const cpp_entity*> map_;
     };
 
     template <CXCursorKind Kind>
