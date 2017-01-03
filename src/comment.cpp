@@ -191,7 +191,8 @@ string detail::get_unique_name(const doc_entity* parent, const string& unique_na
     std::string result;
     if (need_parent_name(parent))
     {
-        if (parent->get_entity_type() == doc_entity::member_group_t && parent->has_parent())
+        if (parent->get_entity_type() == doc_entity::member_group_t
+            && need_parent_name(parent->has_parent() ? &parent->get_parent() : nullptr))
             // use parent of group
             result += parent->get_parent().get_unique_name().c_str();
         else if (parent->get_entity_type() != doc_entity::member_group_t)
