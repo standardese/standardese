@@ -94,7 +94,8 @@ md_ptr<md_code> md_code::make(const md_entity& parent, const char* code)
 md_entity_ptr md_code::do_clone(const md_entity* parent) const
 {
     assert(parent);
-    return std::move(make(*parent, get_string()));
+    auto str = detail::unescape_code(get_string());
+    return std::move(make(*parent, str.c_str()));
 }
 
 md_ptr<md_emphasis> md_emphasis::parse(cmark_node* cur, const md_entity& parent)
