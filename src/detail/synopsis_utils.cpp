@@ -127,11 +127,11 @@ namespace
         auto result = true;
         while (result)
         {
-            if (remove_prefix(main, "constexpr"))
+            if (remove_prefix(main, "constexpr "))
                 prefix += "constexpr ";
-            else if (remove_prefix(main, "const"))
+            else if (remove_prefix(main, "const "))
                 prefix += "const ";
-            else if (remove_prefix(main, "volatile"))
+            else if (remove_prefix(main, "volatile "))
                 prefix += "volatile";
             else
                 result = false;
