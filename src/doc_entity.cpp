@@ -349,7 +349,8 @@ namespace
         if (param.has_default_type())
         {
             auto def_name = detail::get_ref_name(p, param.get_default_type());
-            (out << " = ").write_link(false, def_name.name, def_name.unique_name);
+            out << " = ";
+            detail::write_type_ref_name(out, def_name);
         }
     }
 
@@ -570,7 +571,8 @@ namespace
         else
         {
             auto target = detail::get_ref_name(par, a.get_target());
-            out.write_link(false, target.name, target.unique_name) << ';';
+            detail::write_type_ref_name(out, target);
+            out << ';';
         }
     }
 
@@ -884,14 +886,16 @@ namespace
         {
             auto ret_name =
                 detail::get_ref_name(p, static_cast<const cpp_function&>(f).get_return_type());
-            out.write_link(false, ret_name.name, ret_name.unique_name) << ' ';
+            detail::write_type_ref_name(out, ret_name);
+            out << ' ';
         }
         else if (f.get_entity_type() == cpp_entity::member_function_t)
         {
             auto ret_name =
                 detail::get_ref_name(p,
                                      static_cast<const cpp_member_function&>(f).get_return_type());
-            out.write_link(false, ret_name.name, ret_name.unique_name) << ' ';
+            detail::write_type_ref_name(out, ret_name);
+            out << ' ';
         }
 
         detail::write_parameters(p, out, top_level, e, f);
