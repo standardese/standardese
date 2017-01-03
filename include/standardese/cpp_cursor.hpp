@@ -5,6 +5,8 @@
 #ifndef STANDARDESE_CPP_CURSOR_HPP_INCLUDED
 #define STANDARDESE_CPP_CURSOR_HPP_INCLUDED
 
+#include <cassert>
+
 #include <clang-c/Index.h>
 
 #include <standardese/noexcept.hpp>
@@ -32,6 +34,7 @@ namespace standardese
 
     inline bool operator==(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
     {
+        assert(!a.get_usr().empty() && !b.get_usr().empty());
         return a.get_usr() == b.get_usr();
     }
 
@@ -42,22 +45,23 @@ namespace standardese
 
     inline bool operator<(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
     {
+        assert(!a.get_usr().empty() && !b.get_usr().empty());
         return a.get_usr() < b.get_usr();
     }
 
     inline bool operator<=(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
     {
-        return a.get_usr() < b.get_usr();
+        return !(b < a);
     }
 
     inline bool operator>(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
     {
-        return a.get_usr() > b.get_usr();
+        return b < a;
     }
 
     inline bool operator>=(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
     {
-        return a.get_usr() >= b.get_usr();
+        return !(b < a);
     }
 } // namespace standardese
 

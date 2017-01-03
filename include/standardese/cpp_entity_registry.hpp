@@ -18,18 +18,18 @@ namespace standardese
     public:
         void register_entity(const cpp_entity& e) const
         {
-            std::unique_lock<std::mutex> lock(mutex_);
-            map_.emplace(e.get_cursor(), &e);
-        }
-
-        const cpp_entity& lookup_entity(const cpp_cursor& cur) const
-        {
-            std::unique_lock<std::mutex> lock(mutex_);
-            return *map_.at(cur);
+            if (!e.get_cursor().get_usr().empty())
+            {
+                std::unique_lock<std::mutex> lock(mutex_);
+                map_.emplace(e.get_cursor(), &e);
+            }
         }
 
         const cpp_entity* try_lookup(const cpp_cursor& cur) const STANDARDESE_NOEXCEPT
         {
+            if (cur.get_usr().empty())
+                return nullptr;
+
             std::unique_lock<std::mutex> lock(mutex_);
             auto                         iter = map_.find(cur);
             return iter == map_.end() ? nullptr : iter->second;
@@ -74,6 +74,11 @@ namespace standardese
         cpp_cursor get() const STANDARDESE_NOEXCEPT
         {
             return cursor_;
+        }
+
+        cpp_cursor get_declaration() const STANDARDESE_NOEXCEPT
+        {
+            return **this;
         }
 
         const cpp_entity* get(const cpp_entity_registry& e) const STANDARDESE_NOEXCEPT

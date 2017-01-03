@@ -79,8 +79,8 @@ translation_unit::translation_unit(const parser& par, const char* path, cpp_file
     detail::visit_tu(get_cxunit(), path, [&](cpp_cursor cur, cpp_cursor parent) {
         stack.pop_if_needed(parent);
 
-        if (clang_getCursorSemanticParent(cur) != parent
-            && clang_getCursorSemanticParent(cur) != cpp_cursor())
+        if (clang_equalCursors(clang_getCursorSemanticParent(cur), parent) == 0u
+            && !clang_Cursor_isNull(clang_getCursorSemanticParent(cur)))
             // out of class definition, some weird other stuff with extern templates, implicit dtors
             return CXChildVisit_Continue;
 

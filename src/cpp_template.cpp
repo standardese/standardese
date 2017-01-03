@@ -345,7 +345,7 @@ cpp_ptr<cpp_function_template_specialization> cpp_function_template_specializati
     result->func_ = std::move(func);
 
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
-    assert(primary_cur != cpp_cursor());
+    assert(!clang_Cursor_isNull(primary_cur));
     result->primary_ = cpp_template_ref(primary_cur, result->func_->get_name());
     return result;
 }
@@ -406,7 +406,7 @@ cpp_ptr<cpp_class_template_full_specialization> cpp_class_template_full_speciali
     result->class_ = std::move(ptr);
 
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
-    assert(primary_cur != cpp_cursor());
+    assert(!clang_Cursor_isNull(primary_cur));
     result->primary_ = cpp_template_ref(primary_cur, result->class_->get_name());
     return result;
 }
@@ -425,7 +425,7 @@ cpp_ptr<cpp_class_template_partial_specialization> cpp_class_template_partial_sp
     result->class_ = std::move(ptr);
 
     auto primary_cur = clang_getSpecializedCursorTemplate(cur);
-    assert(primary_cur != cpp_cursor());
+    assert(!clang_Cursor_isNull(primary_cur));
     result->primary_ = cpp_template_ref(primary_cur, result->class_->get_name());
     return result;
 }
