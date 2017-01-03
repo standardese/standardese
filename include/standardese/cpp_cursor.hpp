@@ -25,43 +25,16 @@ namespace standardese
         cpp_cursor(CXCursor cur) STANDARDESE_NOEXCEPT : CXCursor(cur)
         {
         }
-
-        string get_usr() const STANDARDESE_NOEXCEPT
-        {
-            return clang_getCursorUSR(*this);
-        }
     };
 
     inline bool operator==(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
     {
-        assert(!a.get_usr().empty() && !b.get_usr().empty());
-        return a.get_usr() == b.get_usr();
+        return clang_equalCursors(a, b) != 0u;
     }
 
     inline bool operator!=(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
     {
         return !(a == b);
-    }
-
-    inline bool operator<(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
-    {
-        assert(!a.get_usr().empty() && !b.get_usr().empty());
-        return a.get_usr() < b.get_usr();
-    }
-
-    inline bool operator<=(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
-    {
-        return !(b < a);
-    }
-
-    inline bool operator>(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
-    {
-        return b < a;
-    }
-
-    inline bool operator>=(const cpp_cursor& a, const cpp_cursor& b) STANDARDESE_NOEXCEPT
-    {
-        return !(b < a);
     }
 } // namespace standardese
 

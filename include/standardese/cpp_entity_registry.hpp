@@ -18,26 +18,31 @@ namespace standardese
     public:
         void register_entity(const cpp_entity& e) const
         {
-            if (!e.get_cursor().get_usr().empty())
-            {
-                std::unique_lock<std::mutex> lock(mutex_);
+            std::unique_lock<std::mutex> lock(mutex_);
+            if (!string(clang_getCursorUSR(e.get_cursor())).empty())
                 map_.emplace(e.get_cursor(), &e);
-            }
         }
 
         const cpp_entity* try_lookup(const cpp_cursor& cur) const STANDARDESE_NOEXCEPT
         {
-            if (cur.get_usr().empty())
-                return nullptr;
-
             std::unique_lock<std::mutex> lock(mutex_);
-            auto                         iter = map_.find(cur);
+            if (string(clang_getCursorUSR(cur)).empty())
+                return nullptr;
+            auto iter = map_.find(cur);
             return iter == map_.end() ? nullptr : iter->second;
         }
 
     private:
+        struct cursor_less
+        {
+            bool operator()(const cpp_cursor& a, const cpp_cursor& b) const STANDARDESE_NOEXCEPT
+            {
+                return string(clang_getCursorUSR(a)) < string(clang_getCursorUSR(b));
+            }
+        };
+
         mutable std::mutex mutex_;
-        mutable std::map<cpp_cursor, const cpp_entity*> map_;
+        mutable std::map<cpp_cursor, const cpp_entity*, cursor_less> map_;
     };
 
     template <CXCursorKind Kind>
