@@ -353,7 +353,7 @@ i.e. the unique name of the parent entity will be prepended to it (with seperato
 
 * `synopsis {string}` - Overrides the synopsis in the output.
 You can pass any string that will be rendered instead of the actual synopsis.
-Use `\n` to render a newline, use `\t` to render a tab and use `\<` and `\>` to render `<` and `>`, respectively.
+Use `\n` to render a newline and use `\t` to render a tab.
 
 * `synopsis_return {string}` - Like `synopsis`, but only overrides the return type of the function.
 

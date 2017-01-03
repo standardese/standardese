@@ -111,14 +111,11 @@ namespace
                 escape = false;
                 result += std::string(tab_width, ' ');
             }
-            else if (escape)
-            {
-                result += '\\';
-                result += c;
-                escape = false;
-            }
             else
+            {
+                escape = false;
                 result += c;
+            }
     }
 }
 
