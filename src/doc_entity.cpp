@@ -1089,7 +1089,7 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
     if (get_comment().has_group_name())
     {
         auto heading = md_heading::make(doc, level);
-        heading->add_entity(md_text::make(*heading, get_comment().get_group_name().c_str()));
+        heading->add_entity(md_text::make(*heading, get_comment().get_group_name()));
         heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
         if (p.get_output_config().is_set(output_flag::show_modules) && get_comment().in_module())
             heading->add_entity(
@@ -1130,7 +1130,7 @@ void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& 
 {
     if (!top_level && (get_comment().in_unique_member_group()
                        || p.get_output_config().is_set(output_flag::show_group_output_section))
-        && get_comment().has_group_name())
+        && get_comment().show_group_section())
     {
         out << "//=== ";
         out.write_link(top_level, get_comment().get_group_name(), begin()->get_unique_name());

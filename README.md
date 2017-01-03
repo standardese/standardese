@@ -404,6 +404,7 @@ void foo();
 * `output_section {name}` - Generates a little section comment in the synopsis above the entity.
 This is implictly used for member groups with the group name as output section name,
 if the option `output.show_group_output_section` is `true` (the default).
+If a member group name starts with '-', it will never be used (the minus won't be shown).
 Given the following input:
 ```cpp
 /// Some int getter.
