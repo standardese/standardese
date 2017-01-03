@@ -107,8 +107,10 @@ namespace
             return "parameter";
         case cpp_entity::function_t:
         case cpp_entity::member_function_t:
+        case cpp_entity::function_template_t:
+        case cpp_entity::function_template_specialization_t:
         {
-            auto& func = static_cast<const cpp_function_base&>(e);
+            auto& func = *get_function(e);
             switch (func.get_operator_kind())
             {
             case cpp_operator_none:
@@ -137,6 +139,8 @@ namespace
             case cpp_input_operator:
                 return "input operator";
             }
+            if (func.is_templated())
+                return "function template";
             return "function";
         }
         case cpp_entity::conversion_op_t:
@@ -164,10 +168,6 @@ namespace
         case cpp_entity::non_type_template_parameter_t:
         case cpp_entity::template_template_parameter_t:
             return "template parameter";
-
-        case cpp_entity::function_template_t:
-        case cpp_entity::function_template_specialization_t:
-            return "function template";
 
         case cpp_entity::class_t:
         {
