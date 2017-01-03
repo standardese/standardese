@@ -106,7 +106,8 @@ bool detail::scope_stack::pop_if_needed(cpp_cursor parent)
 {
     for (auto iter = std::next(stack_.begin()); iter != stack_.end(); ++iter)
     {
-        if (iter->second == parent)
+        // must use clang_equalCursor here
+        if (clang_equalCursors(iter->second, parent) == 1u)
         {
             stack_.erase(iter, stack_.end());
             return true;
