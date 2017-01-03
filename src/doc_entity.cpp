@@ -794,6 +794,21 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, const 
 
 namespace
 {
+    bool show_full_synopsis(const parser& p, const doc_container_cpp_entity& e, bool top_level)
+    {
+        if (top_level)
+            // top level, always show synopsis
+            return true;
+        else if (e.get_name().empty())
+            // empty name, can't show declaration only
+            return true;
+        else if (e.has_comment())
+            // it has a comment, so will be top_level sometime
+            return false;
+        // it does not have a comment, show full synopsis if flag is set
+        return !p.get_output_config().is_set(output_flag::require_comment_full_synopsis);
+    }
+
     void do_write_synopsis(const parser& p, code_block_writer& out, bool top_level,
                            const doc_container_cpp_entity& e, const cpp_class& c)
     {
@@ -808,7 +823,7 @@ namespace
             detail::write_class_name(out, top_level, c.get_name(), e.get_unique_name(),
                                      c.get_class_type());
 
-        if (e.get_cpp_entity().get_name().empty() || top_level)
+        if (show_full_synopsis(p, e, top_level))
         {
             if (c.is_final())
                 out << " final";
@@ -942,7 +957,7 @@ namespace
         if (e.is_scoped())
             out << "class ";
         out.write_link(top_level, entity.get_cpp_entity().get_name(), entity.get_unique_name());
-        if (entity.get_cpp_entity().get_name().empty() || top_level)
+        if (show_full_synopsis(p, entity, top_level))
         {
             if (!e.get_underlying_type().get_name().empty())
             {

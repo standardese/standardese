@@ -174,6 +174,9 @@ namespace standardese_tool
                                         map.at("output.inline_doc").as<bool>());
         p->get_output_config().set_flag(output_flag::use_advanced_code_block,
                                         map.at("output.advanced_code_block").as<bool>());
+        p->get_output_config()
+            .set_flag(output_flag::require_comment_full_synopsis,
+                      map.at("output.require_comment_for_full_synopsis").as<bool>());
         p->get_output_config().set_flag(output_flag::show_modules,
                                         map.at("output.show_modules").as<bool>());
         p->get_output_config().set_flag(output_flag::show_macro_replacement,
