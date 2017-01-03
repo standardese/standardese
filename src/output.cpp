@@ -12,6 +12,7 @@
 #include <standardese/index.hpp>
 #include <standardese/linker.hpp>
 #include <standardese/md_inlines.hpp>
+#include <standardese/parser.hpp>
 
 using namespace standardese;
 
@@ -232,7 +233,8 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         if (maybe_link)
             name.pop_back();
 
-        auto url = index_->get_linker().get_url(*index_, nullptr, name, output_extension);
+        auto url = index_->get_linker().get_url(*index_, parser_->get_external_linker(), nullptr,
+                                                name, output_extension);
         if (url.empty() && !maybe_link)
         {
             logger->warn("unable to resolve link to an entity named '{}'", name);

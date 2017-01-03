@@ -15,7 +15,7 @@ namespace standardese
     class doc_entity;
     class index;
 
-    class linker
+    class external_linker
     {
     public:
         /// \effects Registers an external URL.
@@ -23,14 +23,24 @@ namespace standardese
         /// If `url` contains two dollar signs (`$$`), this will be replaced by the (url-encoded) `unique-name`.
         void register_external(std::string prefix, std::string url);
 
+        std::string lookup(const std::string& unique_name) const;
+
+    private:
+        std::unordered_map<std::string, std::string> external_;
+    };
+
+    class linker
+    {
+    public:
         void register_entity(const doc_entity& e, std::string output_file) const;
 
         std::string register_anchor(const std::string& unique_name, std::string output_file) const;
 
         void change_output_file(const doc_entity& e, std::string output_file) const;
 
-        std::string get_url(const index& idx, const doc_entity* context,
-                            const std::string& unique_name, const char* extension) const;
+        std::string get_url(const index& idx, const external_linker& external,
+                            const doc_entity* context, const std::string& unique_name,
+                            const char* extension) const;
 
         std::string get_url(const doc_entity& e, const char* extension) const;
 
@@ -64,8 +74,6 @@ namespace standardese
         mutable std::mutex mutex_;
         mutable std::unordered_map<const doc_entity*, location> locations_;
         mutable std::unordered_map<std::string, location>       anchors_;
-
-        std::unordered_map<std::string, std::string> external_;
     };
 } // namespace standardese
 

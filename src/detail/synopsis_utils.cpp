@@ -141,7 +141,19 @@ namespace
     }
 }
 
-void detail::write_type_ref_name(code_block_writer& out, const ref_name& name)
+void detail::write_entity_ref_name(const parser& p, code_block_writer& out,
+                                   const detail::ref_name& name)
+{
+    if (name.unique_name.empty())
+    {
+        auto external = p.get_external_linker().lookup(name.name.c_str());
+        out.write_link(false, name.name, external, true);
+    }
+    else
+        out.write_link(false, name.name, name.unique_name);
+}
+
+void detail::write_type_ref_name(const parser& p, code_block_writer& out, const ref_name& name)
 {
     std::string main, suffix;
 
@@ -153,7 +165,14 @@ void detail::write_type_ref_name(code_block_writer& out, const ref_name& name)
     }
 
     auto prefix = get_prefix(main);
-    (out << prefix).write_link(false, main.c_str(), name.unique_name) << suffix;
+
+    if (name.unique_name.empty())
+    {
+        auto external = p.get_external_linker().lookup(main);
+        (out << prefix).write_link(false, main.c_str(), external, true) << suffix;
+    }
+    else
+        (out << prefix).write_link(false, main.c_str(), name.unique_name) << suffix;
 }
 
 void detail::write_type_value_default(const parser& par, code_block_writer& out, bool top_level,
@@ -162,7 +181,7 @@ void detail::write_type_value_default(const parser& par, code_block_writer& out,
                                       bool variadic)
 {
     auto type_name = get_ref_name(par, type);
-    write_type_ref_name(out, type_name);
+    write_type_ref_name(par, out, type_name);
     if (variadic)
         out << " ...";
 
@@ -259,7 +278,7 @@ void detail::write_bases(const parser& par, code_block_writer& out,
         }
 
         auto base_name = get_ref_name(par, base.get_type());
-        out.write_link(false, base_name.name, base_name.unique_name);
+        write_entity_ref_name(par, out, base_name);
     }
 
     if (comma)

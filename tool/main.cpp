@@ -308,7 +308,6 @@ int main(int argc, char* argv[])
 
             auto               no_threads = map.at("jobs").as<unsigned>();
             standardese::index index;
-            config.set_external(index.get_linker());
 
             // generate documentations
             auto generate = [&](const fs::path& p, const fs::path& relative) {

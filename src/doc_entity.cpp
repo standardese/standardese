@@ -350,7 +350,7 @@ namespace
         {
             auto def_name = detail::get_ref_name(p, param.get_default_type());
             out << " = ";
-            detail::write_type_ref_name(out, def_name);
+            detail::write_type_ref_name(p, out, def_name);
         }
     }
 
@@ -396,7 +396,8 @@ namespace
         if (param.has_default_template())
         {
             auto def = detail::get_ref_name(p, param.get_default_template());
-            (out << " = ").write_link(false, def.name, def.unique_name);
+            out << " = ";
+            detail::write_entity_ref_name(p, out, def);
         }
     }
 
@@ -471,8 +472,8 @@ void doc_inline_cpp_entity::do_generate_synopsis(const parser& p, code_block_wri
     {
         auto& base      = static_cast<const cpp_base_class&>(get_cpp_entity());
         auto  base_name = detail::get_ref_name(p, base.get_type());
-        (out << to_string(base.get_access()) << ' ')
-            .write_link(top_level, base_name.name, base_name.unique_name);
+        out << to_string(base.get_access()) << ' ';
+        detail::write_entity_ref_name(p, out, base_name);
     }
 
     case cpp_entity::file_t:
@@ -544,7 +545,7 @@ namespace
         else
         {
             auto target = detail::get_ref_name(par, ns.get_target());
-            out.write_link(false, target.name, target.unique_name);
+            detail::write_entity_ref_name(par, out, target);
         }
         out << ';';
     }
@@ -552,14 +553,18 @@ namespace
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_using_directive& u)
     {
         auto target = detail::get_ref_name(par, u.get_target());
-        (out << "using namespace ").write_link(false, target.name, target.unique_name) << ';';
+        out << "using namespace ";
+        detail::write_entity_ref_name(par, out, target);
+        out << ';';
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out,
                            const cpp_using_declaration& u)
     {
         auto target = detail::get_ref_name(par, u.get_target());
-        (out << "using ").write_link(false, target.name, target.unique_name) << ';';
+        out << "using ";
+        detail::write_entity_ref_name(par, out, target);
+        out << ";";
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
@@ -571,7 +576,7 @@ namespace
         else
         {
             auto target = detail::get_ref_name(par, a.get_target());
-            detail::write_type_ref_name(out, target);
+            detail::write_type_ref_name(par, out, target);
             out << ';';
         }
     }
@@ -901,7 +906,7 @@ namespace
         {
             auto ret_name =
                 detail::get_ref_name(p, static_cast<const cpp_function&>(f).get_return_type());
-            detail::write_type_ref_name(out, ret_name);
+            detail::write_type_ref_name(p, out, ret_name);
             out << ' ';
         }
         else if (f.get_entity_type() == cpp_entity::member_function_t)
@@ -909,7 +914,7 @@ namespace
             auto ret_name =
                 detail::get_ref_name(p,
                                      static_cast<const cpp_member_function&>(f).get_return_type());
-            detail::write_type_ref_name(out, ret_name);
+            detail::write_type_ref_name(p, out, ret_name);
             out << ' ';
         }
 

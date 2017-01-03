@@ -199,6 +199,18 @@ namespace standardese_tool
         if (map.at("input.extract_private").as<bool>())
             blacklist_entity.set_option(entity_blacklist::extract_private);
 
+        // register cppreference.com
+        p->get_external_linker().register_external("std::",
+                                                   "http://en.cppreference.com/mwiki/"
+                                                   "index.php?title=Special%3ASearch&search=$$");
+        for (auto& str : map.at("comment.external_doc").as<std::vector<std::string>>())
+        {
+            auto sep    = str.find('=');
+            auto prefix = str.substr(0, sep);
+            auto url    = str.substr(sep + 1);
+            p->get_external_linker().register_external(std::move(prefix), std::move(url));
+        }
+
         return p;
     }
 
@@ -239,20 +251,6 @@ namespace standardese_tool
             if (iter != map.end())
                 return iter->second.as<std::string>().c_str();
             return nullptr;
-        }
-
-        void set_external(standardese::linker& l) const
-        {
-            // register cppreference.com
-            l.register_external("std::", "http://en.cppreference.com/mwiki/"
-                                         "index.php?title=Special%3ASearch&search=$$");
-            for (auto& str : map.at("comment.external_doc").as<std::vector<std::string>>())
-            {
-                auto sep    = str.find('=');
-                auto prefix = str.substr(0, sep);
-                auto url    = str.substr(sep + 1);
-                l.register_external(std::move(prefix), std::move(url));
-            }
         }
     };
 
