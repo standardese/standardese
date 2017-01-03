@@ -1086,6 +1086,9 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
         auto heading = md_heading::make(doc, level);
         heading->add_entity(md_text::make(*heading, get_comment().get_group_name().c_str()));
         heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
+        if (p.get_output_config().is_set(output_flag::show_modules) && get_comment().in_module())
+            heading->add_entity(
+                md_text::make(*heading, fmt::format(" [{}]", get_comment().get_module()).c_str()));
         doc.add_entity(std::move(heading));
     }
     else if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
