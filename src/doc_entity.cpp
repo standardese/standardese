@@ -1086,7 +1086,7 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
 {
     assert(!empty());
 
-    if (get_comment().has_group_name())
+    if (get_comment().has_group_name() && !get_comment().in_unique_member_group())
     {
         auto heading = md_heading::make(doc, level);
         heading->add_entity(md_text::make(*heading, get_comment().get_group_name()));
