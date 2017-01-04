@@ -1086,42 +1086,50 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
 {
     assert(!empty());
 
-    if (get_comment().has_group_name() && !get_comment().in_unique_member_group())
-    {
-        auto heading = md_heading::make(doc, level);
-        heading->add_entity(md_text::make(*heading, get_comment().get_group_name()));
-        heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
-        if (p.get_output_config().is_set(output_flag::show_modules) && get_comment().in_module())
-            heading->add_entity(
-                md_text::make(*heading, fmt::format(" [{}]", get_comment().get_module()).c_str()));
-        doc.add_entity(std::move(heading));
-    }
-    else if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
-    {
-        auto& cpp_e = static_cast<const doc_cpp_entity&>(*doc_entity_container::begin());
-        doc.add_entity(make_heading(i, cpp_e, doc, level,
-                                    p.get_output_config().is_set(output_flag::show_modules)));
-    }
+    if (get_comment().in_unique_member_group())
+        begin()->do_generate_documentation(p, i, doc, level);
     else
     {
-        auto heading = md_heading::make(doc, level);
-        heading->add_entity(md_text::make(*heading, "Member group"));
-        heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
-        doc.add_entity(std::move(heading));
-    }
+        if (get_comment().has_group_name())
+        {
+            auto heading = md_heading::make(doc, level);
+            heading->add_entity(md_text::make(*heading, get_comment().get_group_name()));
+            heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
+            if (p.get_output_config().is_set(output_flag::show_modules)
+                && get_comment().in_module())
+                heading->add_entity(
+                    md_text::make(*heading,
+                                  fmt::format(" [{}]", get_comment().get_module()).c_str()));
+            doc.add_entity(std::move(heading));
+        }
+        else if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
+        {
+            auto& cpp_e = static_cast<const doc_cpp_entity&>(*doc_entity_container::begin());
+            doc.add_entity(make_heading(i, cpp_e, doc, level,
+                                        p.get_output_config().is_set(output_flag::show_modules)));
+        }
+        else
+        {
+            auto heading = md_heading::make(doc, level);
+            heading->add_entity(md_text::make(*heading, "Member group"));
+            heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
+            doc.add_entity(std::move(heading));
+        }
 
-    code_block_writer out(doc, p.get_output_config().is_set(output_flag::use_advanced_code_block));
-    do_generate_synopsis(p, out, true);
-    doc.add_entity(out.get_code_block());
+        code_block_writer out(doc,
+                              p.get_output_config().is_set(output_flag::use_advanced_code_block));
+        do_generate_synopsis(p, out, true);
+        doc.add_entity(out.get_code_block());
 
-    doc.add_entity(get_comment().get_content().clone(doc));
+        doc.add_entity(get_comment().get_content().clone(doc));
 
-    if (p.get_output_config().is_set(output_flag::inline_documentation))
-    {
-        inline_container inlines(doc);
-        for (auto& member : *this)
-            inlines.add_inlines(p, i, member);
-        inlines.finish(doc);
+        if (p.get_output_config().is_set(output_flag::inline_documentation))
+        {
+            inline_container inlines(doc);
+            for (auto& member : *this)
+                inlines.add_inlines(p, i, member);
+            inlines.finish(doc);
+        }
     }
 }
 
