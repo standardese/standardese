@@ -5,8 +5,8 @@
 #ifndef STANDARDESE_CPP_ENTITY_REGISTRY_HPP_INCLUDED
 #define STANDARDESE_CPP_ENTITY_REGISTRY_HPP_INCLUDED
 
+#include <map>
 #include <mutex>
-#include <unordered_map>
 
 #include <standardese/detail/parse_utils.hpp>
 #include <standardese/cpp_entity.hpp>
@@ -19,25 +19,30 @@ namespace standardese
         void register_entity(const cpp_entity& e) const
         {
             std::unique_lock<std::mutex> lock(mutex_);
-            map_.emplace(e.get_cursor(), &e);
-        }
-
-        const cpp_entity& lookup_entity(const cpp_cursor& cur) const
-        {
-            std::unique_lock<std::mutex> lock(mutex_);
-            return *map_.at(cur);
+            if (!string(clang_getCursorUSR(e.get_cursor())).empty())
+                map_.emplace(e.get_cursor(), &e);
         }
 
         const cpp_entity* try_lookup(const cpp_cursor& cur) const STANDARDESE_NOEXCEPT
         {
             std::unique_lock<std::mutex> lock(mutex_);
-            auto                         iter = map_.find(cur);
+            if (string(clang_getCursorUSR(cur)).empty())
+                return nullptr;
+            auto iter = map_.find(cur);
             return iter == map_.end() ? nullptr : iter->second;
         }
 
     private:
-        mutable std::mutex mutex_, mutex_alternatives_;
-        mutable std::unordered_map<cpp_cursor, const cpp_entity*> map_;
+        struct cursor_less
+        {
+            bool operator()(const cpp_cursor& a, const cpp_cursor& b) const STANDARDESE_NOEXCEPT
+            {
+                return string(clang_getCursorUSR(a)) < string(clang_getCursorUSR(b));
+            }
+        };
+
+        mutable std::mutex mutex_;
+        mutable std::map<cpp_cursor, const cpp_entity*, cursor_less> map_;
     };
 
     template <CXCursorKind Kind>
@@ -74,6 +79,11 @@ namespace standardese
         cpp_cursor get() const STANDARDESE_NOEXCEPT
         {
             return cursor_;
+        }
+
+        cpp_cursor get_declaration() const STANDARDESE_NOEXCEPT
+        {
+            return **this;
         }
 
         const cpp_entity* get(const cpp_entity_registry& e) const STANDARDESE_NOEXCEPT

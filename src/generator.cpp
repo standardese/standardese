@@ -79,7 +79,7 @@ namespace
         item->add_entity(std::move(heading));
 
         // add list
-        item->add_entity(md_list::make_bullet(*heading));
+        item->add_entity(md_list::make_bullet(*item));
 
         return item;
     }

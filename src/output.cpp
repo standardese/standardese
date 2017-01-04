@@ -12,6 +12,7 @@
 #include <standardese/index.hpp>
 #include <standardese/linker.hpp>
 #include <standardese/md_inlines.hpp>
+#include <standardese/parser.hpp>
 
 using namespace standardese;
 
@@ -59,7 +60,7 @@ namespace
         }
     }
 
-    std::string get_entity_name(const md_link& link)
+    std::string get_entity_name(md_link& link)
     {
         if (*link.get_destination())
         {
@@ -73,8 +74,13 @@ namespace
         else if (link.begin()->get_entity_type() != md_entity::text_t)
             // must be a text
             return "";
-        auto& text = static_cast<const md_text&>(*link.begin());
-        return text.get_string();
+
+        auto& text   = static_cast<md_text&>(*link.begin());
+        auto  string = std::string(text.get_string());
+        if (string.front() == '*' || string.front() == '?')
+            // remove name lookup stuff
+            text.set_string(string.c_str() + 1);
+        return string;
     }
 }
 
@@ -227,7 +233,8 @@ void output::render_raw(const std::shared_ptr<spdlog::logger>& logger, const raw
         if (maybe_link)
             name.pop_back();
 
-        auto url = index_->get_linker().get_url(*index_, nullptr, name, output_extension);
+        auto url = index_->get_linker().get_url(*index_, parser_->get_external_linker(), nullptr,
+                                                name, output_extension);
         if (url.empty() && !maybe_link)
         {
             logger->warn("unable to resolve link to an entity named '{}'", name);

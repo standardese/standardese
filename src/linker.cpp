@@ -22,7 +22,7 @@ namespace
         return std::strchr(allowed, c) != nullptr;
     }
 
-    std::string fragment_encode(const char* url)
+    std::string fragment_encode(const char* url, bool external = false)
     {
         std::string result;
 
@@ -31,7 +31,7 @@ namespace
             auto c = *url++;
             if (is_valid_fragment(c))
                 result += c;
-            else if (c == '<' || c == '>')
+            else if (!external && (c == '<' || c == '>'))
                 result += '-';
             else if (c == ' ')
                 ; // ignore
@@ -58,23 +58,14 @@ namespace
         {
             if (*iter == '$' && iter != std::prev(url.end()) && *++iter == '$')
                 // sequence of two dollar signs
-                result += fragment_encode(unique_name);
+                result += fragment_encode(unique_name, true);
             else
                 result += *iter;
         }
 
         return result;
     }
-}
 
-void linker::register_external(std::string prefix, std::string url)
-{
-    auto res          = external_.emplace(std::move(prefix), "");
-    res.first->second = std::move(url);
-}
-
-namespace
-{
     const doc_entity& get_documented_entity(const doc_entity& e)
     {
         auto result = &e;
@@ -94,6 +85,20 @@ namespace
 
         return *result;
     }
+}
+
+void external_linker::register_external(std::string prefix, std::string url)
+{
+    auto res          = external_.emplace(std::move(prefix), "");
+    res.first->second = std::move(url);
+}
+
+std::string external_linker::lookup(const std::string& unique_name) const
+{
+    for (auto& pair : external_)
+        if (matches(pair.first, unique_name.c_str()))
+            return generate(pair.second, unique_name.c_str());
+    return "";
 }
 
 void linker::register_entity(const doc_entity& e, std::string output_file) const
@@ -125,8 +130,9 @@ void linker::change_output_file(const doc_entity& e, std::string output_file) co
     locations_.at(&e).set_output_file(std::move(output_file));
 }
 
-std::string linker::get_url(const index& idx, const doc_entity* context,
-                            const std::string& unique_name, const char* extension) const
+std::string linker::get_url(const index& idx, const external_linker& external,
+                            const doc_entity* context, const std::string& unique_name,
+                            const char* extension) const
 {
     auto entity =
         context ? idx.try_name_lookup(*context, unique_name) : idx.try_lookup(unique_name);
@@ -140,10 +146,7 @@ std::string linker::get_url(const index& idx, const doc_entity* context,
             return iter->second.format(extension);
     }
 
-    for (auto& pair : external_)
-        if (matches(pair.first, unique_name.c_str()))
-            return generate(pair.second, unique_name.c_str());
-    return "";
+    return external.lookup(unique_name);
 }
 
 std::string linker::get_url(const doc_entity& e, const char* extension) const

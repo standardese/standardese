@@ -10,13 +10,178 @@
 
 using namespace standardese;
 
+namespace
+{
+    void remove_trailing_ws(std::string& str)
+    {
+        while (!str.empty() && std::isspace(str.back()))
+            str.pop_back();
+    }
+
+    void remove_leading_ws(std::string& str)
+    {
+        while (!str.empty() && std::isspace(str.front()))
+            str.erase(0, 1);
+    }
+
+    bool remove_suffix(std::string& str, const char* suffix)
+    {
+        auto length = std::strlen(suffix);
+        if (str.length() >= length && str.compare(str.length() - length, length, suffix) == 0)
+        {
+            str.erase(str.length() - length);
+            remove_trailing_ws(str);
+            return true;
+        }
+        else
+            return false;
+    }
+
+    bool remove_suffix(std::string& str, char c)
+    {
+        if (!str.empty() && str.back() == c)
+        {
+            str.pop_back();
+            remove_trailing_ws(str);
+            return true;
+        }
+        else
+            return false;
+    }
+
+    bool remove_prefix(std::string& str, const char* prefix)
+    {
+        auto length = std::strlen(prefix);
+        if (str.length() >= length && str.compare(0, length, prefix) == 0)
+        {
+            str.erase(0, length);
+            remove_leading_ws(str);
+            return true;
+        }
+        else
+            return false;
+    }
+
+    void prepend(std::string& result, const char* str)
+    {
+        auto copy = std::move(result);
+        result    = str;
+        detail::append_token(result, std::move(copy));
+    }
+
+    bool remove_reference(std::string& main, std::string& suffix)
+    {
+        if (remove_suffix(main, '&'))
+        {
+            if (remove_suffix(main, '&'))
+                prepend(suffix, "&&");
+            else
+                prepend(suffix, "&");
+            return true;
+        }
+        else
+            return false;
+    }
+
+    bool remove_pointer(std::string& main, std::string& suffix)
+    {
+        auto cv = cpp_cv_none;
+
+        if (remove_suffix(main, "const"))
+        {
+            if (remove_suffix(main, "volatile"))
+                cv = cpp_cv(cpp_cv_const | cpp_cv_volatile);
+            else
+                cv = cpp_cv_const;
+        }
+        else if (remove_suffix(main, "volatile"))
+        {
+            if (remove_suffix(main, "const"))
+                cv = cpp_cv(cpp_cv_const | cpp_cv_volatile);
+            else
+                cv = cpp_cv_volatile;
+        }
+
+        if (remove_suffix(main, '*'))
+        {
+            std::string this_suffix = "*";
+            if (is_const(cv))
+                this_suffix += " const";
+            if (is_volatile(cv))
+                this_suffix += " volatile";
+
+            prepend(suffix, this_suffix.c_str());
+            return true;
+        }
+        else
+        {
+            assert(cv == cpp_cv_none);
+            return false;
+        }
+    }
+
+    std::string get_prefix(std::string& main)
+    {
+        std::string prefix;
+
+        auto result = true;
+        while (result)
+        {
+            if (remove_prefix(main, "constexpr "))
+                prefix += "constexpr ";
+            else if (remove_prefix(main, "const "))
+                prefix += "const ";
+            else if (remove_prefix(main, "volatile "))
+                prefix += "volatile";
+            else
+                result = false;
+        }
+
+        return prefix;
+    }
+}
+
+void detail::write_entity_ref_name(const parser& p, code_block_writer& out,
+                                   const detail::ref_name& name)
+{
+    if (name.unique_name.empty())
+    {
+        auto external = p.get_external_linker().lookup(name.name.c_str());
+        out.write_link(false, name.name, external, true);
+    }
+    else
+        out.write_link(false, name.name, name.unique_name);
+}
+
+void detail::write_type_ref_name(const parser& p, code_block_writer& out, const ref_name& name)
+{
+    std::string main, suffix;
+
+    main = name.name.c_str();
+    remove_trailing_ws(main);
+    remove_reference(main, suffix);
+    while (remove_pointer(main, suffix))
+    {
+    }
+
+    auto prefix = get_prefix(main);
+
+    if (name.unique_name.empty())
+    {
+        auto external = p.get_external_linker().lookup(main);
+        (out << prefix).write_link(false, main.c_str(), external, true) << suffix;
+    }
+    else
+        (out << prefix).write_link(false, main.c_str(), name.unique_name) << suffix;
+}
+
 void detail::write_type_value_default(const parser& par, code_block_writer& out, bool top_level,
                                       const cpp_type_ref& type, const cpp_name& name,
                                       const cpp_name& unique_name, const std::string& def,
                                       bool variadic)
 {
     auto type_name = get_ref_name(par, type);
-    out.write_link(false, type_name.name, type_name.unique_name);
+    write_type_ref_name(par, out, type_name);
     if (variadic)
         out << " ...";
 
@@ -113,7 +278,7 @@ void detail::write_bases(const parser& par, code_block_writer& out,
         }
 
         auto base_name = get_ref_name(par, base.get_type());
-        out.write_link(false, base_name.name, base_name.unique_name);
+        write_entity_ref_name(par, out, base_name);
     }
 
     if (comma)

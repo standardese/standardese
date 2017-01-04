@@ -107,13 +107,14 @@ namespace standardese
 
     enum class output_flag : unsigned
     {
-        inline_documentation      = 1,
-        show_modules              = 2,
-        show_macro_replacement    = 4,
-        show_group_member_id      = 8,
-        show_group_output_section = 16,
-        show_complex_noexcept     = 32,
-        use_advanced_code_block   = 64,
+        inline_documentation          = 1,
+        show_modules                  = 2,
+        show_macro_replacement        = 4,
+        show_group_member_id          = 8,
+        show_group_output_section     = 16,
+        show_complex_noexcept         = 32,
+        require_comment_full_synopsis = 64,
+        use_advanced_code_block       = 128,
     };
 
     class output_config

@@ -128,3 +128,27 @@ md_entity& md_container::add_entity(md_entity_ptr entity)
     md_entity_container::add_entity(std::move(entity));
     return ref;
 }
+
+std::string detail::unescape_code(const char* str)
+{
+    std::string result;
+    for (auto ptr = str; *ptr; ++ptr)
+    {
+        if (*ptr == '\\')
+        {
+            ++ptr;
+            if (*ptr == '<')
+                result += '<';
+            else if (*ptr == '>')
+                result += '>';
+            else
+            {
+                result += '/';
+                result += *ptr;
+            }
+        }
+        else
+            result += *ptr;
+    }
+    return result;
+}

@@ -70,6 +70,10 @@ namespace standardese
                                                     entity->get_unique_name(true), comment));
         }
 
+        void write_entity_ref_name(const parser& p, code_block_writer& out, const ref_name& name);
+
+        void write_type_ref_name(const parser& p, code_block_writer& out, const ref_name& name);
+
         void write_type_value_default(const parser& par, code_block_writer& out, bool top_level,
                                       const cpp_type_ref& type, const cpp_name& name,
                                       const cpp_name& unique_name, const std::string& def = "",

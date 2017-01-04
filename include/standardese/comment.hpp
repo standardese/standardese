@@ -235,9 +235,10 @@ namespace standardese
             return !synopsis_override_.empty() && synopsis_override_[0] == '\r';
         }
 
-        const std::string& get_synopsis_override() const STANDARDESE_NOEXCEPT
+        const char* get_synopsis_override() const STANDARDESE_NOEXCEPT
         {
-            return synopsis_override_;
+            return synopsis_override_[0] == '\r' ? synopsis_override_.c_str() + 1 :
+                                                   synopsis_override_.c_str();
         }
 
         void set_synopsis_override(const std::string& synopsis, unsigned tab_width);
@@ -289,9 +290,14 @@ namespace standardese
             return !group_name_.empty();
         }
 
-        const std::string& get_group_name() const STANDARDESE_NOEXCEPT
+        bool show_group_section() const STANDARDESE_NOEXCEPT
         {
-            return group_name_;
+            return has_group_name() && group_name_[0] != '-';
+        }
+
+        const char* get_group_name() const STANDARDESE_NOEXCEPT
+        {
+            return show_group_section() ? group_name_.c_str() : group_name_.c_str() + 1;
         }
 
         void set_group_name(std::string name)

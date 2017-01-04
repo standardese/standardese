@@ -1,3 +1,20 @@
+## 0.3-4
+
+### Documentation
+
+* Hide member group output section by prefixing the group name with `-`
+* Hide name lookup character in entity link
+
+### Library
+
+* Now links to external entities in advanced code block
+* Only links the main part of type name (i.e. in `const T*const &`, only link will be the `T`)
+* Even more bugfixes
+
+### Tool
+
+* New option `output.require_comment_for_full_synopsis`, controls whether full synopsis will be shown for classes/enums without documentation (disabled by default)
+
 ## 0.3-3
 
 ### Documentation

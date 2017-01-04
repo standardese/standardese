@@ -18,6 +18,7 @@
 #include <standardese/cpp_entity.hpp>
 #include <standardese/cpp_entity_registry.hpp>
 #include <standardese/cpp_preprocessor.hpp>
+#include <standardese/linker.hpp>
 #include <standardese/template_processor.hpp>
 
 #if CINDEX_VERSION_MAJOR != 0
@@ -135,6 +136,16 @@ namespace standardese
             return preprocessor_;
         }
 
+        external_linker& get_external_linker() STANDARDESE_NOEXCEPT
+        {
+            return external_;
+        }
+
+        const external_linker& get_external_linker() const STANDARDESE_NOEXCEPT
+        {
+            return external_;
+        }
+
         CXIndex get_cxindex() const STANDARDESE_NOEXCEPT
         {
             return index_.get();
@@ -153,7 +164,8 @@ namespace standardese
         output_config   output_;
         template_config template_;
 
-        preprocessor preprocessor_;
+        preprocessor    preprocessor_;
+        external_linker external_;
 
         detail::wrapper<CXIndex, deleter> index_;
         std::shared_ptr<spdlog::logger> logger_;

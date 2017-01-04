@@ -258,6 +258,8 @@ int main(int argc, char* argv[])
              "whether or not some entity documentation (parameters etc.) will be shown inline")
             ("output.advanced_code_block", po::value<bool>()->default_value(true)->implicit_value(true),
             "whether or not an advanced (HTML) code block will be used")
+            ("output.require_comment_for_full_synopsis", po::value<bool>()->default_value(true)->implicit_value(true),
+            "whether or not the full definition of a non-documented class/enum will be shown in the synopsis of the parent entity")
             ("output.show_complex_noexcept", po::value<bool>()->default_value(true)->implicit_value(true),
              "whether or not complex noexcept expressions will be shown in the synopsis or replaced by \"see below\"")
             ("output.show_macro_replacement", po::value<bool>()->default_value(false)->implicit_value(true),
@@ -306,7 +308,6 @@ int main(int argc, char* argv[])
 
             auto               no_threads = map.at("jobs").as<unsigned>();
             standardese::index index;
-            config.set_external(index.get_linker());
 
             // generate documentations
             auto generate = [&](const fs::path& p, const fs::path& relative) {

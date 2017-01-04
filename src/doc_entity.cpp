@@ -107,8 +107,10 @@ namespace
             return "parameter";
         case cpp_entity::function_t:
         case cpp_entity::member_function_t:
+        case cpp_entity::function_template_t:
+        case cpp_entity::function_template_specialization_t:
         {
-            auto& func = static_cast<const cpp_function_base&>(e);
+            auto& func = *get_function(e);
             switch (func.get_operator_kind())
             {
             case cpp_operator_none:
@@ -137,6 +139,8 @@ namespace
             case cpp_input_operator:
                 return "input operator";
             }
+            if (func.is_templated())
+                return "function template";
             return "function";
         }
         case cpp_entity::conversion_op_t:
@@ -164,10 +168,6 @@ namespace
         case cpp_entity::non_type_template_parameter_t:
         case cpp_entity::template_template_parameter_t:
             return "template parameter";
-
-        case cpp_entity::function_template_t:
-        case cpp_entity::function_template_specialization_t:
-            return "function template";
 
         case cpp_entity::class_t:
         {
@@ -349,7 +349,8 @@ namespace
         if (param.has_default_type())
         {
             auto def_name = detail::get_ref_name(p, param.get_default_type());
-            (out << " = ").write_link(false, def_name.name, def_name.unique_name);
+            out << " = ";
+            detail::write_type_ref_name(p, out, def_name);
         }
     }
 
@@ -395,7 +396,8 @@ namespace
         if (param.has_default_template())
         {
             auto def = detail::get_ref_name(p, param.get_default_template());
-            (out << " = ").write_link(false, def.name, def.unique_name);
+            out << " = ";
+            detail::write_entity_ref_name(p, out, def);
         }
     }
 
@@ -470,8 +472,8 @@ void doc_inline_cpp_entity::do_generate_synopsis(const parser& p, code_block_wri
     {
         auto& base      = static_cast<const cpp_base_class&>(get_cpp_entity());
         auto  base_name = detail::get_ref_name(p, base.get_type());
-        (out << to_string(base.get_access()) << ' ')
-            .write_link(top_level, base_name.name, base_name.unique_name);
+        out << to_string(base.get_access()) << ' ';
+        detail::write_entity_ref_name(p, out, base_name);
     }
 
     case cpp_entity::file_t:
@@ -543,7 +545,7 @@ namespace
         else
         {
             auto target = detail::get_ref_name(par, ns.get_target());
-            out.write_link(false, target.name, target.unique_name);
+            detail::write_entity_ref_name(par, out, target);
         }
         out << ';';
     }
@@ -551,14 +553,18 @@ namespace
     void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_using_directive& u)
     {
         auto target = detail::get_ref_name(par, u.get_target());
-        (out << "using namespace ").write_link(false, target.name, target.unique_name) << ';';
+        out << "using namespace ";
+        detail::write_entity_ref_name(par, out, target);
+        out << ';';
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out,
                            const cpp_using_declaration& u)
     {
         auto target = detail::get_ref_name(par, u.get_target());
-        (out << "using ").write_link(false, target.name, target.unique_name) << ';';
+        out << "using ";
+        detail::write_entity_ref_name(par, out, target);
+        out << ";";
     }
 
     void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
@@ -570,7 +576,8 @@ namespace
         else
         {
             auto target = detail::get_ref_name(par, a.get_target());
-            out.write_link(false, target.name, target.unique_name) << ';';
+            detail::write_type_ref_name(par, out, target);
+            out << ';';
         }
     }
 
@@ -792,6 +799,21 @@ void doc_container_cpp_entity::do_generate_documentation(const parser& p, const 
 
 namespace
 {
+    bool show_full_synopsis(const parser& p, const doc_container_cpp_entity& e, bool top_level)
+    {
+        if (top_level)
+            // top level, always show synopsis
+            return true;
+        else if (e.get_name().empty())
+            // empty name, can't show declaration only
+            return true;
+        else if (e.has_comment())
+            // it has a comment, so will be top_level sometime
+            return false;
+        // it does not have a comment, show full synopsis if flag is set
+        return !p.get_output_config().is_set(output_flag::require_comment_full_synopsis);
+    }
+
     void do_write_synopsis(const parser& p, code_block_writer& out, bool top_level,
                            const doc_container_cpp_entity& e, const cpp_class& c)
     {
@@ -806,7 +828,7 @@ namespace
             detail::write_class_name(out, top_level, c.get_name(), e.get_unique_name(),
                                      c.get_class_type());
 
-        if (e.get_cpp_entity().get_name().empty() || top_level)
+        if (show_full_synopsis(p, e, top_level))
         {
             if (c.is_final())
                 out << " final";
@@ -884,14 +906,16 @@ namespace
         {
             auto ret_name =
                 detail::get_ref_name(p, static_cast<const cpp_function&>(f).get_return_type());
-            out.write_link(false, ret_name.name, ret_name.unique_name) << ' ';
+            detail::write_type_ref_name(p, out, ret_name);
+            out << ' ';
         }
         else if (f.get_entity_type() == cpp_entity::member_function_t)
         {
             auto ret_name =
                 detail::get_ref_name(p,
                                      static_cast<const cpp_member_function&>(f).get_return_type());
-            out.write_link(false, ret_name.name, ret_name.unique_name) << ' ';
+            detail::write_type_ref_name(p, out, ret_name);
+            out << ' ';
         }
 
         detail::write_parameters(p, out, top_level, e, f);
@@ -938,7 +962,7 @@ namespace
         if (e.is_scoped())
             out << "class ";
         out.write_link(top_level, entity.get_cpp_entity().get_name(), entity.get_unique_name());
-        if (entity.get_cpp_entity().get_name().empty() || top_level)
+        if (show_full_synopsis(p, entity, top_level))
         {
             if (!e.get_underlying_type().get_name().empty())
             {
@@ -1062,39 +1086,50 @@ void doc_member_group::do_generate_documentation(const parser& p, const index& i
 {
     assert(!empty());
 
-    if (get_comment().has_group_name())
-    {
-        auto heading = md_heading::make(doc, level);
-        heading->add_entity(md_text::make(*heading, get_comment().get_group_name().c_str()));
-        heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
-        doc.add_entity(std::move(heading));
-    }
-    else if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
-    {
-        auto& cpp_e = static_cast<const doc_cpp_entity&>(*doc_entity_container::begin());
-        doc.add_entity(make_heading(i, cpp_e, doc, level,
-                                    p.get_output_config().is_set(output_flag::show_modules)));
-    }
+    if (get_comment().in_unique_member_group())
+        begin()->do_generate_documentation(p, i, doc, level);
     else
     {
-        auto heading = md_heading::make(doc, level);
-        heading->add_entity(md_text::make(*heading, "Member group"));
-        heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
-        doc.add_entity(std::move(heading));
-    }
+        if (get_comment().has_group_name())
+        {
+            auto heading = md_heading::make(doc, level);
+            heading->add_entity(md_text::make(*heading, get_comment().get_group_name()));
+            heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
+            if (p.get_output_config().is_set(output_flag::show_modules)
+                && get_comment().in_module())
+                heading->add_entity(
+                    md_text::make(*heading,
+                                  fmt::format(" [{}]", get_comment().get_module()).c_str()));
+            doc.add_entity(std::move(heading));
+        }
+        else if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
+        {
+            auto& cpp_e = static_cast<const doc_cpp_entity&>(*doc_entity_container::begin());
+            doc.add_entity(make_heading(i, cpp_e, doc, level,
+                                        p.get_output_config().is_set(output_flag::show_modules)));
+        }
+        else
+        {
+            auto heading = md_heading::make(doc, level);
+            heading->add_entity(md_text::make(*heading, "Member group"));
+            heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
+            doc.add_entity(std::move(heading));
+        }
 
-    code_block_writer out(doc, p.get_output_config().is_set(output_flag::use_advanced_code_block));
-    do_generate_synopsis(p, out, true);
-    doc.add_entity(out.get_code_block());
+        code_block_writer out(doc,
+                              p.get_output_config().is_set(output_flag::use_advanced_code_block));
+        do_generate_synopsis(p, out, true);
+        doc.add_entity(out.get_code_block());
 
-    doc.add_entity(get_comment().get_content().clone(doc));
+        doc.add_entity(get_comment().get_content().clone(doc));
 
-    if (p.get_output_config().is_set(output_flag::inline_documentation))
-    {
-        inline_container inlines(doc);
-        for (auto& member : *this)
-            inlines.add_inlines(p, i, member);
-        inlines.finish(doc);
+        if (p.get_output_config().is_set(output_flag::inline_documentation))
+        {
+            inline_container inlines(doc);
+            for (auto& member : *this)
+                inlines.add_inlines(p, i, member);
+            inlines.finish(doc);
+        }
     }
 }
 
@@ -1103,7 +1138,7 @@ void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& 
 {
     if (!top_level && (get_comment().in_unique_member_group()
                        || p.get_output_config().is_set(output_flag::show_group_output_section))
-        && get_comment().has_group_name())
+        && get_comment().show_group_section())
     {
         out << "//=== ";
         out.write_link(top_level, get_comment().get_group_name(), begin()->get_unique_name());

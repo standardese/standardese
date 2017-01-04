@@ -9,8 +9,6 @@
 #include <string>
 #include <ostream>
 
-#include <spdlog/fmt/fmt.h>
-
 #include <standardese/md_blocks.hpp>
 #include <standardese/md_custom.hpp>
 #include <standardese/noexcept.hpp>
@@ -100,15 +98,31 @@ namespace standardese
             return *this;
         }
 
-        code_block_writer& write_link(bool top_level, const string& str, const string& unique_name)
+        code_block_writer& write_link(bool top_level, const string& str, const string& unique_name,
+                                      bool external = false)
         {
             if (str.empty())
                 return *this;
             else if (!use_advanced_ || top_level || unique_name.empty())
                 return *this << str;
-            write_c_str(fmt::format("<a href='standardese://{}?/'>{}</a>",
-                                    detail::normalize_url(unique_name.c_str()), str.c_str())
-                            .c_str());
+
+            if (external)
+            {
+                write_c_str("<a href='");
+                write_c_str(unique_name.c_str());
+                write_c_str("'>");
+            }
+            else
+            {
+                write_c_str("<a href='standardese://");
+                write_c_str(detail::normalize_url(unique_name.c_str()).c_str());
+                write_c_str("/'>");
+            }
+
+            *this << str;
+
+            write_c_str("</a>");
+
             return *this;
         }
 

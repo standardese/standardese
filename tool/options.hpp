@@ -174,6 +174,9 @@ namespace standardese_tool
                                         map.at("output.inline_doc").as<bool>());
         p->get_output_config().set_flag(output_flag::use_advanced_code_block,
                                         map.at("output.advanced_code_block").as<bool>());
+        p->get_output_config()
+            .set_flag(output_flag::require_comment_full_synopsis,
+                      map.at("output.require_comment_for_full_synopsis").as<bool>());
         p->get_output_config().set_flag(output_flag::show_modules,
                                         map.at("output.show_modules").as<bool>());
         p->get_output_config().set_flag(output_flag::show_macro_replacement,
@@ -195,6 +198,18 @@ namespace standardese_tool
             blacklist_entity.set_option(entity_blacklist::require_comment);
         if (map.at("input.extract_private").as<bool>())
             blacklist_entity.set_option(entity_blacklist::extract_private);
+
+        // register cppreference.com
+        p->get_external_linker().register_external("std::",
+                                                   "http://en.cppreference.com/mwiki/"
+                                                   "index.php?title=Special%3ASearch&search=$$");
+        for (auto& str : map.at("comment.external_doc").as<std::vector<std::string>>())
+        {
+            auto sep    = str.find('=');
+            auto prefix = str.substr(0, sep);
+            auto url    = str.substr(sep + 1);
+            p->get_external_linker().register_external(std::move(prefix), std::move(url));
+        }
 
         return p;
     }
@@ -236,20 +251,6 @@ namespace standardese_tool
             if (iter != map.end())
                 return iter->second.as<std::string>().c_str();
             return nullptr;
-        }
-
-        void set_external(standardese::linker& l) const
-        {
-            // register cppreference.com
-            l.register_external("std::", "http://en.cppreference.com/mwiki/"
-                                         "index.php?title=Special%3ASearch&search=$$");
-            for (auto& str : map.at("comment.external_doc").as<std::vector<std::string>>())
-            {
-                auto sep    = str.find('=');
-                auto prefix = str.substr(0, sep);
-                auto url    = str.substr(sep + 1);
-                l.register_external(std::move(prefix), std::move(url));
-            }
         }
     };
 

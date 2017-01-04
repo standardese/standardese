@@ -218,6 +218,10 @@ namespace standardese
             auto raw = ptr->clone(parent).release();
             return md_ptr<T>(static_cast<T*>(raw));
         }
+
+        // comment get escaped < and >
+        // unescape them in code blocks on cloning
+        std::string unescape_code(const char* str);
     } // namespace detail
 } // namespace standardese
 
