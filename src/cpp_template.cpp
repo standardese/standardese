@@ -211,13 +211,18 @@ cpp_ptr<cpp_template_template_parameter> cpp_template_template_parameter::parse(
         detail::make_cpp_ptr<cpp_template_template_parameter>(cur, parent, info.keyword,
                                                               cpp_template_ref(), info.variadic);
 
+    std::string def_name;
     detail::visit_children(cur, [&](CXCursor cur, CXCursor) {
         if (auto param = cpp_template_parameter::try_parse(tu, cur, *result))
             result->add_paramter(std::move(param));
+        else if (clang_getCursorKind(cur) == CXCursor_TemplateRef)
+            result->default_ = cpp_template_ref(cur, def_name + detail::parse_name(cur).c_str());
         else
         {
-            assert(clang_getCursorKind(cur) == CXCursor_TemplateRef);
-            result->default_ = cpp_template_ref(cur, detail::parse_name(cur));
+            assert(clang_getCursorKind(cur) == CXCursor_NamespaceRef);
+            def_name += detail::parse_name(cur).c_str();
+            def_name += "::";
+            return CXChildVisit_Recurse;
         }
 
         return CXChildVisit_Continue;
