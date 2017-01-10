@@ -69,24 +69,9 @@ namespace
         detail::append_token(result, std::move(copy));
     }
 
-    bool remove_reference(std::string& main, std::string& suffix)
-    {
-        if (remove_suffix(main, '&'))
-        {
-            if (remove_suffix(main, '&'))
-                prepend(suffix, "&&");
-            else
-                prepend(suffix, "&");
-            return true;
-        }
-        else
-            return false;
-    }
-
-    bool remove_pointer(std::string& main, std::string& suffix)
+    cpp_cv remove_cv(std::string& main)
     {
         auto cv = cpp_cv_none;
-
         if (remove_suffix(main, "const"))
         {
             if (remove_suffix(main, "volatile"))
@@ -102,15 +87,46 @@ namespace
                 cv = cpp_cv_volatile;
         }
 
+        return cv;
+    }
+
+    void prepend_cv(std::string& suffix, cpp_cv cv)
+    {
+        std::string this_suffix;
+        if (is_const(cv))
+            this_suffix += " const";
+        if (is_volatile(cv))
+            this_suffix += " volatile";
+
+        prepend(suffix, this_suffix.c_str());
+    }
+
+    bool remove_reference(std::string& main, std::string& suffix)
+    {
+        if (remove_suffix(main, '&'))
+        {
+            if (remove_suffix(main, '&'))
+                prepend(suffix, "&&");
+            else
+                prepend(suffix, "&");
+
+            auto cv = remove_cv(main);
+            prepend_cv(suffix, cv); // cv on type
+            return true;
+        }
+        else
+            return false;
+    }
+
+    bool remove_pointer(std::string& main, std::string& suffix)
+    {
+        auto cv = remove_cv(main);
+
         if (remove_suffix(main, '*'))
         {
-            std::string this_suffix = "*";
-            if (is_const(cv))
-                this_suffix += " const";
-            if (is_volatile(cv))
-                this_suffix += " volatile";
-
-            prepend(suffix, this_suffix.c_str());
+            prepend_cv(suffix, cv); // cv on pointer
+            prepend(suffix, "*");
+            prepend_cv(suffix, remove_cv(main)); // cv on pointee
             return true;
         }
         else
