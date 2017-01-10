@@ -326,7 +326,6 @@ std::string preprocessor::preprocess(const parser& p, const compile_config& c,
 
             if (marker.file_name == full_path)
             {
-                assert(file_depth <= 1);
                 file_depth = 0;
                 write_char = false;
 
