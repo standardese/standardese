@@ -222,6 +222,8 @@ int main(int argc, char* argv[])
              "set MSVC compatibility version to fake, 0 to disable (-fms-compatibility[-version])")
             ("compilation.clang_binary", po::value<std::string>(),
              "path to clang++ binary")
+            ("compilation.comments_in_macro", po::value<bool>()->implicit_value(true)->default_value(true),
+            "whether or not documentation in macros are supported, can lead to some problems with advanced preprocessor")
 
             ("comment.command_character", po::value<char>()->default_value('\\'),
              "character used to introduce special commands")

@@ -109,10 +109,14 @@ namespace
     std::string get_command(const compile_config& c, const char* full_path)
     {
         // -E: print preprocessor output
-        // -C: keep comments
         // -Wno-pragma-once-outside-header: hide wrong warning
         std::string cmd(fs::path(c.get_clang_binary()).generic_string()
-                        + " -E -CC -Wno-pragma-once-outside-header ");
+                        + " -E -Wno-pragma-once-outside-header ");
+        if (c.comment_in_macro())
+            cmd += "-CC "; // keep comment in macro
+        else
+            cmd += "-C "; // just keep comments outside macro
+
         for (auto& flag : c)
         {
             cmd += '"' + std::string(flag.c_str()) + '"';

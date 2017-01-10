@@ -94,6 +94,8 @@ namespace standardese_tool
         if (binary != map.end())
             result.set_clang_binary(binary->second.as<std::string>());
 
+        result.set_comment_in_macro(map.at("compilation.comments_in_macro").as<bool>());
+
         return result;
     }
 

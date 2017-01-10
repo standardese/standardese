@@ -71,9 +71,20 @@ namespace standardese
             return flags_.end();
         }
 
+        void set_comment_in_macro(bool val) STANDARDESE_NOEXCEPT
+        {
+            comment_in_macro_ = val;
+        }
+
+        bool comment_in_macro() const STANDARDESE_NOEXCEPT
+        {
+            return comment_in_macro_;
+        }
+
     private:
         std::vector<string> flags_;
         std::string         clang_binary_;
+        bool                comment_in_macro_;
     };
 
     enum class command_type : unsigned;
