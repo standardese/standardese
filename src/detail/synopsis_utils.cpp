@@ -136,6 +136,37 @@ namespace
         }
     }
 
+    bool remove_template_args(std::string& main, std::string& suffix)
+    {
+        if (main.back() != '>')
+            return false;
+
+        // note: heurstic that doesn't handle all cases of '<'/'>' being used as expression
+        auto angle_count = 0;
+        auto paren_count = 0;
+        for (auto iter = main.rbegin(); iter != main.rend(); ++iter)
+        {
+            if (paren_count == 0 && *iter == '>')
+                ++angle_count;
+            else if (paren_count == 0 && *iter == '<')
+            {
+                --angle_count;
+                if (angle_count == 0)
+                {
+                    prepend(suffix, &*iter);                 // prepend template arguments
+                    main.erase(iter.base() - 1, main.end()); // erase all starting from '<'
+                    break;
+                }
+            }
+            else if (*iter == ')')
+                ++paren_count;
+            else if (*iter == '(')
+                --paren_count;
+        }
+
+        return true;
+    }
+
     std::string get_prefix(std::string& main)
     {
         std::string prefix;
@@ -179,6 +210,7 @@ void detail::write_type_ref_name(const parser& p, code_block_writer& out, const 
     while (remove_pointer(main, suffix))
     {
     }
+    remove_template_args(main, suffix);
 
     auto prefix = get_prefix(main);
 
