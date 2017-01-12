@@ -235,6 +235,9 @@ int y; //< But this is a different end-of-line comment.
 ```
 
 A comment corresponds to the entity on the line directly below or on the same line.
+You can document all entities that way except files (use `file` command), namespaces (use `entity` command),
+and inline entities such as parameters or base classes (use `param/tparam/base` command or `entity` command).
+
 Inside the comment you can use arbitrary\* Markdown\* in the documentation comments and it will be rendered appropriately.
 
 > The Markdown flavor used is [CommonMark](https://commonmark.org).
