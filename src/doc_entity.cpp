@@ -242,6 +242,8 @@ bool doc_cpp_entity::do_generate_documentation_base(const parser& p, const index
                                                     md_document& doc, unsigned level) const
 {
     if ((requires_comment_for_doc(*this) && !has_comment_impl(*this))
+        || get_cpp_entity_type() == cpp_entity::namespace_t
+        || get_cpp_entity_type() == cpp_entity::language_linkage_t
         || p.get_output_config().get_blacklist().is_blacklisted(entity_blacklist::documentation,
                                                                 get_cpp_entity()))
         return false;
