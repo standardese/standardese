@@ -283,6 +283,8 @@ namespace
     {
         if (e.get_entity_type() == cpp_entity::file_t)
             return comment_id(e.get_full_name());
+        else if (e.get_entity_type() == cpp_entity::namespace_t)
+            return comment_id(e.get_unique_name());
         else if (e.get_entity_type() == cpp_entity::macro_definition_t)
             return create_preprocessor_id(static_cast<const cpp_macro_definition&>(e));
         else if (e.get_entity_type() == cpp_entity::inclusion_directive_t)

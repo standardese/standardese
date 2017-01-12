@@ -136,7 +136,8 @@ std::string linker::get_url(const index& idx, const external_linker& external,
 {
     auto entity =
         context ? idx.try_name_lookup(*context, unique_name) : idx.try_lookup(unique_name);
-    if (entity)
+    if (entity && entity->get_cpp_entity_type() != cpp_entity::namespace_t)
+        // use anchor for namespace
         return get_url(*entity, extension);
 
     {

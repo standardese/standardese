@@ -49,9 +49,10 @@ namespace
         }
     }
 
-    md_ptr<md_list_item> make_group_item(const index& idx, const md_list& list, const char* name,
-                                         unsigned level, bool code, const doc_entity* entity,
-                                         const md_paragraph* brief)
+    md_ptr<md_list_item> make_group_item(const index& idx, const char* file_name,
+                                         const md_list& list, const char* name, unsigned level,
+                                         bool code, const doc_entity* entity,
+                                         const md_comment* comment)
     {
         auto item = md_list_item::make(list);
 
@@ -67,7 +68,20 @@ namespace
         else
             heading->add_entity(md_text::make(*item, name));
 
+        // add anchor
+        if (entity)
+        {
+            heading->add_entity(idx.get_linker().get_anchor(*entity, *heading));
+            idx.get_linker().register_anchor(entity->get_unique_name().c_str(), file_name);
+        }
+        else
+        {
+            heading->add_entity(md_anchor::make(*heading, name));
+            idx.get_linker().register_anchor(name, file_name);
+        }
+
         // add brief
+        auto brief = comment ? &comment->get_brief() : nullptr;
         if (brief && !brief->empty())
         {
             heading->add_entity(md_text::make(*heading, " - "));
@@ -77,6 +91,18 @@ namespace
         }
 
         item->add_entity(std::move(heading));
+
+        // add rest of comment
+        if (comment)
+        {
+            for (auto& child : *comment)
+                if (child.get_entity_type() == md_entity::paragraph_t
+                    && static_cast<const md_paragraph&>(child).get_section_type()
+                           == section_type::brief)
+                    continue;
+                else
+                    item->add_entity(child.clone(*item));
+        }
 
         // add list
         item->add_entity(md_list::make_bullet(*item));
@@ -120,15 +146,15 @@ documentation standardese::generate_entity_index(index& i, std::string name)
             auto iter    = ns_lists.find(ns_name.c_str());
             if (iter == ns_lists.end())
             {
-                auto brief =
-                    ns->has_comment() ? &ns->get_comment().get_content().get_brief() : nullptr;
-                auto item = make_group_item(i, *list, ns_name.c_str(), 0u, true, ns, brief);
-                iter      = ns_lists.emplace(ns_name.c_str(), std::move(item)).first;
+                auto comment = ns->has_comment() ? &ns->get_comment().get_content() : nullptr;
+                auto item    = make_group_item(i, doc->get_output_name().c_str(), *list,
+                                            ns_name.c_str(), 0u, true, ns, comment);
+                iter = ns_lists.emplace(ns_name.c_str(), std::move(item)).first;
             }
 
             auto& item = *iter->second;
-            assert(std::next(item.begin())->get_entity_type() == md_entity::list_t);
-            make_index_item(i, static_cast<md_list&>(*std::next(item.begin())), e, false);
+            assert(item.back().get_entity_type() == md_entity::list_t);
+            make_index_item(i, static_cast<md_list&>(item.back()), e, false);
         }
     });
 
@@ -155,14 +181,15 @@ documentation standardese::generate_module_index(const parser& p, index& i, std:
         if (iter == module_lists.end())
         {
             auto comment = p.get_comment_registry().lookup_comment(module_name);
-            auto brief   = comment ? &comment->get_content().get_brief() : nullptr;
-            auto item = make_group_item(i, *list, module_name.c_str(), 2u, false, nullptr, brief);
-            iter      = module_lists.emplace(module_name, std::move(item)).first;
+            auto item =
+                make_group_item(i, doc->get_output_name().c_str(), *list, module_name.c_str(), 2u,
+                                false, nullptr, comment ? &comment->get_content() : nullptr);
+            iter = module_lists.emplace(module_name, std::move(item)).first;
         }
 
         auto& item = *iter->second;
-        assert(std::next(item.begin())->get_entity_type() == md_entity::list_t);
-        make_index_item(i, static_cast<md_list&>(*std::next(item.begin())), e, true);
+        assert(item.back().get_entity_type() == md_entity::list_t);
+        make_index_item(i, static_cast<md_list&>(item.back()), e, true);
     });
 
     if (module_lists.empty())

@@ -217,9 +217,13 @@ namespace
         heading->add_entity(std::move(code));
 
         if (show_module && e.has_comment() && e.get_comment().in_module())
-            heading->add_entity(
-                md_text::make(*heading,
-                              fmt::format(" [{}]", e.get_comment().get_module()).c_str()));
+        {
+            heading->add_entity(md_text::make(*heading, " "));
+            auto link = md_link::make(*heading, "", e.get_comment().get_module().c_str());
+            link->add_entity(
+                md_text::make(*heading, fmt::format("[{}]", e.get_comment().get_module()).c_str()));
+            heading->add_entity(std::move(link));
+        }
 
         heading->add_entity(i.get_linker().get_anchor(e, *heading));
 
@@ -242,6 +246,8 @@ bool doc_cpp_entity::do_generate_documentation_base(const parser& p, const index
                                                     md_document& doc, unsigned level) const
 {
     if ((requires_comment_for_doc(*this) && !has_comment_impl(*this))
+        || get_cpp_entity_type() == cpp_entity::namespace_t
+        || get_cpp_entity_type() == cpp_entity::language_linkage_t
         || p.get_output_config().get_blacklist().is_blacklisted(entity_blacklist::documentation,
                                                                 get_cpp_entity()))
         return false;
