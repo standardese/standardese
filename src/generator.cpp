@@ -49,8 +49,9 @@ namespace
         }
     }
 
-    md_ptr<md_list_item> make_group_item(const index& idx, const md_list& list, const char* name,
-                                         unsigned level, bool code, const doc_entity* entity,
+    md_ptr<md_list_item> make_group_item(const index& idx, const char* file_name,
+                                         const md_list& list, const char* name, unsigned level,
+                                         bool code, const doc_entity* entity,
                                          const md_paragraph* brief)
     {
         auto item = md_list_item::make(list);
@@ -66,6 +67,10 @@ namespace
             heading->add_entity(md_code::make(*item, name));
         else
             heading->add_entity(md_text::make(*item, name));
+
+        // add anchor
+        heading->add_entity(idx.get_linker().get_anchor(*entity, *heading));
+        idx.get_linker().register_anchor(entity->get_unique_name().c_str(), file_name);
 
         // add brief
         if (brief && !brief->empty())
@@ -122,8 +127,9 @@ documentation standardese::generate_entity_index(index& i, std::string name)
             {
                 auto brief =
                     ns->has_comment() ? &ns->get_comment().get_content().get_brief() : nullptr;
-                auto item = make_group_item(i, *list, ns_name.c_str(), 0u, true, ns, brief);
-                iter      = ns_lists.emplace(ns_name.c_str(), std::move(item)).first;
+                auto item = make_group_item(i, doc->get_output_name().c_str(), *list,
+                                            ns_name.c_str(), 0u, true, ns, brief);
+                iter = ns_lists.emplace(ns_name.c_str(), std::move(item)).first;
             }
 
             auto& item = *iter->second;
@@ -156,8 +162,9 @@ documentation standardese::generate_module_index(const parser& p, index& i, std:
         {
             auto comment = p.get_comment_registry().lookup_comment(module_name);
             auto brief   = comment ? &comment->get_content().get_brief() : nullptr;
-            auto item = make_group_item(i, *list, module_name.c_str(), 2u, false, nullptr, brief);
-            iter      = module_lists.emplace(module_name, std::move(item)).first;
+            auto item    = make_group_item(i, doc->get_output_name().c_str(), *list,
+                                        module_name.c_str(), 2u, false, nullptr, brief);
+            iter = module_lists.emplace(module_name, std::move(item)).first;
         }
 
         auto& item = *iter->second;
