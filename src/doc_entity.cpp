@@ -217,9 +217,13 @@ namespace
         heading->add_entity(std::move(code));
 
         if (show_module && e.has_comment() && e.get_comment().in_module())
-            heading->add_entity(
-                md_text::make(*heading,
-                              fmt::format(" [{}]", e.get_comment().get_module()).c_str()));
+        {
+            heading->add_entity(md_text::make(*heading, " "));
+            auto link = md_link::make(*heading, "", e.get_comment().get_module().c_str());
+            link->add_entity(
+                md_text::make(*heading, fmt::format("[{}]", e.get_comment().get_module()).c_str()));
+            heading->add_entity(std::move(link));
+        }
 
         heading->add_entity(i.get_linker().get_anchor(e, *heading));
 

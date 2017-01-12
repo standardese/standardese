@@ -69,8 +69,16 @@ namespace
             heading->add_entity(md_text::make(*item, name));
 
         // add anchor
-        heading->add_entity(idx.get_linker().get_anchor(*entity, *heading));
-        idx.get_linker().register_anchor(entity->get_unique_name().c_str(), file_name);
+        if (entity)
+        {
+            heading->add_entity(idx.get_linker().get_anchor(*entity, *heading));
+            idx.get_linker().register_anchor(entity->get_unique_name().c_str(), file_name);
+        }
+        else
+        {
+            heading->add_entity(md_anchor::make(*heading, name));
+            idx.get_linker().register_anchor(name, file_name);
+        }
 
         // add brief
         if (brief && !brief->empty())
