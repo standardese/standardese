@@ -158,8 +158,7 @@ std::string linker::get_url(const doc_entity& e, const char* extension) const
 
 std::string linker::get_anchor_id(const doc_entity& e) const
 {
-    std::unique_lock<std::mutex> lock(mutex_);
-    return locations_.at(&e).get_id();
+    return fragment_encode(e.get_unique_name().c_str());
 }
 
 md_ptr<md_anchor> linker::get_anchor(const doc_entity& e, const md_entity& parent) const
