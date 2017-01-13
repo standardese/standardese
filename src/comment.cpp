@@ -330,7 +330,8 @@ namespace
 
         if (id.is_name())
             return e.get_unique_name() == id.unique_name();
-        else if (id.is_location() && e.get_entity_type() != cpp_entity::file_t)
+        else if (id.is_location() && e.get_entity_type() != cpp_entity::file_t
+                 && e.get_entity_type() != cpp_entity::namespace_t)
         {
             if (&inline_parent != &e)
                 // an entity that must have an inline location
@@ -367,7 +368,8 @@ namespace
                    && inline_name_matches(e, id.inline_entity_name());
         }
 
-        assert(e.get_entity_type() == cpp_entity::file_t);
+        assert(e.get_entity_type() == cpp_entity::file_t
+               || e.get_entity_type() == cpp_entity::namespace_t);
         return false;
     }
 
