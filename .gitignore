@@ -1,0 +1,11 @@
+
+# Common CMake build output dirs
+build*/
+
+# QtCreator
+CMakelists.txt.user
+
+# CLion
+.idea/
+
+
