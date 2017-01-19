@@ -51,10 +51,10 @@ void print_usage(const char* exe_name, const po::options_description& generic,
     std::clog << configuration << '\n';
 }
 
-template <typename Generator>
-std::vector<standardese::documentation> generate_documentation(
-    standardese::parser& parser, const po::variables_map& map, std::size_t no_threads,
-    std::vector<standardese::template_file>& templates, Generator generate)
+std::vector<std::pair<standardese::translation_unit, std::string>> parse_files(
+    standardese::parser& parser, const standardese::compile_config& compile_config,
+    const po::variables_map& map, std::size_t no_threads,
+    std::vector<standardese::template_file>& templates)
 {
     auto input              = map.at("input-files").as<std::vector<fs::path>>();
     auto source_ext         = map.at("input.source_ext").as<std::vector<std::string>>();
@@ -68,8 +68,16 @@ std::vector<standardese::documentation> generate_documentation(
     for (auto& path : input)
         parser.get_preprocessor().whitelist_include_dir(path.parent_path().generic_string());
 
-    std::vector<std::future<standardese::documentation>> futures;
+    std::vector<std::future<std::pair<standardese::translation_unit, std::string>>> futures;
     futures.reserve(input.size());
+
+    auto parse = [&](const fs::path& p, const fs::path& relative) {
+        parser.get_logger()->info("Parsing file {}...", p);
+        auto output_name = standardese_tool::get_output_name(relative);
+        return std::make_pair(parser.parse(p.generic_string().c_str(), compile_config,
+                                           relative.generic_string().c_str()),
+                              std::move(output_name));
+    };
 
     {
         standardese_tool::thread_pool pool(no_threads);
@@ -80,7 +88,7 @@ std::vector<standardese::documentation> generate_documentation(
                             [&](bool is_source_file, const fs::path& p, const fs::path& relative) {
                                 if (is_source_file)
                                     futures.push_back(
-                                        standardese_tool::add_job(pool, generate, p, relative));
+                                        standardese_tool::add_job(pool, parse, p, relative));
                                 else
                                 {
                                     std::ifstream file(p.generic_string());
@@ -99,15 +107,11 @@ std::vector<standardese::documentation> generate_documentation(
                             });
     }
 
-    std::vector<standardese::documentation> documentations;
+    std::vector<std::pair<standardese::translation_unit, std::string>> result;
     for (auto& f : futures)
-    {
-        auto doc = f.get();
-        if (doc.document)
-            documentations.push_back(std::move(doc));
-    }
+        result.push_back(f.get());
 
-    return documentations;
+    return result;
 }
 
 void write_output_files(const standardese_tool::configuration& config,
@@ -311,34 +315,35 @@ int main(int argc, char* argv[])
             auto               no_threads = map.at("jobs").as<unsigned>();
             standardese::index index;
 
-            // generate documentations
-            auto generate = [&](const fs::path& p, const fs::path& relative) {
-                log->info("Generating documentation for {}...", p);
-
-                standardese::documentation result(nullptr, nullptr);
-                try
-                {
-                    auto output_name = standardese_tool::get_output_name(relative);
-
-                    auto tu = parser.parse(p.generic_string().c_str(), compile_config,
-                                           relative.generic_string().c_str());
-                    result = generate_doc_file(parser, index, tu.get_file(), output_name);
-                }
-                catch (libclang_error& ex)
-                {
-                    log->error("libclang error on {}", ex.what());
-                }
-                catch (cmark_error& ex)
-                {
-                    log->error("cmark error in '{}'", ex.what());
-                }
-
-                return result;
-            };
-
+            // parse files
             std::vector<template_file> templates;
-            auto                       documentations =
-                generate_documentation(parser, map, no_threads, templates, generate);
+            auto files = parse_files(parser, compile_config, map, no_threads, templates);
+
+            // generate documentations
+            auto documentations =
+                standardese_tool::for_each(no_threads, files,
+                                           [](const std::pair<translation_unit, std::string>&) {
+                                               return true;
+                                           },
+                                           [&](const std::pair<translation_unit, std::string>&
+                                                   pair) {
+                                               log->info("Generating documentation for {}...",
+                                                         pair.first.get_file().get_name().c_str());
+
+                                               standardese::documentation result(nullptr, nullptr);
+                                               try
+                                               {
+                                                   result = generate_doc_file(parser, index,
+                                                                              pair.first.get_file(),
+                                                                              pair.second);
+                                               }
+                                               catch (cmark_error& ex)
+                                               {
+                                                   log->error("cmark error in '{}'", ex.what());
+                                               }
+
+                                               return result;
+                                           });
 
             // generate indices
             log->info("Generating indices...");
@@ -375,6 +380,10 @@ int main(int argc, char* argv[])
                                        raw_documents);
                 }
             }
+        }
+        catch (standardese::libclang_error& error)
+        {
+            log->critical("libclang error '{}'", error.what());
         }
         catch (std::exception& ex)
         {
