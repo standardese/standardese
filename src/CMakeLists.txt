@@ -77,6 +77,12 @@ set(src
         template_processor.cpp
         translation_unit.cpp)
 
+if(STANDARDESE_VERBOSE_CONFIG)
+    message(STATUS "Using libclang library: ${LIBCLANG_LIBRARY}")
+    message(STATUS "Using libclang include dir: ${LIBCLANG_INCLUDE_DIR}")
+    message(STATUS "Using libclang system include dir: ${LIBCLANG_SYSTEM_INCLUDE_DIR}")
+endif()
+
 add_library(standardese ${detail_header} ${header} ${src})
 comp_target_features(standardese PRIVATE CPP11)
 target_include_directories(standardese PUBLIC
