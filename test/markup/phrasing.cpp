@@ -2,9 +2,9 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
-#include <catch.hpp>
-
 #include <standardese/markup/phrasing.hpp>
+
+#include <catch.hpp>
 
 using namespace standardese::markup;
 

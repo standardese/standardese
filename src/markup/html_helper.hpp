@@ -11,7 +11,8 @@ namespace standardese
 {
     namespace markup
     {
-        /// \exclude
+        class block_id;
+
         namespace detail
         {
             // escapes the string for use in an HTML element content or in a quoted "normal" attribute
@@ -21,6 +22,11 @@ namespace standardese
             // escapes the string for use in an URL
             // does not escape reserved characters of an URL
             std::string escape_url(const std::string& str);
+
+            // writes id attributes, prepends space
+            void append_html_id(std::string& result, const block_id& id, std::string class_name);
+
+            void append_newl(std::string& result);
 
             template <typename T>
             void append_container(std::string& result, const T& container)

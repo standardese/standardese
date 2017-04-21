@@ -7,6 +7,8 @@
 #include <cstring>
 #include <cstdio>
 
+#include <standardese/markup/block.hpp>
+
 using namespace standardese::markup;
 
 std::string detail::escape_html(const std::string& str)
@@ -66,4 +68,18 @@ std::string detail::escape_url(const std::string& str)
             result += c;
     }
     return result;
+}
+
+void detail::append_html_id(std::string& result, const block_id& id, std::string class_name)
+{
+    if (!id.empty())
+        result += " id=\"standardese-" + escape_html(id.as_str()) + '"';
+    if (!class_name.empty())
+        result += " class=\"standardese-" + escape_html(class_name) + '"';
+}
+
+void detail::append_newl(std::string& result)
+{
+    if (!result.empty() && result.back() != '\n')
+        result += '\n';
 }
