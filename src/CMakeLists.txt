@@ -11,6 +11,9 @@ set(detail_header
         ../include/standardese/detail/synopsis_utils.hpp
         ../include/standardese/detail/tokenizer.hpp
         ../include/standardese/detail/wrapper.hpp)
+set(markup_header
+    ../include/standardese/markup/entity.hpp
+    ../include/standardese/markup/phrasing.hpp)
 set(header
         ../include/standardese/comment.hpp
         ../include/standardese/config.hpp
@@ -43,6 +46,10 @@ set(header
         ../include/standardese/string.hpp
         ../include/standardese/template_processor.hpp
         ../include/standardese/translation_unit.hpp)
+set(markup_src
+    markup/html_helper.hpp
+    markup/html_helper.cpp
+    markup/phrasing.cpp)
 set(src
         detail/parse_utils.cpp
         detail/raw_comment.cpp
@@ -77,7 +84,7 @@ set(src
         template_processor.cpp
         translation_unit.cpp)
 
-add_library(standardese ${detail_header} ${header} ${src})
+add_library(standardese ${detail_header} ${markup_header} ${header} ${markup_src} ${src})
 comp_target_features(standardese PRIVATE CPP11)
 target_include_directories(standardese PUBLIC
                                 $<BUILD_INTERFACE:${STANDARDESE_SOURCE_DIR}/include>
