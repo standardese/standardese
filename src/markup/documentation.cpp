@@ -12,9 +12,7 @@ void file_documentation::do_append_html(std::string& result) const
 {
     // <article> represents the actual content of a website
     detail::append_newl(result);
-    result += "<article";
-    detail::append_html_id(result, id(), "file-documentation");
-    result += ">";
+    detail::append_html_open(result, "article", id(), "file-documentation");
 
     detail::append_container(result, *this);
 
@@ -25,9 +23,7 @@ void entity_documentation::do_append_html(std::string& result) const
 {
     // <section> represents a semantic section in the website
     detail::append_newl(result);
-    result += "<section";
-    detail::append_html_id(result, id(), "entity-documentation");
-    result += ">";
+    detail::append_html_open(result, "section", id(), "entity-documentation");
 
     detail::append_container(result, *this);
 

@@ -70,12 +70,21 @@ std::string detail::escape_url(const std::string& str)
     return result;
 }
 
-void detail::append_html_id(std::string& result, const block_id& id, std::string class_name)
+void detail::append_html_id(std::string& result, const block_id& id, const char* class_name)
 {
     if (!id.empty())
         result += " id=\"standardese-" + escape_html(id.as_str()) + '"';
-    if (!class_name.empty())
+    if (*class_name)
         result += " class=\"standardese-" + escape_html(class_name) + '"';
+}
+
+void detail::append_html_open(std::string& result, const char* tag, const block_id& id,
+                              const char* class_name)
+{
+    result += "<";
+    result += tag;
+    append_html_id(result, id, class_name);
+    result += ">";
 }
 
 void detail::append_newl(std::string& result)

@@ -138,9 +138,10 @@ namespace standardese
             {
             public:
                 /// \effects Adds a new child for the container.
-                void add_child(std::unique_ptr<T> entity)
+                container_builder& add_child(std::unique_ptr<T> entity)
                 {
                     as_container().children_.push_back(std::move(entity));
+                    return *this;
                 }
 
                 /// \returns The finished entity.

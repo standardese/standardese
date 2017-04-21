@@ -11,6 +11,7 @@ endif()
 set(tests
     markup/documentation.cpp
     markup/link.cpp
+    markup/paragraph.cpp
     markup/phrasing.cpp
     comment.cpp
     cpp_entity.cpp

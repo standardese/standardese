@@ -24,7 +24,10 @@ namespace standardese
             std::string escape_url(const std::string& str);
 
             // writes id attributes, prepends space
-            void append_html_id(std::string& result, const block_id& id, std::string class_name);
+            void append_html_id(std::string& result, const block_id& id, const char* class_name);
+
+            void append_html_open(std::string& result, const char* tag, const block_id& id,
+                                  const char* class_name);
 
             void append_newl(std::string& result);
 
