@@ -10,7 +10,7 @@ using namespace standardese::markup;
 
 void text::do_append_html(std::string& result) const
 {
-    result += detail::escape_html_element_content(string());
+    result += detail::escape_html(string());
 }
 
 void emphasis::do_append_html(std::string& result) const

@@ -13,6 +13,7 @@ set(detail_header
         ../include/standardese/detail/wrapper.hpp)
 set(markup_header
     ../include/standardese/markup/entity.hpp
+    ../include/standardese/markup/link.hpp
     ../include/standardese/markup/phrasing.hpp)
 set(header
         ../include/standardese/comment.hpp
@@ -49,6 +50,7 @@ set(header
 set(markup_src
     markup/html_helper.hpp
     markup/html_helper.cpp
+    markup/link.cpp
     markup/phrasing.cpp)
 set(src
         detail/parse_utils.cpp

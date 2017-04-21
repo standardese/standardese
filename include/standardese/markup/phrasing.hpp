@@ -36,10 +36,9 @@ namespace standardese
                 return text_;
             }
 
-        protected:
+        private:
             void do_append_html(std::string& result) const override;
 
-        private:
             text(std::string text) : text_(std::move(text))
             {
             }
@@ -71,10 +70,9 @@ namespace standardese
                 return b.finish();
             }
 
-        protected:
+        private:
             void do_append_html(std::string& result) const override;
 
-        private:
             emphasis() noexcept = default;
         };
 
@@ -104,10 +102,9 @@ namespace standardese
                 return b.finish();
             }
 
-        protected:
+        private:
             void do_append_html(std::string& result) const override;
 
-        private:
             strong_emphasis() noexcept = default;
         };
 
@@ -135,10 +132,9 @@ namespace standardese
                 return b.finish();
             }
 
-        protected:
+        private:
             void do_append_html(std::string& result) const override;
 
-        private:
             definition() noexcept = default;
         };
 
@@ -166,10 +162,9 @@ namespace standardese
                 return b.finish();
             }
 
-        protected:
+        private:
             void do_append_html(std::string& result) const override;
 
-        private:
             code() noexcept = default;
         };
     }

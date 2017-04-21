@@ -14,9 +14,13 @@ namespace standardese
         /// \exclude
         namespace detail
         {
-            // escapes the string for use in an html element content
-            // implements rule 1 here: https://www.owasp.org/index.php/XSS_%28Cross_Site_Scripting%29_Prevention_Cheat_Sheet#RULE_.231_-_HTML_Escape_Before_Inserting_Untrusted_Data_into_HTML_Element_Content
-            std::string escape_html_element_content(const std::string& str);
+            // escapes the string for use in an HTML element content or in a quoted "normal" attribute
+            // implements rule 1 here: https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet
+            std::string escape_html(const std::string& str);
+
+            // escapes the string for use in an URL
+            // does not escape reserved characters of an URL
+            std::string escape_url(const std::string& str);
 
             template <typename T>
             void append_container(std::string& result, const T& container)
