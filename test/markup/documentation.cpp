@@ -18,7 +18,7 @@ TEST_CASE("file_documentation", "[markup]")
 </article>
 )";
 
-    file_documentation::builder builder(block_id("a"), "a");
+    file_documentation::builder builder(block_id("a"));
     builder.add_child(entity_documentation::builder(block_id("foo")).finish());
     builder.add_child(paragraph::builder(block_id("")).add_child(text::build("foo")).finish());
     REQUIRE(as_html(*builder.finish()) == html);

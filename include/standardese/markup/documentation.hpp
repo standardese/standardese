@@ -13,7 +13,7 @@ namespace standardese
     namespace markup
     {
         /// A generic container containing the documentation of some file.
-        /// \notes This does not represent a stand-alone file.
+        /// \notes This does not represent a stand-alone file, use a [standardese::markup::document_entity]() for that.
         class file_documentation final : public block_entity, public entity_container<block_entity>
         {
         public:
@@ -21,29 +21,20 @@ namespace standardese
             class builder : public container_builder<file_documentation>
             {
             public:
-                /// \effects Creates it giving the id and output filename, without extension.
-                builder(block_id id, std::string output_name)
-                : container_builder(std::unique_ptr<file_documentation>(
-                      new file_documentation(std::move(id), std::move(output_name))))
+                /// \effects Creates it giving the id.
+                builder(block_id id)
+                : container_builder(
+                      std::unique_ptr<file_documentation>(new file_documentation(std::move(id))))
                 {
                 }
             };
 
-            /// \returns The output name of the file.
-            const std::string& output_name() const noexcept
-            {
-                return output_name_;
-            }
-
         private:
             void do_append_html(std::string& result) const override;
 
-            file_documentation(block_id id, std::string output_name)
-            : block_entity(std::move(id)), output_name_(std::move(output_name))
+            file_documentation(block_id id) : block_entity(std::move(id))
             {
             }
-
-            std::string output_name_;
         };
 
         /// A generic container containing the documentation of a single entity.
