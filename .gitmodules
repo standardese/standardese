@@ -8,5 +8,8 @@
     path = external/cmark
     url = git://github.com/jgm/cmark.git
 [submodule "external/tiny-process-library"]
-	path = external/tiny-process-library
-	url = https://github.com/eidheim/tiny-process-library
+    path = external/tiny-process-library
+    url = https://github.com/eidheim/tiny-process-library
+[submodule "external/cppast"]
+    path = external/cppast
+    url = https://github.com/foonathan/cppast

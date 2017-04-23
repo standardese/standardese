@@ -112,6 +112,9 @@ target_compile_definitions(standardese PUBLIC
 find_package(Threads REQUIRED)
 target_link_libraries(standardese PUBLIC Threads::Threads)
 
+# link cppast
+target_link_libraries(standardese PUBLIC cppast)
+
 # link libclang
 target_include_directories(standardese PUBLIC ${LIBCLANG_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${LIBCLANG_LIBRARY})
@@ -127,7 +130,7 @@ target_link_libraries(standardese PUBLIC ${Boost_LIBRARIES})
 # use tiny-process-library
 target_include_directories(standardese PRIVATE ${TINY_PROCESS_LIBRARY_INCLUDE_DIR})
 
-# install library
-install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")
-install(FILES ${header} DESTINATION "${include_dest}/standardese")
-install(FILES ${detail_header} DESTINATION "${include_dest}/standardese/detail")
+# install library: TODO
+#install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")
+#install(FILES ${header} DESTINATION "${include_dest}/standardese")
+#install(FILES ${detail_header} DESTINATION "${include_dest}/standardese/detail")

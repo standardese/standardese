@@ -7,6 +7,8 @@
 
 #include <utility>
 
+#include <type_safe/optional_ref.hpp>
+
 #include <standardese/markup/block.hpp>
 #include <standardese/markup/entity.hpp>
 
@@ -32,17 +34,10 @@ namespace standardese
                 return output_name_;
             }
 
-            /// \returns Whether or not this document has an extension override.
-            /// \notes This happens if an output template is used.
-            bool has_extension_override() const noexcept
+            /// \returns The extension override, if any.
+            type_safe::optional_ref<const std::string> extension_override() const noexcept
             {
-                return !extension_.empty();
-            }
-
-            /// \returns The extension override, or an empty string, if it has none.
-            const std::string& extension_override() const noexcept
-            {
-                return extension_;
+                return type_safe::opt_ref(extension_.empty() ? nullptr : &extension_);
             }
 
         protected:

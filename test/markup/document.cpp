@@ -30,8 +30,7 @@ void test_main_sub_document()
 
     auto doc = builder.finish();
     REQUIRE(doc->output_name() == "my-file");
-    REQUIRE(!doc->has_extension_override());
-    REQUIRE(doc->extension_override() == "");
+    REQUIRE(!doc->extension_override());
     REQUIRE(as_html(*doc) == html);
 }
 
@@ -57,7 +56,7 @@ TEST_CASE("template_document", "[markup]")
 
     auto doc = builder.finish();
     REQUIRE(doc->output_name() == "foo.bar");
-    REQUIRE(doc->has_extension_override());
-    REQUIRE(doc->extension_override() == "baz");
+    REQUIRE(doc->extension_override());
+    REQUIRE(doc->extension_override().value() == "baz");
     REQUIRE(as_html(*doc) == html);
 }

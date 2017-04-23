@@ -31,8 +31,8 @@ namespace
     void generate_html_impl(const document_entity& doc)
     {
         auto file_name = doc.output_name();
-        if (doc.has_extension_override())
-            file_name += "." + doc.extension_override();
+        if (doc.extension_override())
+            file_name += "." + doc.extension_override().value();
         else
             file_name += ".html";
 
