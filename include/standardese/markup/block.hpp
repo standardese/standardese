@@ -17,8 +17,12 @@ namespace standardese
         class block_id
         {
         public:
+            /// \effects Creates an empty id.
+            explicit block_id() : block_id("")
+            {
+            }
+
             /// \effects Creates it given the string representation.
-            /// \notes If you pass an empty string, it will act as no id was given.
             explicit block_id(std::string id) : id_(std::move(id))
             {
             }

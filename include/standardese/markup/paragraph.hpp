@@ -21,7 +21,7 @@ namespace standardese
             {
             public:
                 /// \effects Creates it giving the id.
-                builder(block_id id)
+                builder(block_id id = block_id())
                 : container_builder(std::unique_ptr<paragraph>(new paragraph(std::move(id))))
                 {
                 }
