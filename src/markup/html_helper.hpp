@@ -37,6 +37,20 @@ namespace standardese
                 for (auto& child : container)
                     child.append_html(result);
             }
+
+            template <typename T>
+            void append_heading(std::string& result, const T& container, const char* tag,
+                                const char* class_name)
+            {
+                detail::append_newl(result);
+                detail::append_html_open(result, tag, container.id(), class_name);
+
+                detail::append_container(result, container);
+
+                result += "</";
+                result += tag;
+                result += ">\n";
+            }
         } // namespace detail
     }
 } // namespace standardese::markup

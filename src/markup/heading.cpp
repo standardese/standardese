@@ -10,20 +10,10 @@ using namespace standardese::markup;
 
 void heading::do_append_html(std::string& result) const
 {
-    detail::append_newl(result);
-    detail::append_html_open(result, "h4", id(), "heading");
-
-    detail::append_container(result, *this);
-
-    result += "</h4>\n";
+    detail::append_heading(result, *this, "h4", "heading");
 }
 
 void subheading::do_append_html(std::string& result) const
 {
-    detail::append_newl(result);
-    detail::append_html_open(result, "h5", id(), "subheading");
-
-    detail::append_container(result, *this);
-
-    result += "</h5>\n";
+    detail::append_heading(result, *this, "h5", "subheading");
 }

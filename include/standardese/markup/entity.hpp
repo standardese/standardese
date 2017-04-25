@@ -5,6 +5,8 @@
 #ifndef STANDARDESE_MARKUP_ENTITY_HPP_INCLUDED
 #define STANDARDESE_MARKUP_ENTITY_HPP_INCLUDED
 
+#include <type_safe/optional_ref.hpp>
+
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -31,12 +33,23 @@ namespace standardese
                 do_append_html(result);
             }
 
+            /// \returns A reference to the parent entity, if there is any.
+            type_safe::optional_ref<const entity> parent() const noexcept
+            {
+                return parent_;
+            }
+
         protected:
             entity() noexcept = default;
 
         private:
             /// \effects Appends the HTML representation of the entity to the given string.
             virtual void do_append_html(std::string& result) const = 0;
+
+            type_safe::optional_ref<const entity> parent_;
+
+            template <typename T>
+            friend class container_entity;
         };
 
         /// \returns The HTML representation of the entity as a string.
@@ -140,6 +153,7 @@ namespace standardese
                 /// \effects Adds a new child for the container.
                 container_builder& add_child(std::unique_ptr<T> entity)
                 {
+                    static_cast<markup::entity&>(*entity).parent_ = type_safe::ref(*result_);
                     as_container().children_.push_back(std::move(entity));
                     return *this;
                 }

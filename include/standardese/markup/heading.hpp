@@ -30,6 +30,12 @@ namespace standardese
                 }
             };
 
+            /// Builds a heading containing the given string as text.
+            static std::unique_ptr<heading> build(block_id id, std::string text)
+            {
+                return builder(id).add_child(text::build(std::move(text))).finish();
+            }
+
         private:
             void do_append_html(std::string& result) const override;
 
@@ -54,6 +60,12 @@ namespace standardese
                 {
                 }
             };
+
+            /// Builds a subheading containing the given string as text.
+            static std::unique_ptr<subheading> build(block_id id, std::string text)
+            {
+                return builder(id).add_child(text::build(std::move(text))).finish();
+            }
 
         private:
             void do_append_html(std::string& result) const override;
