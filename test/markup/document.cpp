@@ -29,8 +29,8 @@ void test_main_sub_document()
     builder.add_child(paragraph::builder(block_id("")).add_child(text::build("foo")).finish());
 
     auto doc = builder.finish();
-    REQUIRE(doc->output_name() == "my-file");
-    REQUIRE(!doc->extension_override());
+    REQUIRE(doc->output_name().name() == "my-file");
+    REQUIRE(doc->output_name().needs_extension());
     REQUIRE(as_html(*doc) == html);
 }
 
@@ -55,8 +55,7 @@ TEST_CASE("template_document", "[markup]")
     builder.add_child(paragraph::builder(block_id("")).finish());
 
     auto doc = builder.finish();
-    REQUIRE(doc->output_name() == "foo.bar");
-    REQUIRE(doc->extension_override());
-    REQUIRE(doc->extension_override().value() == "baz");
+    REQUIRE(doc->output_name().name() == "foo.bar.baz");
+    REQUIRE(!doc->output_name().needs_extension());
     REQUIRE(as_html(*doc) == html);
 }

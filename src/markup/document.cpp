@@ -30,13 +30,7 @@ namespace
 
     void generate_html_impl(const document_entity& doc)
     {
-        auto file_name = doc.output_name();
-        if (doc.extension_override())
-            file_name += "." + doc.extension_override().value();
-        else
-            file_name += ".html";
-
-        std::ofstream file(file_name);
+        std::ofstream file(doc.output_name().file_name("html"));
         file << as_html(doc);
     }
 }
@@ -63,12 +57,12 @@ void standardese::markup::generate_html(const sub_document& document)
 
 namespace
 {
-    std::pair<std::string, std::string> split_file_name(std::string file_name)
+    output_name get_output_name(std::string file_name)
     {
-        auto index = file_name.rfind('.');
-        if (index == std::string::npos)
-            return std::make_pair(std::move(file_name), "");
-        return std::make_pair(file_name.substr(0u, index), file_name.substr(index + 1u));
+        auto pos = file_name.find('.');
+        if (pos == std::string::npos)
+            return output_name::from_name(std::move(file_name));
+        return output_name::from_file_name(std::move(file_name));
     }
 }
 
@@ -80,6 +74,6 @@ void template_document::do_append_html(std::string& result) const
 }
 
 template_document::template_document(std::string title, std::string file_name)
-: template_document(std::move(title), split_file_name(std::move(file_name)))
+: document_entity(std::move(title), get_output_name(std::move(file_name)))
 {
 }

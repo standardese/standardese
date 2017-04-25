@@ -28,29 +28,21 @@ namespace standardese
                 return title_;
             }
 
-            /// \returns The output file name of the document, without extension.
-            const std::string& output_name() const noexcept
+            /// \returns The output name of the document.
+            const markup::output_name& output_name() const noexcept
             {
                 return output_name_;
             }
 
-            /// \returns The extension override, if any.
-            type_safe::optional_ref<const std::string> extension_override() const noexcept
-            {
-                return type_safe::opt_ref(extension_.empty() ? nullptr : &extension_);
-            }
-
         protected:
-            document_entity(std::string title, std::string output_name, std::string extension = "")
-            : title_(std::move(title)),
-              output_name_(std::move(output_name)),
-              extension_(std::move(extension))
+            document_entity(std::string title, markup::output_name name)
+            : output_name_(std::move(name)), title_(std::move(title))
             {
             }
 
         private:
-            std::string title_;
-            std::string output_name_, extension_;
+            markup::output_name output_name_;
+            std::string         title_;
         };
 
         /// A document which is the main output page of the documentation.
@@ -72,8 +64,8 @@ namespace standardese
         private:
             void do_append_html(std::string& result) const override;
 
-            main_document(std::string title, std::string output_name)
-            : document_entity(std::move(title), std::move(output_name))
+            main_document(std::string title, std::string name)
+            : document_entity(std::move(title), markup::output_name::from_name(std::move(name)))
             {
             }
         };
@@ -99,8 +91,8 @@ namespace standardese
         private:
             void do_append_html(std::string& result) const override;
 
-            sub_document(std::string title, std::string output_name)
-            : document_entity(std::move(title), std::move(output_name))
+            sub_document(std::string title, std::string name)
+            : document_entity(std::move(title), markup::output_name::from_name(std::move(name)))
             {
             }
         };
@@ -115,9 +107,7 @@ namespace standardese
             {
             public:
                 /// \effects Creates it given the title and the file name of the template file.
-                /// If the file name contains an extension, it will be treated as an extension override.
-                /// Else the extension is determined by the output format.
-                /// \notes An extension is the substring after the last `.` character.
+                /// If the file name does not contain an extension, the document's [standardese::markup::output_name]() will need one.
                 builder(std::string title, std::string file_name)
                 : container_builder(std::unique_ptr<template_document>(
                       new template_document(std::move(title), std::move(file_name))))
@@ -129,12 +119,6 @@ namespace standardese
             void do_append_html(std::string& result) const override;
 
             template_document(std::string title, std::string file_name);
-
-            template_document(std::string title, std::pair<std::string, std::string> file_name)
-            : document_entity(std::move(title), std::move(file_name.first),
-                              std::move(file_name.second))
-            {
-            }
         };
     }
 } // namespace standardese::markup
