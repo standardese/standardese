@@ -52,7 +52,7 @@ namespace standardese
         /// It takes care of the container functions.
         /// \requires `T` must be derived from `entity`.
         template <typename T>
-        class entity_container
+        class container_entity
         {
             using container = std::vector<std::unique_ptr<T>>;
 
@@ -110,7 +110,7 @@ namespace standardese
 
                 typename container::const_iterator cur_;
 
-                friend entity_container;
+                friend container_entity;
             };
 
             /// \returns An iterator to the first child entity.
@@ -126,7 +126,7 @@ namespace standardese
             }
 
         protected:
-            ~entity_container() noexcept
+            ~container_entity() noexcept
             {
                 static_assert(std::is_base_of<entity, T>::value, "T must be derived from entity");
             }
@@ -155,12 +155,12 @@ namespace standardese
                 container_builder(std::unique_ptr<Derived> entity) noexcept
                 : result_(std::move(entity))
                 {
-                    static_assert(std::is_base_of<entity_container<T>, Derived>::value,
-                                  "Derived must be derived from entity_container");
+                    static_assert(std::is_base_of<container_entity<T>, Derived>::value,
+                                  "Derived must be derived from container_entity");
                 }
 
             private:
-                entity_container<T>& as_container() const noexcept
+                container_entity<T>& as_container() const noexcept
                 {
                     return *result_;
                 }

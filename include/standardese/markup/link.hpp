@@ -15,7 +15,7 @@ namespace standardese
         /// Base class for all links.
         ///
         /// The actual link text will be stored as the children.
-        class link_base : public phrasing_entity, public entity_container<phrasing_entity>
+        class link_base : public phrasing_entity, public container_entity<phrasing_entity>
         {
         public:
             /// \returns The title of the link.

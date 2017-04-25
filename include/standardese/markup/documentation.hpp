@@ -14,7 +14,7 @@ namespace standardese
     {
         /// A generic container containing the documentation of some file.
         /// \notes This does not represent a stand-alone file, use a [standardese::markup::document_entity]() for that.
-        class file_documentation final : public block_entity, public entity_container<block_entity>
+        class file_documentation final : public block_entity, public container_entity<block_entity>
         {
         public:
             /// Builds the documentation of a file.
@@ -40,7 +40,7 @@ namespace standardese
         /// A generic container containing the documentation of a single entity.
         /// \notes This does not represent the documentation of a file, use [standardese::markup::file_documentation]() for that.
         class entity_documentation final : public block_entity,
-                                           public entity_container<block_entity>
+                                           public container_entity<block_entity>
         {
         public:
             /// Builds the documentation of an entity.

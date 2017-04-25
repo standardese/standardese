@@ -19,7 +19,7 @@ namespace standardese
         /// Base class for entities representing a stand-alone document.
         ///
         /// Those are the root nodes of the markup AST.
-        class document_entity : public entity, public entity_container<block_entity>
+        class document_entity : public entity, public container_entity<block_entity>
         {
         public:
             /// \returns The title of the document.

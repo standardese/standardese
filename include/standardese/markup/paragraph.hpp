@@ -13,7 +13,7 @@ namespace standardese
     namespace markup
     {
         /// A plain paragraph.
-        class paragraph final : public block_entity, public entity_container<phrasing_entity>
+        class paragraph final : public block_entity, public container_entity<phrasing_entity>
         {
         public:
             /// Builds a paragraph.

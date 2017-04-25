@@ -16,6 +16,7 @@ set(markup_header
     ../include/standardese/markup/document.hpp
     ../include/standardese/markup/documentation.hpp
     ../include/standardese/markup/entity.hpp
+    ../include/standardese/markup/heading.hpp
     ../include/standardese/markup/link.hpp
     ../include/standardese/markup/paragraph.hpp
     ../include/standardese/markup/phrasing.hpp)
@@ -54,6 +55,7 @@ set(header
 set(markup_src
     markup/document.cpp
     markup/documentation.cpp
+    markup/heading.cpp
     markup/html_helper.hpp
     markup/html_helper.cpp
     markup/link.cpp

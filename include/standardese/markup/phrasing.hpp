@@ -49,7 +49,7 @@ namespace standardese
         /// A fragment that is emphasized.
         ///
         /// This corresponds to the `<em>` HTML tag.
-        class emphasis final : public phrasing_entity, public entity_container<phrasing_entity>
+        class emphasis final : public phrasing_entity, public container_entity<phrasing_entity>
         {
         public:
             /// Builds an emphasis entity.
@@ -80,7 +80,7 @@ namespace standardese
         ///
         /// This corresponds to the `<strong>` HTML tag.
         class strong_emphasis final : public phrasing_entity,
-                                      public entity_container<phrasing_entity>
+                                      public container_entity<phrasing_entity>
         {
         public:
             /// Builds a strong emphasis entity.
@@ -111,7 +111,7 @@ namespace standardese
         /// A fragment that is a definition of a term.
         ///
         /// This corresponds to the `<dfn>` HTML tag.
-        class definition final : public phrasing_entity, public entity_container<phrasing_entity>
+        class definition final : public phrasing_entity, public container_entity<phrasing_entity>
         {
         public:
             /// Builds a definition entity.
@@ -141,7 +141,7 @@ namespace standardese
         /// A fragment that contains code.
         ///
         /// This corresponds to the `<code>` HTML tag.
-        class code final : public phrasing_entity, public entity_container<phrasing_entity>
+        class code final : public phrasing_entity, public container_entity<phrasing_entity>
         {
         public:
             /// Builds a code entity.
