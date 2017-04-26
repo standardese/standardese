@@ -15,6 +15,7 @@ set(tests
     markup/link.cpp
     markup/paragraph.cpp
     markup/phrasing.cpp
+    markup/thematic_break.cpp
     comment.cpp
     cpp_entity.cpp
     cpp_entity_blacklist.cpp

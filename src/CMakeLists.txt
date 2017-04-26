@@ -19,7 +19,8 @@ set(markup_header
     ../include/standardese/markup/heading.hpp
     ../include/standardese/markup/link.hpp
     ../include/standardese/markup/paragraph.hpp
-    ../include/standardese/markup/phrasing.hpp)
+    ../include/standardese/markup/phrasing.hpp
+    ../include/standardese/markup/thematic_break.hpp)
 set(header
         ../include/standardese/comment.hpp
         ../include/standardese/config.hpp
@@ -60,7 +61,8 @@ set(markup_src
     markup/html_helper.cpp
     markup/link.cpp
     markup/paragraph.cpp
-    markup/phrasing.cpp)
+    markup/phrasing.cpp
+    markup/thematic_break.cpp)
 set(src
         detail/parse_utils.cpp
         detail/raw_comment.cpp
