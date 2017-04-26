@@ -49,4 +49,10 @@ void entity_documentation::do_append_html(std::string& result) const
     detail::append_container(result, *this);
 
     result += "</section>\n";
+
+    if (heading())
+    {
+        result += R"(<hr class="standardese-entity-documentation-break" />)";
+        result += "\n";
+    }
 }

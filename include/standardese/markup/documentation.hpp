@@ -15,7 +15,9 @@ namespace standardese
 {
     namespace markup
     {
-        /// A generic container containing the documentation of some file.
+        /// A container containing the documentation of some file.
+        ///
+        /// It can optionally have a [standardese::markup::heading]() which will be rendered as well.
         /// \notes This does not represent a stand-alone file, use a [standardese::markup::document_entity]() for that.
         class file_documentation final : public block_entity, public container_entity<block_entity>
         {
@@ -49,7 +51,10 @@ namespace standardese
             std::unique_ptr<markup::heading> heading_;
         };
 
-        /// A generic container containing the documentation of a single entity.
+        /// A container containing the documentation of a single entity.
+        ///
+        /// It can optionally have a [standardese::markup::heading]() which will be rendered as well.
+        /// If it has a heading, it will also render a [standardese::markup::thematic_break]() at the end.
         /// \notes This does not represent the documentation of a file, use [standardese::markup::file_documentation]() for that.
         class entity_documentation final : public block_entity,
                                            public container_entity<block_entity>

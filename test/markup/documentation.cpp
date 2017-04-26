@@ -62,7 +62,9 @@ TEST_CASE("entity_documentation", "[markup]")
 <section class="standardese-entity-documentation">
 <h3 class="standardese-entity-documentation-heading">2</h3>
 </section>
+<hr class="standardese-entity-documentation-break" />
 </section>
+<hr class="standardese-entity-documentation-break" />
 </article>
 </section>
 )";
