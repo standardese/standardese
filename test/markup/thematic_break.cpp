@@ -10,7 +10,5 @@ using namespace standardese::markup;
 
 TEST_CASE("thematic_break", "[markup]")
 {
-    auto html = R"(<hr class="standardese-thematic-break" />
-)";
-    REQUIRE(as_html(*thematic_break::build()) == html);
+    REQUIRE(as_html(*thematic_break::build()) == "<hr />\n");
 }

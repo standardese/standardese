@@ -11,5 +11,5 @@ using namespace standardese::markup;
 void thematic_break::do_append_html(std::string& result) const
 {
     detail::append_newl(result);
-    result += "<hr class=\"standardese-thematic-break\" />\n";
+    result += "<hr />\n";
 }

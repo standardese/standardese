@@ -10,7 +10,7 @@ using namespace standardese::markup;
 
 TEST_CASE("heading", "[markup]")
 {
-    auto html = R"(<h4 class="standardese-heading">A <em>heading</em>!</h4>
+    auto html = R"(<h4>A <em>heading</em>!</h4>
 )";
 
     heading::builder builder(block_id{});
@@ -22,7 +22,7 @@ TEST_CASE("heading", "[markup]")
 
 TEST_CASE("subheading", "[markup]")
 {
-    auto html = R"(<h5 class="standardese-subheading">A <em>subheading</em>!</h5>
+    auto html = R"(<h5>A <em>subheading</em>!</h5>
 )";
 
     subheading::builder builder(block_id{});
