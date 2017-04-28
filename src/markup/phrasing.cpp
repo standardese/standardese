@@ -27,13 +27,6 @@ void strong_emphasis::do_append_html(std::string& result) const
     result += "</strong>";
 }
 
-void definition::do_append_html(std::string& result) const
-{
-    result += "<dfn>";
-    detail::append_container(result, *this);
-    result += "</dfn>";
-}
-
 void code::do_append_html(std::string& result) const
 {
     result += "<code>";

@@ -47,11 +47,6 @@ TEST_CASE("strong_emphasis", "[markup]")
     test_phrasing<strong_emphasis>("<strong>", "</strong>");
 }
 
-TEST_CASE("definition", "[markup]")
-{
-    test_phrasing<definition>("<dfn>", "</dfn>");
-}
-
 TEST_CASE("code", "[markup]")
 {
     test_phrasing<code>("<code>", "</code>");

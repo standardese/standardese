@@ -108,36 +108,6 @@ namespace standardese
             strong_emphasis() noexcept = default;
         };
 
-        /// A fragment that is a definition of a term.
-        ///
-        /// This corresponds to the `<dfn>` HTML tag.
-        class definition final : public phrasing_entity, public container_entity<phrasing_entity>
-        {
-        public:
-            /// Builds a definition entity.
-            class builder : public container_builder<definition>
-            {
-            public:
-                /// \effects Creates it without any children.
-                builder() : container_builder(std::unique_ptr<definition>(new definition()))
-                {
-                }
-            };
-
-            /// \returns A new definition containing the given text.
-            static std::unique_ptr<definition> build(std::string t)
-            {
-                builder b;
-                b.add_child(text::build(std::move(t)));
-                return b.finish();
-            }
-
-        private:
-            void do_append_html(std::string& result) const override;
-
-            definition() noexcept = default;
-        };
-
         /// A fragment that contains code.
         ///
         /// This corresponds to the `<code>` HTML tag.
