@@ -19,6 +19,7 @@ set(markup_header
     ../include/standardese/markup/entity.hpp
     ../include/standardese/markup/heading.hpp
     ../include/standardese/markup/link.hpp
+    ../include/standardese/markup/list.hpp
     ../include/standardese/markup/paragraph.hpp
     ../include/standardese/markup/phrasing.hpp
     ../include/standardese/markup/thematic_break.hpp)
@@ -62,6 +63,7 @@ set(markup_src
     markup/html_helper.hpp
     markup/html_helper.cpp
     markup/link.cpp
+    markup/list.cpp
     markup/paragraph.cpp
     markup/phrasing.cpp
     markup/thematic_break.cpp)

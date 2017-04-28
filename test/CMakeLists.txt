@@ -13,6 +13,7 @@ set(tests
     markup/documentation.cpp
     markup/heading.cpp
     markup/link.cpp
+    markup/list.cpp
     markup/paragraph.cpp
     markup/phrasing.cpp
     markup/blockquote.cpp
