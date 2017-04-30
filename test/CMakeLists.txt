@@ -17,7 +17,7 @@ set(tests
     markup/list.cpp
     markup/paragraph.cpp
     markup/phrasing.cpp
-    markup/blockquote.cpp
+    markup/quote.cpp
     markup/thematic_break.cpp
     comment.cpp
     cpp_entity.cpp

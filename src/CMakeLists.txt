@@ -13,7 +13,6 @@ set(detail_header
         ../include/standardese/detail/wrapper.hpp)
 set(markup_header
     ../include/standardese/markup/block.hpp
-    ../include/standardese/markup/blockquote.hpp
     ../include/standardese/markup/code_block.hpp
     ../include/standardese/markup/document.hpp
     ../include/standardese/markup/documentation.hpp
@@ -23,6 +22,7 @@ set(markup_header
     ../include/standardese/markup/list.hpp
     ../include/standardese/markup/paragraph.hpp
     ../include/standardese/markup/phrasing.hpp
+    ../include/standardese/markup/quote.hpp
     ../include/standardese/markup/thematic_break.hpp)
 set(header
         ../include/standardese/comment.hpp
@@ -57,7 +57,6 @@ set(header
         ../include/standardese/template_processor.hpp
         ../include/standardese/translation_unit.hpp)
 set(markup_src
-    markup/blockquote.cpp
     markup/code_block.cpp
     markup/document.cpp
     markup/documentation.cpp
@@ -68,6 +67,7 @@ set(markup_src
     markup/list.cpp
     markup/paragraph.cpp
     markup/phrasing.cpp
+    markup/quote.cpp
     markup/thematic_break.cpp)
 set(src
         detail/parse_utils.cpp
