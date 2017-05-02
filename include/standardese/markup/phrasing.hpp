@@ -37,7 +37,7 @@ namespace standardese
             }
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             text(std::string text) : text_(std::move(text))
             {
@@ -71,7 +71,7 @@ namespace standardese
             }
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             emphasis() noexcept = default;
         };
@@ -103,7 +103,7 @@ namespace standardese
             }
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             strong_emphasis() noexcept = default;
         };
@@ -133,7 +133,7 @@ namespace standardese
             }
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             code() noexcept = default;
         };

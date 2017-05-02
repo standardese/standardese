@@ -29,7 +29,7 @@ namespace standardese
             };
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             list_item(block_id id) : block_entity(std::move(id))
             {
@@ -70,7 +70,7 @@ namespace standardese
             };
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             unordered_list(block_id id) : block_entity(std::move(id))
             {
@@ -110,7 +110,7 @@ namespace standardese
             };
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             ordered_list(block_id id) : block_entity(std::move(id))
             {

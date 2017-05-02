@@ -30,9 +30,9 @@ namespace standardese
                 }
 
             private:
-                void do_append_html(std::string& result) const override
+                entity_kind do_get_kind() const noexcept override
                 {
-                    Tag::append_html(result, text_);
+                    return Tag::kind();
                 }
 
                 code_block_entity(std::string text) : text_(std::move(text))
@@ -44,37 +44,37 @@ namespace standardese
 
             struct keyword_tag
             {
-                static void append_html(std::string& result, const std::string& text);
+                static entity_kind kind() noexcept;
             };
 
             struct identifier_tag
             {
-                static void append_html(std::string& result, const std::string& text);
+                static entity_kind kind() noexcept;
             };
 
             struct string_literal_tag
             {
-                static void append_html(std::string& result, const std::string& text);
+                static entity_kind kind() noexcept;
             };
 
             struct int_literal_tag
             {
-                static void append_html(std::string& result, const std::string& text);
+                static entity_kind kind() noexcept;
             };
 
             struct float_literal_tag
             {
-                static void append_html(std::string& result, const std::string& text);
+                static entity_kind kind() noexcept;
             };
 
             struct punctuation_tag
             {
-                static void append_html(std::string& result, const std::string& text);
+                static entity_kind kind() noexcept;
             };
 
             struct preprocessor_tag
             {
-                static void append_html(std::string& result, const std::string& text);
+                static entity_kind kind() noexcept;
             };
 
         public:
@@ -139,7 +139,7 @@ namespace standardese
             {
             }
 
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             std::string lang_;
         };

@@ -62,7 +62,7 @@ namespace standardese
             };
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             main_document(std::string title, std::string name)
             : document_entity(std::move(title), markup::output_name::from_name(std::move(name)))
@@ -70,34 +70,30 @@ namespace standardese
             }
         };
 
-        void generate_html(const main_document& document);
-
         /// A document which is not the main output page of the documentation.
-        class sub_document final : public document_entity
+        class subdocument final : public document_entity
         {
         public:
             /// Builds the sub document.
-            class builder : public container_builder<sub_document>
+            class builder : public container_builder<subdocument>
             {
             public:
                 /// \effects Creates an empty document with given title and output file name.
                 builder(std::string title, std::string output_name)
-                : container_builder(std::unique_ptr<sub_document>(
-                      new sub_document(std::move(title), std::move(output_name))))
+                : container_builder(std::unique_ptr<subdocument>(
+                      new subdocument(std::move(title), std::move(output_name))))
                 {
                 }
             };
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
-            sub_document(std::string title, std::string name)
+            subdocument(std::string title, std::string name)
             : document_entity(std::move(title), markup::output_name::from_name(std::move(name)))
             {
             }
         };
-
-        void generate_html(const sub_document& document);
 
         class template_document final : public document_entity
         {
@@ -116,7 +112,7 @@ namespace standardese
             };
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             template_document(std::string title, std::string file_name);
         };

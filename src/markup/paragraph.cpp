@@ -4,16 +4,11 @@
 
 #include <standardese/markup/paragraph.hpp>
 
-#include "html_helper.hpp"
+#include <standardese/markup/entity_kind.hpp>
 
 using namespace standardese::markup;
 
-void paragraph::do_append_html(std::string& result) const
+entity_kind paragraph::do_get_kind() const noexcept
 {
-    detail::append_newl(result);
-    detail::append_html_open(result, "p", id(), "");
-
-    detail::append_container(result, *this);
-
-    result += "</p>\n";
+    return entity_kind::paragraph;
 }

@@ -7,6 +7,7 @@
 #include <catch.hpp>
 
 #include <standardese/markup/document.hpp>
+#include <standardese/markup/generator.hpp>
 #include <standardese/markup/paragraph.hpp>
 
 using namespace standardese::markup;

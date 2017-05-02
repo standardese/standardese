@@ -6,6 +6,8 @@
 
 #include <catch.hpp>
 
+#include <standardese/markup/generator.hpp>
+
 using namespace standardese::markup;
 
 template <class Entity>

@@ -4,32 +4,26 @@
 
 #include <standardese/markup/phrasing.hpp>
 
-#include "html_helper.hpp"
+#include <standardese/markup/entity_kind.hpp>
 
 using namespace standardese::markup;
 
-void text::do_append_html(std::string& result) const
+entity_kind text::do_get_kind() const noexcept
 {
-    result += detail::escape_html(string());
+    return entity_kind::text;
 }
 
-void emphasis::do_append_html(std::string& result) const
+entity_kind emphasis::do_get_kind() const noexcept
 {
-    result += "<em>";
-    detail::append_container(result, *this);
-    result += "</em>";
+    return entity_kind::emphasis;
 }
 
-void strong_emphasis::do_append_html(std::string& result) const
+entity_kind strong_emphasis::do_get_kind() const noexcept
 {
-    result += "<strong>";
-    detail::append_container(result, *this);
-    result += "</strong>";
+    return entity_kind::strong_emphasis;
 }
 
-void code::do_append_html(std::string& result) const
+entity_kind code::do_get_kind() const noexcept
 {
-    result += "<code>";
-    detail::append_container(result, *this);
-    result += "</code>";
+    return entity_kind::code;
 }

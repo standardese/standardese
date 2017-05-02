@@ -16,6 +16,8 @@ namespace standardese
 {
     namespace markup
     {
+        enum class entity_kind;
+
         /// The base class for all markup entities.
         ///
         /// This is how the documentation output is described.
@@ -27,10 +29,10 @@ namespace standardese
             entity& operator=(const entity&) = delete;
             virtual ~entity() noexcept       = default;
 
-            /// \effects Appends the HTML representation of the entity to the given string.
-            void append_html(std::string& result) const
+            /// \returns The kind of entity.
+            entity_kind kind() const noexcept
             {
-                do_append_html(result);
+                return do_get_kind();
             }
 
             /// \returns A reference to the parent entity, if there is any.
@@ -43,22 +45,14 @@ namespace standardese
             entity() noexcept = default;
 
         private:
-            /// \effects Appends the HTML representation of the entity to the given string.
-            virtual void do_append_html(std::string& result) const = 0;
+            /// \returns The kind of entity.
+            virtual entity_kind do_get_kind() const noexcept = 0;
 
             type_safe::optional_ref<const entity> parent_;
 
             template <typename T>
             friend class container_entity;
         };
-
-        /// \returns The HTML representation of the entity as a string.
-        inline std::string as_html(const entity& e)
-        {
-            std::string result;
-            e.append_html(result);
-            return result;
-        }
 
         /// A mix-in base class for entity that are a containers.
         ///

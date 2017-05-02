@@ -7,6 +7,7 @@
 #include <catch.hpp>
 
 #include <standardese/markup/document.hpp>
+#include <standardese/markup/generator.hpp>
 #include <standardese/markup/paragraph.hpp>
 
 using namespace standardese::markup;
@@ -16,7 +17,8 @@ TEST_CASE("file_documentation", "[markup]")
     SECTION("no heading")
     {
         auto html = R"(<article id="standardese-a" class="standardese-file-documentation">
-<section id="standardese-foo" class="standardese-entity-documentation"></section>
+<section id="standardese-foo" class="standardese-entity-documentation">
+</section>
 <p>foo</p>
 </article>
 )";

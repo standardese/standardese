@@ -6,6 +6,7 @@
 
 #include <catch.hpp>
 
+#include <standardese/markup/generator.hpp>
 #include <standardese/markup/paragraph.hpp>
 
 using namespace standardese::markup;
@@ -39,9 +40,9 @@ TEST_CASE("main_document", "[markup]")
     test_main_sub_document<main_document>();
 }
 
-TEST_CASE("sub_document", "[markup]")
+TEST_CASE("subdocument", "[markup]")
 {
-    test_main_sub_document<sub_document>();
+    test_main_sub_document<subdocument>();
 }
 
 TEST_CASE("template_document", "[markup]")

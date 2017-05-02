@@ -17,6 +17,8 @@ set(markup_header
     ../include/standardese/markup/document.hpp
     ../include/standardese/markup/documentation.hpp
     ../include/standardese/markup/entity.hpp
+    ../include/standardese/markup/entity_kind.hpp
+    ../include/standardese/markup/generator.hpp
     ../include/standardese/markup/heading.hpp
     ../include/standardese/markup/link.hpp
     ../include/standardese/markup/list.hpp
@@ -60,9 +62,10 @@ set(markup_src
     markup/code_block.cpp
     markup/document.cpp
     markup/documentation.cpp
+    markup/entity_kind.cpp
+    markup/generator.cpp
     markup/heading.cpp
-    markup/html_helper.hpp
-    markup/html_helper.cpp
+    markup/html.cpp
     markup/link.cpp
     markup/list.cpp
     markup/paragraph.cpp

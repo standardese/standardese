@@ -62,7 +62,7 @@ namespace standardese
             }
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             external_link(std::string title, std::string url)
             : link_base(std::move(title)), url_(std::move(url))
@@ -102,7 +102,7 @@ namespace standardese
             }
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             internal_link(std::string title, block_reference dest)
             : link_base(std::move(title)), dest_(std::move(dest))

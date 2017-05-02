@@ -41,7 +41,7 @@ namespace standardese
             }
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             file_documentation(block_id id, std::unique_ptr<markup::heading> h)
             : block_entity(std::move(id)), heading_(std::move(h))
@@ -79,7 +79,7 @@ namespace standardese
             }
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             entity_documentation(block_id id, std::unique_ptr<markup::heading> h)
             : block_entity(std::move(id)), heading_(std::move(h))

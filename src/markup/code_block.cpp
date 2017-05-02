@@ -4,65 +4,46 @@
 
 #include <standardese/markup/code_block.hpp>
 
-#include "html_helper.hpp"
+#include <standardese/markup/entity_kind.hpp>
 
 using namespace standardese::markup;
 
-namespace
+entity_kind code_block::keyword_tag::kind() noexcept
 {
-    void write_highlighted(std::string& result, const char* classes, const std::string& text)
-    {
-        result += R"(<span class=")";
-        result += classes;
-        result += R"(">)";
-        result += detail::escape_html(text);
-        result += "</span>";
-    }
+    return entity_kind::code_block_keyword;
 }
 
-void code_block::keyword_tag::append_html(std::string& result, const std::string& text)
+entity_kind code_block::identifier_tag::kind() noexcept
 {
-    write_highlighted(result, "kwd", text);
+    return entity_kind::code_block_identifier;
 }
 
-void code_block::identifier_tag::append_html(std::string& result, const std::string& text)
+entity_kind code_block::string_literal_tag::kind() noexcept
 {
-    write_highlighted(result, "typ dec var fun", text);
+    return entity_kind::code_block_string_literal;
 }
 
-void code_block::string_literal_tag::append_html(std::string& result, const std::string& text)
+entity_kind code_block::int_literal_tag::kind() noexcept
 {
-    write_highlighted(result, "str", text);
+    return entity_kind::code_block_int_literal;
 }
 
-void code_block::int_literal_tag::append_html(std::string& result, const std::string& text)
+entity_kind code_block::float_literal_tag::kind() noexcept
 {
-    write_highlighted(result, "lit", text);
+    return entity_kind::code_block_float_literal;
 }
 
-void code_block::float_literal_tag::append_html(std::string& result, const std::string& text)
+entity_kind code_block::punctuation_tag::kind() noexcept
 {
-    write_highlighted(result, "lit", text);
+    return entity_kind::code_block_punctuation;
 }
 
-void code_block::punctuation_tag::append_html(std::string& result, const std::string& text)
+entity_kind code_block::preprocessor_tag::kind() noexcept
 {
-    write_highlighted(result, "pun", text);
+    return entity_kind::code_block_preprocessor;
 }
 
-void code_block::preprocessor_tag::append_html(std::string& result, const std::string& text)
+entity_kind code_block::do_get_kind() const noexcept
 {
-    write_highlighted(result, "pre", text);
-}
-
-void code_block::do_append_html(std::string& result) const
-{
-    detail::append_newl(result);
-    result += "<pre>";
-    detail::append_html_open(result, "code", id(),
-                             lang_.empty() ? "" : ("language-" + lang_).c_str());
-
-    detail::append_container(result, *this);
-
-    result += "</code></pre>\n";
+    return entity_kind::code_block;
 }

@@ -4,16 +4,16 @@
 
 #include <standardese/markup/heading.hpp>
 
-#include "html_helper.hpp"
+#include <standardese/markup/entity_kind.hpp>
 
 using namespace standardese::markup;
 
-void heading::do_append_html(std::string& result) const
+entity_kind heading::do_get_kind() const noexcept
 {
-    detail::append_heading(result, *this, "h4", "");
+    return entity_kind::heading;
 }
 
-void subheading::do_append_html(std::string& result) const
+entity_kind subheading::do_get_kind() const noexcept
 {
-    detail::append_heading(result, *this, "h5", "");
+    return entity_kind::subheading;
 }

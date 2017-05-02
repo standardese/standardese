@@ -4,32 +4,16 @@
 
 #include <standardese/markup/link.hpp>
 
-#include "html_helper.hpp"
+#include <standardese/markup/entity_kind.hpp>
 
 using namespace standardese::markup;
 
-namespace
+entity_kind external_link::do_get_kind() const noexcept
 {
-    void append_link_html(std::string& result, const link_base& link, const std::string& dest)
-    {
-        result += "<a";
-        result += " href=\"" + detail::escape_url(dest) + '"';
-        if (!link.title().empty())
-            result += " title=\"" + detail::escape_html(link.title()) + '"';
-        result += ">";
-        detail::append_container(result, link);
-        result += "</a>";
-    }
+    return entity_kind::external_link;
 }
 
-void external_link::do_append_html(std::string& result) const
+entity_kind internal_link::do_get_kind() const noexcept
 {
-    append_link_html(result, *this, url());
-}
-
-void internal_link::do_append_html(std::string& result) const
-{
-    auto url = dest_.document().map(&output_name::file_name, "html").value_or("");
-    url += "#standardese-" + dest_.id().as_str();
-    append_link_html(result, *this, url);
+    return entity_kind::internal_link;
 }

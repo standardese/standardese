@@ -27,7 +27,7 @@ namespace standardese
             };
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             block_quote(block_id id) : block_entity(std::move(id))
             {

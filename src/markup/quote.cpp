@@ -4,16 +4,11 @@
 
 #include <standardese/markup/quote.hpp>
 
-#include "html_helper.hpp"
+#include <standardese/markup/entity_kind.hpp>
 
 using namespace standardese::markup;
 
-void block_quote::do_append_html(std::string& result) const
+entity_kind block_quote::do_get_kind() const noexcept
 {
-    detail::append_newl(result);
-    detail::append_html_open(result, "blockquote", id(), "");
-
-    detail::append_container(result, *this);
-
-    result += "</blockquote>\n";
+    return entity_kind::block_quote;
 }

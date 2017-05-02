@@ -4,36 +4,21 @@
 
 #include <standardese/markup/list.hpp>
 
-#include "html_helper.hpp"
+#include <standardese/markup/entity_kind.hpp>
 
 using namespace standardese::markup;
 
-void list_item::do_append_html(std::string& result) const
+entity_kind list_item::do_get_kind() const noexcept
 {
-    detail::append_newl(result);
-    detail::append_html_open(result, "li", id(), "");
-
-    detail::append_container(result, *this);
-
-    result += "</li>\n";
+    return entity_kind::list_item;
 }
 
-void unordered_list::do_append_html(std::string& result) const
+entity_kind unordered_list::do_get_kind() const noexcept
 {
-    detail::append_newl(result);
-    detail::append_html_open(result, "ul", id(), "");
-
-    detail::append_container(result, *this);
-
-    result += "</ul>\n";
+    return entity_kind::unordered_list;
 }
 
-void ordered_list::do_append_html(std::string& result) const
+entity_kind ordered_list::do_get_kind() const noexcept
 {
-    detail::append_newl(result);
-    detail::append_html_open(result, "ol", id(), "");
-
-    detail::append_container(result, *this);
-
-    result += "</ol>\n";
+    return entity_kind::ordered_list;
 }

@@ -22,7 +22,7 @@ namespace standardese
             }
 
         private:
-            void do_append_html(std::string& result) const override;
+            entity_kind do_get_kind() const noexcept override;
 
             thematic_break() : block_entity(block_id())
             {
