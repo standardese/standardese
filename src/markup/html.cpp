@@ -4,15 +4,18 @@
 
 #include <standardese/markup/generator.hpp>
 
+#include <cassert>
 #include <cstring>
 #include <cstdio>
 #include <ostream>
 
+#include <type_safe/deferred_construction.hpp>
 #include <type_safe/flag.hpp>
 #include <type_safe/reference.hpp>
 
 #include <standardese/markup/block.hpp>
 #include <standardese/markup/code_block.hpp>
+#include <standardese/markup/doc_section.hpp>
 #include <standardese/markup/document.hpp>
 #include <standardese/markup/documentation.hpp>
 #include <standardese/markup/entity.hpp>
@@ -241,17 +244,65 @@ namespace
         write_children(s, doc);
     }
 
+    void write(stream& s, const code_block& cb, bool is_synopsis = false);
+
+    // write synopsis and sections
+    void write_documentation(stream& s, const documentation& doc)
+    {
+        auto id_prefix = doc.id().empty() ? "" : doc.id().as_str() + "-";
+
+        // write synopsis
+        write(s, doc.synopsis(), true);
+
+        // write brief section
+        if (auto brief = doc.brief_section())
+        {
+            auto p = s.open_tag(false, true, "p", brief.value().id(), "brief-section");
+            write_children(p, brief.value());
+        }
+
+        // write inline sections
+        {
+            type_safe::deferred_construction<stream> dl;
+            for (auto& section : doc.doc_sections())
+                if (section.kind() != entity_kind::inline_section)
+                    continue;
+                else
+                {
+                    auto& sec = static_cast<const inline_section&>(section);
+
+                    if (!dl)
+                        dl.emplace(s.open_tag(true, true, "dl",
+                                              block_id(id_prefix + "inline-sections"),
+                                              "inline-sections"));
+                    // write section name
+                    auto dt = dl.value().open_tag(false, true, "dt");
+                    dt.write(sec.name());
+                    dt.write(":");
+                    dt.close();
+
+                    // write section content
+                    auto dd = dl.value().open_tag(false, true, "dd");
+                    write_children(dd, sec);
+                }
+        }
+
+        // write details section
+        if (auto details = doc.details_section())
+            write_children(s, details.value());
+    }
+
     void write(stream& s, const file_documentation& doc)
     {
         // <article> represents the actual content of a website
         auto article = s.open_tag(true, true, "article", doc.id(), "file-documentation");
 
-        if (doc.heading())
-        {
-            auto heading = article.open_tag(false, true, "h1", doc.heading().value().id(),
-                                            "file-documentation-heading");
-            write_children(heading, doc.heading().value());
-        }
+        auto heading =
+            article.open_tag(false, true, "h1", doc.heading().id(), "file-documentation-heading");
+        write_children(heading, doc.heading());
+        heading.close();
+
+        write_documentation(article, doc);
 
         write_children(article, doc);
     }
@@ -262,7 +313,7 @@ namespace
             if (cur.value().kind() == entity_kind::entity_documentation)
                 // use h3 when entity has a parent entity
                 return "h3";
-        // return h2 otherwsie
+        // return h2 otherwise
         return "h2";
     }
 
@@ -271,21 +322,19 @@ namespace
         // <section> represents a semantic section in the website
         auto section = s.open_tag(true, true, "section", doc.id(), "entity-documentation");
 
-        if (doc.heading())
-        {
-            auto heading =
-                section.open_tag(false, true, get_entity_documentation_heading_tag(doc),
-                                 doc.heading().value().id(), "entity-documentation-heading");
-            write_children(heading, doc.heading().value());
-        }
+        auto heading = section.open_tag(false, true, get_entity_documentation_heading_tag(doc),
+                                        doc.heading().id(), "entity-documentation-heading");
+        write_children(heading, doc.heading());
+        heading.close();
+
+        write_documentation(section, doc);
 
         write_children(section, doc);
 
         section.close();
 
-        if (doc.heading())
-            s.write_html(R"(<hr class="standardese-entity-documentation-break" />)"
-                         "\n");
+        s.write_html(R"(<hr class="standardese-entity-documentation-break" />)"
+                     "\n");
     }
 
     void write(stream& s, const heading& h)
@@ -306,7 +355,7 @@ namespace
         write_children(paragraph, p);
     }
 
-    void write(stream& s, const list_item& item)
+    void write_list_item(stream& s, const list_item& item)
     {
         auto li = s.open_tag(true, true, "li", item.id());
         write_children(li, item);
@@ -315,13 +364,15 @@ namespace
     void write(stream& s, const unordered_list& list)
     {
         auto ul = s.open_tag(true, true, "ul", list.id());
-        write_children(ul, list);
+        for (auto& item : list)
+            write_list_item(ul, item);
     }
 
     void write(stream& s, const ordered_list& list)
     {
         auto ol = s.open_tag(true, true, "ol", list.id());
-        write_children(ol, list);
+        for (auto& item : list)
+            write_list_item(ol, item);
     }
 
     void write(stream& s, const block_quote& quote)
@@ -330,12 +381,16 @@ namespace
         write_children(bq, quote);
     }
 
-    void write(stream& s, const code_block& cb)
+    void write(stream& s, const code_block& cb, bool is_synopsis)
     {
-        auto pre = s.open_tag(false, true, "pre", block_id());
-        auto code =
-            pre.open_tag(false, false, "code", cb.id(),
-                         cb.language().empty() ? "" : ("language-" + cb.language()).c_str());
+        std::string classes;
+        if (!cb.language().empty())
+            classes += "language-" + cb.language();
+        if (is_synopsis)
+            classes += " standardese-entity-synopsis";
+
+        auto pre  = s.open_tag(false, true, "pre", block_id());
+        auto code = pre.open_tag(false, false, "code", cb.id(), classes.c_str());
         write_children(code, cb);
     }
 
@@ -456,7 +511,6 @@ namespace
 
             STANDARDESE_DETAIL_HANDLE(paragraph)
 
-            STANDARDESE_DETAIL_HANDLE(list_item)
             STANDARDESE_DETAIL_HANDLE(unordered_list)
             STANDARDESE_DETAIL_HANDLE(ordered_list)
 
@@ -483,6 +537,14 @@ namespace
 
 #undef STANDARDESE_DETAIL_HANDLE
 #undef STANDARDESE_DETAIL_HANDLE_CODE_BLOCK
+
+        case entity_kind::list_item:
+        case entity_kind::brief_section:
+        case entity_kind::details_section:
+        case entity_kind::inline_section:
+        case entity_kind::list_section:
+            assert(!"can't use this entity stand-alone");
+            break;
         }
     }
 }

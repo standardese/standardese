@@ -18,6 +18,12 @@ namespace standardese
     {
         enum class entity_kind;
 
+        /// \exclude
+        namespace detail
+        {
+            struct parent_updater;
+        } // namespace detail
+
         /// The base class for all markup entities.
         ///
         /// This is how the documentation output is described.
@@ -50,22 +56,16 @@ namespace standardese
 
             type_safe::optional_ref<const entity> parent_;
 
-            template <typename T>
-            friend class container_entity;
+            friend detail::parent_updater;
         };
-
-        /// A mix-in base class for entity that are a containers.
-        ///
-        /// It takes care of the container functions.
-        /// \requires `T` must be derived from `entity`.
-        template <typename T>
-        class container_entity
+        /// \exclude
+        namespace detail
         {
-            using container = std::vector<std::unique_ptr<T>>;
-
-        public:
-            class iterator
+            template <typename T>
+            class vector_ptr_iterator
             {
+                using container = std::vector<std::unique_ptr<T>>;
+
             public:
                 using value_type        = const T;
                 using reference         = const T&;
@@ -73,7 +73,11 @@ namespace standardese
                 using difference_type   = std::ptrdiff_t;
                 using iterator_category = std::forward_iterator_tag;
 
-                iterator() noexcept : cur_(nullptr)
+                vector_ptr_iterator() noexcept : cur_(nullptr)
+                {
+                }
+
+                vector_ptr_iterator(typename container::const_iterator cur) : cur_(cur)
                 {
                 }
 
@@ -87,38 +91,71 @@ namespace standardese
                     return cur_->get();
                 }
 
-                iterator& operator++() noexcept
+                vector_ptr_iterator& operator++() noexcept
                 {
                     ++cur_;
                     return *this;
                 }
 
-                iterator operator++(int)noexcept
+                vector_ptr_iterator operator++(int)noexcept
                 {
                     auto tmp = *this;
                     ++(*this);
                     return tmp;
                 }
 
-                friend bool operator==(const iterator& a, const iterator& b) noexcept
+                friend bool operator==(const vector_ptr_iterator& a,
+                                       const vector_ptr_iterator& b) noexcept
                 {
                     return a.cur_ == b.cur_;
                 }
 
-                friend bool operator!=(const iterator& a, const iterator& b) noexcept
+                friend bool operator!=(const vector_ptr_iterator& a,
+                                       const vector_ptr_iterator& b) noexcept
                 {
                     return !(a == b);
                 }
 
             private:
-                iterator(typename container::const_iterator cur) : cur_(cur)
+                typename container::const_iterator cur_;
+            };
+
+            template <typename T>
+            struct vector_ptr_range
+            {
+                vector_ptr_iterator<T> begin_, end_;
+
+                const vector_ptr_iterator<T>& begin() const noexcept
                 {
+                    return begin_;
                 }
 
-                typename container::const_iterator cur_;
-
-                friend container_entity;
+                const vector_ptr_iterator<T>& end() const noexcept
+                {
+                    return end_;
+                }
             };
+
+            struct parent_updater
+            {
+                static void set(entity& e, type_safe::object_ref<const entity> parent)
+                {
+                    e.parent_ = parent;
+                }
+            };
+        } // namespace detail
+
+        /// A mix-in base class for entity that are a containers.
+        ///
+        /// It takes care of the container functions.
+        /// \requires `T` must be derived from `entity`.
+        template <typename T>
+        class container_entity
+        {
+            using container = std::vector<std::unique_ptr<T>>;
+
+        public:
+            using iterator = detail::vector_ptr_iterator<T>;
 
             /// \returns An iterator to the first child entity.
             iterator begin() const noexcept
@@ -147,7 +184,7 @@ namespace standardese
                 /// \effects Adds a new child for the container.
                 container_builder& add_child(std::unique_ptr<T> entity)
                 {
-                    static_cast<markup::entity&>(*entity).parent_ = type_safe::ref(*result_);
+                    detail::parent_updater::set(*entity, type_safe::ref(*result_));
                     as_container().children_.push_back(std::move(entity));
                     return *this;
                 }
@@ -165,6 +202,12 @@ namespace standardese
                 {
                     static_assert(std::is_base_of<container_entity<T>, Derived>::value,
                                   "Derived must be derived from container_entity");
+                }
+
+                /// \returns The not yet finished entity.
+                Derived& peek() noexcept
+                {
+                    return *result_;
                 }
 
             private:

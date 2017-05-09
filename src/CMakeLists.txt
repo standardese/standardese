@@ -14,6 +14,7 @@ set(detail_header
 set(markup_header
     ../include/standardese/markup/block.hpp
     ../include/standardese/markup/code_block.hpp
+    ../include/standardese/markup/doc_section.hpp
     ../include/standardese/markup/document.hpp
     ../include/standardese/markup/documentation.hpp
     ../include/standardese/markup/entity.hpp
@@ -60,6 +61,7 @@ set(header
         ../include/standardese/translation_unit.hpp)
 set(markup_src
     markup/code_block.cpp
+    markup/doc_section.cpp
     markup/document.cpp
     markup/documentation.cpp
     markup/entity_kind.cpp

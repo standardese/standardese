@@ -39,6 +39,11 @@ namespace standardese
             code_block_punctuation,
             code_block_preprocessor,
 
+            brief_section,
+            details_section,
+            inline_section,
+            list_section,
+
             thematic_break,
 
             text,
@@ -49,10 +54,6 @@ namespace standardese
             external_link,
             internal_link,
         };
-
-        /// \returns Whether or not the entity is a container,
-        /// that is, derived from [standardese::markup::container_entity]().
-        bool is_container(entity_kind kind) noexcept;
 
         /// \returns Whether or not the entity is a phrasing entity,
         /// that is, derived from [standardese::markup::phrasing_entity]().

@@ -6,79 +6,69 @@
 
 #include <catch.hpp>
 
+#include <standardese/markup/code_block.hpp>
 #include <standardese/markup/document.hpp>
 #include <standardese/markup/generator.hpp>
+#include <standardese/markup/heading.hpp>
 #include <standardese/markup/paragraph.hpp>
 
 using namespace standardese::markup;
 
 TEST_CASE("file_documentation", "[markup]")
 {
-    SECTION("no heading")
-    {
-        auto html = R"(<article id="standardese-a" class="standardese-file-documentation">
-<section id="standardese-foo" class="standardese-entity-documentation">
-</section>
-<p>foo</p>
+    auto html = R"(<article id="standardese-file-hpp" class="standardese-file-documentation">
+<h1 class="standardese-file-documentation-heading">A file</h1>
+<pre><code class="standardese-language-cpp standardese-entity-synopsis">the synopsis();</code></pre>
+<p id="standardese-file-hpp-brief" class="standardese-brief-section">The brief documentation.</p>
+<dl id="standardese-file-hpp-inline-sections" class="standardese-inline-sections">
+<dt>Effects:</dt>
+<dd>The effects of the - eh - file.</dd>
+<dt>Notes:</dt>
+<dd>Some notes.</dd>
+</dl>
+<p>The details documentation.</p>
 </article>
 )";
 
-        file_documentation::builder builder(block_id("a"));
-        builder.add_child(entity_documentation::builder(block_id("foo")).finish());
-        builder.add_child(paragraph::builder(block_id("")).add_child(text::build("foo")).finish());
-        REQUIRE(as_html(*builder.finish()) == html);
-    }
-    SECTION("heading")
-    {
-        auto html = R"(<article class="standardese-file-documentation">
-<h1 class="standardese-file-documentation-heading">A heading!</h1>
-<p>foo</p>
-</article>
-)";
-
-        file_documentation::builder builder(block_id(), heading::build(block_id(), "A heading!"));
-        builder.add_child(paragraph::builder().add_child(text::build("foo")).finish());
-        REQUIRE(as_html(*builder.finish()) == html);
-    }
+    file_documentation::builder builder(block_id("file-hpp"), heading::build(block_id(), "A file"),
+                                        code_block::build(block_id(), "cpp", "the synopsis();"));
+    builder.add_brief(
+        brief_section::builder().add_child(text::build("The brief documentation.")).finish());
+    builder.add_section(inline_section::builder(section_type::effects, "Effects")
+                            .add_child(text::build("The effects of the - eh - file."))
+                            .finish());
+    builder.add_section(inline_section::builder(section_type::notes, "Notes")
+                            .add_child(text::build("Some notes."))
+                            .finish());
+    builder.add_details(
+        details_section::builder()
+            .add_child(
+                paragraph::builder().add_child(text::build("The details documentation.")).finish())
+            .finish());
+    REQUIRE(as_html(*builder.finish()) == html);
 }
 
 TEST_CASE("entity_documentation", "[markup]")
 {
-    SECTION("no heading")
-    {
-        auto html = R"(<section id="standardese-a" class="standardese-entity-documentation">
-<p>foo</p>
-</section>
-)";
-
-        entity_documentation::builder builder(block_id("a"));
-        builder.add_child(paragraph::builder(block_id("")).add_child(text::build("foo")).finish());
-        REQUIRE(as_html(*builder.finish()) == html);
-    }
-    SECTION("heading")
-    {
-        auto html = R"(<section class="standardese-template-document">
-<article class="standardese-file-documentation">
-<section class="standardese-entity-documentation">
-<h2 class="standardese-entity-documentation-heading">1</h2>
-<section class="standardese-entity-documentation">
-<h3 class="standardese-entity-documentation-heading">2</h3>
+    auto html = R"(<section id="standardese-a" class="standardese-entity-documentation">
+<h2 class="standardese-entity-documentation-heading">Entity A</h2>
+<pre><code class="standardese-language-cpp standardese-entity-synopsis">void a();</code></pre>
+<section id="standardese-b" class="standardese-entity-documentation">
+<h3 class="standardese-entity-documentation-heading">Entity B</h3>
+<pre><code class="standardese-language-cpp standardese-entity-synopsis">void b();</code></pre>
+<p id="standardese-b-brief" class="standardese-brief-section">The brief documentation.</p>
 </section>
 <hr class="standardese-entity-documentation-break" />
 </section>
 <hr class="standardese-entity-documentation-break" />
-</article>
-</section>
 )";
 
-        template_document::builder file("", "templ");
-
-        entity_documentation::builder builder(block_id(), heading::build(block_id(), "1"));
-        builder.add_child(
-            entity_documentation::builder(block_id(), heading::build(block_id(), "2")).finish());
-        file.add_child(
-            file_documentation::builder(block_id()).add_child(builder.finish()).finish());
-
-        REQUIRE(as_html(*file.finish()) == html);
-    }
+    entity_documentation::builder a(block_id("a"), heading::build(block_id(), "Entity A"),
+                                    code_block::build(block_id(), "cpp", "void a();"));
+    entity_documentation::builder b(block_id("b"), heading::build(block_id(), "Entity B"),
+                                    code_block::build(block_id(), "cpp", "void b();"));
+    b.add_brief(
+        brief_section::builder().add_child(text::build("The brief documentation.")).finish());
+    a.add_child(b.finish());
+    REQUIRE(as_html(*a.finish()) == html);
 }

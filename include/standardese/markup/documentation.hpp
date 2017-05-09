@@ -7,48 +7,125 @@
 
 #include <type_safe/optional_ref.hpp>
 
+#include <vector>
+
 #include <standardese/markup/block.hpp>
+#include <standardese/markup/doc_section.hpp>
 #include <standardese/markup/entity.hpp>
-#include <standardese/markup/heading.hpp>
 
 namespace standardese
 {
     namespace markup
     {
-        /// A container containing the documentation of some file.
+        class heading;
+        class code_block;
+
+        /// The documentation of an entity.
+        class documentation : public block_entity, public container_entity<documentation>
+        {
+        public:
+            ~documentation() noexcept override;
+
+            /// \returns A reference to the heading of the documentation.
+            const markup::heading& heading() const noexcept
+            {
+                return *heading_;
+            }
+
+            /// \returns A reference to the synopsis of the entity.
+            const code_block& synopsis() const noexcept
+            {
+                return *synopsis_;
+            }
+
+            /// \returns A reference to the `\brief` section of the documentation,
+            /// if there is any.
+            type_safe::optional_ref<const markup::brief_section> brief_section() const noexcept;
+
+            /// \returns A reference to the `\details` section of the documentation,
+            /// if there is any.
+            type_safe::optional_ref<const markup::details_section> details_section() const noexcept;
+
+            detail::vector_ptr_range<doc_section> doc_sections() const noexcept
+            {
+                return {sections_.begin(), sections_.end()};
+            }
+
+        protected:
+            documentation(block_id id, std::unique_ptr<markup::heading> heading,
+                          std::unique_ptr<code_block> synopsis);
+
+            template <typename T>
+            class documentation_builder : public container_builder<T>
+            {
+            public:
+                /// \effects Adds a brief section.
+                /// \requires This function must be called at most once.
+                documentation_builder& add_brief(std::unique_ptr<markup::brief_section> section)
+                {
+                    add_section_impl(std::move(section));
+                    return *this;
+                }
+
+                /// \effects Adds a details section.
+                /// \requires This function must be called at most once.
+                documentation_builder& add_details(std::unique_ptr<markup::details_section> section)
+                {
+                    add_section_impl(std::move(section));
+                    return *this;
+                }
+
+                /// \effects Adds an inline section.
+                documentation_builder& add_section(std::unique_ptr<inline_section> section)
+                {
+                    add_section_impl(std::move(section));
+                    return *this;
+                }
+
+            protected:
+                using container_builder<T>::container_builder;
+
+            private:
+                void add_section_impl(std::unique_ptr<doc_section> section)
+                {
+                    detail::parent_updater::set(*section, type_safe::ref(this->peek()));
+                    this->peek().sections_.push_back(std::move(section));
+                }
+            };
+
+        private:
+            std::unique_ptr<markup::heading>          heading_;
+            std::unique_ptr<code_block>               synopsis_;
+            std::vector<std::unique_ptr<doc_section>> sections_;
+        };
+
+        /// The documentation of a file.
         ///
-        /// It can optionally have a [standardese::markup::heading]() which will be rendered as well.
         /// \notes This does not represent a stand-alone file, use a [standardese::markup::document_entity]() for that.
-        class file_documentation final : public block_entity, public container_entity<block_entity>
+        class file_documentation final : public documentation
         {
         public:
             /// Builds the documentation of a file.
-            class builder : public container_builder<file_documentation>
+            class builder : public documentation_builder<file_documentation>
             {
             public:
-                /// \effects Creates it giving the id and optional heading.
-                builder(block_id id, std::unique_ptr<heading> h = nullptr)
-                : container_builder(std::unique_ptr<file_documentation>(
-                      new file_documentation(std::move(id), std::move(h))))
+                /// \effects Creates it giving the id, heading and synopsis.
+                builder(block_id id, std::unique_ptr<markup::heading> h,
+                        std::unique_ptr<code_block> synopsis)
+                : documentation_builder(std::unique_ptr<file_documentation>(
+                      new file_documentation(std::move(id), std::move(h), std::move(synopsis))))
                 {
                 }
             };
 
-            /// \returns A reference to the heading, if any.
-            type_safe::optional_ref<const markup::heading> heading() const noexcept
-            {
-                return type_safe::opt_ref(heading_.get());
-            }
-
         private:
             entity_kind do_get_kind() const noexcept override;
 
-            file_documentation(block_id id, std::unique_ptr<markup::heading> h)
-            : block_entity(std::move(id)), heading_(std::move(h))
+            file_documentation(block_id id, std::unique_ptr<markup::heading> h,
+                               std::unique_ptr<code_block> synopsis)
+            : documentation(std::move(id), std::move(h), std::move(synopsis))
             {
             }
-
-            std::unique_ptr<markup::heading> heading_;
         };
 
         /// A container containing the documentation of a single entity.
@@ -56,37 +133,30 @@ namespace standardese
         /// It can optionally have a [standardese::markup::heading]() which will be rendered as well.
         /// If it has a heading, it will also render a [standardese::markup::thematic_break]() at the end.
         /// \notes This does not represent the documentation of a file, use [standardese::markup::file_documentation]() for that.
-        class entity_documentation final : public block_entity,
-                                           public container_entity<block_entity>
+        class entity_documentation final : public documentation
         {
         public:
             /// Builds the documentation of an entity.
-            class builder : public container_builder<entity_documentation>
+            class builder : public documentation_builder<entity_documentation>
             {
             public:
-                /// \effects Creates it giving the id and optional heading.
-                builder(block_id id, std::unique_ptr<heading> h = nullptr)
-                : container_builder(std::unique_ptr<entity_documentation>(
-                      new entity_documentation(std::move(id), std::move(h))))
+                /// \effects Creates it giving the id, heading and synopsis.
+                builder(block_id id, std::unique_ptr<markup::heading> h,
+                        std::unique_ptr<code_block> synopsis)
+                : documentation_builder(std::unique_ptr<entity_documentation>(
+                      new entity_documentation(std::move(id), std::move(h), std::move(synopsis))))
                 {
                 }
             };
 
-            /// \returns A reference to the heading, if any.
-            type_safe::optional_ref<const markup::heading> heading() const noexcept
-            {
-                return type_safe::opt_ref(heading_.get());
-            }
-
         private:
             entity_kind do_get_kind() const noexcept override;
 
-            entity_documentation(block_id id, std::unique_ptr<markup::heading> h)
-            : block_entity(std::move(id)), heading_(std::move(h))
+            entity_documentation(block_id id, std::unique_ptr<markup::heading> h,
+                                 std::unique_ptr<code_block> synopsis)
+            : documentation(std::move(id), std::move(h), std::move(synopsis))
             {
             }
-
-            std::unique_ptr<markup::heading> heading_;
         };
     }
 } // namespace standardese::markup
