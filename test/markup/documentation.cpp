@@ -72,10 +72,10 @@ TEST_CASE("file_documentation", "[markup]")
 TEST_CASE("entity_documentation", "[markup]")
 {
     auto html = R"(<section id="standardese-a" class="standardese-entity-documentation">
-<h2 class="standardese-entity-documentation-heading">Entity A</h2>
+<h2 class="standardese-entity-documentation-heading">Entity A<span class="standardese-module">[module_a]</span></h2>
 <pre><code class="standardese-language-cpp standardese-entity-synopsis">void a();</code></pre>
 <section id="standardese-b" class="standardese-entity-documentation">
-<h3 class="standardese-entity-documentation-heading">Entity B</h3>
+<h3 class="standardese-entity-documentation-heading">Entity B<span class="standardese-module">[module_b]</span></h3>
 <pre><code class="standardese-language-cpp standardese-entity-synopsis">void b();</code></pre>
 <p id="standardese-b-brief" class="standardese-brief-section">The brief documentation.</p>
 </section>
@@ -85,9 +85,9 @@ TEST_CASE("entity_documentation", "[markup]")
 )";
 
     entity_documentation::builder a(block_id("a"), heading::build(block_id(), "Entity A"),
-                                    code_block::build(block_id(), "cpp", "void a();"));
+                                    code_block::build(block_id(), "cpp", "void a();"), "module_a");
     entity_documentation::builder b(block_id("b"), heading::build(block_id(), "Entity B"),
-                                    code_block::build(block_id(), "cpp", "void b();"));
+                                    code_block::build(block_id(), "cpp", "void b();"), "module_b");
     b.add_brief(
         brief_section::builder().add_child(text::build("The brief documentation.")).finish());
     a.add_child(b.finish());

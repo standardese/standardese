@@ -13,8 +13,12 @@ using namespace standardese::markup;
 documentation::~documentation() noexcept = default;
 
 documentation::documentation(block_id id, std::unique_ptr<markup::heading> heading,
-                             std::unique_ptr<code_block> synopsis)
-: block_entity(std::move(id)), heading_(std::move(heading)), synopsis_(std::move(synopsis))
+                             std::unique_ptr<code_block>      synopsis,
+                             type_safe::optional<std::string> module)
+: block_entity(std::move(id)),
+  module_(std::move(module)),
+  heading_(std::move(heading)),
+  synopsis_(std::move(synopsis))
 {
 }
 

@@ -32,6 +32,12 @@ namespace standardese
                 return *heading_;
             }
 
+            /// \returns The module of the entity, if any.
+            const type_safe::optional<std::string>& module() const noexcept
+            {
+                return module_;
+            }
+
             /// \returns A reference to the synopsis of the entity.
             const code_block& synopsis() const noexcept
             {
@@ -53,7 +59,8 @@ namespace standardese
 
         protected:
             documentation(block_id id, std::unique_ptr<markup::heading> heading,
-                          std::unique_ptr<code_block> synopsis);
+                          std::unique_ptr<code_block>      synopsis,
+                          type_safe::optional<std::string> module);
 
             template <typename T>
             class documentation_builder : public container_builder<T>
@@ -101,9 +108,10 @@ namespace standardese
             };
 
         private:
+            std::vector<std::unique_ptr<doc_section>> sections_;
+            type_safe::optional<std::string>          module_;
             std::unique_ptr<markup::heading>          heading_;
             std::unique_ptr<code_block>               synopsis_;
-            std::vector<std::unique_ptr<doc_section>> sections_;
         };
 
         /// The documentation of a file.
@@ -116,11 +124,13 @@ namespace standardese
             class builder : public documentation_builder<file_documentation>
             {
             public:
-                /// \effects Creates it giving the id, heading and synopsis.
+                /// \effects Creates it giving the id, heading and synopsis and module.
                 builder(block_id id, std::unique_ptr<markup::heading> h,
-                        std::unique_ptr<code_block> synopsis)
+                        std::unique_ptr<code_block>      synopsis,
+                        type_safe::optional<std::string> module = type_safe::nullopt)
                 : documentation_builder(std::unique_ptr<file_documentation>(
-                      new file_documentation(std::move(id), std::move(h), std::move(synopsis))))
+                      new file_documentation(std::move(id), std::move(h), std::move(synopsis),
+                                             std::move(module))))
                 {
                 }
             };
@@ -128,11 +138,7 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
-            file_documentation(block_id id, std::unique_ptr<markup::heading> h,
-                               std::unique_ptr<code_block> synopsis)
-            : documentation(std::move(id), std::move(h), std::move(synopsis))
-            {
-            }
+            using documentation::documentation;
         };
 
         /// A container containing the documentation of a single entity.
@@ -147,11 +153,13 @@ namespace standardese
             class builder : public documentation_builder<entity_documentation>
             {
             public:
-                /// \effects Creates it giving the id, heading and synopsis.
+                /// \effects Creates it giving the id, heading and synopsis and optional module.
                 builder(block_id id, std::unique_ptr<markup::heading> h,
-                        std::unique_ptr<code_block> synopsis)
+                        std::unique_ptr<code_block>      synopsis,
+                        type_safe::optional<std::string> module = type_safe::nullopt)
                 : documentation_builder(std::unique_ptr<entity_documentation>(
-                      new entity_documentation(std::move(id), std::move(h), std::move(synopsis))))
+                      new entity_documentation(std::move(id), std::move(h), std::move(synopsis),
+                                               std::move(module))))
                 {
                 }
             };
@@ -159,11 +167,7 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
-            entity_documentation(block_id id, std::unique_ptr<markup::heading> h,
-                                 std::unique_ptr<code_block> synopsis)
-            : documentation(std::move(id), std::move(h), std::move(synopsis))
-            {
-            }
+            using documentation::documentation;
         };
     }
 } // namespace standardese::markup

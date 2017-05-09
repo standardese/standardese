@@ -312,6 +312,14 @@ namespace
             }
     }
 
+    void write_module(stream& s, const std::string& module)
+    {
+        auto span = s.open_tag(false, false, "span", block_id(), "module");
+        span.write("[");
+        span.write(module);
+        span.write("]");
+    }
+
     void write(stream& s, const file_documentation& doc)
     {
         // <article> represents the actual content of a website
@@ -320,6 +328,8 @@ namespace
         auto heading =
             article.open_tag(false, true, "h1", doc.heading().id(), "file-documentation-heading");
         write_children(heading, doc.heading());
+        if (doc.module())
+            write_module(heading, doc.module().value());
         heading.close();
 
         write_documentation(article, doc);
@@ -345,6 +355,8 @@ namespace
         auto heading = section.open_tag(false, true, get_entity_documentation_heading_tag(doc),
                                         doc.heading().id(), "entity-documentation-heading");
         write_children(heading, doc.heading());
+        if (doc.module())
+            write_module(heading, doc.module().value());
         heading.close();
 
         write_documentation(section, doc);
