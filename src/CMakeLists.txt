@@ -11,6 +11,22 @@ set(detail_header
         ../include/standardese/detail/synopsis_utils.hpp
         ../include/standardese/detail/tokenizer.hpp
         ../include/standardese/detail/wrapper.hpp)
+set(markup_header
+    ../include/standardese/markup/block.hpp
+    ../include/standardese/markup/code_block.hpp
+    ../include/standardese/markup/doc_section.hpp
+    ../include/standardese/markup/document.hpp
+    ../include/standardese/markup/documentation.hpp
+    ../include/standardese/markup/entity.hpp
+    ../include/standardese/markup/entity_kind.hpp
+    ../include/standardese/markup/generator.hpp
+    ../include/standardese/markup/heading.hpp
+    ../include/standardese/markup/link.hpp
+    ../include/standardese/markup/list.hpp
+    ../include/standardese/markup/paragraph.hpp
+    ../include/standardese/markup/phrasing.hpp
+    ../include/standardese/markup/quote.hpp
+    ../include/standardese/markup/thematic_break.hpp)
 set(header
         ../include/standardese/comment.hpp
         ../include/standardese/config.hpp
@@ -43,6 +59,21 @@ set(header
         ../include/standardese/string.hpp
         ../include/standardese/template_processor.hpp
         ../include/standardese/translation_unit.hpp)
+set(markup_src
+    markup/code_block.cpp
+    markup/doc_section.cpp
+    markup/document.cpp
+    markup/documentation.cpp
+    markup/entity_kind.cpp
+    markup/generator.cpp
+    markup/heading.cpp
+    markup/html.cpp
+    markup/link.cpp
+    markup/list.cpp
+    markup/paragraph.cpp
+    markup/phrasing.cpp
+    markup/quote.cpp
+    markup/thematic_break.cpp)
 set(src
         detail/parse_utils.cpp
         detail/raw_comment.cpp
@@ -77,7 +108,7 @@ set(src
         template_processor.cpp
         translation_unit.cpp)
 
-add_library(standardese ${detail_header} ${header} ${src})
+add_library(standardese ${detail_header} ${markup_header} ${header} ${markup_src} ${src})
 comp_target_features(standardese PRIVATE CPP11)
 target_include_directories(standardese PUBLIC
                                 $<BUILD_INTERFACE:${STANDARDESE_SOURCE_DIR}/include>
@@ -96,6 +127,9 @@ target_compile_definitions(standardese PUBLIC
 find_package(Threads REQUIRED)
 target_link_libraries(standardese PUBLIC Threads::Threads)
 
+# link cppast
+target_link_libraries(standardese PUBLIC cppast)
+
 # link libclang
 target_include_directories(standardese PUBLIC ${LIBCLANG_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${LIBCLANG_LIBRARY})
@@ -111,7 +145,7 @@ target_link_libraries(standardese PUBLIC ${Boost_LIBRARIES})
 # use tiny-process-library
 target_include_directories(standardese PRIVATE ${TINY_PROCESS_LIBRARY_INCLUDE_DIR})
 
-# install library
-install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")
-install(FILES ${header} DESTINATION "${include_dest}/standardese")
-install(FILES ${detail_header} DESTINATION "${include_dest}/standardese/detail")
+# install library: TODO
+#install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")
+#install(FILES ${header} DESTINATION "${include_dest}/standardese")
+#install(FILES ${detail_header} DESTINATION "${include_dest}/standardese/detail")

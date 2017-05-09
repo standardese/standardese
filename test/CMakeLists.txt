@@ -9,6 +9,16 @@ if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
 endif()
 
 set(tests
+    markup/code_block.cpp
+    markup/document.cpp
+    markup/documentation.cpp
+    markup/heading.cpp
+    markup/link.cpp
+    markup/list.cpp
+    markup/paragraph.cpp
+    markup/phrasing.cpp
+    markup/quote.cpp
+    markup/thematic_break.cpp
     comment.cpp
     cpp_entity.cpp
     cpp_entity_blacklist.cpp
