@@ -175,11 +175,6 @@ namespace standardese
                 return name_;
             }
 
-            /// \returns The unique id of the section.
-            ///
-            /// It is created from the parent id.
-            block_id id() const;
-
             /// \returns The list of the section.
             const unordered_list& list() const noexcept
             {

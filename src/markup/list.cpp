@@ -13,6 +13,21 @@ entity_kind list_item::do_get_kind() const noexcept
     return entity_kind::list_item;
 }
 
+entity_kind term::do_get_kind() const noexcept
+{
+    return entity_kind::term;
+}
+
+entity_kind description::do_get_kind() const noexcept
+{
+    return entity_kind::description;
+}
+
+entity_kind term_description_item::do_get_kind() const noexcept
+{
+    return entity_kind::term_description_item;
+}
+
 entity_kind unordered_list::do_get_kind() const noexcept
 {
     return entity_kind::unordered_list;

@@ -11,6 +11,7 @@
 #include <standardese/markup/generator.hpp>
 #include <standardese/markup/heading.hpp>
 #include <standardese/markup/paragraph.hpp>
+#include <standardese/markup/list.hpp>
 
 using namespace standardese::markup;
 
@@ -27,6 +28,18 @@ TEST_CASE("file_documentation", "[markup]")
 <dd>Some notes.</dd>
 </dl>
 <p>The details documentation.</p>
+<h4 class="standardese-list-section-heading">Return values</h4>
+<ul class="standardese-list-section">
+<li>
+<p>Any integer</p>
+</li>
+<li>
+<dl class="standardese-term-description-item">
+<dt>42</dt>
+<dd>&mdash; the answer!</dd>
+</dl>
+</li>
+</ul>
 </article>
 )";
 
@@ -45,6 +58,14 @@ TEST_CASE("file_documentation", "[markup]")
             .add_child(
                 paragraph::builder().add_child(text::build("The details documentation.")).finish())
             .finish());
+
+    unordered_list::builder list{block_id()};
+    list.add_item(
+        list_item::build(paragraph::builder().add_child(text::build("Any integer")).finish()));
+    list.add_item(term_description_item::build(block_id(), term::build(text::build("42")),
+                                               description::build(text::build("the answer!"))));
+    builder.add_section(list_section::build(section_type::returns, "Return values", list.finish()));
+
     REQUIRE(as_html(*builder.finish()) == html);
 }
 

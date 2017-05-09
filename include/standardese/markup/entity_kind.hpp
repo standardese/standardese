@@ -25,6 +25,11 @@ namespace standardese
             paragraph,
 
             list_item,
+
+            term,
+            description,
+            term_description_item,
+
             unordered_list,
             ordered_list,
 

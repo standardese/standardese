@@ -85,11 +85,6 @@ entity_kind inline_section::do_get_kind() const noexcept
     return entity_kind::inline_section;
 }
 
-block_id list_section::id() const
-{
-    return get_section_id(parent(), type_);
-}
-
 entity_kind list_section::do_get_kind() const noexcept
 {
     return entity_kind::list_section;

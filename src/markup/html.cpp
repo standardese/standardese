@@ -245,6 +245,7 @@ namespace
     }
 
     void write(stream& s, const code_block& cb, bool is_synopsis = false);
+    void write_list_item(stream& s, const list_item_base& item);
 
     // write synopsis and sections
     void write_documentation(stream& s, const documentation& doc)
@@ -290,6 +291,25 @@ namespace
         // write details section
         if (auto details = doc.details_section())
             write_children(s, details.value());
+
+        // write list sections
+        for (auto& section : doc.doc_sections())
+            if (section.kind() != entity_kind::list_section)
+                continue;
+            else
+            {
+                auto& list = static_cast<const list_section&>(section);
+
+                // heading
+                auto h4 = s.open_tag(false, true, "h4", block_id(), "list-section-heading");
+                h4.write(list.name());
+                h4.close();
+
+                // list
+                auto ul = s.open_tag(true, true, "ul", list.list().id(), "list-section");
+                for (auto& item : list.list())
+                    write_list_item(ul, item);
+            }
     }
 
     void write(stream& s, const file_documentation& doc)
@@ -355,10 +375,31 @@ namespace
         write_children(paragraph, p);
     }
 
-    void write_list_item(stream& s, const list_item& item)
+    void write_list_item(stream& s, const list_item_base& item)
     {
         auto li = s.open_tag(true, true, "li", item.id());
-        write_children(li, item);
+
+        if (item.kind() == entity_kind::list_item)
+        {
+            write_children(li, static_cast<const list_item&>(item));
+        }
+        else if (item.kind() == entity_kind::term_description_item)
+        {
+            auto& term        = static_cast<const term_description_item&>(item).term();
+            auto& description = static_cast<const term_description_item&>(item).description();
+
+            auto dl = s.open_tag(true, true, "dl", item.id(), "term-description-item");
+
+            auto dt = s.open_tag(false, true, "dt");
+            write_children(dt, term);
+            dt.close();
+
+            auto dd = s.open_tag(false, true, "dd");
+            dd.write_html("&mdash; ");
+            write_children(dd, description);
+        }
+        else
+            assert(false);
     }
 
     void write(stream& s, const unordered_list& list)
@@ -539,6 +580,9 @@ namespace
 #undef STANDARDESE_DETAIL_HANDLE_CODE_BLOCK
 
         case entity_kind::list_item:
+        case entity_kind::term:
+        case entity_kind::description:
+        case entity_kind::term_description_item:
         case entity_kind::brief_section:
         case entity_kind::details_section:
         case entity_kind::inline_section:

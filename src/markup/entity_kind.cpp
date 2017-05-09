@@ -19,6 +19,8 @@ bool standardese::markup::is_phrasing(standardese::markup::entity_kind kind) noe
     case entity_kind::emphasis:
     case entity_kind::strong_emphasis:
     case entity_kind::code:
+    case entity_kind::term:
+    case entity_kind::description:
     case entity_kind::external_link:
     case entity_kind::internal_link:
         return true;
@@ -32,6 +34,7 @@ bool standardese::markup::is_phrasing(standardese::markup::entity_kind kind) noe
     case entity_kind::subheading:
     case entity_kind::paragraph:
     case entity_kind::list_item:
+    case entity_kind::term_description_item:
     case entity_kind::unordered_list:
     case entity_kind::ordered_list:
     case entity_kind::block_quote:
@@ -59,6 +62,7 @@ bool standardese::markup::is_block(standardese::markup::entity_kind kind) noexce
     case entity_kind::subheading:
     case entity_kind::paragraph:
     case entity_kind::list_item:
+    case entity_kind::term_description_item:
     case entity_kind::unordered_list:
     case entity_kind::ordered_list:
     case entity_kind::block_quote:
@@ -77,6 +81,8 @@ bool standardese::markup::is_block(standardese::markup::entity_kind kind) noexce
     case entity_kind::emphasis:
     case entity_kind::strong_emphasis:
     case entity_kind::code:
+    case entity_kind::term:
+    case entity_kind::description:
     case entity_kind::external_link:
     case entity_kind::internal_link:
     case entity_kind::brief_section:

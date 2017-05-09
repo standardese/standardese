@@ -82,6 +82,13 @@ namespace standardese
                     return *this;
                 }
 
+                /// \effects Adds a list section.
+                documentation_builder& add_section(std::unique_ptr<list_section> section)
+                {
+                    add_section_impl(std::move(section));
+                    return *this;
+                }
+
             protected:
                 using container_builder<T>::container_builder;
 

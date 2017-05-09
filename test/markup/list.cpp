@@ -21,6 +21,12 @@ TEST_CASE("unordered_list", "[markup]")
 <li>
 <p>text</p>
 </li>
+<li>
+<dl class="standardese-term-description-item">
+<dt>A term</dt>
+<dd>&mdash; A description</dd>
+</dl>
+</li>
 </ul>
 )";
 
@@ -29,7 +35,11 @@ TEST_CASE("unordered_list", "[markup]")
                          .add_child(paragraph::builder().finish())
                          .add_child(paragraph::builder().finish())
                          .finish());
-    builder.add_item(paragraph::builder().add_child(text::build("text")).finish());
+    builder.add_item(
+        list_item::build(paragraph::builder().add_child(text::build("text")).finish()));
+    builder.add_item(
+        term_description_item::build(block_id(), term::build(text::build("A term")),
+                                     description::build(text::build("A description"))));
     REQUIRE(as_html(*builder.finish()) == html);
 }
 
@@ -51,6 +61,7 @@ TEST_CASE("ordered_list", "[markup]")
                          .add_child(paragraph::builder().finish())
                          .add_child(paragraph::builder().finish())
                          .finish());
-    builder.add_item(paragraph::builder().add_child(text::build("text")).finish());
+    builder.add_item(
+        list_item::build(paragraph::builder().add_child(text::build("text")).finish()));
     REQUIRE(as_html(*builder.finish()) == html);
 }
