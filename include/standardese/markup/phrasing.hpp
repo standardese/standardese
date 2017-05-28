@@ -137,6 +137,38 @@ namespace standardese
 
             code() noexcept = default;
         };
+
+        /// A soft line break.
+        class soft_break final : public phrasing_entity
+        {
+        public:
+            /// \returns A new soft break.
+            static std::unique_ptr<soft_break> build()
+            {
+                return std::unique_ptr<soft_break>(new soft_break());
+            }
+
+        private:
+            entity_kind do_get_kind() const noexcept override;
+
+            soft_break() noexcept = default;
+        };
+
+        /// A hard line break.
+        class hard_break final : public phrasing_entity
+        {
+        public:
+            /// \returns A new hard break.
+            static std::unique_ptr<hard_break> build()
+            {
+                return std::unique_ptr<hard_break>(new hard_break());
+            }
+
+        private:
+            entity_kind do_get_kind() const noexcept override;
+
+            hard_break() noexcept = default;
+        };
     }
 } // namespace standardese::markup
 

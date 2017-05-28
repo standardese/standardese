@@ -525,6 +525,16 @@ namespace
         write_children(code, c);
     }
 
+    void write(stream& s, const soft_break&)
+    {
+        s.write("\n");
+    }
+
+    void write(stream& s, const hard_break&)
+    {
+        s.write_html("<br/>\n");
+    }
+
     void write(stream& s, const external_link& link)
     {
         auto a = s.open_link(link.title().c_str(), link.url().c_str());
@@ -584,6 +594,8 @@ namespace
             STANDARDESE_DETAIL_HANDLE(emphasis)
             STANDARDESE_DETAIL_HANDLE(strong_emphasis)
             STANDARDESE_DETAIL_HANDLE(code)
+            STANDARDESE_DETAIL_HANDLE(soft_break)
+            STANDARDESE_DETAIL_HANDLE(hard_break)
 
             STANDARDESE_DETAIL_HANDLE(external_link)
             STANDARDESE_DETAIL_HANDLE(internal_link)

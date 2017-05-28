@@ -370,6 +370,16 @@ namespace
         write_phrasing(s, "code", phrasing);
     }
 
+    void write(stream& s, const soft_break&)
+    {
+        s.open_tag(stream::line_tag, "soft-break");
+    }
+
+    void write(stream& s, const hard_break&)
+    {
+        s.open_tag(stream::line_tag, "hard-break");
+    }
+
     void write(stream& s, const external_link& link)
     {
         auto tag =
@@ -446,6 +456,8 @@ namespace
             STANDARDESE_DETAIL_HANDLE(emphasis)
             STANDARDESE_DETAIL_HANDLE(strong_emphasis)
             STANDARDESE_DETAIL_HANDLE(code)
+            STANDARDESE_DETAIL_HANDLE(soft_break)
+            STANDARDESE_DETAIL_HANDLE(hard_break)
 
             STANDARDESE_DETAIL_HANDLE(external_link)
             STANDARDESE_DETAIL_HANDLE(internal_link)
