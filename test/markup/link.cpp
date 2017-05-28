@@ -17,13 +17,21 @@ TEST_CASE("external_link", "[markup]")
     external_link::builder a("http://foonathan.net/");
     a.add_child(emphasis::build("awesome"));
     a.add_child(text::build(" website"));
-    REQUIRE(as_html(*a.finish())
-            == "<a href=\"http://foonathan.net/\"><em>awesome</em> website</a>");
+
+    auto a_ptr = a.finish();
+    REQUIRE(as_html(*a_ptr) == "<a href=\"http://foonathan.net/\"><em>awesome</em> website</a>");
+    REQUIRE(
+        as_xml(*a_ptr)
+        == R"(<external-link url="http://foonathan.net/"><emphasis>awesome</emphasis> website</external-link>)");
 
     external_link::builder b("title\"", "foo/bar/< &>\n");
     b.add_child(text::build("with title"));
-    REQUIRE(as_html(*b.finish())
+
+    auto b_ptr = b.finish();
+    REQUIRE(as_html(*b_ptr)
             == "<a href=\"foo/bar/%3C%20&amp;%3E%0A\" title=\"title&quot;\">with title</a>");
+    REQUIRE(as_xml(*b_ptr) == R"(<external-link title="title&quot;" url="foo/bar/&lt; &amp;&gt;
+">with title</external-link>)");
 }
 
 TEST_CASE("internal_link", "[markup]")
@@ -46,16 +54,31 @@ TEST_CASE("internal_link", "[markup]")
 <p id="standardese-p2"><a href="#standardese-p1" title="title">link 1</a></p>
 </section>
 )";
+    auto doc1_xml  = R"(<template-document output-name="doc1.templ" title="foo">
+<paragraph id="p1"></paragraph>
+<paragraph id="p2"><internal-link title="title" destination-id="p1">link 1</internal-link></paragraph>
+</template-document>
+)";
     REQUIRE(as_html(*doc1) == doc1_html);
+    REQUIRE(as_xml(*doc1) == doc1_xml);
 
     internal_link::builder builder(
         block_reference(output_name::from_file_name("doc1.templ"), block_id("p1")));
     builder.add_child(text::build("link 2"));
-    REQUIRE(as_html(*builder.finish()) == R"(<a href="doc1.templ#standardese-p1">link 2</a>)");
+
+    auto ptr = builder.finish();
+    REQUIRE(as_html(*ptr) == R"(<a href="doc1.templ#standardese-p1">link 2</a>)");
+    REQUIRE(
+        as_xml(*ptr)
+        == R"(<internal-link destination-document="doc1.templ" destination-id="p1">link 2</internal-link>)");
 
     // non existing link, but doesn't matter
     internal_link::builder builder2(
         block_reference(output_name::from_name("doc2"), block_id("p3")));
     builder2.add_child(text::build("link 3"));
-    REQUIRE(as_html(*builder2.finish()) == R"(<a href="doc2.html#standardese-p3">link 3</a>)");
+    auto ptr2 = builder2.finish();
+    REQUIRE(as_html(*ptr2) == R"(<a href="doc2.html#standardese-p3">link 3</a>)");
+    REQUIRE(
+        as_xml(*ptr2)
+        == R"(<internal-link destination-document="doc2" destination-id="p3">link 3</internal-link>)");
 }

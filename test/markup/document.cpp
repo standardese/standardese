@@ -12,7 +12,7 @@
 using namespace standardese::markup;
 
 template <typename T>
-void test_main_sub_document()
+void test_main_sub_document(const char* name)
 {
     auto html = R"(<!DOCTYPE html>
 <html lang="en">
@@ -26,6 +26,10 @@ void test_main_sub_document()
 </html>
 )";
 
+    auto xml = "<" + std::string(name) + R"( output-name="my-file" title="Hello World!">
+<paragraph>foo</paragraph>
+</)" + name + ">\n";
+
     typename T::builder builder("Hello World!", "my-file");
     builder.add_child(paragraph::builder(block_id("")).add_child(text::build("foo")).finish());
 
@@ -33,16 +37,17 @@ void test_main_sub_document()
     REQUIRE(doc->output_name().name() == "my-file");
     REQUIRE(doc->output_name().needs_extension());
     REQUIRE(as_html(*doc) == html);
+    REQUIRE(as_xml(*doc) == xml);
 }
 
 TEST_CASE("main_document", "[markup]")
 {
-    test_main_sub_document<main_document>();
+    test_main_sub_document<main_document>("main-document");
 }
 
 TEST_CASE("subdocument", "[markup]")
 {
-    test_main_sub_document<subdocument>();
+    test_main_sub_document<subdocument>("subdocument");
 }
 
 TEST_CASE("template_document", "[markup]")
@@ -52,6 +57,11 @@ TEST_CASE("template_document", "[markup]")
 </section>
 )";
 
+    auto xml = R"(<template-document output-name="foo.bar.baz" title="Hello Templated World!">
+<paragraph></paragraph>
+</template-document>
+)";
+
     template_document::builder builder("Hello Templated World!", "foo.bar.baz");
     builder.add_child(paragraph::builder(block_id("")).finish());
 
@@ -59,4 +69,5 @@ TEST_CASE("template_document", "[markup]")
     REQUIRE(doc->output_name().name() == "foo.bar.baz");
     REQUIRE(!doc->output_name().needs_extension());
     REQUIRE(as_html(*doc) == html);
+    REQUIRE(as_xml(*doc) == xml);
 }

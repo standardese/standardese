@@ -29,6 +29,17 @@ TEST_CASE("unordered_list", "[markup]")
 </li>
 </ul>
 )";
+    auto xml  = R"(<unordered-list id="list">
+<list-item>
+<paragraph></paragraph>
+<paragraph></paragraph>
+</list-item>
+<list-item>
+<paragraph>text</paragraph>
+</list-item>
+<term-description-item><term>A term</term><description>A description</description></term-description-item>
+</unordered-list>
+)";
 
     unordered_list::builder builder(block_id("list"));
     builder.add_item(list_item::builder()
@@ -40,7 +51,10 @@ TEST_CASE("unordered_list", "[markup]")
     builder.add_item(
         term_description_item::build(block_id(), term::build(text::build("A term")),
                                      description::build(text::build("A description"))));
-    REQUIRE(as_html(*builder.finish()) == html);
+
+    auto ptr = builder.finish();
+    REQUIRE(as_html(*ptr) == html);
+    REQUIRE(as_xml(*ptr) == xml);
 }
 
 TEST_CASE("ordered_list", "[markup]")
@@ -55,6 +69,16 @@ TEST_CASE("ordered_list", "[markup]")
 </li>
 </ol>
 )";
+    auto xml = R"(<ordered-list id="list">
+<list-item>
+<paragraph></paragraph>
+<paragraph></paragraph>
+</list-item>
+<list-item>
+<paragraph>text</paragraph>
+</list-item>
+</ordered-list>
+)";
 
     ordered_list::builder builder(block_id("list"));
     builder.add_item(list_item::builder()
@@ -63,5 +87,7 @@ TEST_CASE("ordered_list", "[markup]")
                          .finish());
     builder.add_item(
         list_item::build(paragraph::builder().add_child(text::build("text")).finish()));
-    REQUIRE(as_html(*builder.finish()) == html);
+    auto ptr = builder.finish();
+    REQUIRE(as_html(*ptr) == html);
+    REQUIRE(as_xml(*ptr) == xml);
 }
