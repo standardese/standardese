@@ -54,10 +54,38 @@ namespace
         return markup::text::build(cmark_node_get_literal(node));
     }
 
-    std::unique_ptr<markup::text> parse_soft_break(cmark_node* node)
+    std::unique_ptr<markup::soft_break> parse_softbreak(cmark_node* node)
     {
         assert(cmark_node_get_type(node) == CMARK_NODE_SOFTBREAK);
-        return markup::text::build(" ");
+        return markup::soft_break::build();
+    }
+
+    std::unique_ptr<markup::hard_break> parse_linebreak(cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == CMARK_NODE_LINEBREAK);
+        return markup::hard_break::build();
+    }
+
+    std::unique_ptr<markup::code> parse_code(cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == CMARK_NODE_CODE);
+        return markup::code::build(cmark_node_get_literal(node));
+    }
+
+    std::unique_ptr<markup::emphasis> parse_emph(cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == CMARK_NODE_EMPH);
+        markup::emphasis::builder builder;
+        add_children(builder, node);
+        return builder.finish();
+    }
+
+    std::unique_ptr<markup::strong_emphasis> parse_strong(cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == CMARK_NODE_STRONG);
+        markup::strong_emphasis::builder builder;
+        add_children(builder, node);
+        return builder.finish();
     }
 
     template <class Builder, typename T>
@@ -90,7 +118,19 @@ namespace
                 add_child(0, b, parse_text(cur));
                 break;
             case CMARK_NODE_SOFTBREAK:
-                add_child(0, b, parse_soft_break(cur));
+                add_child(0, b, parse_softbreak(cur));
+                break;
+            case CMARK_NODE_LINEBREAK:
+                add_child(0, b, parse_linebreak(cur));
+                break;
+            case CMARK_NODE_CODE:
+                add_child(0, b, parse_code(cur));
+                break;
+            case CMARK_NODE_EMPH:
+                add_child(0, b, parse_emph(cur));
+                break;
+            case CMARK_NODE_STRONG:
+                add_child(0, b, parse_strong(cur));
                 break;
 
             case CMARK_NODE_NONE:
@@ -103,12 +143,8 @@ namespace
             case CMARK_NODE_CUSTOM_BLOCK:
             case CMARK_NODE_HEADING:
             case CMARK_NODE_THEMATIC_BREAK:
-            case CMARK_NODE_LINEBREAK:
-            case CMARK_NODE_CODE:
             case CMARK_NODE_HTML_INLINE:
             case CMARK_NODE_CUSTOM_INLINE:
-            case CMARK_NODE_EMPH:
-            case CMARK_NODE_STRONG:
             case CMARK_NODE_LINK:
             case CMARK_NODE_IMAGE:
                 assert(!"unhandled node type");
