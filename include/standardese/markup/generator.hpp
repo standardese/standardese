@@ -42,7 +42,7 @@ namespace standardese
         /// It will use a simple XML format to describe the markup AST.
         ///
         /// \returns A generator that will generate the XML representation.
-        generator xml_generator() noexcept;
+        generator xml_generator(bool include_attributes = true) noexcept;
 
         /// Renders an entity as XML.
         ///

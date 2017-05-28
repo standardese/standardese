@@ -31,12 +31,16 @@ namespace
     class stream
     {
     public:
-        stream(type_safe::object_ref<std::ostream> out) : out_(out), newl_(false)
+        stream(type_safe::object_ref<std::ostream> out, bool include_attributes = true)
+        : out_(out), newl_(false), attributes_(include_attributes)
         {
         }
 
         stream(stream&& other)
-        : closing_(std::move(other.closing_)), out_(other.out_), newl_(other.newl_)
+        : closing_(std::move(other.closing_)),
+          out_(other.out_),
+          newl_(other.newl_),
+          attributes_(other.attributes_)
         {
             other.closing_.clear();
             other.newl_.reset();
@@ -61,18 +65,20 @@ namespace
         {
             *out_ << "<" << tag;
 
-            // poor man's fold expr
-            int array[] = {(attributes.second.empty() ?
-                                0 :
-                                (*out_ << " " << attributes.first << "=\"",
-                                 write(attributes.second), *out_ << '"', 0))...,
-                           0};
-            (void)array;
+            if (attributes_ == true)
+            {
+                int fold_expr[] = {(attributes.second.empty() ?
+                                        0 :
+                                        (*out_ << " " << attributes.first << "=\"",
+                                         write(attributes.second), *out_ << '"', 0))...,
+                                   0};
+                (void)fold_expr;
+            }
 
             *out_ << ">";
             if (kind == block_tag)
                 *out_ << '\n';
-            return stream(out_, tag, kind != inline_tag);
+            return stream(*this, tag, kind != inline_tag);
         }
 
         // writes XML escaped text
@@ -102,8 +108,8 @@ namespace
         }
 
     private:
-        explicit stream(type_safe::object_ref<std::ostream> out, std::string closing, bool newl)
-        : closing_(closing), out_(out), newl_(newl)
+        explicit stream(const stream& parent, std::string closing, bool newl)
+        : closing_(closing), out_(parent.out_), newl_(newl), attributes_(parent.attributes_)
         {
         }
 
@@ -122,7 +128,7 @@ namespace
 
         std::string                         closing_;
         type_safe::object_ref<std::ostream> out_;
-        type_safe::flag                     newl_;
+        type_safe::flag                     newl_, attributes_;
     };
 
     void write_entity(stream& s, const entity& e);
@@ -442,10 +448,16 @@ namespace
     }
 }
 
-generator standardese::markup::xml_generator() noexcept
+generator standardese::markup::xml_generator(bool include_attributes) noexcept
 {
-    return [](std::ostream& out, const entity& e) {
-        stream s(type_safe::ref(out));
-        write_entity(s, e);
-    };
+    if (include_attributes)
+        return [](std::ostream& out, const entity& e) {
+            stream s(type_safe::ref(out));
+            write_entity(s, e);
+        };
+    else
+        return [](std::ostream& out, const entity& e) {
+            stream s(type_safe::ref(out), false);
+            write_entity(s, e);
+        };
 }
