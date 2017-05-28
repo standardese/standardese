@@ -19,11 +19,6 @@ std::unique_ptr<markup::doc_section> parse_details(const char* comment)
     return std::move(translated.sections.front());
 }
 
-std::string get_xml(const markup::doc_section& section)
-{
-    return markup::render(markup::xml_generator(false), section);
-}
-
 TEST_CASE("cmark inlines", "[comment]")
 {
     auto comment = R"(text
@@ -41,7 +36,29 @@ TEST_CASE("cmark inlines", "[comment]")
 )";
 
     auto section = parse_details(comment);
-    REQUIRE(get_xml(*section) == xml);
+    REQUIRE(markup::as_xml(*section) == xml);
+}
+
+TEST_CASE("link", "[comment]")
+{
+    auto comment = R"([external link](http://foonathan.net)
+[external link `2`](http://standardese.foonathan.net/ "title")
+[internal link](<> "name")
+[internal link `2`](standardese://name/ "title")
+[name]()
+)";
+
+    auto xml = R"(<details-section>
+<paragraph><external-link url="http://foonathan.net">external link</external-link><soft-break></soft-break>
+<external-link title="title" url="http://standardese.foonathan.net/">external link <code>2</code></external-link><soft-break></soft-break>
+<internal-link destination-id="name">internal link</internal-link><soft-break></soft-break>
+<internal-link title="title" destination-id="name">internal link <code>2</code></internal-link><soft-break></soft-break>
+<internal-link destination-id="name"></internal-link></paragraph>
+</details-section>
+)";
+
+    auto section = parse_details(comment);
+    REQUIRE(markup::as_xml(*section) == xml);
 }
 
 TEST_CASE("parser", "[comment]")

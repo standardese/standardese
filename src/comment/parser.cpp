@@ -5,8 +5,11 @@
 #include <standardese/comment/parser.hpp>
 
 #include <cassert>
+#include <cstring>
+
 #include <cmark.h>
 
+#include <standardese/markup/link.hpp>
 #include <standardese/markup/paragraph.hpp>
 
 using namespace standardese;
@@ -88,6 +91,69 @@ namespace
         return builder.finish();
     }
 
+    markup::block_reference lookup_unique_name(const std::string& unique_name)
+    {
+        // TODO: do actual lookup
+        return markup::block_reference(markup::block_id(unique_name));
+    }
+
+    std::unique_ptr<markup::external_link> parse_external_link(cmark_node* node, const char* title,
+                                                               const char* url)
+    {
+        markup::external_link::builder builder(title, url);
+        add_children(builder, node);
+        return builder.finish();
+    }
+
+    std::unique_ptr<markup::link_base> parse_link(cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == CMARK_NODE_LINK);
+
+        auto title = cmark_node_get_title(node);
+        auto url   = cmark_node_get_url(node);
+        if (*url == '\0' && *title == '\0')
+        {
+            // both empty, unique name is child iff
+            // child is a single text node
+            auto child = cmark_node_first_child(node);
+            if (child == nullptr || child != cmark_node_last_child(node)
+                || cmark_node_get_type(child) != CMARK_NODE_TEXT)
+                // not an entity link
+                return parse_external_link(node, title, url);
+            else
+            {
+                auto unique_name = cmark_node_get_literal(child);
+                return markup::internal_link::builder(lookup_unique_name(unique_name)).finish();
+            }
+        }
+        else if (*url == '\0')
+        {
+            // url is empty, unique name is title
+            markup::internal_link::builder builder(lookup_unique_name(title));
+            add_children(builder, node);
+            return builder.finish();
+        }
+        else if (std::strncmp(url, "standardese://", std::strlen("standardese://")) == 0)
+        {
+            // standardese:// URL
+            auto unique_name = std::string(url + std::strlen("standardese://"));
+            if (!unique_name.empty() && unique_name.back() == '/')
+                unique_name.pop_back();
+
+            markup::internal_link::builder builder(title, lookup_unique_name(unique_name));
+            add_children(builder, node);
+            return builder.finish();
+        }
+        else
+        {
+            // regular link
+            return parse_external_link(node, title, url);
+        }
+
+        assert(false);
+        return nullptr;
+    }
+
     template <class Builder, typename T>
     auto add_child(int, Builder& b, std::unique_ptr<T> entity)
         -> decltype(b.add_child(std::move(entity)))
@@ -132,6 +198,9 @@ namespace
             case CMARK_NODE_STRONG:
                 add_child(0, b, parse_strong(cur));
                 break;
+            case CMARK_NODE_LINK:
+                add_child(0, b, parse_link(cur));
+                break;
 
             case CMARK_NODE_NONE:
             case CMARK_NODE_DOCUMENT:
@@ -145,7 +214,6 @@ namespace
             case CMARK_NODE_THEMATIC_BREAK:
             case CMARK_NODE_HTML_INLINE:
             case CMARK_NODE_CUSTOM_INLINE:
-            case CMARK_NODE_LINK:
             case CMARK_NODE_IMAGE:
                 assert(!"unhandled node type");
                 break;
