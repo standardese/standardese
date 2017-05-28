@@ -61,10 +61,10 @@ namespace standardese_tool
         auto standard = detail::parse_standard(map.at("compilation.standard").as<std::string>());
         auto dir      = map.find("compilation.commands_dir");
 
-        compile_config result(standard, dir == map.end() ?
-                                            "" :
-                                            fs::system_complete(dir->second.as<std::string>())
-                                                .generic_string());
+        compile_config result(standard,
+                              dir == map.end() ? "" :
+                                                 fs::system_complete(dir->second.as<std::string>())
+                                                     .generic_string());
 
         auto incs = map.find("compilation.include_dir");
         if (incs != map.end())
@@ -149,7 +149,7 @@ namespace standardese_tool
         const boost::program_options::parsed_options& cmd_result,
         const boost::program_options::parsed_options& file_result)
     {
-        auto log = spdlog::stdout_logger_mt("standardese_log", map.at("color").as<bool>());
+        auto log = spdlog::stdout_logger_mt("standardese_log");
         log->set_pattern("[%l] %v");
         if (map.at("verbose").as<bool>())
             log->set_level(spdlog::level::debug);
