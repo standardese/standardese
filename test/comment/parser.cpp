@@ -61,6 +61,13 @@ TEST_CASE("link", "[comment]")
     REQUIRE(markup::as_xml(*section) == xml);
 }
 
+TEST_CASE("forbidden cmark entities", "[comment]")
+{
+    REQUIRE_THROWS_AS(parse_details(R"(Text <span>inline HTML</span>.)"), translation_error);
+    REQUIRE_THROWS_AS(parse_details(R"(<p>block HTML</p>)"), translation_error);
+    REQUIRE_THROWS_AS(parse_details(R"(![an image](img.png))"), translation_error);
+}
+
 TEST_CASE("parser", "[comment]")
 {
     auto comment = R"(A.

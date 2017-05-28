@@ -5,6 +5,7 @@
 #ifndef STANDARDESE_COMMENT_PARSER_HPP_INCLUDED
 #define STANDARDESE_COMMENT_PARSER_HPP_INCLUDED
 
+#include <stdexcept>
 #include <vector>
 
 #include <standardese/markup/doc_section.hpp>
@@ -92,6 +93,33 @@ namespace standardese
         {
             /// The sections in the documentation text.
             std::vector<std::unique_ptr<markup::doc_section>> sections;
+        };
+
+        /// A translation error.
+        class translation_error : public std::runtime_error
+        {
+        public:
+            /// \effects Creates it given the line and column of the error,
+            /// and a message.
+            translation_error(unsigned line, unsigned column, std::string msg)
+            : std::runtime_error(std::move(msg)), line_(line), column_(column)
+            {
+            }
+
+            /// \returns The line of the comment where the error occurs.
+            unsigned line() const noexcept
+            {
+                return line_;
+            }
+
+            /// \returns The column of the comment where the error occurs.
+            unsigned column() const noexcept
+            {
+                return column_;
+            }
+
+        private:
+            unsigned line_, column_;
         };
 
         /// Translates the CommonMark AST.

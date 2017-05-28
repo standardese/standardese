@@ -202,19 +202,24 @@ namespace
                 add_child(0, b, parse_link(cur));
                 break;
 
+            case CMARK_NODE_HTML_BLOCK:
+            case CMARK_NODE_HTML_INLINE:
+            case CMARK_NODE_CUSTOM_BLOCK:
+            case CMARK_NODE_CUSTOM_INLINE:
+            case CMARK_NODE_IMAGE:
+                throw translation_error(unsigned(cmark_node_get_start_line(cur)),
+                                        unsigned(cmark_node_get_start_column(cur)),
+                                        std::string("forbidden CommonMark node of type \"")
+                                            + cmark_node_get_type_string(cur) + "\"");
+
             case CMARK_NODE_NONE:
             case CMARK_NODE_DOCUMENT:
             case CMARK_NODE_BLOCK_QUOTE:
             case CMARK_NODE_LIST:
             case CMARK_NODE_ITEM:
             case CMARK_NODE_CODE_BLOCK:
-            case CMARK_NODE_HTML_BLOCK:
-            case CMARK_NODE_CUSTOM_BLOCK:
             case CMARK_NODE_HEADING:
             case CMARK_NODE_THEMATIC_BREAK:
-            case CMARK_NODE_HTML_INLINE:
-            case CMARK_NODE_CUSTOM_INLINE:
-            case CMARK_NODE_IMAGE:
                 assert(!"unhandled node type");
                 break;
             }
