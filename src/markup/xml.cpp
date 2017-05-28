@@ -107,6 +107,12 @@ namespace
             write(str.c_str());
         }
 
+        // writes unescaped xml
+        void write_xml(const char* str)
+        {
+            *out_ << str;
+        }
+
     private:
         explicit stream(const stream& parent, std::string closing, bool newl)
         : closing_(closing), out_(parent.out_), newl_(newl), attributes_(parent.attributes_)
@@ -165,6 +171,8 @@ namespace
 
     void write_document(stream& s, const document_entity& doc, const char* tag_name)
     {
+        s.write_xml(R"(<?xml version="1.0" encoding="UTF-8"?>)");
+        s.write_xml("\n");
         auto tag = s.open_tag(stream::block_tag, tag_name,
                               std::make_pair("output-name", doc.output_name().name()),
                               std::make_pair("title", doc.title()));

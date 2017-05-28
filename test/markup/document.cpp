@@ -26,7 +26,9 @@ void test_main_sub_document(const char* name)
 </html>
 )";
 
-    auto xml = "<" + std::string(name) + R"( output-name="my-file" title="Hello World!">
+    auto xml = R"(<?xml version="1.0" encoding="UTF-8"?>
+<)" + std::string(name)
+               + R"( output-name="my-file" title="Hello World!">
 <paragraph>foo</paragraph>
 </)" + name + ">\n";
 
@@ -57,7 +59,8 @@ TEST_CASE("template_document", "[markup]")
 </section>
 )";
 
-    auto xml = R"(<template-document output-name="foo.bar.baz" title="Hello Templated World!">
+    auto xml = R"(<?xml version="1.0" encoding="UTF-8"?>
+<template-document output-name="foo.bar.baz" title="Hello Templated World!">
 <paragraph></paragraph>
 </template-document>
 )";

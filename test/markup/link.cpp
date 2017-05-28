@@ -54,7 +54,8 @@ TEST_CASE("internal_link", "[markup]")
 <p id="standardese-p2"><a href="#standardese-p1" title="title">link 1</a></p>
 </section>
 )";
-    auto doc1_xml  = R"(<template-document output-name="doc1.templ" title="foo">
+    auto doc1_xml  = R"(<?xml version="1.0" encoding="UTF-8"?>
+<template-document output-name="doc1.templ" title="foo">
 <paragraph id="p1"></paragraph>
 <paragraph id="p2"><internal-link title="title" destination-id="p1">link 1</internal-link></paragraph>
 </template-document>
