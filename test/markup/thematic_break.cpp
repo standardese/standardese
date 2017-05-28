@@ -13,4 +13,5 @@ using namespace standardese::markup;
 TEST_CASE("thematic_break", "[markup]")
 {
     REQUIRE(as_html(*thematic_break::build()) == "<hr />\n");
+    REQUIRE(as_xml(*thematic_break::build()) == "<thematic-break></thematic-break>\n");
 }

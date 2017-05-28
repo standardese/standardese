@@ -14,11 +14,16 @@ TEST_CASE("paragraph", "[markup]")
 {
     auto html = R"(<p id="standardese-foo">a<em>b</em><code><em>c</em>d</code></p>
 )";
+    auto xml =
+        R"(<paragraph id="foo">a<emphasis>b</emphasis><code><emphasis>c</emphasis>d</code></paragraph>
+)";
 
     paragraph::builder builder(block_id("foo"));
     builder.add_child(text::build("a"));
     builder.add_child(emphasis::build("b"));
     builder.add_child(
         code::builder().add_child(emphasis::build("c")).add_child(text::build("d")).finish());
-    REQUIRE(as_html(*builder.finish()) == html);
+    auto ptr = builder.finish();
+    REQUIRE(as_html(*ptr) == html);
+    REQUIRE(as_xml(*ptr) == xml);
 }

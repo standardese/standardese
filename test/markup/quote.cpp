@@ -19,8 +19,17 @@ TEST_CASE("block_quote", "[markup]")
 </blockquote>
 )";
 
+    auto xml = R"(<block-quote id="foo">
+<paragraph>some text</paragraph>
+<paragraph>some more text</paragraph>
+</block-quote>
+)";
+
     block_quote::builder builder(block_id("foo"));
     builder.add_child(paragraph::builder().add_child(text::build("some text")).finish());
     builder.add_child(paragraph::builder().add_child(text::build("some more text")).finish());
-    REQUIRE(as_html(*builder.finish()) == html);
+
+    auto ptr = builder.finish();
+    REQUIRE(as_html(*ptr) == html);
+    REQUIRE(as_xml(*ptr) == xml);
 }

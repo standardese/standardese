@@ -73,7 +73,8 @@ set(markup_src
     markup/paragraph.cpp
     markup/phrasing.cpp
     markup/quote.cpp
-    markup/thematic_break.cpp)
+    markup/thematic_break.cpp
+    markup/xml.cpp)
 set(src
         detail/parse_utils.cpp
         detail/raw_comment.cpp

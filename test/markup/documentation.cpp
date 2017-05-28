@@ -43,6 +43,26 @@ TEST_CASE("file_documentation", "[markup]")
 </article>
 )";
 
+    auto xml = R"(<file-documentation id="file-hpp">
+<heading>A file</heading>
+<code-block language="cpp">the synopsis();</code-block>
+<brief-section id="file-hpp-brief">The brief documentation.</brief-section>
+<inline-section name="Effects">The effects of the - eh - file.</inline-section>
+<inline-section name="Notes">Some notes.</inline-section>
+<details-section id="file-hpp-details">
+<paragraph>The details documentation.</paragraph>
+</details-section>
+<list-section name="Return values">
+<unordered-list>
+<list-item>
+<paragraph>Any integer</paragraph>
+</list-item>
+<term-description-item><term>42</term><description>the answer!</description></term-description-item>
+</unordered-list>
+</list-section>
+</file-documentation>
+)";
+
     file_documentation::builder builder(block_id("file-hpp"), heading::build(block_id(), "A file"),
                                         code_block::build(block_id(), "cpp", "the synopsis();"));
     builder.add_brief(
@@ -66,7 +86,9 @@ TEST_CASE("file_documentation", "[markup]")
                                                description::build(text::build("the answer!"))));
     builder.add_section(list_section::build(section_type::returns, "Return values", list.finish()));
 
-    REQUIRE(as_html(*builder.finish()) == html);
+    auto ptr = builder.finish();
+    REQUIRE(as_html(*ptr) == html);
+    REQUIRE(as_xml(*ptr) == xml);
 }
 
 TEST_CASE("entity_documentation", "[markup]")
@@ -83,6 +105,16 @@ TEST_CASE("entity_documentation", "[markup]")
 </section>
 <hr class="standardese-entity-documentation-break" />
 )";
+    auto xml  = R"(<entity-documentation id="a" module="module_a">
+<heading>Entity A</heading>
+<code-block language="cpp">void a();</code-block>
+<entity-documentation id="b" module="module_b">
+<heading>Entity B</heading>
+<code-block language="cpp">void b();</code-block>
+<brief-section id="b-brief">The brief documentation.</brief-section>
+</entity-documentation>
+</entity-documentation>
+)";
 
     entity_documentation::builder a(block_id("a"), heading::build(block_id(), "Entity A"),
                                     code_block::build(block_id(), "cpp", "void a();"), "module_a");
@@ -91,5 +123,8 @@ TEST_CASE("entity_documentation", "[markup]")
     b.add_brief(
         brief_section::builder().add_child(text::build("The brief documentation.")).finish());
     a.add_child(b.finish());
-    REQUIRE(as_html(*a.finish()) == html);
+
+    auto ptr = a.finish();
+    REQUIRE(as_html(*ptr) == html);
+    REQUIRE(as_xml(*ptr) == xml);
 }
