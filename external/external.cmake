@@ -101,8 +101,8 @@ endif()
 #
 # add cmark
 #
-find_library(CMARK_LIBRARY "cmark" "/usr/lib" "/usr/local/lib")
-find_path(CMARK_INCLUDE_DIR "cmark.h" "/usr/include" "/usr/local/include")
+find_library(CMARK_LIBRARY "cmark-gfm" "/usr/lib" "/usr/local/lib")
+find_path(CMARK_INCLUDE_DIR "cmark_extension_api.h" "/usr/include" "/usr/local/include")
 
 if((NOT CMARK_LIBRARY) OR (NOT CMARK_INCLUDE_DIR))
     message("Unable to find cmark, cloning...")
@@ -114,22 +114,22 @@ if((NOT CMARK_LIBRARY) OR (NOT CMARK_INCLUDE_DIR))
     set_target_properties(api_test PROPERTIES EXCLUDE_FROM_ALL 1)
 
     # fixup target properties
-    target_include_directories(libcmark_static PUBLIC
+    target_include_directories(libcmark-gfm_static PUBLIC
                                $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/cmark/src>
                                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/cmark/src>)
-    target_compile_definitions(libcmark_static PUBLIC CMARK_STATIC_DEFINE)
+    target_compile_definitions(libcmark-gfm_static PUBLIC CMARK_STATIC_DEFINE)
 
     # disable some warnings under MSVC, they're very noisy
     if(MSVC)
-        target_compile_options(libcmark_static PRIVATE /wd4204 /wd4267 /wd4204 /wd4221 /wd4244 /wd4232)
+        target_compile_options(libcmark-gfm_static PRIVATE /wd4204 /wd4267 /wd4204 /wd4221 /wd4244 /wd4232)
     endif()
 else()
-    add_library(libcmark_static INTERFACE)
-    target_include_directories(libcmark_static INTERFACE ${CMARK_INCLUDE_DIR})
-    target_link_libraries(libcmark_static INTERFACE ${CMARK_LIBRARY})
+    add_library(libcmark-gfm_static INTERFACE)
+    target_include_directories(libcmark-gfm_static INTERFACE ${CMARK_INCLUDE_DIR})
+    target_link_libraries(libcmark-gfm_static INTERFACE ${CMARK_LIBRARY})
 
     # install fake target
-    install(TARGETS libcmark_static EXPORT standardese DESTINATION ${lib_dir})
+    install(TARGETS libcmark-gfm_static EXPORT standardese DESTINATION ${lib_dir})
 endif()
 
 #

@@ -475,7 +475,7 @@ namespace
 
         using md_parser = detail::wrapper<cmark_parser*, parser_deleter>;
 
-        md_parser parser(cmark_parser_new(CMARK_OPT_NORMALIZE));
+        md_parser parser(cmark_parser_new(CMARK_OPT_DEFAULT));
         cmark_parser_feed(parser.get(), raw_comment.c_str(), raw_comment.length());
         return cmark_parser_finish(parser.get());
     }

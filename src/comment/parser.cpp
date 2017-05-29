@@ -9,13 +9,17 @@
 
 #include <cmark.h>
 
+#if !defined(CMARK_NODE_TYPE_PRESENT)
+#error "requires GFM cmark"
+#endif
+
 #include <standardese/markup/link.hpp>
 #include <standardese/markup/paragraph.hpp>
 
 using namespace standardese;
 using namespace standardese::comment;
 
-parser::parser() : parser_(cmark_parser_new(CMARK_OPT_NORMALIZE | CMARK_OPT_SMART))
+parser::parser() : parser_(cmark_parser_new(CMARK_OPT_SMART))
 {
 }
 
