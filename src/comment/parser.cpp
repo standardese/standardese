@@ -13,8 +13,13 @@
 #error "requires GFM cmark"
 #endif
 
+#include <standardese/markup/code_block.hpp>
 #include <standardese/markup/link.hpp>
+#include <standardese/markup/list.hpp>
+#include <standardese/markup/heading.hpp>
 #include <standardese/markup/paragraph.hpp>
+#include <standardese/markup/quote.hpp>
+#include <standardese/markup/thematic_break.hpp>
 
 using namespace standardese;
 using namespace standardese::comment;
@@ -46,6 +51,54 @@ namespace
     template <class Builder>
     void add_children(Builder& b, cmark_node* parent);
 
+    std::unique_ptr<markup::block_quote> parse_block_quote(cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == CMARK_NODE_BLOCK_QUOTE);
+
+        markup::block_quote::builder builder(markup::block_id{});
+        add_children(builder, node);
+        return builder.finish();
+    }
+
+    std::unique_ptr<markup::block_entity> parse_list(cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == CMARK_NODE_LIST);
+
+        auto type = cmark_node_get_list_type(node);
+        if (type == CMARK_BULLET_LIST)
+        {
+            markup::unordered_list::builder builder(markup::block_id{});
+            add_children(builder, node);
+            return builder.finish();
+        }
+        else if (type == CMARK_ORDERED_LIST)
+        {
+            markup::ordered_list::builder builder(markup::block_id{});
+            add_children(builder, node);
+            return builder.finish();
+        }
+        else
+            assert(false);
+
+        return nullptr;
+    }
+
+    std::unique_ptr<markup::list_item> parse_item(cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == CMARK_NODE_ITEM);
+
+        markup::list_item::builder builder;
+        add_children(builder, node);
+        return builder.finish();
+    }
+
+    std::unique_ptr<markup::code_block> parse_code_block(cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == CMARK_NODE_CODE_BLOCK);
+        return markup::code_block::build(markup::block_id{}, cmark_node_get_fence_info(node),
+                                         cmark_node_get_literal(node));
+    }
+
     std::unique_ptr<markup::paragraph> parse_paragraph(cmark_node* node)
     {
         assert(cmark_node_get_type(node) == CMARK_NODE_PARAGRAPH);
@@ -53,6 +106,32 @@ namespace
         markup::paragraph::builder builder;
         add_children(builder, node);
         return builder.finish();
+    }
+
+    std::unique_ptr<markup::block_entity> parse_heading(cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == CMARK_NODE_HEADING);
+
+        auto level = cmark_node_get_heading_level(node);
+        if (level == 1)
+        {
+            markup::heading::builder builder(markup::block_id{});
+            add_children(builder, node);
+            return builder.finish();
+        }
+        else
+        {
+            markup::subheading::builder builder(markup::block_id{});
+            add_children(builder, node);
+            return builder.finish();
+        }
+    }
+
+    std::unique_ptr<markup::thematic_break> parse_thematic_break(cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == CMARK_NODE_THEMATIC_BREAK);
+        (void)node;
+        return markup::thematic_break::build();
     }
 
     std::unique_ptr<markup::text> parse_text(cmark_node* node)
@@ -166,6 +245,13 @@ namespace
     }
 
     template <class Builder, typename T>
+    auto add_child(int, Builder& b, std::unique_ptr<T> entity)
+        -> decltype(b.add_item(std::move(entity)))
+    {
+        return b.add_item(std::move(entity));
+    }
+
+    template <class Builder, typename T>
     void add_child(short, Builder&, std::unique_ptr<T>)
     {
         assert(!"unexpected child");
@@ -180,8 +266,26 @@ namespace
         {
             switch (cmark_node_get_type(cur))
             {
+            case CMARK_NODE_BLOCK_QUOTE:
+                add_child(0, b, parse_block_quote(cur));
+                break;
+            case CMARK_NODE_LIST:
+                add_child(0, b, parse_list(cur));
+                break;
+            case CMARK_NODE_ITEM:
+                add_child(0, b, parse_item(cur));
+                break;
+            case CMARK_NODE_CODE_BLOCK:
+                add_child(0, b, parse_code_block(cur));
+                break;
             case CMARK_NODE_PARAGRAPH:
                 add_child(0, b, parse_paragraph(cur));
+                break;
+            case CMARK_NODE_HEADING:
+                add_child(0, b, parse_heading(cur));
+                break;
+            case CMARK_NODE_THEMATIC_BREAK:
+                add_child(0, b, parse_thematic_break(cur));
                 break;
 
             case CMARK_NODE_TEXT:
@@ -218,13 +322,7 @@ namespace
 
             case CMARK_NODE_NONE:
             case CMARK_NODE_DOCUMENT:
-            case CMARK_NODE_BLOCK_QUOTE:
-            case CMARK_NODE_LIST:
-            case CMARK_NODE_ITEM:
-            case CMARK_NODE_CODE_BLOCK:
-            case CMARK_NODE_HEADING:
-            case CMARK_NODE_THEMATIC_BREAK:
-                assert(!"unhandled node type");
+                assert(!"invalid node type");
                 break;
             }
 
