@@ -70,11 +70,6 @@ entity_kind brief_section::do_get_kind() const noexcept
     return entity_kind::brief_section;
 }
 
-block_id details_section::id() const
-{
-    return get_section_id(parent(), section_type::details);
-}
-
 entity_kind details_section::do_get_kind() const noexcept
 {
     return entity_kind::details_section;

@@ -480,6 +480,7 @@ void doc_inline_cpp_entity::do_generate_synopsis(const parser& p, code_block_wri
         auto  base_name = detail::get_ref_name(p, base.get_type());
         out << to_string(base.get_access()) << ' ';
         detail::write_entity_ref_name(p, out, base_name);
+        break;
     }
 
     case cpp_entity::file_t:
@@ -1395,8 +1396,8 @@ namespace
 doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string output_name,
                                   const cpp_file& f)
 {
-    auto file_ptr =
-        detail::make_doc_ptr<doc_container_cpp_entity>(nullptr, f, p.get_comment_registry()
+    auto file_ptr = detail::make_doc_ptr<doc_container_cpp_entity>(nullptr, f,
+                                                                   p.get_comment_registry()
                                                                        .lookup_comment(f, nullptr));
     if (file_ptr->has_comment() && file_ptr->get_comment().has_unique_name_override())
         output_name = file_ptr->get_comment().get_unique_name_override();

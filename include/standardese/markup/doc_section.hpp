@@ -83,7 +83,8 @@ namespace standardese
             brief_section() = default;
         };
 
-        /// The `\details` section in an entity documentation.
+        /// A `\details` section in an entity documentation.
+        /// \notes There can be multiple `\details` in a documentation, but only one `\brief`.
         class details_section final : public doc_section, public container_entity<block_entity>
         {
         public:
@@ -97,11 +98,6 @@ namespace standardese
                 {
                 }
             };
-
-            /// \returns The unique id of the details section.
-            ///
-            /// It is created from the parent id.
-            block_id id() const;
 
         private:
             entity_kind do_get_kind() const noexcept override;
