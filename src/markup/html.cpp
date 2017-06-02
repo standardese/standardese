@@ -306,8 +306,8 @@ namespace
                 h4.close();
 
                 // list
-                auto ul = s.open_tag(true, true, "ul", list.list().id(), "list-section");
-                for (auto& item : list.list())
+                auto ul = s.open_tag(true, true, "ul", list.id(), "list-section");
+                for (auto& item : list)
                     write_list_item(ul, item);
             }
     }

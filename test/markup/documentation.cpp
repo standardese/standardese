@@ -53,12 +53,13 @@ TEST_CASE("file_documentation", "[markup]")
 <paragraph>The details documentation.</paragraph>
 </details-section>
 <list-section name="Return values">
-<unordered-list>
 <list-item>
 <paragraph>Any integer</paragraph>
 </list-item>
-<term-description-item><term>42</term><description>the answer!</description></term-description-item>
-</unordered-list>
+<term-description-item>
+<term>42</term>
+<description>the answer!</description>
+</term-description-item>
 </list-section>
 </file-documentation>
 )";

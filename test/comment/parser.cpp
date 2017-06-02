@@ -386,6 +386,49 @@ Prevent brief.</paragraph>
 </details-section>
 )";
     }
+    SECTION("key-value sections")
+    {
+        comment = R"(\returns 0 - Value 0.
+\returns 1-Value 1.
+It requires extra long description.
+\returns Default returns.
+\notes This terminates.
+
+\see [foo] - Optional description.
+\see [bar]-
+
+This terminates.
+)";
+        xml     = R"(<list-section>
+<term-description-item>
+<term>0</term>
+<description>Value 0.</description>
+</term-description-item>
+<term-description-item>
+<term>1</term>
+<description>Value 1.<soft-break></soft-break>
+It requires extra long description.</description>
+</term-description-item>
+<list-item>
+<paragraph>Default returns.</paragraph>
+</list-item>
+</list-section>
+<inline-section>This terminates.</inline-section>
+<list-section>
+<term-description-item>
+<term><internal-link destination-id="foo">foo</internal-link></term>
+<description>Optional description.</description>
+</term-description-item>
+<term-description-item>
+<term><internal-link destination-id="bar">bar</internal-link></term>
+<description></description>
+</term-description-item>
+</list-section>
+<details-section>
+<paragraph>This terminates.</paragraph>
+</details-section>
+)";
+    }
 
     parser p;
     auto   translated = translate_ast(p, read_ast(p, comment));

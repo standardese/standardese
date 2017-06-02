@@ -240,17 +240,19 @@ namespace
 
     void write(stream& s, const term& t)
     {
-        write_phrasing(s, "term", t);
+        auto tag = s.open_tag(stream::line_tag, "term");
+        write_children(tag, t);
     }
 
     void write(stream& s, const description& desc)
     {
-        write_phrasing(s, "description", desc);
+        auto tag = s.open_tag(stream::line_tag, "description");
+        write_children(tag, desc);
     }
 
     void write(stream& s, const term_description_item& item)
     {
-        auto tag = s.open_tag(stream::line_tag, "term-description-item",
+        auto tag = s.open_tag(stream::block_tag, "term-description-item",
                               std::make_pair("id", item.id().as_str()));
         write(tag, item.term());
         write(tag, item.description());
@@ -343,7 +345,7 @@ namespace
     {
         auto tag =
             s.open_tag(stream::block_tag, "list-section", std::make_pair("name", section.name()));
-        write(tag, section.list());
+        write_children(tag, section);
     }
 
     void write(stream& s, const thematic_break&)

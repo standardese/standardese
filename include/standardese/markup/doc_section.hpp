@@ -6,6 +6,7 @@
 #define STANDARDESE_MARKUP_DOC_SECTION_HPP_INCLUDED
 
 #include <standardese/markup/block.hpp>
+#include <standardese/markup/list.hpp>
 #include <standardese/markup/paragraph.hpp>
 #include <standardese/markup/phrasing.hpp>
 
@@ -194,8 +195,6 @@ namespace standardese
             section_type                       type_;
         };
 
-        class unordered_list;
-
         /// A section containing a list.
         ///
         /// This can be a `\returns` with an entry for each return value, for example.
@@ -212,10 +211,24 @@ namespace standardese
                 return name_;
             }
 
-            /// \returns The list of the section.
-            const unordered_list& list() const noexcept
+            /// \returns The id of the section.
+            const block_id& id() const noexcept
             {
-                return *list_;
+                return list_->id();
+            }
+
+            using iterator = unordered_list::iterator;
+
+            /// \returns An iterator to the first list item.
+            iterator begin() const noexcept
+            {
+                return list_->begin();
+            }
+
+            /// \returns An iterator one past the last item.
+            iterator end() const noexcept
+            {
+                return list_->end();
             }
 
         private:

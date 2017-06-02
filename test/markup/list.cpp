@@ -37,7 +37,10 @@ TEST_CASE("unordered_list", "[markup]")
 <list-item>
 <paragraph>text</paragraph>
 </list-item>
-<term-description-item><term>A term</term><description>A description</description></term-description-item>
+<term-description-item>
+<term>A term</term>
+<description>A description</description>
+</term-description-item>
 </unordered-list>
 )";
 

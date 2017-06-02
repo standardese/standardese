@@ -47,7 +47,7 @@ namespace
         skip_whitespace(cur);
 
         std::string word;
-        for (; *cur && !is_whitespace(*cur); ++cur)
+        for (; *cur && !is_whitespace(*cur) && *cur != '-'; ++cur)
             word += *cur;
 
         return word;
@@ -306,5 +306,6 @@ section_type standardese::comment::detail::get_section_type(cmark_node* node)
 const char* standardese::comment::detail::get_section_key(cmark_node* node)
 {
     assert(cmark_node_get_type(node) == node_section());
-    return cmark_node_get_string_content(node);
+    auto content = cmark_node_get_string_content(node);
+    return *content == '\0' ? nullptr : content;
 }

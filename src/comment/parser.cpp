@@ -252,7 +252,67 @@ namespace
         return nullptr;
     }
 
-    std::unique_ptr<markup::doc_section> parse_section(cmark_node* node)
+    std::unique_ptr<markup::phrasing_entity> parse_key(const char* key)
+    {
+        if (*key == '[')
+        {
+            // look for a closing ']', might have a link
+            auto begin = ++key;
+            while (*key && *key != ']')
+                ++key;
+
+            if (*key)
+            {
+                // found one
+                auto                           unique_name = std::string(begin, key - begin);
+                markup::internal_link::builder link(lookup_unique_name(unique_name));
+                link.add_child(markup::text::build(std::move(unique_name)));
+                return link.finish();
+            }
+        }
+
+        // normal text
+        return markup::text::build(key);
+    }
+
+    std::unique_ptr<markup::list_section> parse_list_section(cmark_node*& node)
+    {
+        auto type = detail::get_section_type(node);
+
+        markup::unordered_list::builder builder{markup::block_id{}};
+        do
+        {
+            auto key = detail::get_section_key(node);
+            if (key)
+            {
+                // key-value item
+                auto term = markup::term::build(parse_key(key));
+
+                markup::description::builder description;
+                add_children(description,
+                             cmark_node_first_child(node)); // the children of the paragraph
+
+                builder.add_item(markup::term_description_item::build(markup::block_id(),
+                                                                      std::move(term),
+                                                                      description.finish()));
+            }
+            else
+            {
+                // no key-value item, just add the normal paragraph
+                auto paragraph = cmark_node_first_child(node);
+                builder.add_item(markup::list_item::build(parse_paragraph(paragraph)));
+            }
+
+            node = cmark_node_next(node);
+        } while (node && cmark_node_get_type(node) == detail::node_section()
+                 && detail::get_section_type(node) == type);
+        // went one too far
+        node = cmark_node_previous(node);
+
+        return markup::list_section::build(type, "", builder.finish()); // TODO
+    }
+
+    std::unique_ptr<markup::doc_section> parse_section(cmark_node*& node)
     {
         assert(cmark_node_get_type(node) == detail::node_section());
         switch (detail::get_section_type(node))
@@ -284,9 +344,14 @@ namespace
         case section_type::notes:
         case section_type::see:
         {
-            auto paragraph = cmark_node_first_child(node);
-            return markup::inline_section::build(detail::get_section_type(node), "", // TODO
-                                                 parse_paragraph(paragraph));
+            if (detail::get_section_key(node))
+                return parse_list_section(node);
+            else
+            {
+                auto paragraph = cmark_node_first_child(node);
+                return markup::inline_section::build(detail::get_section_type(node), "", // TODO
+                                                     parse_paragraph(paragraph));
+            }
         }
 
         case section_type::count:

@@ -35,7 +35,7 @@ namespace standardese
             section_type get_section_type(cmark_node* node);
 
             // returns the key if it is a key-value section
-            // or the empty key, if it isn't
+            // or nullptr, if it isn't
             const char* get_section_key(cmark_node* node);
         } // namespace detail
     }
