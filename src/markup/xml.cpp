@@ -335,7 +335,7 @@ namespace
     void write(stream& s, const inline_section& section)
     {
         auto tag =
-            s.open_tag(stream::block_tag, "inline-section", std::make_pair("name", section.name()));
+            s.open_tag(stream::line_tag, "inline-section", std::make_pair("name", section.name()));
         write_children(tag, section);
     }
 

@@ -189,6 +189,12 @@ namespace standardese
                     return *this;
                 }
 
+                /// \returns Whether or not the container is empty.
+                bool empty() noexcept
+                {
+                    return result_->begin() == result_->end();
+                }
+
                 /// \returns The finished entity.
                 std::unique_ptr<Derived> finish() noexcept
                 {

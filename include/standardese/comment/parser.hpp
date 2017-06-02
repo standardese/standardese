@@ -10,6 +10,8 @@
 
 #include <standardese/markup/doc_section.hpp>
 
+#include <standardese/comment/config.hpp>
+
 extern "C" {
 typedef struct cmark_node   cmark_node;
 typedef struct cmark_parser cmark_parser;
@@ -21,12 +23,13 @@ namespace standardese
     {
         /// The CommonMark parser.
         ///
-        /// This is just a RAII wrapper over the `cmark_parser`.
+        /// This is just a RAII wrapper over the `cmark_parser`
+        /// and the [standardese::comment::config]().
         class parser
         {
         public:
-            /// \effects Creates a new parser.
-            parser();
+            /// \effects Creates a new parser using the given configuration.
+            parser(comment::config c = comment::config());
 
             ~parser() noexcept;
 
@@ -39,8 +42,15 @@ namespace standardese
                 return parser_;
             }
 
+            /// \returns The config.
+            const comment::config& config() const noexcept
+            {
+                return config_;
+            }
+
         private:
-            cmark_parser* parser_;
+            comment::config config_;
+            cmark_parser*   parser_;
         };
 
         /// The root of the CommonMark AST.
@@ -91,7 +101,9 @@ namespace standardese
         /// All the information are extracted.
         struct translated_ast
         {
-            /// The sections in the documentation text.
+            /// The brief section in the documentation.
+            std::unique_ptr<markup::brief_section> brief;
+            /// The other sections in the documentation text.
             std::vector<std::unique_ptr<markup::doc_section>> sections;
         };
 
@@ -124,7 +136,7 @@ namespace standardese
 
         /// Translates the CommonMark AST.
         /// \returns The translated AST.
-        translated_ast translate_ast(const ast_root& root);
+        translated_ast translate_ast(const parser& p, const ast_root& root);
     }
 } // namespace standardese::comment
 

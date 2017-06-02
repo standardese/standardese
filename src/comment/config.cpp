@@ -1,0 +1,128 @@
+// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// This file is subject to the license terms in the LICENSE file
+// found in the top-level directory of this distribution.
+
+#include <standardese/comment/config.hpp>
+
+using namespace standardese::comment;
+
+const char* config::default_command_name(command_type cmd) noexcept
+{
+    switch (cmd)
+    {
+    case command_type::exclude:
+        return "exclude";
+    case command_type::unique_name:
+        return "unique_name";
+    case command_type::synopsis:
+        return "synopsis";
+    case command_type::synopsis_return:
+        return "synopsis_return";
+    case command_type::group:
+        return "group";
+    case command_type::module:
+        return "module";
+    case command_type::output_section:
+        return "output_section";
+
+    case command_type::entity:
+        return "entity";
+    case command_type::file:
+        return "file";
+    case command_type::param:
+        return "param";
+    case command_type::tparam:
+        return "tparam";
+    case command_type::base:
+        return "base";
+
+    case command_type::invalid:
+    case command_type::count:
+        break;
+    }
+
+    assert(false);
+    return "invalid command type";
+}
+
+const char* config::default_command_name(section_type cmd) noexcept
+{
+    switch (cmd)
+    {
+    case section_type::brief:
+        return "brief";
+    case section_type::details:
+        return "details";
+
+    case section_type::requires:
+        return "requires";
+    case section_type::effects:
+        return "effects";
+    case section_type::synchronization:
+        return "synchronization";
+    case section_type::postconditions:
+        return "postconditions";
+    case section_type::returns:
+        return "returns";
+    case section_type::throws:
+        return "throws";
+    case section_type::complexity:
+        return "complexity";
+    case section_type::remarks:
+        return "remarks";
+    case section_type::error_conditions:
+        return "error_conditions";
+    case section_type::notes:
+        return "notes";
+
+    case section_type::see:
+        return "see";
+
+    case section_type::count:
+        break;
+    }
+    assert(false);
+    return "invalid section type";
+}
+
+config::config(char command_character) : command_character_(command_character)
+{
+    for (auto i           = 0u; i != unsigned(section_type::count); ++i)
+        command_names_[i] = default_command_name(make_section(i));
+
+    for (auto i = unsigned(section_type::count) + 1u; i != unsigned(command_type::count); ++i)
+        command_names_[i] = default_command_name(make_command(i));
+}
+
+void config::set_command_name(command_type cmd, std::string name)
+{
+    command_names_[unsigned(cmd)] = std::move(name);
+}
+
+void config::set_command_name(section_type cmd, std::string name)
+{
+    command_names_[unsigned(cmd)] = std::move(name);
+}
+
+const char* config::command_name(command_type cmd) const noexcept
+{
+    return command_names_[unsigned(cmd)].c_str();
+}
+
+const char* config::command_name(section_type cmd) const noexcept
+{
+    return command_names_[unsigned(cmd)].c_str();
+}
+
+unsigned config::try_lookup(const char* name) const noexcept
+{
+    auto i = 0u;
+    for (auto& el : command_names_)
+    {
+        if (el == name)
+            return i;
+        ++i;
+    }
+
+    return unsigned(command_type::invalid);
+}

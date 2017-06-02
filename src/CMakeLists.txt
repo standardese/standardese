@@ -12,6 +12,8 @@ set(detail_header
         ../include/standardese/detail/tokenizer.hpp
         ../include/standardese/detail/wrapper.hpp)
 set(comment_header
+    ../include/standardese/comment/commands.hpp
+    ../include/standardese/comment/config.hpp
     ../include/standardese/comment/parser.hpp)
 set(markup_header
     ../include/standardese/markup/block.hpp
@@ -62,6 +64,9 @@ set(header
         ../include/standardese/template_processor.hpp
         ../include/standardese/translation_unit.hpp)
 set(comment_src
+    comment/cmark_ext_command.hpp
+    comment/cmark_ext_command.cpp
+    comment/config.cpp
     comment/parser.cpp)
 set(markup_src
     markup/code_block.cpp

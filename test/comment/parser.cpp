@@ -14,14 +14,17 @@ using namespace standardese::comment;
 // returns the details section of the given comment
 std::unique_ptr<markup::doc_section> parse_details(const char* comment)
 {
-    auto translated = translate_ast(read_ast(parser(), comment));
+    parser p;
+    auto   translated = translate_ast(p, read_ast(p, comment));
     REQUIRE(translated.sections.size() == 1u);
     return std::move(translated.sections.front());
 }
 
 TEST_CASE("cmark inlines", "[comment]")
 {
-    auto comment = R"(text
+    auto comment = R"(ignore brief
+
+text
 `code`
 *emphasis with `code`*\
 **strong emphasis with _emphasis_**
@@ -41,7 +44,9 @@ TEST_CASE("cmark inlines", "[comment]")
 
 TEST_CASE("cmark link", "[comment]")
 {
-    auto comment = R"([external link](http://foonathan.net)
+    auto comment = R"(ignore brief
+
+[external link](http://foonathan.net)
 [external link `2`](http://standardese.foonathan.net/ "title")
 [internal link](<> "name")
 [internal link `2`](standardese://name/ "title")
@@ -234,7 +239,9 @@ EEE
 
 TEST_CASE("cmark thematic break", "[comment]")
 {
-    auto comment = R"(A paragraph.
+    auto comment = R"(ignore brief
+
+A paragraph.
 
 ---
 
@@ -273,4 +280,118 @@ C.</paragraph>
 
     auto section = parse_details(comment);
     REQUIRE(markup::as_xml(*section) == xml);
+}
+
+TEST_CASE("sections", "[comment]")
+{
+    const char* comment = nullptr;
+    const char* xml     = nullptr;
+
+    SECTION("implicit")
+    {
+        comment = R"(Implicit brief.
+
+Implicit details.
+Still details.
+
+> Also in quote.
+
+```
+Or code.
+```
+
+* Or
+* List
+)";
+
+        xml = R"(<brief-section>Implicit brief.</brief-section>
+<details-section>
+<paragraph>Implicit details.<soft-break></soft-break>
+Still details.</paragraph>
+<block-quote>
+<paragraph>Also in quote.</paragraph>
+</block-quote>
+<code-block>Or code.
+</code-block>
+<unordered-list>
+<list-item>
+<paragraph>Or</paragraph>
+</list-item>
+<list-item>
+<paragraph>List</paragraph>
+</list-item>
+</unordered-list>
+</details-section>
+)";
+    }
+    SECTION("explicit")
+    {
+        comment = R"(\brief Explicit brief.
+Still explicit brief.
+
+\details Explicit details.
+
+Still details.
+
+\effects Explicit effects.
+Still effects.
+
+Details again.
+
+\returns Explicit returns.
+\notes Explicit notes.
+)";
+
+        xml = R"(<brief-section>Explicit brief.<soft-break></soft-break>
+Still explicit brief.</brief-section>
+<details-section>
+<paragraph>Explicit details.</paragraph>
+<paragraph>Still details.</paragraph>
+</details-section>
+<inline-section>Explicit effects.<soft-break></soft-break>
+Still effects.</inline-section>
+<details-section>
+<paragraph>Details again.</paragraph>
+</details-section>
+<inline-section>Explicit returns.</inline-section>
+<inline-section>Explicit notes.</inline-section>
+)";
+    }
+    SECTION("ignored commands")
+    {
+        comment = R"(Ignore \effects not starting at beginning.
+Prevent brief.
+\exclude Ignore all lines starting with a command.
+But please include me.
+\unknown Ignore unknown commands.
+
+> \effects In block quote.
+
+* \effects In list.
+)";
+
+        xml = R"(<details-section>
+<paragraph>Ignore \effects not starting at beginning.<soft-break></soft-break>
+Prevent brief.</paragraph>
+<paragraph>But please include me.<soft-break></soft-break>
+\unknown Ignore unknown commands.</paragraph>
+<block-quote>
+<paragraph>\effects In block quote.</paragraph>
+</block-quote>
+<unordered-list>
+<list-item>
+<paragraph>\effects In list.</paragraph>
+</list-item>
+</unordered-list>
+</details-section>
+)";
+    }
+
+    parser p;
+    auto   translated = translate_ast(p, read_ast(p, comment));
+
+    auto result = translated.brief ? markup::as_xml(*translated.brief) : "";
+    for (auto& section : translated.sections)
+        result += markup::as_xml(*section);
+    REQUIRE(result == xml);
 }

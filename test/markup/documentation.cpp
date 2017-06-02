@@ -49,7 +49,7 @@ TEST_CASE("file_documentation", "[markup]")
 <brief-section id="file-hpp-brief">The brief documentation.</brief-section>
 <inline-section name="Effects">The effects of the - eh - file.</inline-section>
 <inline-section name="Notes">Some notes.</inline-section>
-<details-section id="file-hpp-details">
+<details-section>
 <paragraph>The details documentation.</paragraph>
 </details-section>
 <list-section name="Return values">

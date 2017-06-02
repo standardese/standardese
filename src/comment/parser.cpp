@@ -6,8 +6,10 @@
 
 #include <cassert>
 #include <cstring>
+#include <type_traits>
 
 #include <cmark.h>
+#include <cmark_extension_api.h>
 
 #if !defined(CMARK_NODE_TYPE_PRESENT)
 #error "requires GFM cmark"
@@ -20,16 +22,29 @@
 #include <standardese/markup/paragraph.hpp>
 #include <standardese/markup/quote.hpp>
 #include <standardese/markup/thematic_break.hpp>
+#include <standardese/markup/entity_kind.hpp>
+
+#include "cmark_ext_command.hpp"
 
 using namespace standardese;
 using namespace standardese::comment;
 
-parser::parser() : parser_(cmark_parser_new(CMARK_OPT_SMART))
+parser::parser(comment::config c)
+: config_(std::move(c)), parser_(cmark_parser_new(CMARK_OPT_SMART))
 {
+    auto ext = detail::create_command_extension(config_);
+    cmark_parser_attach_syntax_extension(parser_, ext);
 }
 
 parser::~parser()
 {
+    auto cur = cmark_parser_get_syntax_extensions(parser_);
+    while (cur)
+    {
+        cmark_syntax_extension_free(cmark_get_default_mem_allocator(),
+                                    static_cast<cmark_syntax_extension*>(cur->data));
+        cur = cur->next;
+    }
     cmark_parser_free(parser_);
 }
 
@@ -237,18 +252,76 @@ namespace
         return nullptr;
     }
 
-    template <class Builder, typename T>
-    auto add_child(int, Builder& b, std::unique_ptr<T> entity)
-        -> decltype(b.add_child(std::move(entity)))
+    std::unique_ptr<markup::doc_section> parse_section(cmark_node* node)
     {
-        return b.add_child(std::move(entity));
+        assert(cmark_node_get_type(node) == detail::node_section());
+        switch (detail::get_section_type(node))
+        {
+        case section_type::brief:
+        {
+            assert(cmark_node_get_type(cmark_node_first_child(node)) == CMARK_NODE_PARAGRAPH);
+
+            markup::brief_section::builder builder;
+            add_children(builder, cmark_node_first_child(node));
+            return builder.finish();
+        }
+        case section_type::details:
+        {
+            markup::details_section::builder builder;
+            add_children(builder, node);
+            return builder.finish();
+        }
+
+        case section_type::requires:
+        case section_type::effects:
+        case section_type::synchronization:
+        case section_type::postconditions:
+        case section_type::returns:
+        case section_type::throws:
+        case section_type::complexity:
+        case section_type::remarks:
+        case section_type::error_conditions:
+        case section_type::notes:
+        case section_type::see:
+        {
+            auto paragraph = cmark_node_first_child(node);
+            return markup::inline_section::build(detail::get_section_type(node), "", // TODO
+                                                 parse_paragraph(paragraph));
+        }
+
+        case section_type::count:
+            assert(false);
+            break;
+        }
+
+        return nullptr;
     }
 
     template <class Builder, typename T>
     auto add_child(int, Builder& b, std::unique_ptr<T> entity)
-        -> decltype(b.add_item(std::move(entity)))
+        -> decltype(void(b.add_child(std::move(entity))))
     {
-        return b.add_item(std::move(entity));
+        b.add_child(std::move(entity));
+    }
+
+    template <class Builder, typename T>
+    auto add_child(int, Builder& b, std::unique_ptr<T> entity)
+        -> decltype(void(b.add_item(std::move(entity))))
+    {
+        b.add_item(std::move(entity));
+    }
+
+    void add_child(int, translated_ast& result, std::unique_ptr<markup::doc_section> ptr)
+    {
+        if (ptr->kind() == markup::entity_kind::brief_section)
+        {
+            if (result.brief)
+                throw translation_error(0, 0, "multiple brief sections for comment");
+            result.brief = std::unique_ptr<markup::brief_section>(
+                static_cast<markup::brief_section*>(ptr.release()));
+        }
+        else
+            result.sections.push_back(std::move(ptr));
     }
 
     template <class Builder, typename T>
@@ -260,88 +333,82 @@ namespace
     template <class Builder>
     void add_children(Builder& b, cmark_node* parent)
     {
-        auto cur  = cmark_node_first_child(parent);
-        auto last = cmark_node_last_child(parent);
-        while (true)
+        for (auto cur = cmark_node_first_child(parent); cur; cur = cmark_node_next(cur))
         {
-            switch (cmark_node_get_type(cur))
-            {
-            case CMARK_NODE_BLOCK_QUOTE:
-                add_child(0, b, parse_block_quote(cur));
-                break;
-            case CMARK_NODE_LIST:
-                add_child(0, b, parse_list(cur));
-                break;
-            case CMARK_NODE_ITEM:
-                add_child(0, b, parse_item(cur));
-                break;
-            case CMARK_NODE_CODE_BLOCK:
-                add_child(0, b, parse_code_block(cur));
-                break;
-            case CMARK_NODE_PARAGRAPH:
-                add_child(0, b, parse_paragraph(cur));
-                break;
-            case CMARK_NODE_HEADING:
-                add_child(0, b, parse_heading(cur));
-                break;
-            case CMARK_NODE_THEMATIC_BREAK:
-                add_child(0, b, parse_thematic_break(cur));
-                break;
+            if (cmark_node_get_type(cur) == detail::node_section())
+                add_child(0, b, parse_section(cur));
+            else
+                switch (cmark_node_get_type(cur))
+                {
+                case CMARK_NODE_BLOCK_QUOTE:
+                    add_child(0, b, parse_block_quote(cur));
+                    break;
+                case CMARK_NODE_LIST:
+                    add_child(0, b, parse_list(cur));
+                    break;
+                case CMARK_NODE_ITEM:
+                    add_child(0, b, parse_item(cur));
+                    break;
+                case CMARK_NODE_CODE_BLOCK:
+                    add_child(0, b, parse_code_block(cur));
+                    break;
+                case CMARK_NODE_PARAGRAPH:
+                    add_child(0, b, parse_paragraph(cur));
+                    break;
+                case CMARK_NODE_HEADING:
+                    add_child(0, b, parse_heading(cur));
+                    break;
+                case CMARK_NODE_THEMATIC_BREAK:
+                    add_child(0, b, parse_thematic_break(cur));
+                    break;
 
-            case CMARK_NODE_TEXT:
-                add_child(0, b, parse_text(cur));
-                break;
-            case CMARK_NODE_SOFTBREAK:
-                add_child(0, b, parse_softbreak(cur));
-                break;
-            case CMARK_NODE_LINEBREAK:
-                add_child(0, b, parse_linebreak(cur));
-                break;
-            case CMARK_NODE_CODE:
-                add_child(0, b, parse_code(cur));
-                break;
-            case CMARK_NODE_EMPH:
-                add_child(0, b, parse_emph(cur));
-                break;
-            case CMARK_NODE_STRONG:
-                add_child(0, b, parse_strong(cur));
-                break;
-            case CMARK_NODE_LINK:
-                add_child(0, b, parse_link(cur));
-                break;
+                case CMARK_NODE_TEXT:
+                    add_child(0, b, parse_text(cur));
+                    break;
+                case CMARK_NODE_SOFTBREAK:
+                    add_child(0, b, parse_softbreak(cur));
+                    break;
+                case CMARK_NODE_LINEBREAK:
+                    add_child(0, b, parse_linebreak(cur));
+                    break;
+                case CMARK_NODE_CODE:
+                    add_child(0, b, parse_code(cur));
+                    break;
+                case CMARK_NODE_EMPH:
+                    add_child(0, b, parse_emph(cur));
+                    break;
+                case CMARK_NODE_STRONG:
+                    add_child(0, b, parse_strong(cur));
+                    break;
+                case CMARK_NODE_LINK:
+                    add_child(0, b, parse_link(cur));
+                    break;
 
-            case CMARK_NODE_HTML_BLOCK:
-            case CMARK_NODE_HTML_INLINE:
-            case CMARK_NODE_CUSTOM_BLOCK:
-            case CMARK_NODE_CUSTOM_INLINE:
-            case CMARK_NODE_IMAGE:
-                throw translation_error(unsigned(cmark_node_get_start_line(cur)),
-                                        unsigned(cmark_node_get_start_column(cur)),
-                                        std::string("forbidden CommonMark node of type \"")
-                                            + cmark_node_get_type_string(cur) + "\"");
+                case CMARK_NODE_HTML_BLOCK:
+                case CMARK_NODE_HTML_INLINE:
+                case CMARK_NODE_CUSTOM_BLOCK:
+                case CMARK_NODE_CUSTOM_INLINE:
+                case CMARK_NODE_IMAGE:
+                    throw translation_error(unsigned(cmark_node_get_start_line(cur)),
+                                            unsigned(cmark_node_get_start_column(cur)),
+                                            std::string("forbidden CommonMark node of type \"")
+                                                + cmark_node_get_type_string(cur) + "\"");
 
-            case CMARK_NODE_NONE:
-            case CMARK_NODE_DOCUMENT:
-                assert(!"invalid node type");
-                break;
-            }
-
-            if (cur == last)
-                break;
-            cur = cmark_node_next(cur);
+                case CMARK_NODE_NONE:
+                case CMARK_NODE_DOCUMENT:
+                    assert(!"invalid node type");
+                    break;
+                }
         }
     }
 }
 
-translated_ast standardese::comment::translate_ast(const ast_root& root)
+translated_ast standardese::comment::translate_ast(const parser&, const ast_root& root)
 {
     assert(cmark_node_get_type(root.get()) == CMARK_NODE_DOCUMENT);
-    translated_ast result;
 
-    // just assume details for now
-    markup::details_section::builder builder;
-    add_children(builder, root.get());
-    result.sections.push_back(builder.finish());
+    translated_ast result;
+    add_children(result, root.get());
 
     return result;
 }
