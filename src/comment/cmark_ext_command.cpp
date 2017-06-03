@@ -149,6 +149,9 @@ namespace
             skip_whitespace(cur);
             cmark_parser_advance_offset(parser, reinterpret_cast<char*>(input), len, 0);
 
+            // I don't want a trailing newline, so override it with the terminating null
+            // hey, if I get non-const strings, I write to them!
+            input[len - 1] = 0;
             return create_node(self, indent, parser, parent_container, node_command(), command,
                                cur); // store remainder of line as arguments
         }

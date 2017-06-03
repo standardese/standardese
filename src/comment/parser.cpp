@@ -66,6 +66,12 @@ namespace
     template <class Builder>
     void add_children(Builder& b, cmark_node* parent);
 
+    [[noreturn]] void error(cmark_node* node, std::string msg)
+    {
+        throw translation_error(unsigned(cmark_node_get_start_line(node)),
+                                unsigned(cmark_node_get_start_column(node)), std::move(msg));
+    }
+
     std::unique_ptr<markup::block_quote> parse_block_quote(cmark_node* node)
     {
         assert(cmark_node_get_type(node) == CMARK_NODE_BLOCK_QUOTE);
@@ -376,23 +382,148 @@ namespace
         b.add_item(std::move(entity));
     }
 
-    void add_child(int, translated_ast& result, std::unique_ptr<markup::doc_section> ptr)
+    void add_child(int, translated_ast::builder& result, std::unique_ptr<markup::doc_section> ptr)
     {
         if (ptr->kind() == markup::entity_kind::brief_section)
         {
-            if (result.brief)
-                throw translation_error(0, 0, "multiple brief sections for comment");
-            result.brief = std::unique_ptr<markup::brief_section>(
+            auto brief = std::unique_ptr<markup::brief_section>(
                 static_cast<markup::brief_section*>(ptr.release()));
+            if (!result.brief(std::move(brief)))
+                error(nullptr, "multiple brief sections for comment");
         }
         else
-            result.sections.push_back(std::move(ptr));
+            result.add_section(std::move(ptr));
     }
 
     template <class Builder, typename T>
     void add_child(short, Builder&, std::unique_ptr<T>)
     {
         assert(!"unexpected child");
+    }
+
+    bool starts_with(const char* str, const char* target)
+    {
+        return std::strncmp(str, target, std::strlen(target)) == 0;
+    }
+
+    const char* get_single_arg(cmark_node* node, const char* cmd)
+    {
+        auto args = detail::get_command_arguments(node);
+        for (auto ptr = args; *ptr; ++ptr)
+            if (*ptr == ' ' || *ptr == '\t')
+                error(node,
+                      std::string("multiple arguments given for command '") + cmd
+                          + "', but only one expected");
+        return args;
+    }
+
+    void skip_ws(const char*& args)
+    {
+        while (*args && (*args == ' ' || *args == '\t'))
+            ++args;
+    }
+
+    type_safe::optional<std::string> get_next_arg(const char*& args)
+    {
+        std::string result;
+        while (*args && *args != ' ' && *args != '\t')
+            result += *args++;
+        skip_ws(args);
+        return result.empty() ? type_safe::nullopt : type_safe::make_optional(std::move(result));
+    }
+
+    std::string get_next_required_arg(const char*& args, cmark_node* node, const char* command)
+    {
+        auto maybe_arg = get_next_arg(args);
+        if (!maybe_arg)
+            error(node, std::string("missing required argument command '") + command + "'");
+        return maybe_arg.value();
+    }
+
+    exclude_mode parse_exclude_mode(cmark_node* node)
+    {
+        auto args = detail::get_command_arguments(node);
+        if (starts_with(args, "return"))
+            return exclude_mode::return_type;
+        else if (starts_with(args, "target"))
+            return exclude_mode::target;
+        else if (*args)
+            error(node, "invalid argument for exclude");
+        else
+            return exclude_mode::entity;
+    }
+
+    member_group parse_group(cmark_node* node)
+    {
+        auto args = detail::get_command_arguments(node);
+
+        auto name    = get_next_required_arg(args, node, "group");
+        auto heading = *args ? type_safe::make_optional(std::string(args)) : type_safe::nullopt;
+
+        if (name.front() == '-')
+        {
+            // name starts with -, erase it, and don't consider it a section
+            name.erase(name.begin());
+            return member_group(std::move(name), std::move(heading), false);
+        }
+        else
+            return member_group(std::move(name), std::move(heading), true);
+    }
+
+    void parse_command(translated_ast::builder& ast, cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == detail::node_command());
+        auto command = detail::get_command_type(node);
+        switch (command)
+        {
+        case command_type::exclude:
+            if (!ast.exclude(parse_exclude_mode(node)))
+                error(node, "multiple exclude commands for entity");
+            break;
+
+        case command_type::unique_name:
+            if (!ast.unique_name(get_single_arg(node, "unique name")))
+                error(node, "multiple unique name commands for entity");
+            break;
+        case command_type::synopsis:
+            if (!ast.synopsis(detail::get_command_arguments(node)))
+                error(node, "multiple synopsis commands for entity");
+            break;
+
+        case command_type::group:
+            if (!ast.group(parse_group(node)))
+                error(node, "multiple group commands for entity");
+            break;
+        case command_type::module:
+            if (!ast.module(get_single_arg(node, "module")))
+                error(node, "multiple module commands for entity");
+            break;
+        case command_type::output_section:
+            if (!ast.output_section(detail::get_command_arguments(node)))
+                error(node, "multiple output section commands for entity");
+            break;
+
+        case command_type::entity:
+            break;
+        case command_type::file:
+            break;
+        case command_type::param:
+            break;
+        case command_type::tparam:
+            break;
+        case command_type::base:
+            break;
+
+        case command_type::count:
+        case command_type::invalid:
+            error(node, "invalid command");
+        }
+    }
+
+    template <typename T>
+    void parse_command(const T&, cmark_node*)
+    {
+        assert(!"unexpected command");
     }
 
     template <class Builder>
@@ -402,6 +533,8 @@ namespace
         {
             if (cmark_node_get_type(cur) == detail::node_section())
                 add_child(0, b, parse_section(cur));
+            else if (cmark_node_get_type(cur) == detail::node_command())
+                parse_command(b, cur);
             else
                 switch (cmark_node_get_type(cur))
                 {
@@ -454,10 +587,9 @@ namespace
                 case CMARK_NODE_CUSTOM_BLOCK:
                 case CMARK_NODE_CUSTOM_INLINE:
                 case CMARK_NODE_IMAGE:
-                    throw translation_error(unsigned(cmark_node_get_start_line(cur)),
-                                            unsigned(cmark_node_get_start_column(cur)),
-                                            std::string("forbidden CommonMark node of type \"")
-                                                + cmark_node_get_type_string(cur) + "\"");
+                    error(cur,
+                          std::string("forbidden CommonMark node of type \"")
+                              + cmark_node_get_type_string(cur) + "\"");
 
                 case CMARK_NODE_NONE:
                 case CMARK_NODE_DOCUMENT:
@@ -472,8 +604,8 @@ translated_ast standardese::comment::translate_ast(const parser&, const ast_root
 {
     assert(cmark_node_get_type(root.get()) == CMARK_NODE_DOCUMENT);
 
-    translated_ast result;
-    add_children(result, root.get());
+    translated_ast::builder builder;
+    add_children(builder, root.get());
 
-    return result;
+    return builder.finish();
 }
