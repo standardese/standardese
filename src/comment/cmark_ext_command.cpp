@@ -159,17 +159,42 @@ namespace
             return nullptr;
     }
 
-    bool paragraph_can_be_brief(cmark_node* paragraph)
+    // terminates a section on a terminator
+    void terminate_section(cmark_syntax_extension* self, cmark_node* section,
+                           cmark_node* terminator)
+    {
+        assert(cmark_node_get_type(section) == node_section());
+
+        // remainder of paragraph is considered details
+        auto detail_node =
+            create_node(self, node_section(), unsigned(section_type::details), nullptr);
+        cmark_node_insert_after(section, detail_node);
+        auto paragraph = cmark_node_new(CMARK_NODE_PARAGRAPH);
+        cmark_node_append_child(detail_node, paragraph);
+
+        // add remaining children to paragraph
+        for (auto cur = cmark_node_next(terminator); cur;)
+        {
+            auto next = cmark_node_next(cur);
+            cmark_node_append_child(paragraph, cur);
+            cur = next;
+        }
+
+        // delete terminator
+        cmark_node_free(terminator);
+    }
+
+    // returns the terminator of the brief section
+    cmark_node* brief_terminator(cmark_node* paragraph)
     {
         assert(cmark_node_get_type(paragraph) == CMARK_NODE_PARAGRAPH);
 
         for (auto child = cmark_node_first_child(paragraph); child; child = cmark_node_next(child))
             if (cmark_node_get_type(child) == CMARK_NODE_SOFTBREAK
                 || cmark_node_get_type(child) == CMARK_NODE_LINEBREAK)
-                // multi-line paragraph, can't be
-                return false;
+                return child;
 
-        return true;
+        return nullptr;
     }
 
     cmark_node* prev_details(cmark_node* cur)
@@ -199,29 +224,6 @@ namespace
         return details;
     }
 
-    // terminates a section on a line break
-    void terminate_section(cmark_syntax_extension* self, cmark_node* root, cmark_node* section,
-                           cmark_node* linebreak)
-    {
-        assert(cmark_node_get_type(root) == CMARK_NODE_DOCUMENT
-               && cmark_node_get_type(section) == node_section()
-               && cmark_node_get_type(linebreak) == CMARK_NODE_LINEBREAK);
-
-        // remainder of paragraph is considered details
-        auto detail_node =
-            create_node(self, node_section(), unsigned(section_type::details), nullptr);
-        cmark_node_insert_after(section, detail_node);
-        auto paragraph = cmark_node_new(CMARK_NODE_PARAGRAPH);
-        cmark_node_append_child(detail_node, paragraph);
-
-        // add remaining children to paragraph
-        for (auto cur = cmark_node_next(linebreak); cur; cur = cmark_node_next(cur))
-            cmark_node_append_child(paragraph, cur);
-
-        // delete line break
-        cmark_node_free(linebreak);
-    }
-
     // finds a line break in a section
     cmark_node* find_linebreak(cmark_node* section)
     {
@@ -246,18 +248,18 @@ namespace
         {
             if (need_brief.try_reset() && cmark_node_get_type(cur) == CMARK_NODE_PARAGRAPH)
             {
-                if (paragraph_can_be_brief(cur))
-                {
-                    // create implicit brief
-                    auto node =
-                        create_node(self, node_section(), unsigned(section_type::brief), nullptr);
+                // create implicit brief
+                auto node =
+                    create_node(self, node_section(), unsigned(section_type::brief), nullptr);
 
-                    cmark_node_replace(cur, node);
-                    cmark_node_append_child(node, cur);
-                    cur = node;
-                }
-                else
-                    cur = wrap_in_details(self, cur);
+                cmark_node_replace(cur, node);
+                cmark_node_append_child(node, cur);
+
+                // terminate brief section at first line break
+                if (auto terminator = brief_terminator(cur))
+                    terminate_section(self, node, terminator);
+
+                cur = node;
             }
             else if (cmark_node_get_type(cur) == node_section()
                      && detail::get_section_type(cur) == section_type::brief)
@@ -268,7 +270,7 @@ namespace
                      && detail::get_section_type(cur) != section_type::details)
             {
                 if (auto linebreak = find_linebreak(cur))
-                    terminate_section(self, root, cur, linebreak);
+                    terminate_section(self, cur, linebreak);
             }
             else if (cmark_node_get_type(cur) != node_section()
                      && cmark_node_get_type(cur) != node_command())

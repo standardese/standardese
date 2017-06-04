@@ -253,7 +253,8 @@ A completely different paragraph.
 
 TEST_CASE("cmark paragraph", "[comment]")
 {
-    auto comment = R"(A.
+    auto comment = R"(Brief.
+A.
 A.
 
 B.
@@ -281,9 +282,10 @@ TEST_CASE("sections", "[comment]")
     SECTION("implicit")
     {
         comment = R"(Implicit brief.
-
 Implicit details.
+
 Still details.
+Even still details.
 
 > Also in quote.
 
@@ -297,8 +299,9 @@ Or code.
 
         xml = R"(<brief-section>Implicit brief.</brief-section>
 <details-section>
-<paragraph>Implicit details.<soft-break></soft-break>
-Still details.</paragraph>
+<paragraph>Implicit details.</paragraph>
+<paragraph>Still details.<soft-break></soft-break>
+Even still details.</paragraph>
 <block-quote>
 <paragraph>Also in quote.</paragraph>
 </block-quote>
@@ -356,7 +359,7 @@ Still effects.</inline-section>
     }
     SECTION("ignored commands")
     {
-        comment = R"(Ignore \effects not starting at beginning.
+        comment = R"(\details Ignore \effects not starting at beginning.
 Prevent brief.
 \synopsis Ignore all lines starting with a command.
 But please include me.
