@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <type_safe/optional.hpp>
+#include <type_safe/variant.hpp>
 
 #include <standardese/markup/doc_section.hpp>
 
@@ -154,6 +155,27 @@ namespace standardese
             return !(a == b);
         }
 
+        //// Tag type to indicate that a comment belongs to the current file.
+        struct current_file
+        {
+        };
+
+        /// Tag type to indicate that a comment belongs to the entity of the given name.
+        struct remote_entity
+        {
+            std::string unique_name;
+
+            explicit remote_entity(std::string name) : unique_name(std::move(name))
+            {
+            }
+        };
+
+        /// The entity a comment belongs to.
+        ///
+        /// If it belongs to the matched entity, it is empty.
+        using matching_entity =
+            type_safe::variant<type_safe::nullvar_t, current_file, remote_entity>;
+
         /// The translated CommonMark AST.
         ///
         /// All the information are extracted.
@@ -190,6 +212,19 @@ namespace standardese
 
         public:
             class builder;
+
+            /// \returns The entity it belongs to.
+            const matching_entity& entity() const noexcept
+            {
+                return entity_;
+            }
+
+            /// \returns Whether or not this is a remote comment,
+            /// i.e. corresponds to a different entity.
+            bool is_remote() const noexcept
+            {
+                return entity_.has_value();
+            }
 
             /// \returns A range-like object to the non-brief documentation sections.
             section_range sections() const noexcept
@@ -242,6 +277,8 @@ namespace standardese
         private:
             translated_ast() = default;
 
+            matching_entity entity_;
+
             type_safe::optional<member_group> group_;
             type_safe::optional<std::string>  unique_name_, synopsis_, module_, section_;
 
@@ -255,6 +292,24 @@ namespace standardese
         {
         public:
             builder() = default;
+
+            /// \effects Sets the corresponding entity to the current file.
+            /// \returns Whether or not it had no corresponding entity before.
+            bool entity(current_file)
+            {
+                auto set        = bool(result_.entity_);
+                result_.entity_ = current_file{};
+                return !set;
+            }
+
+            /// \effects Sets the corresponding entity to the one of given unique name.
+            /// \returns Whether or not it had no corresponding entity before.
+            bool entity(remote_entity entity)
+            {
+                auto set        = bool(result_.entity_);
+                result_.entity_ = std::move(entity);
+                return !set;
+            }
 
             /// \effects Adds a documentation section.
             /// \requires It must not be a brief section.

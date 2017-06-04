@@ -497,4 +497,23 @@ TEST_CASE("commands", "[comment]")
         REQUIRE(parse(R"(\output_section a b c)").output_section() == "a b c");
         REQUIRE_THROWS_AS(parse("\\output_section a\n\\output_section b"), translation_error);
     }
+    SECTION("entity")
+    {
+        REQUIRE(parse("foo\nbar").entity() == type_safe::nullvar);
+        REQUIRE(!parse("foo\nbar").is_remote());
+
+        REQUIRE(parse(R"(\entity new)")
+                    .entity()
+                    .value(type_safe::variant_type<remote_entity>{})
+                    .unique_name
+                == "new");
+        REQUIRE_THROWS_AS(parse(R"(\entity a b c)"), translation_error);
+        REQUIRE_THROWS_AS(parse("\\entity a\n\\entity b"), translation_error);
+        REQUIRE_THROWS_AS(parse("\\entity a\n\\file"), translation_error);
+    }
+    SECTION("file")
+    {
+        REQUIRE(parse(R"(\file)").entity().has_value(type_safe::variant_type<current_file>{}));
+        REQUIRE_THROWS_AS(parse(R"(\file a)"), translation_error);
+    }
 }

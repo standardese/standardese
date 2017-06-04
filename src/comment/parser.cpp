@@ -504,9 +504,16 @@ namespace
             break;
 
         case command_type::entity:
+            if (!ast.entity(remote_entity(get_single_arg(node, "entity"))))
+                error(node, "multiple file/entity commands for entity");
             break;
         case command_type::file:
+            if (*detail::get_command_arguments(node))
+                error(node, "arguments given to file command but none required");
+            if (!ast.entity(current_file{}))
+                error(node, "multiple file/entity commands for entity");
             break;
+
         case command_type::param:
             break;
         case command_type::tparam:
