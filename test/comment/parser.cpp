@@ -54,9 +54,9 @@ TEST_CASE("cmark link", "[comment]")
     auto xml = R"(<details-section>
 <paragraph><external-link url="http://foonathan.net">external link</external-link><soft-break></soft-break>
 <external-link title="title" url="http://standardese.foonathan.net/">external link <code>2</code></external-link><soft-break></soft-break>
-<internal-link destination-id="name">internal link</internal-link><soft-break></soft-break>
-<internal-link title="title" destination-id="name">internal link <code>2</code></internal-link><soft-break></soft-break>
-<internal-link destination-id="name"></internal-link></paragraph>
+<internal-link unresolved-destination-id="name">internal link</internal-link><soft-break></soft-break>
+<internal-link title="title" unresolved-destination-id="name">internal link <code>2</code></internal-link><soft-break></soft-break>
+<internal-link unresolved-destination-id="name"></internal-link></paragraph>
 </details-section>
 )";
 
@@ -416,11 +416,11 @@ It requires extra long description.</description>
 <inline-section>This terminates.</inline-section>
 <list-section>
 <term-description-item>
-<term><internal-link destination-id="foo">foo</internal-link></term>
+<term><internal-link unresolved-destination-id="foo">foo</internal-link></term>
 <description>Optional description.</description>
 </term-description-item>
 <term-description-item>
-<term><internal-link destination-id="bar">bar</internal-link></term>
+<term><internal-link unresolved-destination-id="bar">bar</internal-link></term>
 <description></description>
 </term-description-item>
 </list-section>

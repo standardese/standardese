@@ -393,15 +393,28 @@ namespace
 
     void write(stream& s, const internal_link& link)
     {
-        auto tag =
-            s.open_tag(stream::inline_tag, "internal-link", std::make_pair("title", link.title()),
-                       std::make_pair("destination-document",
-                                      link.destination()
-                                          .document()
-                                          .value_or(output_name::from_name(""))
-                                          .name()),
-                       std::make_pair("destination-id", link.destination().id().as_str()));
-        write_children(tag, link);
+        if (link.destination())
+        {
+            auto tag = s.open_tag(stream::inline_tag, "internal-link",
+                                  std::make_pair("title", link.title()),
+                                  std::make_pair("destination-document",
+                                                 link.destination()
+                                                     .value()
+                                                     .document()
+                                                     .value_or(output_name::from_name(""))
+                                                     .name()),
+                                  std::make_pair("destination-id",
+                                                 link.destination().value().id().as_str()));
+            write_children(tag, link);
+        }
+        else
+        {
+            auto tag = s.open_tag(stream::inline_tag, "internal-link",
+                                  std::make_pair("title", link.title()),
+                                  std::make_pair("unresolved-destination-id",
+                                                 link.unresolved_destination().value()));
+            write_children(tag, link);
+        }
     }
 
     void write_entity(stream& s, const entity& e)

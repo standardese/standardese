@@ -543,8 +543,18 @@ namespace
 
     void write(stream& s, const internal_link& link)
     {
-        auto url = link.destination().document().map(&output_name::file_name, "html").value_or("");
-        url += "#standardese-" + link.destination().id().as_str();
+        std::string url;
+        if (link.destination())
+        {
+            url = link.destination()
+                      .value()
+                      .document()
+                      .map(&output_name::file_name, "html")
+                      .value_or("");
+            url += "#standardese-" + link.destination().value().id().as_str();
+        }
+        else
+            url = "standardese://" + link.unresolved_destination().value() + "/";
 
         auto a = s.open_link(link.title().c_str(), url.c_str());
         write_children(a, link);

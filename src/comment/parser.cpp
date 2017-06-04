@@ -195,12 +195,6 @@ namespace
         return builder.finish();
     }
 
-    markup::block_reference lookup_unique_name(const std::string& unique_name)
-    {
-        // TODO: do actual lookup
-        return markup::block_reference(markup::block_id(unique_name));
-    }
-
     std::unique_ptr<markup::external_link> parse_external_link(cmark_node* node, const char* title,
                                                                const char* url)
     {
@@ -227,13 +221,13 @@ namespace
             else
             {
                 auto unique_name = cmark_node_get_literal(child);
-                return markup::internal_link::builder(lookup_unique_name(unique_name)).finish();
+                return markup::internal_link::builder(unique_name).finish();
             }
         }
         else if (*url == '\0')
         {
             // url is empty, unique name is title
-            markup::internal_link::builder builder(lookup_unique_name(title));
+            markup::internal_link::builder builder(title);
             add_children(builder, node);
             return builder.finish();
         }
@@ -244,7 +238,7 @@ namespace
             if (!unique_name.empty() && unique_name.back() == '/')
                 unique_name.pop_back();
 
-            markup::internal_link::builder builder(title, lookup_unique_name(unique_name));
+            markup::internal_link::builder builder(title, unique_name);
             add_children(builder, node);
             return builder.finish();
         }
@@ -271,7 +265,7 @@ namespace
             {
                 // found one
                 auto                           unique_name = std::string(begin, key - begin);
-                markup::internal_link::builder link(lookup_unique_name(unique_name));
+                markup::internal_link::builder link(unique_name);
                 link.add_child(markup::text::build(std::move(unique_name)));
                 return link.finish();
             }
