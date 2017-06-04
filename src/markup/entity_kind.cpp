@@ -19,6 +19,8 @@ bool standardese::markup::is_phrasing(standardese::markup::entity_kind kind) noe
     case entity_kind::emphasis:
     case entity_kind::strong_emphasis:
     case entity_kind::code:
+    case entity_kind::soft_break:
+    case entity_kind::hard_break:
     case entity_kind::term:
     case entity_kind::description:
     case entity_kind::external_link:
@@ -81,6 +83,8 @@ bool standardese::markup::is_block(standardese::markup::entity_kind kind) noexce
     case entity_kind::emphasis:
     case entity_kind::strong_emphasis:
     case entity_kind::code:
+    case entity_kind::soft_break:
+    case entity_kind::hard_break:
     case entity_kind::term:
     case entity_kind::description:
     case entity_kind::external_link:

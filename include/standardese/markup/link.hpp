@@ -5,6 +5,8 @@
 #ifndef STANDARDESE_MARKUP_LINK_HPP_INCLUDED
 #define STANDARDESE_MARKUP_LINK_HPP_INCLUDED
 
+#include <type_safe/variant.hpp>
+
 #include <standardese/markup/block.hpp>
 #include <standardese/markup/phrasing.hpp>
 
@@ -82,34 +84,59 @@ namespace standardese
             class builder : public container_builder<internal_link>
             {
             public:
-                /// \effects Creates it giving the title and destination.
-                builder(std::string title, block_reference dest)
+                /// \effects Creates it giving the title and unresolved destination.
+                builder(std::string title, std::string dest)
                 : container_builder(std::unique_ptr<internal_link>(
                       new internal_link(std::move(title), std::move(dest))))
                 {
                 }
 
-                /// \effects Creates it giving the destination only.
-                builder(block_reference dest) : builder("", std::move(dest))
+                /// \effects Creates it giving the unresolved destination only.
+                builder(std::string dest) : builder("", std::move(dest))
                 {
+                }
+
+                /// \effects Creates it giving the title and resolved destination.
+                builder(std::string title, block_reference dest) : builder(std::move(title), "")
+                {
+                    peek().resolve_destination(std::move(dest));
+                }
+
+                /// \effects Creates it giving the resolved destination.
+                builder(block_reference dest) : builder("")
+                {
+                    peek().resolve_destination(std::move(dest));
                 }
             };
 
-            /// \returns The destination of the link.
-            const block_reference& destination() const noexcept
+            /// \returns The destination of the link, if it has been resolved already.
+            type_safe::optional_ref<const block_reference> destination() const noexcept
             {
-                return dest_;
+                return dest_.optional_value(type_safe::variant_type<block_reference>{});
+            }
+
+            /// \returns The unresolved destination id of the link, if it hasn't been resolved already.
+            type_safe::optional_ref<const std::string> unresolved_destination() const noexcept
+            {
+                return dest_.optional_value(type_safe::variant_type<std::string>{});
+            }
+
+            /// \effects Resolves the destination of the link.
+            /// \notes This function is not thread safe.
+            void resolve_destination(block_reference ref) const
+            {
+                dest_ = std::move(ref);
             }
 
         private:
             entity_kind do_get_kind() const noexcept override;
 
-            internal_link(std::string title, block_reference dest)
+            internal_link(std::string title, std::string dest)
             : link_base(std::move(title)), dest_(std::move(dest))
             {
             }
 
-            block_reference dest_;
+            mutable type_safe::variant<block_reference, std::string> dest_;
         };
     }
 } // namespace standardese::markup

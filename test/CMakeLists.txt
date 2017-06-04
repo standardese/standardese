@@ -9,6 +9,7 @@ if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
 endif()
 
 set(tests
+    comment/parser.cpp
     markup/code_block.cpp
     markup/document.cpp
     markup/documentation.cpp

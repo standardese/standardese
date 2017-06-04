@@ -27,3 +27,13 @@ entity_kind code::do_get_kind() const noexcept
 {
     return entity_kind::code;
 }
+
+entity_kind soft_break::do_get_kind() const noexcept
+{
+    return entity_kind::soft_break;
+}
+
+entity_kind hard_break::do_get_kind() const noexcept
+{
+    return entity_kind::hard_break;
+}

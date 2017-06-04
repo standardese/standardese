@@ -11,6 +11,11 @@ set(detail_header
         ../include/standardese/detail/synopsis_utils.hpp
         ../include/standardese/detail/tokenizer.hpp
         ../include/standardese/detail/wrapper.hpp)
+set(comment_header
+    ../include/standardese/comment/commands.hpp
+    ../include/standardese/comment/config.hpp
+    ../include/standardese/comment/metadata.hpp
+    ../include/standardese/comment/parser.hpp)
 set(markup_header
     ../include/standardese/markup/block.hpp
     ../include/standardese/markup/code_block.hpp
@@ -59,6 +64,11 @@ set(header
         ../include/standardese/string.hpp
         ../include/standardese/template_processor.hpp
         ../include/standardese/translation_unit.hpp)
+set(comment_src
+    comment/cmark_ext_command.hpp
+    comment/cmark_ext_command.cpp
+    comment/config.cpp
+    comment/parser.cpp)
 set(markup_src
     markup/code_block.cpp
     markup/doc_section.cpp
@@ -109,7 +119,7 @@ set(src
         template_processor.cpp
         translation_unit.cpp)
 
-add_library(standardese ${detail_header} ${markup_header} ${header} ${markup_src} ${src})
+add_library(standardese ${detail_header} ${comment_header} ${markup_header} ${header} ${comment_src} ${markup_src} ${src})
 comp_target_features(standardese PRIVATE CPP11)
 target_include_directories(standardese PUBLIC
                                 $<BUILD_INTERFACE:${STANDARDESE_SOURCE_DIR}/include>
@@ -136,7 +146,7 @@ target_include_directories(standardese PUBLIC ${LIBCLANG_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${LIBCLANG_LIBRARY})
 
 # link cmark
-target_link_libraries(standardese PUBLIC libcmark_static)
+target_link_libraries(standardese PUBLIC libcmark-gfm_static)
 
 # link Boost
 find_package(Boost COMPONENTS filesystem system thread date_time chrono REQUIRED)

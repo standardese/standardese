@@ -56,6 +56,9 @@ namespace standardese
             strong_emphasis,
             code,
 
+            soft_break,
+            hard_break,
+
             external_link,
             internal_link,
         };

@@ -67,3 +67,15 @@ TEST_CASE("code", "[markup]")
 {
     test_phrasing<code>("code", "code");
 }
+
+TEST_CASE("soft_break", "[markup]")
+{
+    REQUIRE(as_html(*soft_break::build()) == "\n");
+    REQUIRE(as_xml(*soft_break::build()) == "<soft-break></soft-break>\n");
+}
+
+TEST_CASE("hard_break", "[markup]")
+{
+    REQUIRE(as_html(*hard_break::build()) == "<br/>\n");
+    REQUIRE(as_xml(*hard_break::build()) == "<hard-break></hard-break>\n");
+}

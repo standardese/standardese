@@ -6,7 +6,7 @@
     url = git://github.com/progschj/ThreadPool.git
 [submodule "external/cmark"]
     path = external/cmark
-    url = git://github.com/jgm/cmark.git
+    url = git://github.com/github/cmark.git
 [submodule "external/tiny-process-library"]
     path = external/tiny-process-library
     url = https://github.com/eidheim/tiny-process-library

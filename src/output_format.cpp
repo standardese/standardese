@@ -43,7 +43,7 @@ void output_format_xml::do_render(output_stream_base& output, const md_entity& e
 
 void output_format_html::do_render(output_stream_base& output, const md_entity& entity)
 {
-    cmark_str str(cmark_render_html(entity.get_node(), CMARK_OPT_NOBREAKS));
+    cmark_str str(cmark_render_html(entity.get_node(), CMARK_OPT_NOBREAKS, nullptr));
     write(output, str);
 }
 

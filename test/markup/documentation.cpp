@@ -49,16 +49,17 @@ TEST_CASE("file_documentation", "[markup]")
 <brief-section id="file-hpp-brief">The brief documentation.</brief-section>
 <inline-section name="Effects">The effects of the - eh - file.</inline-section>
 <inline-section name="Notes">Some notes.</inline-section>
-<details-section id="file-hpp-details">
+<details-section>
 <paragraph>The details documentation.</paragraph>
 </details-section>
 <list-section name="Return values">
-<unordered-list>
 <list-item>
 <paragraph>Any integer</paragraph>
 </list-item>
-<term-description-item><term>42</term><description>the answer!</description></term-description-item>
-</unordered-list>
+<term-description-item>
+<term>42</term>
+<description>the answer!</description>
+</term-description-item>
 </list-section>
 </file-documentation>
 )";

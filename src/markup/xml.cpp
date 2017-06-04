@@ -240,17 +240,19 @@ namespace
 
     void write(stream& s, const term& t)
     {
-        write_phrasing(s, "term", t);
+        auto tag = s.open_tag(stream::line_tag, "term");
+        write_children(tag, t);
     }
 
     void write(stream& s, const description& desc)
     {
-        write_phrasing(s, "description", desc);
+        auto tag = s.open_tag(stream::line_tag, "description");
+        write_children(tag, desc);
     }
 
     void write(stream& s, const term_description_item& item)
     {
-        auto tag = s.open_tag(stream::line_tag, "term-description-item",
+        auto tag = s.open_tag(stream::block_tag, "term-description-item",
                               std::make_pair("id", item.id().as_str()));
         write(tag, item.term());
         write(tag, item.description());
@@ -328,7 +330,8 @@ namespace
 
     void write(stream& s, const details_section& section)
     {
-        write_block(s, "details-section", section);
+        auto tag = s.open_tag(stream::block_tag, "details-section");
+        write_children(tag, section);
     }
 
     void write(stream& s, const inline_section& section)
@@ -342,7 +345,7 @@ namespace
     {
         auto tag =
             s.open_tag(stream::block_tag, "list-section", std::make_pair("name", section.name()));
-        write(tag, section.list());
+        write_children(tag, section);
     }
 
     void write(stream& s, const thematic_break&)
@@ -370,6 +373,16 @@ namespace
         write_phrasing(s, "code", phrasing);
     }
 
+    void write(stream& s, const soft_break&)
+    {
+        s.open_tag(stream::line_tag, "soft-break");
+    }
+
+    void write(stream& s, const hard_break&)
+    {
+        s.open_tag(stream::line_tag, "hard-break");
+    }
+
     void write(stream& s, const external_link& link)
     {
         auto tag =
@@ -380,15 +393,28 @@ namespace
 
     void write(stream& s, const internal_link& link)
     {
-        auto tag =
-            s.open_tag(stream::inline_tag, "internal-link", std::make_pair("title", link.title()),
-                       std::make_pair("destination-document",
-                                      link.destination()
-                                          .document()
-                                          .value_or(output_name::from_name(""))
-                                          .name()),
-                       std::make_pair("destination-id", link.destination().id().as_str()));
-        write_children(tag, link);
+        if (link.destination())
+        {
+            auto tag = s.open_tag(stream::inline_tag, "internal-link",
+                                  std::make_pair("title", link.title()),
+                                  std::make_pair("destination-document",
+                                                 link.destination()
+                                                     .value()
+                                                     .document()
+                                                     .value_or(output_name::from_name(""))
+                                                     .name()),
+                                  std::make_pair("destination-id",
+                                                 link.destination().value().id().as_str()));
+            write_children(tag, link);
+        }
+        else
+        {
+            auto tag = s.open_tag(stream::inline_tag, "internal-link",
+                                  std::make_pair("title", link.title()),
+                                  std::make_pair("unresolved-destination-id",
+                                                 link.unresolved_destination().value()));
+            write_children(tag, link);
+        }
     }
 
     void write_entity(stream& s, const entity& e)
@@ -446,6 +472,8 @@ namespace
             STANDARDESE_DETAIL_HANDLE(emphasis)
             STANDARDESE_DETAIL_HANDLE(strong_emphasis)
             STANDARDESE_DETAIL_HANDLE(code)
+            STANDARDESE_DETAIL_HANDLE(soft_break)
+            STANDARDESE_DETAIL_HANDLE(hard_break)
 
             STANDARDESE_DETAIL_HANDLE(external_link)
             STANDARDESE_DETAIL_HANDLE(internal_link)

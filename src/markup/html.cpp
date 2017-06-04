@@ -306,8 +306,8 @@ namespace
                 h4.close();
 
                 // list
-                auto ul = s.open_tag(true, true, "ul", list.list().id(), "list-section");
-                for (auto& item : list.list())
+                auto ul = s.open_tag(true, true, "ul", list.id(), "list-section");
+                for (auto& item : list)
                     write_list_item(ul, item);
             }
     }
@@ -525,6 +525,16 @@ namespace
         write_children(code, c);
     }
 
+    void write(stream& s, const soft_break&)
+    {
+        s.write("\n");
+    }
+
+    void write(stream& s, const hard_break&)
+    {
+        s.write_html("<br/>\n");
+    }
+
     void write(stream& s, const external_link& link)
     {
         auto a = s.open_link(link.title().c_str(), link.url().c_str());
@@ -533,8 +543,18 @@ namespace
 
     void write(stream& s, const internal_link& link)
     {
-        auto url = link.destination().document().map(&output_name::file_name, "html").value_or("");
-        url += "#standardese-" + link.destination().id().as_str();
+        std::string url;
+        if (link.destination())
+        {
+            url = link.destination()
+                      .value()
+                      .document()
+                      .map(&output_name::file_name, "html")
+                      .value_or("");
+            url += "#standardese-" + link.destination().value().id().as_str();
+        }
+        else
+            url = "standardese://" + link.unresolved_destination().value() + "/";
 
         auto a = s.open_link(link.title().c_str(), url.c_str());
         write_children(a, link);
@@ -584,6 +604,8 @@ namespace
             STANDARDESE_DETAIL_HANDLE(emphasis)
             STANDARDESE_DETAIL_HANDLE(strong_emphasis)
             STANDARDESE_DETAIL_HANDLE(code)
+            STANDARDESE_DETAIL_HANDLE(soft_break)
+            STANDARDESE_DETAIL_HANDLE(hard_break)
 
             STANDARDESE_DETAIL_HANDLE(external_link)
             STANDARDESE_DETAIL_HANDLE(internal_link)
