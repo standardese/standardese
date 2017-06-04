@@ -37,6 +37,14 @@ namespace standardese
             // returns the key if it is a key-value section
             // or nullptr, if it isn't
             const char* get_section_key(cmark_node* node);
+
+            cmark_node_type node_inline();
+
+            // returns the inline type
+            inline_type get_inline_type(cmark_node* node);
+
+            // returns the inline entity name
+            const char* get_inline_entity(cmark_node* node);
         } // namespace detail
     }
 } // namespace standardese::comment

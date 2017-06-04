@@ -30,6 +30,14 @@ namespace standardese
 
             entity,
             file,
+
+            count,
+        };
+
+        enum class inline_type : unsigned
+        {
+            invalid = unsigned(command_type::count),
+
             param,
             tparam,
             base,
@@ -37,7 +45,8 @@ namespace standardese
             count,
         };
 
-        static_assert(unsigned(section_type::invalid) == unsigned(command_type::invalid), "");
+        static_assert(unsigned(section_type::count) == unsigned(command_type::invalid), "");
+        static_assert(unsigned(command_type::count) == unsigned(inline_type::invalid), "");
 
         /// \returns Whether or not the given number corresponds to a section.
         inline constexpr bool is_section(unsigned c)
@@ -65,6 +74,20 @@ namespace standardese
         {
             assert(is_command(c));
             return command_type(c);
+        }
+
+        /// \returns Whether or not the given number corresponds to an inline.
+        inline constexpr bool is_inline(unsigned c)
+        {
+            return c > unsigned(command_type::count) && c < unsigned(inline_type::count);
+        }
+
+        /// \returns The inline corresponding to the given number.
+        /// \requires `is_inline(c)`.
+        inline inline_type make_inline(unsigned c)
+        {
+            assert(is_inline(c));
+            return inline_type(c);
         }
     }
 } // namespace standardese::comment

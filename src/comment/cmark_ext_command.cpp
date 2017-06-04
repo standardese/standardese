@@ -68,13 +68,18 @@ namespace
 
     bool accept_commands(cmark_node* parent_container)
     {
-        if (cmark_node_get_type(parent_container) == node_section()
-            || cmark_node_get_type(parent_container) == node_command())
-            // don't allow commands in commands
+        if (cmark_node_get_type(parent_container) == CMARK_NODE_DOCUMENT)
+            return true;
+        else if (cmark_node_get_type(parent_container) == CMARK_NODE_PARAGRAPH)
+        {
+            // allow paragraphs if parent is either:
+            // * document (happens when command on second line in paragraph)
+            // * inline (happens when command in inline)
+            auto parent_parent_type = cmark_node_get_type(cmark_node_parent(parent_container));
+            return parent_parent_type == CMARK_NODE_DOCUMENT || parent_parent_type == node_inline();
+        }
+        else
             return false;
-        // allow at most one parent for a command
-        return cmark_node_get_type(parent_container) == CMARK_NODE_DOCUMENT
-               || cmark_node_get_type(cmark_node_parent(parent_container)) == CMARK_NODE_DOCUMENT;
     }
 
     void set_node(cmark_syntax_extension* self, cmark_node* node, unsigned command, const char* str)
@@ -155,20 +160,114 @@ namespace
             return create_node(self, indent, parser, parent_container, node_command(), command,
                                cur); // store remainder of line as arguments
         }
+        else if (is_inline(command))
+        {
+            auto entity = parse_word(cur);
+            auto node = create_node(self, indent, parser, parent_container, node_inline(), command,
+                                    entity.c_str());
+
+            // skip command
+            cmark_parser_advance_offset(parser, reinterpret_cast<char*>(input),
+                                        int(cur - reinterpret_cast<char*>(input)), 0);
+
+            return node;
+        }
         else
             return nullptr;
     }
 
-    // terminates a section on a terminator
+    int last_block_matches(cmark_syntax_extension* self, cmark_parser*, unsigned char* input, int,
+                           cmark_node* container)
+    {
+        if (cmark_node_get_type(container) != node_inline())
+            // only inlines can grow
+            return false;
+
+        const auto& config =
+            *static_cast<standardese::comment::config*>(cmark_syntax_extension_get_private(self));
+        if (*input == config.command_character())
+            // allow commands, if it happens to be another section/inline,
+            // the contain function won't accept it and it will be closed
+            return true;
+        // accept anything else only if empty or last node was command
+        // this allows paragraph after commands
+        // if node won't become a paragraph, contain won't accept it
+        return !cmark_node_last_child(container)
+               || cmark_node_get_type(cmark_node_last_child(container)) == node_command();
+    }
+
+    // moves all commands and inlines to the back
+    void sort_special_nodes(cmark_node* root)
+    {
+        cmark_node* first_command = nullptr;
+        cmark_node* first_inline  = nullptr;
+        for (auto cur = cmark_node_first_child(root); cur != first_command && cur != first_inline;)
+        {
+            if (cmark_node_get_type(cur) == node_command())
+            {
+                auto next = cmark_node_next(cur);
+                cmark_node_unlink(cur);
+                if (first_command)
+                    // insert after first command
+                    // relative order of command doesn't matter
+                    cmark_node_insert_after(first_command, cur);
+                else if (first_inline)
+                {
+                    // first command, but already got an inline
+                    // insert before the inline
+                    cmark_node_insert_before(first_inline, cur);
+                    first_command = cur;
+                }
+                else
+                {
+                    // neither command nor inline before,
+                    // so just append at the back
+                    cmark_node_append_child(root, cur);
+                    first_command = cur;
+                }
+                cur = next;
+            }
+            else if (cmark_node_get_type(cur) == node_inline())
+            {
+                auto next = cmark_node_next(cur);
+                cmark_node_unlink(cur);
+
+                cmark_node_append_child(root, cur);
+                if (!first_inline)
+                    first_inline = cur;
+
+                cur = next;
+            }
+            else
+                cur = cmark_node_next(cur);
+        }
+    }
+
+    cmark_node* prev_details(cmark_node* cur)
+    {
+        auto details = cmark_node_previous(cur);
+        return details && cmark_node_get_type(details) == node_section()
+                       && detail::get_section_type(details) == section_type::details ?
+                   details :
+                   nullptr;
+    }
+
+    // terminates a section or inline on a terminator
     void terminate_section(cmark_syntax_extension* self, cmark_node* section,
                            cmark_node* terminator)
     {
-        assert(cmark_node_get_type(section) == node_section());
+        assert(cmark_node_get_type(section) == node_section()
+               || cmark_node_get_type(section) == node_inline());
 
         // remainder of paragraph is considered details
-        auto detail_node =
-            create_node(self, node_section(), unsigned(section_type::details), nullptr);
-        cmark_node_insert_after(section, detail_node);
+        auto detail_node = prev_details(section);
+        if (!detail_node)
+        {
+            detail_node =
+                create_node(self, node_section(), unsigned(section_type::details), nullptr);
+            cmark_node_insert_after(section, detail_node);
+        }
+
         auto paragraph = cmark_node_new(CMARK_NODE_PARAGRAPH);
         cmark_node_append_child(detail_node, paragraph);
 
@@ -197,19 +296,6 @@ namespace
         return nullptr;
     }
 
-    cmark_node* prev_details(cmark_node* cur)
-    {
-        // loop back, skipping over commands in the process
-        auto details = cmark_node_previous(cur);
-        while (details && cmark_node_get_type(details) == node_command())
-            details = cmark_node_previous(details);
-
-        return details && cmark_node_get_type(details) == node_section()
-                       && detail::get_section_type(details) == section_type::details ?
-                   details :
-                   nullptr;
-    }
-
     cmark_node* wrap_in_details(cmark_syntax_extension* self, cmark_node* cur)
     {
         auto details = prev_details(cur);
@@ -224,10 +310,11 @@ namespace
         return details;
     }
 
-    // finds a line break in a section
+    // finds a line break in a section/inline
     cmark_node* find_linebreak(cmark_node* section)
     {
-        assert(cmark_node_get_type(section) == node_section());
+        assert(cmark_node_get_type(section) == node_section()
+               || cmark_node_get_type(section) == node_inline());
         auto paragraph = cmark_node_first_child(section);
         assert(!paragraph || cmark_node_get_type(paragraph) == CMARK_NODE_PARAGRAPH);
         if (!paragraph)
@@ -243,6 +330,8 @@ namespace
     cmark_node* create_implicit_brief_details(cmark_syntax_extension* self, cmark_parser*,
                                               cmark_node*             root)
     {
+        sort_special_nodes(root);
+
         type_safe::flag need_brief(true);
         for (auto cur = cmark_node_first_child(root); cur; cur = cmark_node_next(cur))
         {
@@ -272,6 +361,10 @@ namespace
                 if (auto linebreak = find_linebreak(cur))
                     terminate_section(self, cur, linebreak);
             }
+            else if (cmark_node_get_type(cur) == node_inline())
+            {
+                create_implicit_brief_details(self, nullptr, cur);
+            }
             else if (cmark_node_get_type(cur) != node_section()
                      && cmark_node_get_type(cur) != node_command())
             {
@@ -295,6 +388,8 @@ cmark_syntax_extension* standardese::comment::detail::create_command_extension(c
             return "standardese_command";
         else if (cmark_node_get_type(node) == node_section())
             return "standardese_section";
+        else if (cmark_node_get_type(node) == node_inline())
+            return "standardese_inline";
         else
             return "<unknown>";
     });
@@ -311,10 +406,18 @@ cmark_syntax_extension* standardese::comment::detail::create_command_extension(c
                 // can only contain paragraphs
                 return child_type == CMARK_NODE_PARAGRAPH;
         }
+        else if (cmark_node_get_type(node) == node_inline())
+            // can contain paragraphs, sections or commands
+            // first it will only contain paragraphs or commands,
+            // but postprocessing will add brief and details sections,
+            // so it won't contain paragraphs anymore
+            return child_type == CMARK_NODE_PARAGRAPH || child_type == node_section()
+                   || child_type == node_command();
         else
             return false;
     });
     cmark_syntax_extension_set_open_block_func(ext, &try_open_block);
+    cmark_syntax_extension_set_match_block_func(ext, &last_block_matches);
     cmark_syntax_extension_set_postprocess_func(ext, &create_implicit_brief_details);
 
     cmark_syntax_extension_set_private(ext, &c, [](cmark_mem*, void*) {});
@@ -357,4 +460,22 @@ const char* standardese::comment::detail::get_section_key(cmark_node* node)
     assert(cmark_node_get_type(node) == node_section());
     auto content = cmark_node_get_string_content(node);
     return *content == '\0' ? nullptr : content;
+}
+
+cmark_node_type standardese::comment::detail::node_inline()
+{
+    static const auto type = cmark_syntax_extension_add_node(0);
+    return type;
+}
+
+inline_type standardese::comment::detail::get_inline_type(cmark_node* node)
+{
+    assert(cmark_node_get_type(node) == node_inline());
+    return make_inline(get_raw_command_type(node));
+}
+
+const char* standardese::comment::detail::get_inline_entity(cmark_node* node)
+{
+    assert(cmark_node_get_type(node) == node_inline());
+    return cmark_node_get_string_content(node);
 }

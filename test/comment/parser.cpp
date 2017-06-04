@@ -440,89 +440,201 @@ It requires extra long description.</description>
     REQUIRE(result == xml);
 }
 
-translated_ast parse(const char* comment)
+metadata parse_metadata(const char* comment)
 {
     parser p;
-    return translate_ast(p, read_ast(p, comment));
+    return translate_ast(p, read_ast(p, comment)).metadata();
 }
 
 TEST_CASE("commands", "[comment]")
 {
     SECTION("exclude")
     {
-        REQUIRE(parse("foo\nbar").exclude() == type_safe::nullopt);
-        REQUIRE(parse(R"(\exclude)").exclude() == exclude_mode::entity);
-        REQUIRE(parse(R"(\exclude target)").exclude() == exclude_mode::target);
-        REQUIRE(parse(R"(\exclude return)").exclude() == exclude_mode::return_type);
-        REQUIRE_THROWS_AS(parse(R"(\exclude foo)"), translation_error);
-        REQUIRE_THROWS_AS(parse("\\exclude\n\\exclude"), translation_error);
+        REQUIRE(parse_metadata("foo\nbar").exclude() == type_safe::nullopt);
+        REQUIRE(parse_metadata(R"(\exclude)").exclude() == exclude_mode::entity);
+        REQUIRE(parse_metadata(R"(\exclude target)").exclude() == exclude_mode::target);
+        REQUIRE(parse_metadata(R"(\exclude return)").exclude() == exclude_mode::return_type);
+        REQUIRE_THROWS_AS(parse_metadata(R"(\exclude foo)"), translation_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\exclude\n\\exclude"), translation_error);
     }
     SECTION("unique_name")
     {
-        REQUIRE(parse("foo\nbar").unique_name() == type_safe::nullopt);
-        REQUIRE(parse(R"(\unique_name new)").unique_name() == "new");
-        REQUIRE_THROWS_AS(parse(R"(\unique_name a b c)"), translation_error);
-        REQUIRE_THROWS_AS(parse("\\unique_name a\n\\unique_name b"), translation_error);
+        REQUIRE(parse_metadata("foo\nbar").unique_name() == type_safe::nullopt);
+        REQUIRE(parse_metadata(R"(\unique_name new)").unique_name() == "new");
+        REQUIRE_THROWS_AS(parse_metadata(R"(\unique_name a b c)"), translation_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\unique_name a\n\\unique_name b"), translation_error);
     }
     SECTION("synopsis")
     {
-        REQUIRE(parse("foo\nbar").synopsis() == type_safe::nullopt);
-        REQUIRE(parse(R"(\synopsis new)").synopsis() == "new");
-        REQUIRE(parse(R"(\synopsis a b c)").synopsis() == "a b c");
-        REQUIRE_THROWS_AS(parse("\\synopsis a\n\\synopsis b"), translation_error);
+        REQUIRE(parse_metadata("foo\nbar").synopsis() == type_safe::nullopt);
+        REQUIRE(parse_metadata(R"(\synopsis new)").synopsis() == "new");
+        REQUIRE(parse_metadata(R"(\synopsis a b c)").synopsis() == "a b c");
+        REQUIRE_THROWS_AS(parse_metadata("\\synopsis a\n\\synopsis b"), translation_error);
     }
     SECTION("group")
     {
-        REQUIRE(parse("foo\nbar").group() == type_safe::nullopt);
-        REQUIRE_THROWS_AS(parse(R"(\group)"), translation_error);
-        REQUIRE_THROWS_AS(parse("\\group a\n\\group b"), translation_error);
+        REQUIRE(parse_metadata("foo\nbar").group() == type_safe::nullopt);
+        REQUIRE_THROWS_AS(parse_metadata(R"(\group)"), translation_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\group a\n\\group b"), translation_error);
 
-        auto a = parse(R"(\group a)").group().value();
+        auto a = parse_metadata(R"(\group a)").group().value();
         REQUIRE(a.name() == "a");
         REQUIRE(!a.heading());
         REQUIRE(a.output_section().value() == "a");
 
-        auto b = parse(R"(\group -b)").group().value();
+        auto b = parse_metadata(R"(\group -b)").group().value();
         REQUIRE(b.name() == "b");
         REQUIRE(!b.heading());
         REQUIRE(!b.output_section());
 
-        auto c = parse(R"(\group c a heading)").group().value();
+        auto c = parse_metadata(R"(\group c a heading)").group().value();
         REQUIRE(c.name() == "c");
         REQUIRE(c.heading() == "a heading");
         REQUIRE(c.output_section().value() == "c");
     }
     SECTION("module")
     {
-        REQUIRE(parse("foo\nbar").module() == type_safe::nullopt);
-        REQUIRE(parse(R"(\module new)").module() == "new");
-        REQUIRE_THROWS_AS(parse(R"(\module a b c)"), translation_error);
-        REQUIRE_THROWS_AS(parse("\\module a\n\\module b"), translation_error);
+        REQUIRE(parse_metadata("foo\nbar").module() == type_safe::nullopt);
+        REQUIRE(parse_metadata(R"(\module new)").module() == "new");
+        REQUIRE_THROWS_AS(parse_metadata(R"(\module a b c)"), translation_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\module a\n\\module b"), translation_error);
     }
     SECTION("output_section")
     {
-        REQUIRE(parse("foo\nbar").output_section() == type_safe::nullopt);
-        REQUIRE(parse(R"(\output_section new)").output_section() == "new");
-        REQUIRE(parse(R"(\output_section a b c)").output_section() == "a b c");
-        REQUIRE_THROWS_AS(parse("\\output_section a\n\\output_section b"), translation_error);
+        REQUIRE(parse_metadata("foo\nbar").output_section() == type_safe::nullopt);
+        REQUIRE(parse_metadata(R"(\output_section new)").output_section() == "new");
+        REQUIRE(parse_metadata(R"(\output_section a b c)").output_section() == "a b c");
+        REQUIRE_THROWS_AS(parse_metadata("\\output_section a\n\\output_section b"),
+                          translation_error);
     }
     SECTION("entity")
     {
-        REQUIRE(parse("foo\nbar").entity() == type_safe::nullvar);
-        REQUIRE(!parse("foo\nbar").is_remote());
+        REQUIRE(parse_metadata("foo\nbar").entity() == type_safe::nullvar);
+        REQUIRE(!parse_metadata("foo\nbar").is_remote());
 
-        REQUIRE(parse(R"(\entity new)")
+        REQUIRE(parse_metadata(R"(\entity new)")
                     .entity()
                     .value(type_safe::variant_type<remote_entity>{})
                     .unique_name
                 == "new");
-        REQUIRE_THROWS_AS(parse(R"(\entity a b c)"), translation_error);
-        REQUIRE_THROWS_AS(parse("\\entity a\n\\entity b"), translation_error);
-        REQUIRE_THROWS_AS(parse("\\entity a\n\\file"), translation_error);
+        REQUIRE_THROWS_AS(parse_metadata(R"(\entity a b c)"), translation_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\entity a\n\\entity b"), translation_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\entity a\n\\file"), translation_error);
     }
     SECTION("file")
     {
-        REQUIRE(parse(R"(\file)").entity().has_value(type_safe::variant_type<current_file>{}));
-        REQUIRE_THROWS_AS(parse(R"(\file a)"), translation_error);
+        REQUIRE(
+            parse_metadata(R"(\file)").entity().has_value(type_safe::variant_type<current_file>{}));
+        REQUIRE_THROWS_AS(parse_metadata(R"(\file a)"), translation_error);
+    }
+}
+
+matching_entity parse_entity(const char* comment)
+{
+    parser p;
+    auto   ast     = translate_ast(p, read_ast(p, comment));
+    auto&  inlines = ast.inlines();
+    REQUIRE(inlines.size() == 1u);
+    return inlines[0u].metadata().entity();
+}
+
+TEST_CASE("inlines", "[comment]")
+{
+    SECTION("parsing")
+    {
+        auto comment = R"(Brief.
+
+Details.
+
+\param foo Param documentation.
+Still param.
+\param bar New param.
+Still param.
+
+Still details.
+
+\base bar Base.
+
+Details again.
+)";
+
+        auto xml = R"(<details-section>
+<paragraph>Details.</paragraph>
+<paragraph>Still details.</paragraph>
+<paragraph>Details again.</paragraph>
+</details-section>
+)";
+
+        check_details(comment, xml);
+    }
+    SECTION("missing arguments")
+    {
+        REQUIRE_THROWS_AS(parse_entity(R"(\param)"), translation_error);
+        REQUIRE_THROWS_AS(parse_entity(R"(\tparam)"), translation_error);
+        REQUIRE_THROWS_AS(parse_entity(R"(\base)"), translation_error);
+    }
+    SECTION("matching entity")
+    {
+        REQUIRE(
+            parse_entity(R"(\param foo)").value(type_safe::variant_type<inline_param>{}).unique_name
+            == "foo");
+        REQUIRE(parse_entity(R"(\tparam foo)")
+                    .value(type_safe::variant_type<inline_tparam>{})
+                    .unique_name
+                == "foo");
+        REQUIRE(
+            parse_entity(R"(\base foo)").value(type_safe::variant_type<inline_base>{}).unique_name
+            == "foo");
+    }
+    SECTION("content")
+    {
+        // just use param in all examples, doesn't matter
+        auto comment = R"(\param a This is brief.
+This is details.
+This is still details.
+
+This is unrelated.
+
+\param b This is just brief.
+
+This is unrelated.
+
+\param c This is brief.
+This is details.
+\exclude
+This is details.
+)";
+
+        parser p;
+        auto   ast     = translate_ast(p, read_ast(p, comment));
+        auto&  inlines = ast.inlines();
+        REQUIRE(inlines.size() == 3u);
+
+        auto xml_a = R"(<brief-section>This is brief.</brief-section>
+<details-section>
+<paragraph>This is details.<soft-break></soft-break>
+This is still details.</paragraph>
+</details-section>
+)";
+        REQUIRE(markup::as_xml(inlines[0].brief_section())
+                    + markup::as_xml(inlines[0].details_section().value())
+                == xml_a);
+
+        auto xml_b = R"(<brief-section>This is just brief.</brief-section>
+)";
+        REQUIRE(!inlines[1].details_section());
+        REQUIRE(markup::as_xml(inlines[1].brief_section()) == xml_b);
+
+        auto xml_c = R"(<brief-section>This is brief.</brief-section>
+<details-section>
+<paragraph>This is details.</paragraph>
+<paragraph>This is details.</paragraph>
+</details-section>
+)";
+
+        REQUIRE(inlines[2].metadata().exclude());
+        REQUIRE(markup::as_xml(inlines[2].brief_section())
+                    + markup::as_xml(inlines[2].details_section().value())
+                == xml_c);
     }
 }

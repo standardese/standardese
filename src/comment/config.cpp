@@ -27,12 +27,6 @@ const char* config::default_command_name(command_type cmd) noexcept
         return "entity";
     case command_type::file:
         return "file";
-    case command_type::param:
-        return "param";
-    case command_type::tparam:
-        return "tparam";
-    case command_type::base:
-        return "base";
 
     case command_type::invalid:
     case command_type::count:
@@ -83,6 +77,25 @@ const char* config::default_command_name(section_type cmd) noexcept
     return "invalid section type";
 }
 
+const char* config::default_command_name(inline_type cmd) noexcept
+{
+    switch (cmd)
+    {
+    case inline_type::param:
+        return "param";
+    case inline_type::tparam:
+        return "tparam";
+    case inline_type::base:
+        return "base";
+
+    case inline_type::invalid:
+    case inline_type::count:
+        break;
+    }
+    assert(false);
+    return "invalid inline type";
+}
+
 config::config(char command_character) : command_character_(command_character)
 {
     for (auto i           = 0u; i != unsigned(section_type::count); ++i)
@@ -90,6 +103,9 @@ config::config(char command_character) : command_character_(command_character)
 
     for (auto i = unsigned(section_type::count) + 1u; i != unsigned(command_type::count); ++i)
         command_names_[i] = default_command_name(make_command(i));
+
+    for (auto i = unsigned(command_type::count) + 1u; i != unsigned(inline_type::count); ++i)
+        command_names_[i] = default_command_name(make_inline(i));
 }
 
 void config::set_command_name(command_type cmd, std::string name)
@@ -102,12 +118,22 @@ void config::set_command_name(section_type cmd, std::string name)
     command_names_[unsigned(cmd)] = std::move(name);
 }
 
+void config::set_command_name(inline_type cmd, std::string name)
+{
+    command_names_[unsigned(cmd)] = std::move(name);
+}
+
 const char* config::command_name(command_type cmd) const noexcept
 {
     return command_names_[unsigned(cmd)].c_str();
 }
 
 const char* config::command_name(section_type cmd) const noexcept
+{
+    return command_names_[unsigned(cmd)].c_str();
+}
+
+const char* config::command_name(inline_type cmd) const noexcept
 {
     return command_names_[unsigned(cmd)].c_str();
 }

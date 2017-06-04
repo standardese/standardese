@@ -14,7 +14,7 @@
 #include <standardese/markup/doc_section.hpp>
 
 #include <standardese/comment/config.hpp>
-#include <standardese/markup/entity_kind.hpp>
+#include <standardese/comment/metadata.hpp>
 
 extern "C" {
 typedef struct cmark_node   cmark_node;
@@ -100,81 +100,48 @@ namespace standardese
         /// \returns The root node of the AST.
         ast_root read_ast(const parser& p, const std::string& comment);
 
-        /// The exclude mode of an entity.
-        enum class exclude_mode
-        {
-            entity,      //< The entire entity is excluded.
-            return_type, //< The return type of a function is excluded.
-            target       //< The target of an alias is excluded.
-        };
-
-        /// The group of an entity.
-        class member_group
+        /// An inline comment.
+        class inline_comment
         {
         public:
-            /// \effects Creates a group given the name,
-            /// optional heading and whether or not the name is also an output section.
-            member_group(std::string name, type_safe::optional<std::string> heading,
-                         bool is_section)
-            : heading_(std::move(heading)), name_(std::move(name)), is_section_(is_section)
+            /// \effects Creates it giving it the metadata and brief and details section.
+            /// \requires `data.is_inline()`.
+            inline_comment(comment::metadata data, std::unique_ptr<markup::brief_section> brief,
+                           std::unique_ptr<markup::details_section> details)
+            : data_(std::move(data)), brief_(std::move(brief)), details_(std::move(details))
             {
             }
 
-            /// \returns The name of the group.
-            const std::string& name() const noexcept
+            /// \effects Creates it giving it the metadata and brief section.
+            /// \requires `data.is_inline()`.
+            inline_comment(comment::metadata data, std::unique_ptr<markup::brief_section> brief)
+            : inline_comment(std::move(data), std::move(brief), nullptr)
             {
-                return name_;
             }
 
-            /// \returns The heading of the group, if there is one.
-            const type_safe::optional<std::string>& heading() const noexcept
+            /// \returns The metadata.
+            const comment::metadata& metadata() const noexcept
             {
-                return heading_;
+                return data_;
             }
 
-            /// \returns The output section of the group, if there is one.
-            type_safe::optional_ref<const std::string> output_section() const noexcept
+            /// \returns The brief section.
+            const markup::brief_section& brief_section() const noexcept
             {
-                return is_section_ ? type_safe::optional_ref<const std::string>(name_) :
-                                     type_safe::nullopt;
+                return *brief_;
+            }
+
+            /// \returns The details section, if there is one.
+            type_safe::optional_ref<const markup::details_section> details_section() const noexcept
+            {
+                return type_safe::opt_ref(details_.get());
             }
 
         private:
-            type_safe::optional<std::string> heading_;
-            std::string                      name_;
-            bool                             is_section_;
+            comment::metadata                        data_;
+            std::unique_ptr<markup::brief_section>   brief_;
+            std::unique_ptr<markup::details_section> details_;
         };
-
-        inline bool operator==(const member_group& a, const member_group& b)
-        {
-            return a.name() == b.name();
-        }
-
-        inline bool operator!=(const member_group& a, const member_group& b)
-        {
-            return !(a == b);
-        }
-
-        //// Tag type to indicate that a comment belongs to the current file.
-        struct current_file
-        {
-        };
-
-        /// Tag type to indicate that a comment belongs to the entity of the given name.
-        struct remote_entity
-        {
-            std::string unique_name;
-
-            explicit remote_entity(std::string name) : unique_name(std::move(name))
-            {
-            }
-        };
-
-        /// The entity a comment belongs to.
-        ///
-        /// If it belongs to the matched entity, it is empty.
-        using matching_entity =
-            type_safe::variant<type_safe::nullvar_t, current_file, remote_entity>;
 
         /// The translated CommonMark AST.
         ///
@@ -213,19 +180,6 @@ namespace standardese
         public:
             class builder;
 
-            /// \returns The entity it belongs to.
-            const matching_entity& entity() const noexcept
-            {
-                return entity_;
-            }
-
-            /// \returns Whether or not this is a remote comment,
-            /// i.e. corresponds to a different entity.
-            bool is_remote() const noexcept
-            {
-                return entity_.has_value();
-            }
-
             /// \returns A range-like object to the non-brief documentation sections.
             section_range sections() const noexcept
             {
@@ -238,54 +192,26 @@ namespace standardese
                 return type_safe::opt_ref(brief_.get());
             }
 
-            /// \returns The exclude mode of the entity, if there is one.
-            const type_safe::optional<exclude_mode>& exclude() const noexcept
+            /// \returns The metadata of the comment.
+            const comment::metadata& metadata() const noexcept
             {
-                return exclude_;
+                return data_;
             }
 
-            /// \returns The unique name override, if there is one.
-            const type_safe::optional<std::string>& unique_name() const noexcept
+            /// \returns A range-like object to the inline comments of the entity.
+            /// \exclude return
+            const std::vector<inline_comment>& inlines() const noexcept
             {
-                return unique_name_;
-            }
-
-            /// \returns The synopsis override, if there is one.
-            const type_safe::optional<std::string>& synopsis() const noexcept
-            {
-                return synopsis_;
-            }
-
-            /// \returns The group, if it is in one.
-            const type_safe::optional<member_group>& group() const noexcept
-            {
-                return group_;
-            }
-
-            /// \returns The name of the module, if there is one.
-            const type_safe::optional<std::string>& module() const noexcept
-            {
-                return module_;
-            }
-
-            /// \returns The output section, if there is one.
-            const type_safe::optional<std::string>& output_section() const noexcept
-            {
-                return section_;
+                return inlines_;
             }
 
         private:
             translated_ast() = default;
 
-            matching_entity entity_;
-
-            type_safe::optional<member_group> group_;
-            type_safe::optional<std::string>  unique_name_, synopsis_, module_, section_;
-
+            comment::metadata                                 data_;
             std::vector<std::unique_ptr<markup::doc_section>> sections_;
+            std::vector<inline_comment>                       inlines_;
             std::unique_ptr<markup::brief_section>            brief_;
-
-            type_safe::optional<exclude_mode> exclude_;
         };
 
         class translated_ast::builder
@@ -293,29 +219,17 @@ namespace standardese
         public:
             builder() = default;
 
-            /// \effects Sets the corresponding entity to the current file.
-            /// \returns Whether or not it had no corresponding entity before.
-            bool entity(current_file)
-            {
-                auto set        = bool(result_.entity_);
-                result_.entity_ = current_file{};
-                return !set;
-            }
-
-            /// \effects Sets the corresponding entity to the one of given unique name.
-            /// \returns Whether or not it had no corresponding entity before.
-            bool entity(remote_entity entity)
-            {
-                auto set        = bool(result_.entity_);
-                result_.entity_ = std::move(entity);
-                return !set;
-            }
-
             /// \effects Adds a documentation section.
             /// \requires It must not be a brief section.
             void add_section(std::unique_ptr<markup::doc_section> sec)
             {
                 result_.sections_.push_back(std::move(sec));
+            }
+
+            /// \effects Adds an inline comment.
+            void add_inline(inline_comment c)
+            {
+                result_.inlines_.push_back(std::move(c));
             }
 
             /// \effects Sets the brief section.
@@ -327,58 +241,10 @@ namespace standardese
                 return !set;
             }
 
-            /// \effects Sets the exclude mode.
-            /// \returns Whether or not it was called the first time.
-            bool exclude(exclude_mode mode)
+            /// \returns A reference to the metadata.
+            comment::metadata& metadata()
             {
-                auto set         = bool(result_.exclude_);
-                result_.exclude_ = mode;
-                return !set;
-            }
-
-            /// \effects Sets the unique name override.
-            /// \returns Whether or not it was called the first time.
-            bool unique_name(std::string name)
-            {
-                auto set             = bool(result_.unique_name_);
-                result_.unique_name_ = std::move(name);
-                return !set;
-            }
-
-            /// \effects Sets the synopsis override.
-            /// \returns Whether or not it was called the first time.
-            bool synopsis(std::string name)
-            {
-                auto set          = bool(result_.synopsis_);
-                result_.synopsis_ = std::move(name);
-                return !set;
-            }
-
-            /// \effects Sets the group.
-            /// \returns Whether or not it was called the first time.
-            bool group(member_group g)
-            {
-                auto set       = bool(result_.group_);
-                result_.group_ = std::move(g);
-                return !set;
-            }
-
-            /// \effects Sets the name of the module.
-            /// \returns Whether or not it was called the first time.
-            bool module(std::string module)
-            {
-                auto set        = bool(result_.module_);
-                result_.module_ = std::move(module);
-                return !set;
-            }
-
-            /// \effects Sets the output section.
-            /// \returns Whether or not it was called the first time.
-            bool output_section(std::string section)
-            {
-                auto set         = bool(result_.section_);
-                result_.section_ = std::move(section);
-                return !set;
+                return result_.data_;
             }
 
             /// \returns The finished AST.

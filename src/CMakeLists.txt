@@ -14,6 +14,7 @@ set(detail_header
 set(comment_header
     ../include/standardese/comment/commands.hpp
     ../include/standardese/comment/config.hpp
+    ../include/standardese/comment/metadata.hpp
     ../include/standardese/comment/parser.hpp)
 set(markup_header
     ../include/standardese/markup/block.hpp

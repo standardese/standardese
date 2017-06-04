@@ -318,25 +318,32 @@ namespace
         return markup::list_section::build(type, "", builder.finish()); // TODO
     }
 
+    std::unique_ptr<markup::brief_section> parse_brief(cmark_node* node)
+    {
+        assert(cmark_node_get_type(cmark_node_first_child(node)) == CMARK_NODE_PARAGRAPH);
+
+        markup::brief_section::builder builder;
+        add_children(builder, cmark_node_first_child(node));
+        return builder.finish();
+    }
+
+    std::unique_ptr<markup::details_section> parse_details(cmark_node* node)
+    {
+        markup::details_section::builder builder;
+        add_children(builder, node);
+        return builder.finish();
+    }
+
     std::unique_ptr<markup::doc_section> parse_section(cmark_node*& node)
     {
         assert(cmark_node_get_type(node) == detail::node_section());
         switch (detail::get_section_type(node))
         {
         case section_type::brief:
-        {
-            assert(cmark_node_get_type(cmark_node_first_child(node)) == CMARK_NODE_PARAGRAPH);
+            return parse_brief(node);
 
-            markup::brief_section::builder builder;
-            add_children(builder, cmark_node_first_child(node));
-            return builder.finish();
-        }
         case section_type::details:
-        {
-            markup::details_section::builder builder;
-            add_children(builder, node);
-            return builder.finish();
-        }
+            return parse_details(node);
 
         case section_type::requires:
         case section_type::effects:
@@ -470,55 +477,48 @@ namespace
             return member_group(std::move(name), std::move(heading), true);
     }
 
-    void parse_command(translated_ast::builder& ast, cmark_node* node)
+    void parse_command(metadata& data, cmark_node* node)
     {
         assert(cmark_node_get_type(node) == detail::node_command());
         auto command = detail::get_command_type(node);
         switch (command)
         {
         case command_type::exclude:
-            if (!ast.exclude(parse_exclude_mode(node)))
+            if (!data.set_exclude(parse_exclude_mode(node)))
                 error(node, "multiple exclude commands for entity");
             break;
 
         case command_type::unique_name:
-            if (!ast.unique_name(get_single_arg(node, "unique name")))
+            if (!data.set_unique_name(get_single_arg(node, "unique name")))
                 error(node, "multiple unique name commands for entity");
             break;
         case command_type::synopsis:
-            if (!ast.synopsis(detail::get_command_arguments(node)))
+            if (!data.set_synopsis(detail::get_command_arguments(node)))
                 error(node, "multiple synopsis commands for entity");
             break;
 
         case command_type::group:
-            if (!ast.group(parse_group(node)))
+            if (!data.set_group(parse_group(node)))
                 error(node, "multiple group commands for entity");
             break;
         case command_type::module:
-            if (!ast.module(get_single_arg(node, "module")))
+            if (!data.set_module(get_single_arg(node, "module")))
                 error(node, "multiple module commands for entity");
             break;
         case command_type::output_section:
-            if (!ast.output_section(detail::get_command_arguments(node)))
+            if (!data.set_output_section(detail::get_command_arguments(node)))
                 error(node, "multiple output section commands for entity");
             break;
 
         case command_type::entity:
-            if (!ast.entity(remote_entity(get_single_arg(node, "entity"))))
+            if (!data.set_entity(remote_entity(get_single_arg(node, "entity"))))
                 error(node, "multiple file/entity commands for entity");
             break;
         case command_type::file:
             if (*detail::get_command_arguments(node))
                 error(node, "arguments given to file command but none required");
-            if (!ast.entity(current_file{}))
+            if (!data.set_entity(current_file{}))
                 error(node, "multiple file/entity commands for entity");
-            break;
-
-        case command_type::param:
-            break;
-        case command_type::tparam:
-            break;
-        case command_type::base:
             break;
 
         case command_type::count:
@@ -527,10 +527,79 @@ namespace
         }
     }
 
+    void parse_command(translated_ast::builder& ast, cmark_node* node)
+    {
+        parse_command(ast.metadata(), node);
+    }
+
     template <typename T>
     void parse_command(const T&, cmark_node*)
     {
         assert(!"unexpected command");
+    }
+
+    matching_entity parse_matching(cmark_node* node)
+    {
+        if (!*detail::get_inline_entity(node))
+            error(node, "missing entity name for inline comment");
+
+        switch (detail::get_inline_type(node))
+        {
+        case inline_type::param:
+            return inline_param(detail::get_inline_entity(node));
+        case inline_type::tparam:
+            return inline_tparam(detail::get_inline_entity(node));
+        case inline_type::base:
+            return inline_base(detail::get_inline_entity(node));
+
+        case inline_type::count:
+        case inline_type::invalid:
+            break;
+        }
+
+        assert(!"invalid inline type");
+        return current_file{};
+    }
+
+    void parse_inline(translated_ast::builder& ast, cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == detail::node_inline());
+
+        metadata data;
+        data.set_entity(parse_matching(node));
+
+        std::unique_ptr<markup::brief_section>   brief;
+        std::unique_ptr<markup::details_section> details;
+        for (auto child = cmark_node_first_child(node); child; child = cmark_node_next(child))
+        {
+            if (cmark_node_get_type(child) == detail::node_command())
+                parse_command(data, child);
+            else if (cmark_node_get_type(child) == detail::node_section())
+            {
+                if (detail::get_section_type(child) == section_type::brief)
+                {
+                    assert(!brief);
+                    brief = parse_brief(child);
+                }
+                else if (detail::get_section_type(child) == section_type::details)
+                {
+                    assert(!details);
+                    details = parse_details(child);
+                }
+                else
+                    assert(!"unexpected section");
+            }
+            else
+                assert(!"unexpected child");
+        }
+
+        ast.add_inline(inline_comment(std::move(data), std::move(brief), std::move(details)));
+    }
+
+    template <typename T>
+    void parse_inline(const T&, cmark_node*)
+    {
+        assert(!"unexpected inline");
     }
 
     template <class Builder>
@@ -542,6 +611,8 @@ namespace
                 add_child(0, b, parse_section(cur));
             else if (cmark_node_get_type(cur) == detail::node_command())
                 parse_command(b, cur);
+            else if (cmark_node_get_type(cur) == detail::node_inline())
+                parse_inline(b, cur);
             else
                 switch (cmark_node_get_type(cur))
                 {
