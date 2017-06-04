@@ -330,6 +330,8 @@ Still effects.
 Details again.
 
 \returns Explicit returns.
+\returns Different returns.\
+Details again.
 \notes Explicit notes.
 )";
 
@@ -345,6 +347,10 @@ Still effects.</inline-section>
 <paragraph>Details again.</paragraph>
 </details-section>
 <inline-section>Explicit returns.</inline-section>
+<inline-section>Different returns.</inline-section>
+<details-section>
+<paragraph>Details again.</paragraph>
+</details-section>
 <inline-section>Explicit notes.</inline-section>
 )";
     }

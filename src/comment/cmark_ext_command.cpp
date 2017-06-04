@@ -199,6 +199,44 @@ namespace
         return details;
     }
 
+    // terminates a section on a line break
+    void terminate_section(cmark_syntax_extension* self, cmark_node* root, cmark_node* section,
+                           cmark_node* linebreak)
+    {
+        assert(cmark_node_get_type(root) == CMARK_NODE_DOCUMENT
+               && cmark_node_get_type(section) == node_section()
+               && cmark_node_get_type(linebreak) == CMARK_NODE_LINEBREAK);
+
+        // remainder of paragraph is considered details
+        auto detail_node =
+            create_node(self, node_section(), unsigned(section_type::details), nullptr);
+        cmark_node_insert_after(section, detail_node);
+        auto paragraph = cmark_node_new(CMARK_NODE_PARAGRAPH);
+        cmark_node_append_child(detail_node, paragraph);
+
+        // add remaining children to paragraph
+        for (auto cur = cmark_node_next(linebreak); cur; cur = cmark_node_next(cur))
+            cmark_node_append_child(paragraph, cur);
+
+        // delete line break
+        cmark_node_free(linebreak);
+    }
+
+    // finds a line break in a section
+    cmark_node* find_linebreak(cmark_node* section)
+    {
+        assert(cmark_node_get_type(section) == node_section());
+        auto paragraph = cmark_node_first_child(section);
+        assert(!paragraph || cmark_node_get_type(paragraph) == CMARK_NODE_PARAGRAPH);
+        if (!paragraph)
+            return nullptr;
+
+        for (auto cur = cmark_node_first_child(paragraph); cur; cur = cmark_node_next(cur))
+            if (cmark_node_get_type(cur) == CMARK_NODE_LINEBREAK)
+                return cur;
+        return nullptr;
+    }
+
     // post process function
     cmark_node* create_implicit_brief_details(cmark_syntax_extension* self, cmark_parser*,
                                               cmark_node*             root)
@@ -225,6 +263,12 @@ namespace
                      && detail::get_section_type(cur) == section_type::brief)
             {
                 need_brief.reset(); // don't need brief anymore
+            }
+            else if (cmark_node_get_type(cur) == node_section()
+                     && detail::get_section_type(cur) != section_type::details)
+            {
+                if (auto linebreak = find_linebreak(cur))
+                    terminate_section(self, root, cur, linebreak);
             }
             else if (cmark_node_get_type(cur) != node_section()
                      && cmark_node_get_type(cur) != node_command())
