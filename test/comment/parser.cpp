@@ -344,17 +344,17 @@ Still explicit brief.</brief-section>
 <paragraph>Explicit details.</paragraph>
 <paragraph>Still details.</paragraph>
 </details-section>
-<inline-section>Explicit effects.<soft-break></soft-break>
+<inline-section name="Effects">Explicit effects.<soft-break></soft-break>
 Still effects.</inline-section>
 <details-section>
 <paragraph>Details again.</paragraph>
 </details-section>
-<inline-section>Explicit returns.</inline-section>
-<inline-section>Different returns.</inline-section>
+<inline-section name="Returns">Explicit returns.</inline-section>
+<inline-section name="Returns">Different returns.</inline-section>
 <details-section>
 <paragraph>Details again.</paragraph>
 </details-section>
-<inline-section>Explicit notes.</inline-section>
+<inline-section name="Notes">Explicit notes.</inline-section>
 )";
     }
     SECTION("ignored commands")
@@ -399,7 +399,7 @@ It requires extra long description.
 
 This terminates.
 )";
-        xml     = R"(<list-section>
+        xml     = R"(<list-section name="Return values">
 <term-description-item>
 <term>0</term>
 <description>Value 0.</description>
@@ -413,8 +413,8 @@ It requires extra long description.</description>
 <paragraph>Default returns.</paragraph>
 </list-item>
 </list-section>
-<inline-section>This terminates.</inline-section>
-<list-section>
+<inline-section name="Notes">This terminates.</inline-section>
+<list-section name="See also">
 <term-description-item>
 <term><internal-link unresolved-destination-id="foo">foo</internal-link></term>
 <description>Optional description.</description>

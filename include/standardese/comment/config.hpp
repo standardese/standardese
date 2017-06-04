@@ -34,6 +34,12 @@ namespace standardese
             /// \group default_command_name
             static const char* default_command_name(inline_type cmd) noexcept;
 
+            /// \returns The default name of a [standardese::markup::inline_section]().
+            static const char* default_inline_section_name(section_type section) noexcept;
+
+            /// \returns The default name of a [standardese::markup::list_section]().
+            static const char* default_list_section_name(section_type section) noexcept;
+
             /// \effects Creates it giving the command character,
             /// that is, the character that introduces a command.
             explicit config(char command_character = default_command_character());
@@ -69,8 +75,16 @@ namespace standardese
             /// The command string does not contain the leading command character.
             unsigned try_lookup(const char* name) const noexcept;
 
+            /// \returns The name of a [standardese::markup::inline_section]().
+            const char* inline_section_name(section_type section) const noexcept;
+
+            /// \returns The name of a [standardese::markup::list_section]().
+            const char* list_section_name(section_type section) const noexcept;
+
         private:
-            std::array<std::string, unsigned(inline_type::count)> command_names_;
+            std::array<std::string, unsigned(inline_type::count)>  command_names_;
+            std::array<std::string, unsigned(section_type::count)> inline_sections_;
+            std::array<std::string, unsigned(section_type::count)> list_sections_;
             char command_character_;
         };
     }

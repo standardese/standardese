@@ -96,16 +96,98 @@ const char* config::default_command_name(inline_type cmd) noexcept
     return "invalid inline type";
 }
 
+const char* config::default_inline_section_name(section_type section) noexcept
+{
+    switch (section)
+    {
+    case section_type::brief:
+    case section_type::details:
+        return "";
+
+    case section_type::requires:
+        return "Requires";
+    case section_type::effects:
+        return "Effects";
+    case section_type::synchronization:
+        return "Synchronization";
+    case section_type::postconditions:
+        return "Postconditions";
+    case section_type::returns:
+        return "Returns";
+    case section_type::throws:
+        return "Throws";
+    case section_type::complexity:
+        return "Complexity";
+    case section_type::remarks:
+        return "Remarks";
+    case section_type::error_conditions:
+        return "Error Conditions";
+    case section_type::notes:
+        return "Notes";
+
+    case section_type::see:
+        return "See";
+
+    case section_type::count:
+        break;
+    }
+    assert(false);
+    return "forgot to name a section";
+}
+
+const char* config::default_list_section_name(section_type section) noexcept
+{
+    switch (section)
+    {
+    case section_type::brief:
+    case section_type::details:
+        return "";
+
+    case section_type::requires:
+        return "Requirements";
+    case section_type::effects:
+        return "Effects";
+    case section_type::synchronization:
+        return "Synchronization";
+    case section_type::postconditions:
+        return "Postconditions";
+    case section_type::returns:
+        return "Return values";
+    case section_type::throws:
+        return "Throws";
+    case section_type::complexity:
+        return "Complexity";
+    case section_type::remarks:
+        return "Remarks";
+    case section_type::error_conditions:
+        return "Error conditions";
+    case section_type::notes:
+        return "Notes";
+
+    case section_type::see:
+        return "See also";
+
+    case section_type::count:
+        break;
+    }
+    assert(false);
+    return "forgot a section";
+}
+
 config::config(char command_character) : command_character_(command_character)
 {
     for (auto i           = 0u; i != unsigned(section_type::count); ++i)
         command_names_[i] = default_command_name(make_section(i));
-
     for (auto i = unsigned(section_type::count) + 1u; i != unsigned(command_type::count); ++i)
         command_names_[i] = default_command_name(make_command(i));
-
     for (auto i = unsigned(command_type::count) + 1u; i != unsigned(inline_type::count); ++i)
         command_names_[i] = default_command_name(make_inline(i));
+
+    for (auto i             = 0u; i != unsigned(section_type::count); ++i)
+        inline_sections_[i] = default_inline_section_name(make_section(i));
+
+    for (auto i           = 0u; i != unsigned(section_type::count); ++i)
+        list_sections_[i] = default_list_section_name(make_section(i));
 }
 
 void config::set_command_name(command_type cmd, std::string name)
@@ -149,4 +231,14 @@ unsigned config::try_lookup(const char* name) const noexcept
     }
 
     return unsigned(command_type::invalid);
+}
+
+const char* config::inline_section_name(section_type section) const noexcept
+{
+    return inline_sections_[unsigned(section)].c_str();
+}
+
+const char* config::list_section_name(section_type section) const noexcept
+{
+    return list_sections_[unsigned(section)].c_str();
 }
