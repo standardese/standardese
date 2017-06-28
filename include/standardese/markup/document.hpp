@@ -41,6 +41,8 @@ namespace standardese
             }
 
         private:
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             markup::output_name output_name_;
             std::string         title_;
         };

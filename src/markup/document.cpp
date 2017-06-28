@@ -10,6 +10,12 @@
 
 using namespace standardese::markup;
 
+void document_entity::do_visit(detail::visitor_callback_t cb, void* mem) const
+{
+    for (auto& child : *this)
+        cb(mem, child);
+}
+
 entity_kind main_document::do_get_kind() const noexcept
 {
     return entity_kind::main_document;

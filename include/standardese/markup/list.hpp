@@ -45,6 +45,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             list_item(block_id id) : list_item_base(std::move(id))
             {
             }
@@ -73,6 +75,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             term() noexcept = default;
         };
 
@@ -98,6 +102,8 @@ namespace standardese
 
         private:
             entity_kind do_get_kind() const noexcept override;
+
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
             description() = default;
         };
@@ -131,6 +137,8 @@ namespace standardese
 
         private:
             entity_kind do_get_kind() const noexcept override;
+
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
             term_description_item(block_id id, std::unique_ptr<markup::term> t,
                                   std::unique_ptr<markup::description> desc)
@@ -171,6 +179,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             unordered_list(block_id id) : block_entity(std::move(id))
             {
             }
@@ -203,6 +213,8 @@ namespace standardese
 
         private:
             entity_kind do_get_kind() const noexcept override;
+
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
             ordered_list(block_id id) : block_entity(std::move(id))
             {

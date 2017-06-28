@@ -70,14 +70,32 @@ entity_kind brief_section::do_get_kind() const noexcept
     return entity_kind::brief_section;
 }
 
+void brief_section::do_visit(detail::visitor_callback_t cb, void* mem) const
+{
+    for (auto& child : *this)
+        cb(mem, child);
+}
+
 entity_kind details_section::do_get_kind() const noexcept
 {
     return entity_kind::details_section;
 }
 
+void details_section::do_visit(detail::visitor_callback_t cb, void* mem) const
+{
+    for (auto& child : *this)
+        cb(mem, child);
+}
+
 entity_kind inline_section::do_get_kind() const noexcept
 {
     return entity_kind::inline_section;
+}
+
+void inline_section::do_visit(detail::visitor_callback_t cb, void* mem) const
+{
+    for (auto& child : *paragraph_)
+        cb(mem, child);
 }
 
 entity_kind list_section::do_get_kind() const noexcept
@@ -95,4 +113,10 @@ list_section::list_section(section_type type, std::string name,
                            std::unique_ptr<unordered_list> list)
 : name_(std::move(name)), list_(std::move(list)), type_(type)
 {
+}
+
+void list_section::do_visit(detail::visitor_callback_t cb, void* mem) const
+{
+    for (auto& child : *this)
+        cb(mem, child);
 }

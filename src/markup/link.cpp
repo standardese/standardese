@@ -8,6 +8,12 @@
 
 using namespace standardese::markup;
 
+void link_base::do_visit(detail::visitor_callback_t cb, void* mem) const
+{
+    for (auto& child : *this)
+        cb(mem, child);
+}
+
 entity_kind external_link::do_get_kind() const noexcept
 {
     return entity_kind::external_link;

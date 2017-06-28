@@ -82,6 +82,8 @@ namespace standardese
                 return section_type::brief;
             }
 
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             brief_section() = default;
         };
 
@@ -108,6 +110,8 @@ namespace standardese
             {
                 return section_type::details;
             }
+
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
             details_section() = default;
         };
@@ -184,6 +188,8 @@ namespace standardese
                 return type_;
             }
 
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             inline_section(section_type type, std::string name,
                            std::unique_ptr<markup::paragraph> paragraph)
             : name_(std::move(name)), paragraph_(std::move(paragraph)), type_(type)
@@ -238,6 +244,8 @@ namespace standardese
             {
                 return type_;
             }
+
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
             list_section(section_type type, std::string name, std::unique_ptr<unordered_list> list);
 

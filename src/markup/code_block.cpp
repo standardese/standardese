@@ -47,3 +47,9 @@ entity_kind code_block::do_get_kind() const noexcept
 {
     return entity_kind::code_block;
 }
+
+void code_block::do_visit(detail::visitor_callback_t cb, void* mem) const
+{
+    for (auto& child : *this)
+        cb(mem, child);
+}

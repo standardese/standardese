@@ -108,6 +108,8 @@ namespace standardese
             };
 
         private:
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             std::vector<std::unique_ptr<doc_section>> sections_;
             type_safe::optional<std::string>          module_;
             std::unique_ptr<markup::heading>          heading_;
@@ -127,12 +129,7 @@ namespace standardese
                 /// \effects Creates it giving the id, heading and synopsis and module.
                 builder(block_id id, std::unique_ptr<markup::heading> h,
                         std::unique_ptr<code_block>      synopsis,
-                        type_safe::optional<std::string> module = type_safe::nullopt)
-                : documentation_builder(std::unique_ptr<file_documentation>(
-                      new file_documentation(std::move(id), std::move(h), std::move(synopsis),
-                                             std::move(module))))
-                {
-                }
+                        type_safe::optional<std::string> module = type_safe::nullopt);
             };
 
         private:
@@ -156,12 +153,7 @@ namespace standardese
                 /// \effects Creates it giving the id, heading and synopsis and optional module.
                 builder(block_id id, std::unique_ptr<markup::heading> h,
                         std::unique_ptr<code_block>      synopsis,
-                        type_safe::optional<std::string> module = type_safe::nullopt)
-                : documentation_builder(std::unique_ptr<entity_documentation>(
-                      new entity_documentation(std::move(id), std::move(h), std::move(synopsis),
-                                               std::move(module))))
-                {
-                }
+                        type_safe::optional<std::string> module = type_safe::nullopt);
             };
 
         private:

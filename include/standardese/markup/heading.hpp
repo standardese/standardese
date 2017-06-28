@@ -39,6 +39,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             heading(block_id id) : block_entity(std::move(id))
             {
             }
@@ -69,6 +71,8 @@ namespace standardese
 
         private:
             entity_kind do_get_kind() const noexcept override;
+
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
             subheading(block_id id) : block_entity(std::move(id))
             {

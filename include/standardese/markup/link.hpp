@@ -33,6 +33,8 @@ namespace standardese
             }
 
         private:
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             std::string title_;
         };
 

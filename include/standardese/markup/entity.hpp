@@ -5,12 +5,14 @@
 #ifndef STANDARDESE_MARKUP_ENTITY_HPP_INCLUDED
 #define STANDARDESE_MARKUP_ENTITY_HPP_INCLUDED
 
-#include <type_safe/optional_ref.hpp>
-
 #include <memory>
 #include <string>
 #include <type_traits>
 #include <vector>
+
+#include <type_safe/optional_ref.hpp>
+
+#include <standardese/markup/visitor.hpp>
 
 namespace standardese
 {
@@ -54,9 +56,13 @@ namespace standardese
             /// \returns The kind of entity.
             virtual entity_kind do_get_kind() const noexcept = 0;
 
+            /// \effects Invokes the callback for all children.
+            virtual void do_visit(detail::visitor_callback_t cb, void* mem) const = 0;
+
             type_safe::optional_ref<const entity> parent_;
 
             friend detail::parent_updater;
+            friend void detail::call_visit(const entity& e, visitor_callback_t cb, void* mem);
         };
         /// \exclude
         namespace detail

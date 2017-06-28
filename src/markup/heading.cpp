@@ -13,7 +13,19 @@ entity_kind heading::do_get_kind() const noexcept
     return entity_kind::heading;
 }
 
+void heading::do_visit(detail::visitor_callback_t cb, void* mem) const
+{
+    for (auto& child : *this)
+        cb(mem, child);
+}
+
 entity_kind subheading::do_get_kind() const noexcept
 {
     return entity_kind::subheading;
+}
+
+void subheading::do_visit(detail::visitor_callback_t cb, void* mem) const
+{
+    for (auto& child : *this)
+        cb(mem, child);
 }

@@ -12,3 +12,9 @@ entity_kind block_quote::do_get_kind() const noexcept
 {
     return entity_kind::block_quote;
 }
+
+void block_quote::do_visit(detail::visitor_callback_t cb, void* mem) const
+{
+    for (auto& child : *this)
+        cb(mem, child);
+}

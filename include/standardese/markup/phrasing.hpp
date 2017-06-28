@@ -39,6 +39,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             text(std::string text) : text_(std::move(text))
             {
             }
@@ -73,6 +75,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             emphasis() noexcept = default;
         };
 
@@ -105,6 +109,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             strong_emphasis() noexcept = default;
         };
 
@@ -135,6 +141,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             code() noexcept = default;
         };
 
@@ -151,6 +159,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             soft_break() noexcept = default;
         };
 
@@ -166,6 +176,8 @@ namespace standardese
 
         private:
             entity_kind do_get_kind() const noexcept override;
+
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
             hard_break() noexcept = default;
         };

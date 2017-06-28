@@ -24,6 +24,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             thematic_break() : block_entity(block_id())
             {
             }
