@@ -15,11 +15,12 @@ void test_code_block_entity(const char* name, const char* classes)
 {
     auto a = Entity::build("foo");
     REQUIRE(as_html(*a) == R"(<span class=")" + std::string(classes) + R"(">foo</span>)");
-    REQUIRE(as_xml(*a) == "<" + std::string(name) + ">foo</" + std::string(name) + ">");
+    REQUIRE(as_xml(*a->clone()) == "<" + std::string(name) + ">foo</" + std::string(name) + ">");
 
     auto b = Entity::build("<foo>");
     REQUIRE(as_html(*b) == R"(<span class=")" + std::string(classes) + R"(">&lt;foo&gt;</span>)");
-    REQUIRE(as_xml(*b) == "<" + std::string(name) + ">&lt;foo&gt;</" + std::string(name) + ">");
+    REQUIRE(as_xml(*b->clone())
+            == "<" + std::string(name) + ">&lt;foo&gt;</" + std::string(name) + ">");
 }
 
 TEST_CASE("code-block::keyword", "[markup]")
@@ -88,5 +89,5 @@ TEST_CASE("code-block", "[markup]")
 
     auto ptr = builder.finish();
     REQUIRE(as_html(*ptr) == html);
-    REQUIRE(as_xml(*ptr) == xml);
+    REQUIRE(as_xml(*ptr->clone()) == xml);
 }

@@ -76,6 +76,14 @@ void brief_section::do_visit(detail::visitor_callback_t cb, void* mem) const
         cb(mem, child);
 }
 
+std::unique_ptr<entity> brief_section::do_clone() const
+{
+    builder b;
+    for (auto& child : *this)
+        b.add_child(detail::unchecked_downcast<phrasing_entity>(child.clone()));
+    return b.finish();
+}
+
 entity_kind details_section::do_get_kind() const noexcept
 {
     return entity_kind::details_section;
@@ -87,6 +95,14 @@ void details_section::do_visit(detail::visitor_callback_t cb, void* mem) const
         cb(mem, child);
 }
 
+std::unique_ptr<entity> details_section::do_clone() const
+{
+    builder b;
+    for (auto& child : *this)
+        b.add_child(detail::unchecked_downcast<block_entity>(child.clone()));
+    return b.finish();
+}
+
 entity_kind inline_section::do_get_kind() const noexcept
 {
     return entity_kind::inline_section;
@@ -96,6 +112,14 @@ void inline_section::do_visit(detail::visitor_callback_t cb, void* mem) const
 {
     for (auto& child : *paragraph_)
         cb(mem, child);
+}
+
+std::unique_ptr<entity> inline_section::do_clone() const
+{
+    builder b(type(), name());
+    for (auto& child : *paragraph_)
+        b.add_child(detail::unchecked_downcast<phrasing_entity>(child.clone()));
+    return b.finish();
 }
 
 entity_kind list_section::do_get_kind() const noexcept
@@ -119,4 +143,9 @@ void list_section::do_visit(detail::visitor_callback_t cb, void* mem) const
 {
     for (auto& child : *this)
         cb(mem, child);
+}
+
+std::unique_ptr<entity> list_section::do_clone() const
+{
+    return build(type(), name(), detail::unchecked_downcast<unordered_list>(list_->clone()));
 }

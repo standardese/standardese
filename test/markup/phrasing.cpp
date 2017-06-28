@@ -12,7 +12,7 @@ using namespace standardese::markup;
 
 TEST_CASE("text", "[markup]")
 {
-    auto a = text::build("Hello World!");
+    auto a = text::build("Hello World!")->clone();
     REQUIRE(as_html(*a) == "Hello World!");
     REQUIRE(as_xml(*a) == as_html(*a));
 
@@ -32,7 +32,7 @@ void test_phrasing(const std::string& html, const std::string& xml)
         return "<" + tag + ">" + content + "</" + tag + ">";
     };
 
-    auto a = T::build("foo");
+    auto a = T::build("foo")->clone();
     REQUIRE(as_html(*a) == tag_str(html, "foo"));
     REQUIRE(as_xml(*a) == tag_str(xml, "foo"));
 
@@ -40,7 +40,7 @@ void test_phrasing(const std::string& html, const std::string& xml)
     b.add_child(text::build("foo"));
     b.add_child(text::build("bar"));
 
-    auto b_ptr = b.finish();
+    auto b_ptr = b.finish()->clone();
     REQUIRE(as_html(*b_ptr) == tag_str(html, "foobar"));
     REQUIRE(as_xml(*b_ptr) == tag_str(xml, "foobar"));
 
@@ -48,7 +48,7 @@ void test_phrasing(const std::string& html, const std::string& xml)
     c.add_child(emphasis::build("foo"));
     c.add_child(text::build(">bar"));
 
-    auto c_ptr = c.finish();
+    auto c_ptr = c.finish()->clone();
     REQUIRE(as_html(*c_ptr) == tag_str(html, "<em>foo</em>&gt;bar"));
     REQUIRE(as_xml(*c_ptr) == tag_str(xml, "<emphasis>foo</emphasis>&gt;bar"));
 }

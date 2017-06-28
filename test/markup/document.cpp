@@ -35,7 +35,8 @@ void test_main_sub_document(const char* name)
     typename T::builder builder("Hello World!", "my-file");
     builder.add_child(paragraph::builder(block_id("")).add_child(text::build("foo")).finish());
 
-    auto doc = builder.finish();
+    auto entity = builder.finish()->clone();
+    auto doc    = static_cast<T*>(entity.get());
     REQUIRE(doc->output_name().name() == "my-file");
     REQUIRE(doc->output_name().needs_extension());
     REQUIRE(as_html(*doc) == html);
@@ -68,7 +69,8 @@ TEST_CASE("template_document", "[markup]")
     template_document::builder builder("Hello Templated World!", "foo.bar.baz");
     builder.add_child(paragraph::builder(block_id("")).finish());
 
-    auto doc = builder.finish();
+    auto entity = builder.finish()->clone();
+    auto doc    = static_cast<template_document*>(entity.get());
     REQUIRE(doc->output_name().name() == "foo.bar.baz");
     REQUIRE(!doc->output_name().needs_extension());
     REQUIRE(as_html(*doc) == html);

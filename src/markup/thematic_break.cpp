@@ -16,3 +16,8 @@ entity_kind thematic_break::do_get_kind() const noexcept
 void thematic_break::do_visit(detail::visitor_callback_t, void*) const
 {
 }
+
+std::unique_ptr<entity> thematic_break::do_clone() const
+{
+    return build();
+}

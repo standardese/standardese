@@ -69,6 +69,17 @@ entity_kind file_documentation::do_get_kind() const noexcept
     return entity_kind::file_documentation;
 }
 
+std::unique_ptr<entity> file_documentation::do_clone() const
+{
+    builder b(id(), detail::unchecked_downcast<markup::heading>(heading().clone()),
+              detail::unchecked_downcast<code_block>(synopsis().clone()), module());
+    for (auto& sec : doc_sections())
+        b.add_section_impl(detail::unchecked_downcast<doc_section>(sec.clone()));
+    for (auto& child : *this)
+        b.add_child(detail::unchecked_downcast<documentation>(child.clone()));
+    return b.finish();
+}
+
 entity_documentation::builder::builder(block_id id, std::unique_ptr<standardese::markup::heading> h,
                                        std::unique_ptr<code_block>      synopsis,
                                        type_safe::optional<std::string> module)
@@ -81,4 +92,15 @@ entity_documentation::builder::builder(block_id id, std::unique_ptr<standardese:
 entity_kind entity_documentation::do_get_kind() const noexcept
 {
     return entity_kind::entity_documentation;
+}
+
+std::unique_ptr<entity> entity_documentation::do_clone() const
+{
+    builder b(id(), detail::unchecked_downcast<markup::heading>(heading().clone()),
+              detail::unchecked_downcast<code_block>(synopsis().clone()), module());
+    for (auto& sec : doc_sections())
+        b.add_section_impl(detail::unchecked_downcast<doc_section>(sec.clone()));
+    for (auto& child : *this)
+        b.add_child(detail::unchecked_downcast<documentation>(child.clone()));
+    return b.finish();
 }

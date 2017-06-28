@@ -21,9 +21,25 @@ entity_kind main_document::do_get_kind() const noexcept
     return entity_kind::main_document;
 }
 
+std::unique_ptr<entity> main_document::do_clone() const
+{
+    builder b(title(), output_name().name());
+    for (auto& child : *this)
+        b.add_child(detail::unchecked_downcast<block_entity>(child.clone()));
+    return b.finish();
+}
+
 entity_kind subdocument::do_get_kind() const noexcept
 {
     return entity_kind::subdocument;
+}
+
+std::unique_ptr<entity> subdocument::do_clone() const
+{
+    builder b(title(), output_name().name());
+    for (auto& child : *this)
+        b.add_child(detail::unchecked_downcast<block_entity>(child.clone()));
+    return b.finish();
 }
 
 namespace
@@ -45,4 +61,12 @@ template_document::template_document(std::string title, std::string file_name)
 entity_kind template_document::do_get_kind() const noexcept
 {
     return entity_kind::template_document;
+}
+
+std::unique_ptr<entity> template_document::do_clone() const
+{
+    builder b(title(), output_name().name());
+    for (auto& child : *this)
+        b.add_child(detail::unchecked_downcast<block_entity>(child.clone()));
+    return b.finish();
 }

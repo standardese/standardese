@@ -39,6 +39,11 @@ namespace standardese
                 {
                 }
 
+                std::unique_ptr<entity> do_clone() const override
+                {
+                    return build(text_);
+                }
+
                 code_block_entity(std::string text) : text_(std::move(text))
                 {
                 }
@@ -146,6 +151,8 @@ namespace standardese
             entity_kind do_get_kind() const noexcept override;
 
             void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
+            std::unique_ptr<entity> do_clone() const override;
 
             std::string lang_;
         };

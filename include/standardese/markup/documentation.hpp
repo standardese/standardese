@@ -99,12 +99,14 @@ namespace standardese
             protected:
                 using container_builder<T>::container_builder;
 
-            private:
                 void add_section_impl(std::unique_ptr<doc_section> section)
                 {
                     detail::parent_updater::set(*section, type_safe::ref(this->peek()));
                     this->peek().sections_.push_back(std::move(section));
                 }
+
+                friend class file_documentation;
+                friend class entity_documentation;
             };
 
         private:
@@ -135,6 +137,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            std::unique_ptr<entity> do_clone() const override;
+
             using documentation::documentation;
         };
 
@@ -158,6 +162,8 @@ namespace standardese
 
         private:
             entity_kind do_get_kind() const noexcept override;
+
+            std::unique_ptr<entity> do_clone() const override;
 
             using documentation::documentation;
         };

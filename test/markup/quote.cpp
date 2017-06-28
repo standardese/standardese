@@ -29,7 +29,7 @@ TEST_CASE("block_quote", "[markup]")
     builder.add_child(paragraph::builder().add_child(text::build("some text")).finish());
     builder.add_child(paragraph::builder().add_child(text::build("some more text")).finish());
 
-    auto ptr = builder.finish();
+    auto ptr = builder.finish()->clone();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr) == xml);
 }

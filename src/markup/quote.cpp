@@ -18,3 +18,11 @@ void block_quote::do_visit(detail::visitor_callback_t cb, void* mem) const
     for (auto& child : *this)
         cb(mem, child);
 }
+
+std::unique_ptr<entity> block_quote::do_clone() const
+{
+    builder b(id());
+    for (auto& child : *this)
+        b.add_child(detail::unchecked_downcast<block_entity>(child.clone()));
+    return b.finish();
+}

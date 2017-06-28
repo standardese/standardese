@@ -26,6 +26,8 @@ namespace standardese
 
             void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
+            std::unique_ptr<entity> do_clone() const override;
+
             thematic_break() : block_entity(block_id())
             {
             }

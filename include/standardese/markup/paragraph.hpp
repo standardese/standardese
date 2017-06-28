@@ -32,6 +32,8 @@ namespace standardese
 
             void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
+            std::unique_ptr<entity> do_clone() const override;
+
             paragraph(block_id id) : block_entity(std::move(id))
             {
             }

@@ -68,6 +68,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            std::unique_ptr<entity> do_clone() const override;
+
             external_link(std::string title, std::string url)
             : link_base(std::move(title)), url_(std::move(url))
             {
@@ -132,6 +134,8 @@ namespace standardese
 
         private:
             entity_kind do_get_kind() const noexcept override;
+
+            std::unique_ptr<entity> do_clone() const override;
 
             internal_link(std::string title, std::string dest)
             : link_base(std::move(title)), dest_(std::move(dest))

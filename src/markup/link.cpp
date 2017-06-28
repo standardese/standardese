@@ -19,7 +19,33 @@ entity_kind external_link::do_get_kind() const noexcept
     return entity_kind::external_link;
 }
 
+std::unique_ptr<entity> external_link::do_clone() const
+{
+    builder b(title(), url());
+    for (auto& child : *this)
+        b.add_child(detail::unchecked_downcast<phrasing_entity>(child.clone()));
+    return b.finish();
+}
+
 entity_kind internal_link::do_get_kind() const noexcept
 {
     return entity_kind::internal_link;
+}
+
+std::unique_ptr<entity> internal_link::do_clone() const
+{
+    if (unresolved_destination())
+    {
+        builder b(title(), unresolved_destination().value());
+        for (auto& child : *this)
+            b.add_child(detail::unchecked_downcast<phrasing_entity>(child.clone()));
+        return b.finish();
+    }
+    else
+    {
+        builder b(title(), destination().value());
+        for (auto& child : *this)
+            b.add_child(detail::unchecked_downcast<phrasing_entity>(child.clone()));
+        return b.finish();
+    }
 }

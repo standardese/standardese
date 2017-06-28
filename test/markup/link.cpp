@@ -18,7 +18,7 @@ TEST_CASE("external_link", "[markup]")
     a.add_child(emphasis::build("awesome"));
     a.add_child(text::build(" website"));
 
-    auto a_ptr = a.finish();
+    auto a_ptr = a.finish()->clone();
     REQUIRE(as_html(*a_ptr) == "<a href=\"http://foonathan.net/\"><em>awesome</em> website</a>");
     REQUIRE(
         as_xml(*a_ptr)
@@ -27,7 +27,7 @@ TEST_CASE("external_link", "[markup]")
     external_link::builder b("title\"", "foo/bar/< &>\n");
     b.add_child(text::build("with title"));
 
-    auto b_ptr = b.finish();
+    auto b_ptr = b.finish()->clone();
     REQUIRE(as_html(*b_ptr)
             == "<a href=\"foo/bar/%3C%20&amp;%3E%0A\" title=\"title&quot;\">with title</a>");
     REQUIRE(as_xml(*b_ptr) == R"(<external-link title="title&quot;" url="foo/bar/&lt; &amp;&gt;
@@ -61,13 +61,13 @@ TEST_CASE("internal_link", "[markup]")
 </template-document>
 )";
     REQUIRE(as_html(*doc1) == doc1_html);
-    REQUIRE(as_xml(*doc1) == doc1_xml);
+    REQUIRE(as_xml(*doc1->clone()) == doc1_xml);
 
     internal_link::builder builder(
         block_reference(output_name::from_file_name("doc1.templ"), block_id("p1")));
     builder.add_child(text::build("link 2"));
 
-    auto ptr = builder.finish();
+    auto ptr = builder.finish()->clone();
     REQUIRE(as_html(*ptr) == R"(<a href="doc1.templ#standardese-p1">link 2</a>)");
     REQUIRE(
         as_xml(*ptr)
@@ -77,7 +77,8 @@ TEST_CASE("internal_link", "[markup]")
     internal_link::builder builder2(
         block_reference(output_name::from_name("doc2"), block_id("p3")));
     builder2.add_child(text::build("link 3"));
-    auto ptr2 = builder2.finish();
+
+    auto ptr2 = builder2.finish()->clone();
     REQUIRE(as_html(*ptr2) == R"(<a href="doc2.html#standardese-p3">link 3</a>)");
     REQUIRE(
         as_xml(*ptr2)
