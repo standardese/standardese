@@ -29,12 +29,12 @@ add_definitions(-DBOOST_ALL_NO_LIB) # Disable auto-link
 # subdirectories
 add_subdirectory(src)
 if(STANDARDESE_BUILD_TOOL)
-    add_subdirectory(tool)
+    #add_subdirectory(tool)
 endif()
 if (STANDARDESE_BUILD_TEST)
     add_subdirectory(test)
 endif()
 
 # install configuration
-install(EXPORT standardese DESTINATION "${lib_dest}")
-install(FILES standardese-config.cmake LICENSE DESTINATION "${lib_dest}")
+#install(EXPORT standardese DESTINATION "${lib_dest}")
+#install(FILES standardese-config.cmake LICENSE DESTINATION "${lib_dest}")

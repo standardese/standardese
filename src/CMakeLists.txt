@@ -2,15 +2,6 @@
 # This file is subject to the license terms in the LICENSE file
 # found in the top-level directory of this distribution.
 
-set(detail_header
-        ../include/standardese/detail/entity_container.hpp
-        ../include/standardese/detail/parse_utils.hpp
-        ../include/standardese/detail/raw_comment.hpp
-        ../include/standardese/detail/scope_stack.hpp
-        ../include/standardese/detail/sequence_stream.hpp
-        ../include/standardese/detail/synopsis_utils.hpp
-        ../include/standardese/detail/tokenizer.hpp
-        ../include/standardese/detail/wrapper.hpp)
 set(comment_header
     ../include/standardese/comment/commands.hpp
     ../include/standardese/comment/config.hpp
@@ -32,38 +23,7 @@ set(markup_header
     ../include/standardese/markup/phrasing.hpp
     ../include/standardese/markup/quote.hpp
     ../include/standardese/markup/thematic_break.hpp)
-set(header
-        ../include/standardese/comment.hpp
-        ../include/standardese/config.hpp
-        ../include/standardese/cpp_class.hpp
-        ../include/standardese/cpp_cursor.hpp
-        ../include/standardese/cpp_entity.hpp
-        ../include/standardese/cpp_entity_blacklist.hpp
-        ../include/standardese/cpp_entity_registry.hpp
-        ../include/standardese/cpp_enum.hpp
-        ../include/standardese/cpp_function.hpp
-        ../include/standardese/cpp_namespace.hpp
-        ../include/standardese/cpp_preprocessor.hpp
-        ../include/standardese/cpp_template.hpp
-        ../include/standardese/cpp_type.hpp
-        ../include/standardese/cpp_variable.hpp
-        ../include/standardese/doc_entity.hpp
-        ../include/standardese/error.hpp
-        ../include/standardese/generator.hpp
-        ../include/standardese/index.hpp
-        ../include/standardese/linker.hpp
-        ../include/standardese/md_blocks.hpp
-        ../include/standardese/md_custom.hpp
-        ../include/standardese/md_entity.hpp
-        ../include/standardese/md_inlines.hpp
-        ../include/standardese/output.hpp
-        ../include/standardese/output_format.hpp
-        ../include/standardese/output_stream.hpp
-        ../include/standardese/parser.hpp
-        ../include/standardese/section.hpp
-        ../include/standardese/string.hpp
-        ../include/standardese/template_processor.hpp
-        ../include/standardese/translation_unit.hpp)
+set(header)
 set(comment_src
     comment/cmark_ext_command.hpp
     comment/cmark_ext_command.cpp
@@ -85,42 +45,9 @@ set(markup_src
     markup/quote.cpp
     markup/thematic_break.cpp
     markup/xml.cpp)
-set(src
-        detail/parse_utils.cpp
-        detail/raw_comment.cpp
-        detail/scope_stack.cpp
-        detail/synopsis_utils.cpp
-        detail/tokenizer.cpp
-        comment.cpp
-        config.cpp
-        cpp_class.cpp
-        cpp_entity.cpp
-        cpp_entity_blacklist.cpp
-        cpp_enum.cpp
-        cpp_function.cpp
-        cpp_namespace.cpp
-        cpp_preprocessor.cpp
-        cpp_template.cpp
-        cpp_type.cpp
-        cpp_variable.cpp
-        doc_entity.cpp
-        error.cpp
-        generator.cpp
-        index.cpp
-        linker.cpp
-        md_blocks.cpp
-        md_custom.cpp
-        md_entity.cpp
-        md_inlines.cpp
-        output.cpp
-        output_format.cpp
-        output_stream.cpp
-        parser.cpp
-        template_processor.cpp
-        translation_unit.cpp)
+set(src)
 
 add_library(standardese ${detail_header} ${comment_header} ${markup_header} ${header} ${comment_src} ${markup_src} ${src})
-comp_target_features(standardese PRIVATE CPP11)
 target_include_directories(standardese PUBLIC
                                 $<BUILD_INTERFACE:${STANDARDESE_SOURCE_DIR}/include>
                                 $<BUILD_INTERFACE:${SPDLOG_INCLUDE_DIR}>
@@ -130,9 +57,7 @@ target_include_directories(standardese PUBLIC
 target_compile_definitions(standardese PUBLIC
                                 STANDARDESE=1
                                 STANDARDESE_VERSION_MAJOR=${STANDARDESE_VERSION_MAJOR}
-                                STANDARDESE_VERSION_MINOR=${STANDARDESE_VERSION_MINOR}
-                                LIBCLANG_SYSTEM_INCLUDE_DIR="${LIBCLANG_SYSTEM_INCLUDE_DIR}"
-                                CLANG_BINARY="${CLANG_BINARY}")
+                                STANDARDESE_VERSION_MINOR=${STANDARDESE_VERSION_MINOR})
 
 # add threading support
 find_package(Threads REQUIRED)
@@ -141,10 +66,6 @@ target_link_libraries(standardese PUBLIC Threads::Threads)
 # link cppast
 target_link_libraries(standardese PUBLIC cppast)
 
-# link libclang
-target_include_directories(standardese PUBLIC ${LIBCLANG_INCLUDE_DIR})
-target_link_libraries(standardese PUBLIC ${LIBCLANG_LIBRARY})
-
 # link cmark
 target_link_libraries(standardese PUBLIC libcmark-gfm_static)
 
@@ -152,9 +73,6 @@ target_link_libraries(standardese PUBLIC libcmark-gfm_static)
 find_package(Boost COMPONENTS filesystem system thread date_time chrono REQUIRED)
 target_include_directories(standardese PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(standardese PUBLIC ${Boost_LIBRARIES})
-
-# use tiny-process-library
-target_include_directories(standardese PRIVATE ${TINY_PROCESS_LIBRARY_INCLUDE_DIR})
 
 # install library: TODO
 #install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")

@@ -19,23 +19,12 @@ set(tests
     markup/paragraph.cpp
     markup/phrasing.cpp
     markup/quote.cpp
-    markup/thematic_break.cpp
-    comment.cpp
-    cpp_entity.cpp
-    cpp_entity_blacklist.cpp
-    cpp_function.cpp
-    cpp_namespace.cpp
-    cpp_template.cpp
-    cpp_type.cpp
-    cpp_variable.cpp
-    output.cpp
-    preprocessor.cpp
-    template.cpp)
+    markup/thematic_break.cpp)
 
-add_executable(standardese_test test.cpp test_parser.hpp ${tests})
+add_executable(standardese_test test.cpp ${tests})
 target_include_directories(standardese_test PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(standardese_test PUBLIC standardese)
-comp_target_features(standardese_test PUBLIC CPP11)
+set_target_properties(standardese_test PROPERTIES CXX_STANDARD 11)
 
 enable_testing()
 add_test(NAME test COMMAND standardese_test)

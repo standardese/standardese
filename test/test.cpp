@@ -5,7 +5,3 @@
 #define CATCH_CONFIG_MAIN
 #define CATCH_CONFIG_COLOUR_NONE
 #include <catch.hpp>
-
-#include "test_parser.hpp"
-
-const std::shared_ptr<spdlog::logger> test_logger = spdlog::stderr_logger_mt("test_logger");
