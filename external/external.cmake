@@ -11,18 +11,6 @@ execute_process(COMMAND git submodule update --init -- external/cppast
 add_subdirectory(external/cppast)
 
 #
-# add spdlog
-#
-if((NOT SPDLOG_INCLUDE_DIR) OR (NOT EXISTS ${SPDLOG_INCLUDE_DIR}))
-    message("Unable to find spdlog, cloning...")
-    execute_process(COMMAND git submodule update --init -- external/spdlog
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    set(SPDLOG_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/spdlog/include/
-        CACHE PATH "spdlog include directory")
-endif()
-install(DIRECTORY ${SPDLOG_INCLUDE_DIR}/spdlog DESTINATION ${include_dest})
-
-#
 # add ThreadPool
 #
 if((NOT THREADPOOL_INCLUDE_DIR) OR (NOT EXISTS ${THREADPOOL_INCLUDE_DIR}))
@@ -66,16 +54,4 @@ else()
 
     # install fake target
     install(TARGETS libcmark-gfm_static EXPORT standardese DESTINATION ${lib_dir})
-endif()
-
-#
-# add tiny-process-library
-#
-if((NOT TINY_PROCESS_LIBRARY_INCLUDE_DIR) OR (NOT EXISTS TINY_PROCESS_LIBRARY_INCLUDE_DIR))
-    message("Unable to find tiny-process-library, cloning...")
-    execute_process(COMMAND git submodule update --init -- external/tiny-process-library
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-    set(TINY_PROCESS_LIBRARY_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/tiny-process-library
-        CACHE PATH "tiny-process-library include directory")
-    # treat as header only library and include source files
 endif()
