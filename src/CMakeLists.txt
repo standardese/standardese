@@ -5,6 +5,8 @@
 set(comment_header
     ../include/standardese/comment/commands.hpp
     ../include/standardese/comment/config.hpp
+    ../include/standardese/comment/doc_comment.hpp
+    ../include/standardese/comment/matching_entity.hpp
     ../include/standardese/comment/metadata.hpp
     ../include/standardese/comment/parser.hpp)
 set(markup_header
@@ -28,6 +30,7 @@ set(comment_src
     comment/cmark_ext_command.hpp
     comment/cmark_ext_command.cpp
     comment/config.cpp
+    comment/doc_comment.cpp
     comment/parser.cpp)
 set(markup_src
     markup/code_block.cpp

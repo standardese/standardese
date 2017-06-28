@@ -14,9 +14,9 @@ using namespace standardese::comment;
 void check_details(const char* comment, const char* xml)
 {
     parser p;
-    auto   translated = translate_ast(p, read_ast(p, comment));
-    REQUIRE(translated.sections().size() == 1u);
-    REQUIRE(markup::as_xml(*translated.sections().begin()) == xml);
+    auto   result = parse(p, comment);
+    REQUIRE(result.comment.sections().size() == 1u);
+    REQUIRE(markup::as_xml(*result.comment.sections().begin()) == xml);
 }
 
 TEST_CASE("cmark inlines", "[comment]")
@@ -65,9 +65,9 @@ TEST_CASE("cmark link", "[comment]")
 
 TEST_CASE("forbidden cmark entities", "[comment]")
 {
-    REQUIRE_THROWS_AS(check_details(R"(Text <span>inline HTML</span>.)", ""), translation_error);
-    REQUIRE_THROWS_AS(check_details(R"(<p>block HTML</p>)", ""), translation_error);
-    REQUIRE_THROWS_AS(check_details(R"(![an image](img.png))", ""), translation_error);
+    REQUIRE_THROWS_AS(check_details(R"(Text <span>inline HTML</span>.)", ""), parse_error);
+    REQUIRE_THROWS_AS(check_details(R"(<p>block HTML</p>)", ""), parse_error);
+    REQUIRE_THROWS_AS(check_details(R"(![an image](img.png))", ""), parse_error);
 }
 
 TEST_CASE("cmark block quote", "[comment]")
@@ -431,11 +431,12 @@ It requires extra long description.</description>
     }
 
     parser p;
-    auto   translated = translate_ast(p, read_ast(p, comment));
+    auto   parsed = parse(p, comment);
 
-    auto result =
-        translated.brief_section() ? markup::as_xml(translated.brief_section().value()) : "";
-    for (auto& section : translated.sections())
+    auto result = parsed.comment.brief_section() ?
+                      markup::as_xml(parsed.comment.brief_section().value()) :
+                      "";
+    for (auto& section : parsed.comment.sections())
         result += markup::as_xml(section);
     REQUIRE(result == xml);
 }
@@ -443,7 +444,13 @@ It requires extra long description.</description>
 metadata parse_metadata(const char* comment)
 {
     parser p;
-    return translate_ast(p, read_ast(p, comment)).metadata();
+    return parse(p, comment).comment.metadata();
+}
+
+matching_entity parse_entity(const char* comment)
+{
+    parser p;
+    return parse(p, comment).entity;
 }
 
 TEST_CASE("commands", "[comment]")
@@ -454,28 +461,28 @@ TEST_CASE("commands", "[comment]")
         REQUIRE(parse_metadata(R"(\exclude)").exclude() == exclude_mode::entity);
         REQUIRE(parse_metadata(R"(\exclude target)").exclude() == exclude_mode::target);
         REQUIRE(parse_metadata(R"(\exclude return)").exclude() == exclude_mode::return_type);
-        REQUIRE_THROWS_AS(parse_metadata(R"(\exclude foo)"), translation_error);
-        REQUIRE_THROWS_AS(parse_metadata("\\exclude\n\\exclude"), translation_error);
+        REQUIRE_THROWS_AS(parse_metadata(R"(\exclude foo)"), parse_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\exclude\n\\exclude"), parse_error);
     }
     SECTION("unique_name")
     {
         REQUIRE(parse_metadata("foo\nbar").unique_name() == type_safe::nullopt);
         REQUIRE(parse_metadata(R"(\unique_name new)").unique_name() == "new");
-        REQUIRE_THROWS_AS(parse_metadata(R"(\unique_name a b c)"), translation_error);
-        REQUIRE_THROWS_AS(parse_metadata("\\unique_name a\n\\unique_name b"), translation_error);
+        REQUIRE_THROWS_AS(parse_metadata(R"(\unique_name a b c)"), parse_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\unique_name a\n\\unique_name b"), parse_error);
     }
     SECTION("synopsis")
     {
         REQUIRE(parse_metadata("foo\nbar").synopsis() == type_safe::nullopt);
         REQUIRE(parse_metadata(R"(\synopsis new)").synopsis() == "new");
         REQUIRE(parse_metadata(R"(\synopsis a b c)").synopsis() == "a b c");
-        REQUIRE_THROWS_AS(parse_metadata("\\synopsis a\n\\synopsis b"), translation_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\synopsis a\n\\synopsis b"), parse_error);
     }
     SECTION("group")
     {
         REQUIRE(parse_metadata("foo\nbar").group() == type_safe::nullopt);
-        REQUIRE_THROWS_AS(parse_metadata(R"(\group)"), translation_error);
-        REQUIRE_THROWS_AS(parse_metadata("\\group a\n\\group b"), translation_error);
+        REQUIRE_THROWS_AS(parse_metadata(R"(\group)"), parse_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\group a\n\\group b"), parse_error);
 
         auto a = parse_metadata(R"(\group a)").group().value();
         REQUIRE(a.name() == "a");
@@ -496,46 +503,39 @@ TEST_CASE("commands", "[comment]")
     {
         REQUIRE(parse_metadata("foo\nbar").module() == type_safe::nullopt);
         REQUIRE(parse_metadata(R"(\module new)").module() == "new");
-        REQUIRE_THROWS_AS(parse_metadata(R"(\module a b c)"), translation_error);
-        REQUIRE_THROWS_AS(parse_metadata("\\module a\n\\module b"), translation_error);
+        REQUIRE_THROWS_AS(parse_metadata(R"(\module a b c)"), parse_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\module a\n\\module b"), parse_error);
     }
     SECTION("output_section")
     {
         REQUIRE(parse_metadata("foo\nbar").output_section() == type_safe::nullopt);
         REQUIRE(parse_metadata(R"(\output_section new)").output_section() == "new");
         REQUIRE(parse_metadata(R"(\output_section a b c)").output_section() == "a b c");
-        REQUIRE_THROWS_AS(parse_metadata("\\output_section a\n\\output_section b"),
-                          translation_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\output_section a\n\\output_section b"), parse_error);
     }
     SECTION("entity")
     {
-        REQUIRE(parse_metadata("foo\nbar").entity() == type_safe::nullvar);
-        REQUIRE(!parse_metadata("foo\nbar").is_remote());
+        REQUIRE(parse_entity("foo\nbar") == type_safe::nullvar);
 
-        REQUIRE(parse_metadata(R"(\entity new)")
-                    .entity()
-                    .value(type_safe::variant_type<remote_entity>{})
-                    .unique_name
-                == "new");
-        REQUIRE_THROWS_AS(parse_metadata(R"(\entity a b c)"), translation_error);
-        REQUIRE_THROWS_AS(parse_metadata("\\entity a\n\\entity b"), translation_error);
-        REQUIRE_THROWS_AS(parse_metadata("\\entity a\n\\file"), translation_error);
+        REQUIRE(get_remote_entity(parse_entity(R"(\entity new)")) == "new");
+        REQUIRE_THROWS_AS(parse_entity(R"(\entity a b c)"), parse_error);
+        REQUIRE_THROWS_AS(parse_entity("\\entity a\n\\entity b"), parse_error);
+        REQUIRE_THROWS_AS(parse_entity("\\entity a\n\\file"), parse_error);
     }
     SECTION("file")
     {
-        REQUIRE(
-            parse_metadata(R"(\file)").entity().has_value(type_safe::variant_type<current_file>{}));
-        REQUIRE_THROWS_AS(parse_metadata(R"(\file a)"), translation_error);
+        REQUIRE(is_file(parse_entity(R"(\file)")));
+        REQUIRE_THROWS_AS(parse_metadata(R"(\file a)"), parse_error);
     }
 }
 
-matching_entity parse_entity(const char* comment)
+matching_entity parse_entity_inline(const char* comment)
 {
     parser p;
-    auto   ast     = translate_ast(p, read_ast(p, comment));
-    auto&  inlines = ast.inlines();
+    auto   result  = parse(p, comment);
+    auto&  inlines = result.inlines;
     REQUIRE(inlines.size() == 1u);
-    return inlines[0u].metadata().entity();
+    return inlines[0u].entity;
 }
 
 TEST_CASE("inlines", "[comment]")
@@ -569,22 +569,15 @@ Details again.
     }
     SECTION("missing arguments")
     {
-        REQUIRE_THROWS_AS(parse_entity(R"(\param)"), translation_error);
-        REQUIRE_THROWS_AS(parse_entity(R"(\tparam)"), translation_error);
-        REQUIRE_THROWS_AS(parse_entity(R"(\base)"), translation_error);
+        REQUIRE_THROWS_AS(parse_entity_inline(R"(\param)"), parse_error);
+        REQUIRE_THROWS_AS(parse_entity_inline(R"(\tparam)"), parse_error);
+        REQUIRE_THROWS_AS(parse_entity_inline(R"(\base)"), parse_error);
     }
     SECTION("matching entity")
     {
-        REQUIRE(
-            parse_entity(R"(\param foo)").value(type_safe::variant_type<inline_param>{}).unique_name
-            == "foo");
-        REQUIRE(parse_entity(R"(\tparam foo)")
-                    .value(type_safe::variant_type<inline_tparam>{})
-                    .unique_name
-                == "foo");
-        REQUIRE(
-            parse_entity(R"(\base foo)").value(type_safe::variant_type<inline_base>{}).unique_name
-            == "foo");
+        REQUIRE(get_inline_param(parse_entity_inline(R"(\param foo)")) == "foo");
+        REQUIRE(get_inline_tparam(parse_entity_inline(R"(\tparam foo)")) == "foo");
+        REQUIRE(get_inline_base(parse_entity_inline(R"(\base foo)")) == "foo");
     }
     SECTION("content")
     {
@@ -606,8 +599,8 @@ This is details.
 )";
 
         parser p;
-        auto   ast     = translate_ast(p, read_ast(p, comment));
-        auto&  inlines = ast.inlines();
+        auto   result  = parse(p, comment);
+        auto&  inlines = result.inlines;
         REQUIRE(inlines.size() == 3u);
 
         auto xml_a = R"(<brief-section>This is brief.</brief-section>
@@ -616,14 +609,14 @@ This is details.
 This is still details.</paragraph>
 </details-section>
 )";
-        REQUIRE(markup::as_xml(inlines[0].brief_section())
-                    + markup::as_xml(inlines[0].details_section().value())
+        REQUIRE(markup::as_xml(inlines[0].comment.brief_section().value())
+                    + markup::as_xml(*inlines[0].comment.sections().begin())
                 == xml_a);
 
         auto xml_b = R"(<brief-section>This is just brief.</brief-section>
 )";
-        REQUIRE(!inlines[1].details_section());
-        REQUIRE(markup::as_xml(inlines[1].brief_section()) == xml_b);
+        REQUIRE(inlines[1].comment.sections().empty());
+        REQUIRE(markup::as_xml(inlines[1].comment.brief_section().value()) == xml_b);
 
         auto xml_c = R"(<brief-section>This is brief.</brief-section>
 <details-section>
@@ -632,9 +625,9 @@ This is still details.</paragraph>
 </details-section>
 )";
 
-        REQUIRE(inlines[2].metadata().exclude());
-        REQUIRE(markup::as_xml(inlines[2].brief_section())
-                    + markup::as_xml(inlines[2].details_section().value())
+        REQUIRE(inlines[2].comment.metadata().exclude());
+        REQUIRE(markup::as_xml(inlines[2].comment.brief_section().value())
+                    + markup::as_xml(*inlines[2].comment.sections().begin())
                 == xml_c);
     }
 }
