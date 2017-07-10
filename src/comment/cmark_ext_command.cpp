@@ -163,6 +163,9 @@ namespace
         else if (is_inline(command))
         {
             auto entity = parse_word(cur);
+            if (*cur == '\n')
+                // skip linemarker as well
+                ++cur;
             auto node = create_node(self, indent, parser, parent_container, node_inline(), command,
                                     entity.c_str());
 
@@ -376,10 +379,16 @@ namespace
         // don't have a new root node
         return nullptr;
     }
+
+    // initialize node types globally
+    // this avoids a race condition when the first parser is created
+    const auto init_nodes = (node_command(), node_inline(), node_section(), 0);
 }
 
 cmark_syntax_extension* standardese::comment::detail::create_command_extension(config& c)
 {
+    (void)init_nodes;
+
     auto ext = cmark_syntax_extension_new("standardese_command");
 
     cmark_syntax_extension_set_get_type_string_func(ext, [](cmark_syntax_extension*,

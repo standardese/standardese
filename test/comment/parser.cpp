@@ -595,12 +595,15 @@ This is unrelated.
 This is details.
 \exclude
 This is details.
+
+\param d
+\module d
 )";
 
         parser p;
         auto   result  = parse(p, comment);
         auto&  inlines = result.inlines;
-        REQUIRE(inlines.size() == 3u);
+        REQUIRE(inlines.size() == 4u);
 
         auto xml_a = R"(<brief-section>This is brief.</brief-section>
 <details-section>
@@ -628,5 +631,9 @@ This is still details.</paragraph>
         REQUIRE(markup::as_xml(inlines[2].comment.brief_section().value())
                     + markup::as_xml(*inlines[2].comment.sections().begin())
                 == xml_c);
+
+        REQUIRE(inlines[3].comment.sections().empty());
+        REQUIRE(!inlines[3].comment.brief_section());
+        REQUIRE(inlines[3].comment.metadata().module() == "d");
     }
 }
