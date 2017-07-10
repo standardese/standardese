@@ -593,15 +593,34 @@ This is unrelated.
 \param c This is brief.
 This is details.
 \exclude
-This is details.
+This is details.\
+This is unrelated.
 
 \param d
 \module d
 )";
 
         parser p;
-        auto   result  = parse(p, comment);
-        auto&  inlines = result.inlines;
+        auto   result = parse(p, comment);
+
+        auto xml = R"(<brief-section>This is unrelated.</brief-section>
+<details-section>
+<paragraph>This is unrelated.</paragraph>
+</details-section>
+<details-section>
+<paragraph>This is unrelated.</paragraph>
+</details-section>
+)";
+        {
+            auto str = result.comment.brief_section() ?
+                           markup::as_xml(result.comment.brief_section().value()) :
+                           "";
+            for (auto& sec : result.comment.sections())
+                str += markup::as_xml(sec);
+            REQUIRE(str == xml);
+        }
+
+        auto& inlines = result.inlines;
         REQUIRE(inlines.size() == 4u);
 
         auto xml_a = R"(<brief-section>This is brief.</brief-section>

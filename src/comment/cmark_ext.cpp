@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <cstring>
 #include <string>
 
 #include <type_safe/flag.hpp>
@@ -318,14 +319,14 @@ namespace
     {
         assert(cmark_node_get_type(section) == node_section()
                || cmark_node_get_type(section) == node_inline());
-        auto paragraph = cmark_node_first_child(section);
-        assert(!paragraph || cmark_node_get_type(paragraph) == CMARK_NODE_PARAGRAPH);
-        if (!paragraph)
-            return nullptr;
+        for (auto child = cmark_node_first_child(section); child; child = cmark_node_next(child))
+        {
+            if (cmark_node_get_type(child) == CMARK_NODE_PARAGRAPH)
+                for (auto cur = cmark_node_first_child(child); cur; cur = cmark_node_next(cur))
+                    if (cmark_node_get_type(cur) == CMARK_NODE_LINEBREAK)
+                        return cur;
+        }
 
-        for (auto cur = cmark_node_first_child(paragraph); cur; cur = cmark_node_next(cur))
-            if (cmark_node_get_type(cur) == CMARK_NODE_LINEBREAK)
-                return cur;
         return nullptr;
     }
 
@@ -366,6 +367,9 @@ namespace
             }
             else if (cmark_node_get_type(cur) == node_inline())
             {
+                if (auto linebreak = find_linebreak(cur))
+                    terminate_section(self, cur, linebreak);
+
                 create_implicit_brief_details(self, nullptr, cur);
             }
             else if (cmark_node_get_type(cur) != node_section()
