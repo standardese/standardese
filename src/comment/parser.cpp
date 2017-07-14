@@ -53,9 +53,7 @@ namespace
     class ast_root
     {
     public:
-        explicit ast_root(cmark_node* root) : root_(root)
-        {
-        }
+        explicit ast_root(cmark_node* root) : root_(root) {}
 
         ast_root(ast_root&& other) noexcept : root_(other.root_)
         {
@@ -418,9 +416,8 @@ namespace
         auto args = detail::get_command_arguments(node);
         for (auto ptr = args; *ptr; ++ptr)
             if (*ptr == ' ' || *ptr == '\t')
-                error(node,
-                      std::string("multiple arguments given for command '") + cmd
-                          + "', but only one expected");
+                error(node, std::string("multiple arguments given for command '") + cmd
+                                + "', but only one expected");
         return args;
     }
 
@@ -516,7 +513,7 @@ namespace
             else if (builder->entity.has_value())
                 error(node, "multiple file/entity commands for entity");
             else
-                builder->entity = remote_entity(get_single_arg(node, "entity"));
+                builder->entity = remote_entity(detail::get_command_arguments(node));
             break;
         case command_type::file:
             if (!builder)
@@ -713,9 +710,8 @@ namespace
                 case CMARK_NODE_CUSTOM_BLOCK:
                 case CMARK_NODE_CUSTOM_INLINE:
                 case CMARK_NODE_IMAGE:
-                    error(cur,
-                          std::string("forbidden CommonMark node of type \"")
-                              + cmark_node_get_type_string(cur) + "\"");
+                    error(cur, std::string("forbidden CommonMark node of type \"")
+                                   + cmark_node_get_type_string(cur) + "\"");
 
                 case CMARK_NODE_NONE:
                 case CMARK_NODE_DOCUMENT:

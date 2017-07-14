@@ -518,7 +518,6 @@ TEST_CASE("commands", "[comment]")
         REQUIRE(parse_entity("foo\nbar") == type_safe::nullvar);
 
         REQUIRE(get_remote_entity(parse_entity(R"(\entity new)")) == "new");
-        REQUIRE_THROWS_AS(parse_entity(R"(\entity a b c)"), parse_error);
         REQUIRE_THROWS_AS(parse_entity("\\entity a\n\\entity b"), parse_error);
         REQUIRE_THROWS_AS(parse_entity("\\entity a\n\\file"), parse_error);
     }

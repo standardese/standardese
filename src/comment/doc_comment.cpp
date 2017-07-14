@@ -11,6 +11,25 @@
 using namespace standardese;
 using namespace standardese::comment;
 
+doc_comment standardese::comment::merge(metadata data, doc_comment&& other)
+{
+    auto& other_data = other.metadata();
+    if (!data.exclude() && other_data.exclude())
+        data.set_exclude(other_data.exclude().value());
+    if (!data.unique_name() && other_data.unique_name())
+        data.set_unique_name(other_data.unique_name().value());
+    if (!data.synopsis() && other_data.synopsis())
+        data.set_synopsis(other_data.synopsis().value());
+    if (!data.group() && other_data.group())
+        data.set_group(other_data.group().value());
+    if (!data.module() && other_data.module())
+        data.set_module(other_data.module().value());
+    if (!data.output_section() && other_data.output_section())
+        data.set_output_section(other_data.output_section().value());
+
+    return doc_comment(std::move(data), std::move(other.brief_), std::move(other.sections_));
+}
+
 namespace
 {
     template <class Builder>
@@ -37,14 +56,14 @@ namespace
     }
 }
 
-void ::standardese::comment::set_sections(
-    standardese::markup::entity_documentation::builder& builder, const doc_comment& comment)
+void standardese::comment::set_sections(standardese::markup::entity_documentation::builder& builder,
+                                        const doc_comment&                                  comment)
 {
     set_sections_impl(builder, comment);
 }
 
-void ::standardese::comment::set_sections(standardese::markup::file_documentation::builder& builder,
-                                          const doc_comment&                                comment)
+void standardese::comment::set_sections(standardese::markup::file_documentation::builder& builder,
+                                        const doc_comment&                                comment)
 {
     set_sections_impl(builder, comment);
 }

@@ -23,8 +23,12 @@ namespace standardese
         {
             std::string unique_name;
 
-            explicit remote_entity(std::string name) : unique_name(std::move(name))
+            explicit remote_entity(std::string name)
             {
+                unique_name.reserve(name.size());
+                for (auto c : name)
+                    if (c != ' ')
+                        unique_name += c;
             }
         };
 
@@ -33,8 +37,15 @@ namespace standardese
         {
             std::string unique_name;
 
-            explicit inline_param(std::string name) : unique_name(std::move(name))
+            explicit inline_param(std::string name) : unique_name(std::move(name)) {}
+
+            friend bool operator==(const inline_param& lhs, const inline_param& rhs)
             {
+                return lhs.unique_name == rhs.unique_name;
+            }
+            friend bool operator!=(const inline_param& lhs, const inline_param& rhs)
+            {
+                return !(rhs == lhs);
             }
         };
 
@@ -43,8 +54,15 @@ namespace standardese
         {
             std::string unique_name;
 
-            explicit inline_tparam(std::string name) : unique_name(std::move(name))
+            explicit inline_tparam(std::string name) : unique_name(std::move(name)) {}
+
+            friend bool operator==(const inline_tparam& lhs, const inline_tparam& rhs)
             {
+                return lhs.unique_name == rhs.unique_name;
+            }
+            friend bool operator!=(const inline_tparam& lhs, const inline_tparam& rhs)
+            {
+                return !(rhs == lhs);
             }
         };
 
@@ -53,8 +71,15 @@ namespace standardese
         {
             std::string unique_name;
 
-            explicit inline_base(std::string name) : unique_name(std::move(name))
+            explicit inline_base(std::string name) : unique_name(std::move(name)) {}
+
+            friend bool operator==(const inline_base& lhs, const inline_base& rhs)
             {
+                return lhs.unique_name == rhs.unique_name;
+            }
+            friend bool operator!=(const inline_base& lhs, const inline_base& rhs)
+            {
+                return !(rhs == lhs);
             }
         };
 
