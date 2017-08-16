@@ -2,8 +2,8 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
-#ifndef STANDARDESE_COMMENT_CMARK_EXT_COMMAND_HPP_INCLUDED
-#define STANDARDESE_COMMENT_CMARK_EXT_COMMAND_HPP_INCLUDED
+#ifndef STANDARDESE_COMMENT_CMARK_EXT_HPP_INCLUDED
+#define STANDARDESE_COMMENT_CMARK_EXT_HPP_INCLUDED
 
 #include <cmark.h>
 
@@ -19,6 +19,7 @@ namespace standardese
     {
         namespace detail
         {
+            //=== command extension ===//
             cmark_syntax_extension* create_command_extension(config& c);
 
             cmark_node_type node_command();
@@ -45,8 +46,11 @@ namespace standardese
 
             // returns the inline entity name
             const char* get_inline_entity(cmark_node* node);
+
+            //=== no HTML extension ===//
+            cmark_syntax_extension* create_no_html_extension();
         } // namespace detail
     }
 } // namespace standardese::comment
 
-#endif // STANDARDESE_COMMENT_CMARK_EXT_SECTION_HPP_INCLUDED
+#endif // STANDARDESE_COMMENT_CMARK_EXT_HPP_INCLUDED

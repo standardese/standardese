@@ -24,7 +24,7 @@
 #include <standardese/markup/thematic_break.hpp>
 #include <standardese/markup/entity_kind.hpp>
 
-#include "cmark_ext_command.hpp"
+#include "cmark_ext.hpp"
 
 using namespace standardese;
 using namespace standardese::comment;
@@ -32,8 +32,11 @@ using namespace standardese::comment;
 parser::parser(comment::config c)
 : config_(std::move(c)), parser_(cmark_parser_new(CMARK_OPT_SMART))
 {
-    auto ext = detail::create_command_extension(config_);
-    cmark_parser_attach_syntax_extension(parser_, ext);
+    auto command_ext = detail::create_command_extension(config_);
+    cmark_parser_attach_syntax_extension(parser_, command_ext);
+
+    auto html_ext = detail::create_no_html_extension();
+    cmark_parser_attach_syntax_extension(parser_, html_ext);
 }
 
 parser::~parser()

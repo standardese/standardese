@@ -2,7 +2,7 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
-#include "cmark_ext_command.hpp"
+#include "cmark_ext.hpp"
 
 #include <cassert>
 #include <cstdint>
@@ -487,4 +487,65 @@ const char* standardese::comment::detail::get_inline_entity(cmark_node* node)
 {
     assert(cmark_node_get_type(node) == node_inline());
     return cmark_node_get_string_content(node);
+}
+
+cmark_syntax_extension* standardese::comment::detail::create_no_html_extension()
+{
+    auto ext = cmark_syntax_extension_new("standardese_no_html");
+    cmark_syntax_extension_set_postprocess_func(ext, [](cmark_syntax_extension* self, cmark_parser*,
+                                                        cmark_node* root) -> cmark_node* {
+        auto iter = cmark_iter_new(root);
+
+        auto ev = CMARK_EVENT_NONE;
+        while ((ev = cmark_iter_next(iter)) != CMARK_EVENT_DONE)
+        {
+            if (ev == CMARK_EVENT_EXIT)
+                continue;
+
+            auto node = cmark_iter_get_node(iter);
+            if (cmark_node_get_type(node) == CMARK_NODE_HTML_INLINE)
+            {
+                cmark_node* text;
+
+                auto prev = cmark_node_previous(node);
+                if (prev && cmark_node_get_type(prev) == CMARK_NODE_TEXT)
+                {
+                    text = prev;
+
+                    // prepend to previous text
+                    std::string content = cmark_node_get_literal(text);
+                    content += cmark_node_get_literal(node);
+                    cmark_node_set_literal(text, content.c_str());
+                }
+                else
+                {
+                    // create new text and replace node
+                    text = cmark_node_new(CMARK_NODE_TEXT);
+                    cmark_node_set_syntax_extension(text, self);
+                    cmark_node_set_literal(text, cmark_node_get_literal(node));
+
+                    cmark_node_replace(node, text);
+                }
+
+                cmark_node_free(node);
+
+                auto next = cmark_node_next(text);
+                if (next && cmark_node_get_type(next) == CMARK_NODE_TEXT)
+                {
+                    // merge with following text node
+                    std::string content = cmark_node_get_literal(text);
+                    content += cmark_node_get_literal(next);
+                    cmark_node_set_literal(text, content.c_str());
+
+                    cmark_node_free(next);
+                }
+
+                cmark_iter_reset(iter, text, CMARK_EVENT_ENTER);
+            }
+        }
+
+        cmark_iter_free(iter);
+        return nullptr; // no new root
+    });
+    return ext;
 }

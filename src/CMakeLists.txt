@@ -31,8 +31,8 @@ set(header
     ../include/standardese/logger.hpp)
 
 set(comment_src
-    comment/cmark_ext_command.hpp
-    comment/cmark_ext_command.cpp
+    comment/cmark_ext.hpp
+    comment/cmark_ext.cpp
     comment/config.cpp
     comment/doc_comment.cpp
     comment/parser.cpp)

@@ -46,17 +46,17 @@ TEST_CASE("cmark link", "[comment]")
 
 [external link](http://foonathan.net)
 [external link `2`](http://standardese.foonathan.net/ "title")
-[internal link](<> "name")
+[internal <link>](<> "name")
 [internal link `2`](standardese://name/ "title")
-[name]()
+[name<T>name]()
 )";
 
     auto xml = R"(<details-section>
 <paragraph><external-link url="http://foonathan.net">external link</external-link><soft-break></soft-break>
 <external-link title="title" url="http://standardese.foonathan.net/">external link <code>2</code></external-link><soft-break></soft-break>
-<internal-link unresolved-destination-id="name">internal link</internal-link><soft-break></soft-break>
+<internal-link unresolved-destination-id="name">internal &lt;link&gt;</internal-link><soft-break></soft-break>
 <internal-link title="title" unresolved-destination-id="name">internal link <code>2</code></internal-link><soft-break></soft-break>
-<internal-link unresolved-destination-id="name"></internal-link></paragraph>
+<internal-link unresolved-destination-id="name&lt;T&gt;name"></internal-link></paragraph>
 </details-section>
 )";
 
@@ -65,7 +65,6 @@ TEST_CASE("cmark link", "[comment]")
 
 TEST_CASE("forbidden cmark entities", "[comment]")
 {
-    REQUIRE_THROWS_AS(check_details(R"(Text <span>inline HTML</span>.)", ""), parse_error);
     REQUIRE_THROWS_AS(check_details(R"(<p>block HTML</p>)", ""), parse_error);
     REQUIRE_THROWS_AS(check_details(R"(![an image](img.png))", ""), parse_error);
 }
