@@ -201,7 +201,7 @@ const char* md_code_block::get_fence_info() const STANDARDESE_NOEXCEPT
 md_entity_ptr md_code_block::do_clone(const md_entity* parent) const
 {
     assert(parent);
-    return std::move(make(*parent, detail::unescape_code(get_string()).c_str(), get_fence_info()));
+    return make(*parent, detail::unescape_code(get_string()).c_str(), get_fence_info());
 }
 
 md_ptr<md_paragraph> md_paragraph::parse(cmark_node* cur, const md_entity& parent)
@@ -323,5 +323,5 @@ md_ptr<md_thematic_break> md_thematic_break::make(const md_entity& parent)
 md_entity_ptr md_thematic_break::do_clone(const md_entity* parent) const
 {
     assert(parent);
-    return std::move(make(*parent));
+    return make(*parent);
 }
