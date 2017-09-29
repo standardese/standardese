@@ -17,7 +17,7 @@ Read more in the introductory [blog post](http://foonathan.github.io/blog/2016/0
 
 ## Basic example
 
-Consider the following C++ header file:
+Consider the following C++ header file named `swap.h`:
 
 ```cpp
 #include <type_traits>
@@ -35,34 +35,34 @@ namespace std
 
 This will generate the following documentation:
 
-# Header file `swap.cpp`
-
-
-```cpp
-#include <type_traits>
-
-namespace std
-{
-    template <typename T>
-    void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
-    is_nothrow_move_assignable<T>::value);
-}
-```
-
-
-## Function template ``swap<T>``
-
-
-```cpp
-template <typename T>
-void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
-is_nothrow_move_assignable<T>::value);
-```
-
-
-*Effects:* Exchanges values stored in two locations.
-
-*Requires:* Type `T` shall be `MoveConstructible` and `MoveAssignable`.
+> # Header file `swap.cpp`
+>
+>
+> ```cpp
+> #include <type_traits>
+> 
+> namespace std
+> {
+>    template <typename T>
+>    void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
+>    is_nothrow_move_assignable<T>::value);
+> }
+> ```
+>
+>
+> ## Function template ``swap<T>``
+>
+>
+> ```cpp
+> template <typename T>
+> void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
+> is_nothrow_move_assignable<T>::value);
+> ```
+>
+>
+> *Effects:* Exchanges values stored in two locations.
+>
+> *Requires:* Type `T` shall be `MoveConstructible` and `MoveAssignable`.
 
 ---
 
