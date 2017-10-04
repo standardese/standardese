@@ -113,7 +113,7 @@ namespace standardese
         /// Parses the comment.
         /// \returns The parsed comment.
         /// \throws [standardese::comment::parse_error]() if an error occurred.
-        parse_result parse(const parser& p, const std::string& comment);
+        parse_result parse(const parser& p, const std::string& comment, bool has_matching_entity);
     }
 } // namespace standardese::comment
 

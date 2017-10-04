@@ -7,6 +7,7 @@
 #include <catch.hpp>
 
 #include <cppast/cpp_namespace.hpp>
+#include <cppast/cpp_type_alias.hpp>
 
 #include <standardese/markup/document.hpp>
 #include <standardese/markup/generator.hpp>
@@ -144,5 +145,64 @@ TEST_CASE("file_index")
 </entity-index-item>
 </file-index>
 )";
+    REQUIRE(markup::as_xml(*index.generate()) == xml);
+}
+
+TEST_CASE("module_index")
+{
+    // no need to test much here, the markup test does the most
+
+    auto module_a = markup::module_documentation::builder(markup::block_id("module-a"),
+                                                          markup::heading::build(markup::block_id(),
+                                                                                 "Module A"));
+    auto module_b = markup::module_documentation::builder(markup::block_id("module-b"),
+                                                          markup::heading::build(markup::block_id(),
+                                                                                 "Module B"));
+
+    module_index index;
+
+    index.register_module(std::move(module_b));
+    index.register_module(std::move(module_a));
+
+    auto brief_doc =
+        markup::brief_section::builder().add_child(markup::text::build("brief")).finish();
+
+    REQUIRE(
+        index.register_entity("module-a", "foo",
+                              *cppast::cpp_type_alias::build("foo", cppast::cpp_builtin_type::build(
+                                                                        cppast::cpp_int)),
+                              type_safe::ref(*brief_doc)));
+    REQUIRE(
+        index.register_entity("module-a", "bar",
+                              *cppast::cpp_type_alias::build("bar", cppast::cpp_builtin_type::build(
+                                                                        cppast::cpp_int)),
+                              type_safe::nullopt));
+    REQUIRE(
+        index.register_entity("module-b", "baz",
+                              *cppast::cpp_type_alias::build("baz", cppast::cpp_builtin_type::build(
+                                                                        cppast::cpp_int)),
+                              type_safe::ref(*brief_doc)));
+
+    auto xml = R"*(<module-index id="module-index">
+<heading>Project modules</heading>
+<module-documentation id="module-a">
+<heading>Module A</heading>
+<entity-index-item id="foo">
+<entity><internal-link unresolved-destination-id="foo"><code>foo</code></internal-link></entity>
+<brief>brief</brief>
+</entity-index-item>
+<entity-index-item id="bar">
+<entity><internal-link unresolved-destination-id="bar"><code>bar</code></internal-link></entity>
+</entity-index-item>
+</module-documentation>
+<module-documentation id="module-b">
+<heading>Module B</heading>
+<entity-index-item id="baz">
+<entity><internal-link unresolved-destination-id="baz"><code>baz</code></internal-link></entity>
+<brief>brief</brief>
+</entity-index-item>
+</module-documentation>
+</module-index>
+)*";
     REQUIRE(markup::as_xml(*index.generate()) == xml);
 }

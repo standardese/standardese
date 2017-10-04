@@ -230,6 +230,11 @@ namespace
         write_documentation(s, doc, "namespace-documentation");
     }
 
+    void write(stream& s, const module_documentation& doc)
+    {
+        write_documentation(s, doc, "module-documentation");
+    }
+
     template <class Index>
     void write_index(stream& s, const Index& index, const char* tag_name)
     {
@@ -247,6 +252,11 @@ namespace
     void write(stream& s, const entity_index& index)
     {
         write_index(s, index, "entity-index");
+    }
+
+    void write(stream& s, const module_index& index)
+    {
+        write_index(s, index, "module-index");
     }
 
     void write(stream& s, const heading& h)
@@ -476,11 +486,13 @@ namespace
             STANDARDESE_DETAIL_HANDLE(file_documentation)
             STANDARDESE_DETAIL_HANDLE(entity_documentation)
             STANDARDESE_DETAIL_HANDLE(namespace_documentation)
+            STANDARDESE_DETAIL_HANDLE(module_documentation)
 
             STANDARDESE_DETAIL_HANDLE(entity_index_item)
 
             STANDARDESE_DETAIL_HANDLE(file_index)
             STANDARDESE_DETAIL_HANDLE(entity_index)
+            STANDARDESE_DETAIL_HANDLE(module_index)
 
             STANDARDESE_DETAIL_HANDLE(heading)
             STANDARDESE_DETAIL_HANDLE(subheading)

@@ -101,7 +101,8 @@ namespace
 
 documents standardese_tool::generate(
     const standardese::generation_config& gen_config,
-    const standardese::synopsis_config& syn_config, const cppast::cpp_entity_index& index,
+    const standardese::synopsis_config& syn_config, const standardese::comment_registry& comments,
+    const cppast::cpp_entity_index&                                index,
     const std::vector<std::unique_ptr<standardese::doc_cpp_file>>& files, unsigned no_threads)
 {
     std::mutex                                                         result_mutex;
@@ -110,6 +111,7 @@ documents standardese_tool::generate(
 
     standardese::entity_index eindex;
     standardese::file_index   findex;
+    standardese::module_index mindex;
 
     {
         thread_pool pool(no_threads);
@@ -128,6 +130,7 @@ documents standardese_tool::generate(
                 standardese::register_documentations(*cppast::default_logger(), linker,
                                                      *finished_doc);
                 standardese::register_index_entities(eindex, file->file());
+                standardese::register_module_entities(mindex, comments, file->file());
                 findex.register_file(file->link_name(), file->output_name(),
                                      file->comment() ? file->comment().value().brief_section() :
                                                        nullptr);
@@ -147,6 +150,10 @@ documents standardese_tool::generate(
     auto findex_doc = get_index_document(findex.generate(), "Files", "standardese_files");
     standardese::register_documentations(*cppast::default_logger(), linker, *findex_doc);
     result.push_back(std::move(findex_doc));
+
+    auto mindex_doc = get_index_document(mindex.generate(), "Modules", "standardese_modules");
+    standardese::register_documentations(*cppast::default_logger(), linker, *mindex_doc);
+    result.push_back(std::move(mindex_doc));
 
     for (auto& doc : result)
         standardese::resolve_links(*cppast::default_logger(), linker, *doc);

@@ -15,6 +15,7 @@
 #include <standardese/markup/link.hpp>
 #include <standardese/markup/code_block.hpp>
 #include <standardese/markup/entity_kind.hpp>
+#include <standardese/comment.hpp>
 #include <standardese/doc_entity.hpp>
 
 #include "entity_visitor.hpp"
@@ -223,11 +224,12 @@ void file_index::register_file(std::string link_name, std::string file_name,
     file_index::file f(file_name, get_entity_entry(file_name, link_name, brief));
 
     std::lock_guard<std::mutex> lock(mutex_);
-    auto                        iter = std::upper_bound(files_.begin(), files_.end(), f,
-                                 [](const file_index::file& lhs, const file_index::file& rhs) {
-                                     return lhs.name < rhs.name;
-                                 });
-    files_.insert(iter, std::move(f));
+    auto                        range = std::equal_range(files_.begin(), files_.end(), f,
+                                  [](const file_index::file& lhs, const file_index::file& rhs) {
+                                      return lhs.name < rhs.name;
+                                  });
+    if (range.first == range.second)
+        files_.insert(range.first, std::move(f));
 }
 
 std::unique_ptr<markup::file_index> file_index::generate() const
@@ -241,4 +243,97 @@ std::unique_ptr<markup::file_index> file_index::generate() const
     lock.unlock();
 
     return builder.finish();
+}
+
+void module_index::register_module(markup::module_documentation::builder doc) const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto                        range = std::equal_range(modules_.begin(), modules_.end(), doc,
+                                  [](const markup::module_documentation::builder& lhs,
+                                     const markup::module_documentation::builder& rhs) {
+                                      return lhs.id().as_str() < rhs.id().as_str();
+                                  });
+    if (range.first == range.second)
+        modules_.insert(range.first, std::move(doc));
+}
+
+bool module_index::register_entity(std::string module, std::string link_name,
+                                   const cppast::cpp_entity&                            entity,
+                                   type_safe::optional_ref<const markup::brief_section> brief) const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto                        iter = std::lower_bound(modules_.begin(), modules_.end(), module,
+                                 [](const markup::module_documentation::builder& lhs,
+                                    const std::string& rhs) { return lhs.id().as_str() < rhs; });
+    if (iter == modules_.end() || iter->id().as_str() != module)
+        return false;
+    iter->add_child(get_entity_entry(entity.name(), std::move(link_name), std::move(brief)));
+    return true;
+}
+
+std::unique_ptr<markup::module_index> module_index::generate() const
+{
+    markup::module_index::builder builder(
+        markup::heading::build(markup::block_id(), "Project modules"));
+
+    std::unique_lock<std::mutex> lock(mutex_);
+    for (auto& module : modules_)
+        builder.add_child(module.finish());
+    lock.unlock();
+
+    return builder.finish();
+}
+
+void standardese::register_module_entities(const module_index&     index,
+                                           const comment_registry& registry,
+                                           const cppast::cpp_file& file)
+{
+    auto get_module = [&](const cppast::cpp_entity& e) -> type_safe::optional<std::string> {
+        if (auto doc_e = static_cast<const doc_entity*>(e.user_data()))
+        {
+            if (doc_e->comment())
+                return doc_e->comment().value().metadata().module();
+        }
+
+        return type_safe::nullopt;
+    };
+
+    auto register_entity = [&](std::string module, const cppast::cpp_entity& e) {
+        assert(e.user_data());
+        auto& doc_e = *static_cast<const doc_entity*>(e.user_data());
+        return index.register_entity(std::move(module), doc_e.link_name(), e,
+                                     doc_e.comment().value().brief_section());
+    };
+
+    auto get_module_doc = [&](const std::string& name) {
+        markup::module_documentation::builder builder(markup::block_id(name),
+                                                      markup::heading::builder(markup::block_id())
+                                                          .add_child(markup::text::build("Module "))
+                                                          .add_child(markup::code::build(name))
+                                                          .finish());
+
+        if (auto module_comment = registry.get_comment(name))
+            comment::set_sections(builder, module_comment.value());
+
+        return builder;
+    };
+
+    cppast::visit(file, [&](const cppast::cpp_entity& e, const cppast::visitor_info& info) {
+        if (info.event != cppast::visitor_info::container_entity_exit)
+        {
+            auto module = get_module(e);
+            if (module && !register_entity(module.value(), e))
+            {
+                // need to register module
+                auto module_doc = get_module_doc(module.value());
+                index.register_module(std::move(module_doc));
+
+                // can register again now
+                auto result = register_entity(module.value(), e);
+                assert(result);
+            }
+        }
+
+        return true;
+    });
 }

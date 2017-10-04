@@ -112,6 +112,10 @@ namespace standardese
         /// \group set_sections
         void set_sections(markup::namespace_documentation::builder& builder,
                           const doc_comment&                        comment);
+
+        /// \group set_sections
+        void set_sections(markup::module_documentation::builder& builder,
+                          const doc_comment&                     comment);
     }
 } // namespace standardese::comment
 
