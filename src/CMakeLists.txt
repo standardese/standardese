@@ -29,6 +29,7 @@ set(markup_header
 set(header
     ../include/standardese/comment.hpp
     ../include/standardese/doc_entity.hpp
+    ../include/standardese/linker.hpp
     ../include/standardese/logger.hpp)
 
 set(comment_src
@@ -59,7 +60,7 @@ set(src
     get_special_entity.hpp
     comment.cpp
     doc_entity.cpp
-    )
+    linker.cpp)
 
 add_library(standardese ${detail_header} ${comment_header} ${markup_header} ${header} ${comment_src} ${markup_src} ${src})
 target_include_directories(standardese PUBLIC

@@ -8,10 +8,33 @@
 
 #include <standardese/markup/document.hpp>
 #include <standardese/markup/generator.hpp>
+#include <standardese/linker.hpp>
 
 #include "test_parser.hpp"
 
 using namespace standardese;
+
+std::vector<std::string> get_details(const std::string& str)
+{
+    std::vector<std::string> result;
+
+    std::string::size_type start = 0u;
+    while (true)
+    {
+        start = str.find("<details-section>\n", start);
+        if (start == std::string::npos)
+            break;
+        start += std::strlen("<details-section>\n");
+
+        auto end = str.find("</details-section>", start);
+        REQUIRE(end != std::string::npos);
+        result.push_back(str.substr(start, end - start));
+
+        start = end;
+    }
+
+    return result;
+}
 
 // no need to test documentation comments extensively
 // just the top-level documentation hierarchy
@@ -236,6 +259,123 @@ void a(int param);
 <brief-section id="a()-brief">Documentation.</brief-section>
 </entity-documentation>
 </file-documentation>
+)*");
+    }
+    SECTION("linking")
+    {
+        auto target_file =
+            build_doc_entities(comments, index, "documentation__linking_target.cpp", R"(
+/// A function.
+void func(int a);
+
+void func2(int a);
+
+/// A struct.
+template <typename T>
+struct foo
+{
+    int member; //< A member.
+
+    /// Doc.
+    /// \unique_name *bar()
+    void baz();
+};
+)");
+
+        auto file = build_doc_entities(comments, index, "documentation__linking.cpp", R"(
+/// Another function.
+void other_func();
+
+/// Documentation with links.
+///
+/// [other_func()]()
+/// [func(int)]()
+/// [func(int).a]()
+/// [func2(int)]()
+/// [func2(int).a]()
+/// [foo<T>]()
+/// [foo<T>::member]()
+/// [foo<T>::bar()]()
+void bar();
+
+/// Documentation with short links.
+///
+/// [other_func]()
+/// [func]()
+/// [func().a]()
+/// [foo]()
+/// [foo::member]()
+/// [foo::bar]()
+void bar2();
+
+namespace ns
+{
+    /// doc
+    void a();
+
+    /// doc
+    template <typename T>
+    struct b
+    {
+        /// doc
+        void c();
+
+        /// Documentation with relative links.
+        ///
+        /// [*a]()
+        /// [?b]()
+        /// [*c]()
+        void bar3();
+    };
+}
+)");
+
+        auto target_doc = markup::main_document::builder("target", "target")
+                              .add_child(generate_documentation({}, {}, index, *target_file))
+                              .finish();
+        auto doc = markup::main_document::builder("doc", "doc")
+                       .add_child(generate_documentation({}, {}, index, *file))
+                       .finish();
+
+        linker l;
+        register_documentations(*test_logger(), l, *target_doc);
+        register_documentations(*test_logger(), l, *doc);
+
+        resolve_links(*test_logger(), l, *target_doc);
+        resolve_links(*test_logger(), l, *doc);
+
+        auto xml_doc = markup::as_xml(*doc);
+        auto details = get_details(xml_doc);
+        REQUIRE(details.size() == 3u);
+
+        // long links
+        REQUIRE(
+            details[0]
+            == R"*(<paragraph><internal-link destination-document="doc" destination-id="other_func()"><code>other_func()</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="target" destination-id="func(int)"><code>func(int)</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="target" destination-id="func(int)"><code>func(int).a</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="target" destination-id="documentation__linking_target.cpp"><code>func2(int)</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="target" destination-id="documentation__linking_target.cpp"><code>func2(int).a</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="target" destination-id="foo&lt;T&gt;"><code>foo&lt;T&gt;</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="target" destination-id="foo&lt;T&gt;::member"><code>foo&lt;T&gt;::member</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="target" destination-id="foo&lt;T&gt;::bar()"><code>foo&lt;T&gt;::bar()</code></internal-link></paragraph>
+)*");
+        // short links
+        REQUIRE(
+            details[1]
+            == R"*(<paragraph><internal-link destination-document="doc" destination-id="other_func()"><code>other_func</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="target" destination-id="func(int)"><code>func</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="target" destination-id="func(int)"><code>func().a</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="target" destination-id="foo&lt;T&gt;"><code>foo</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="target" destination-id="foo&lt;T&gt;::member"><code>foo::member</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="target" destination-id="foo&lt;T&gt;::bar()"><code>foo::bar</code></internal-link></paragraph>
+)*");
+        // relative links
+        REQUIRE(
+            details[2]
+            == R"*(<paragraph><internal-link destination-document="doc" destination-id="ns::a()"><code>a</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="doc" destination-id="ns::b&lt;T&gt;"><code>b</code></internal-link><soft-break></soft-break>
+<internal-link destination-document="doc" destination-id="ns::b&lt;T&gt;::c()"><code>c</code></internal-link></paragraph>
 )*");
     }
 }

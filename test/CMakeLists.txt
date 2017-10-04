@@ -23,6 +23,7 @@ set(tests
     comment.cpp
     doc_entity.cpp
     documentation.cpp
+    linker.cpp
     synopsis.cpp)
 
 add_executable(standardese_test test.cpp test_logger.hpp test_parser.hpp ${tests})
