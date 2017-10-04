@@ -72,11 +72,11 @@ namespace ns
         auto doc = generate_documentation({}, {}, index, *file);
         REQUIRE(markup::as_xml(*doc) == R"*(<file-documentation id="documentation__basic.cpp">
 <heading>Header file <code>documentation__basic.cpp</code></heading>
-<code-block language="cpp"><code-block-keyword>void</code-block-keyword> <internal-link unresolved-destination-id="foo()"><code-block-identifier>foo</code-block-identifier></internal-link><code-block-punctuation>(</code-block-punctuation><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+<code-block language="cpp"><code-block-keyword>void</code-block-keyword> <documentation-link unresolved-destination-id="foo()"><code-block-identifier>foo</code-block-identifier></documentation-link><code-block-punctuation>(</code-block-punctuation><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <soft-break></soft-break>
 <code-block-keyword>namespace</code-block-keyword> <code-block-identifier>ns</code-block-identifier><soft-break></soft-break>
 <code-block-punctuation>{</code-block-punctuation><soft-break></soft-break>
-    <code-block-keyword>class</code-block-keyword> <internal-link unresolved-destination-id="ns::bar"><code-block-identifier>bar</code-block-identifier></internal-link><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+    <code-block-keyword>class</code-block-keyword> <documentation-link unresolved-destination-id="ns::bar"><code-block-identifier>bar</code-block-identifier></documentation-link><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <code-block-punctuation>}</code-block-punctuation><soft-break></soft-break>
 </code-block>
 <entity-documentation id="foo()">
@@ -91,10 +91,10 @@ namespace ns
 <heading>Class <code>bar</code></heading>
 <code-block language="cpp"><code-block-keyword>class</code-block-keyword> <code-block-identifier>bar</code-block-identifier><soft-break></soft-break>
 <code-block-punctuation>{</code-block-punctuation><soft-break></soft-break>
-    <code-block-keyword>virtual</code-block-keyword> <code-block-keyword>void</code-block-keyword> <internal-link unresolved-destination-id="ns::bar::f1(int)"><code-block-identifier>f1</code-block-identifier></internal-link><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <code-block-identifier>i</code-block-identifier><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+    <code-block-keyword>virtual</code-block-keyword> <code-block-keyword>void</code-block-keyword> <documentation-link unresolved-destination-id="ns::bar::f1(int)"><code-block-identifier>f1</code-block-identifier></documentation-link><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <code-block-identifier>i</code-block-identifier><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <soft-break></soft-break>
 <code-block-keyword>public</code-block-keyword><code-block-punctuation>:</code-block-punctuation><soft-break></soft-break>
-    <code-block-keyword>void</code-block-keyword> <internal-link unresolved-destination-id="ns::bar::f2()const"><code-block-identifier>f2</code-block-identifier></internal-link><code-block-punctuation>(</code-block-punctuation><code-block-punctuation>)</code-block-punctuation> <code-block-keyword>const</code-block-keyword><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+    <code-block-keyword>void</code-block-keyword> <documentation-link unresolved-destination-id="ns::bar::f2()const"><code-block-identifier>f2</code-block-identifier></documentation-link><code-block-punctuation>(</code-block-punctuation><code-block-punctuation>)</code-block-punctuation> <code-block-keyword>const</code-block-keyword><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <code-block-punctuation>};</code-block-punctuation><soft-break></soft-break>
 </code-block>
 <brief-section id="ns::bar-brief">A class.</brief-section>
@@ -146,24 +146,24 @@ enum class bar
         auto doc = generate_documentation({}, {}, index, *file);
         REQUIRE(markup::as_xml(*doc) == R"*(<file-documentation id="documentation__inlines.cpp">
 <heading>Header file <code>documentation__inlines.cpp</code></heading>
-<code-block language="cpp"><code-block-keyword>template</code-block-keyword> <code-block-punctuation>&lt;</code-block-punctuation><code-block-keyword>typename</code-block-keyword> <internal-link unresolved-destination-id="foo&lt;A,B,C&gt;.A"><code-block-identifier>A</code-block-identifier></internal-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>typename</code-block-keyword> <internal-link unresolved-destination-id="foo&lt;A,B,C&gt;.B"><code-block-identifier>B</code-block-identifier></internal-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>typename</code-block-keyword> <code-block-identifier>C</code-block-identifier><code-block-punctuation>&gt;</code-block-punctuation><soft-break></soft-break>
-<code-block-keyword>struct</code-block-keyword> <internal-link unresolved-destination-id="foo&lt;A,B,C&gt;"><code-block-identifier>foo</code-block-identifier></internal-link><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+<code-block language="cpp"><code-block-keyword>template</code-block-keyword> <code-block-punctuation>&lt;</code-block-punctuation><code-block-keyword>typename</code-block-keyword> <documentation-link unresolved-destination-id="foo&lt;A,B,C&gt;.A"><code-block-identifier>A</code-block-identifier></documentation-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>typename</code-block-keyword> <documentation-link unresolved-destination-id="foo&lt;A,B,C&gt;.B"><code-block-identifier>B</code-block-identifier></documentation-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>typename</code-block-keyword> <code-block-identifier>C</code-block-identifier><code-block-punctuation>&gt;</code-block-punctuation><soft-break></soft-break>
+<code-block-keyword>struct</code-block-keyword> <documentation-link unresolved-destination-id="foo&lt;A,B,C&gt;"><code-block-identifier>foo</code-block-identifier></documentation-link><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <soft-break></soft-break>
-<code-block-keyword>void</code-block-keyword> <internal-link unresolved-destination-id="func(int,int)"><code-block-identifier>func</code-block-identifier></internal-link><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <internal-link unresolved-destination-id="func(int,int).a"><code-block-identifier>a</code-block-identifier></internal-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>int</code-block-keyword> <internal-link unresolved-destination-id="func(int,int).b"><code-block-identifier>b</code-block-identifier></internal-link><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+<code-block-keyword>void</code-block-keyword> <documentation-link unresolved-destination-id="func(int,int)"><code-block-identifier>func</code-block-identifier></documentation-link><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <documentation-link unresolved-destination-id="func(int,int).a"><code-block-identifier>a</code-block-identifier></documentation-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>int</code-block-keyword> <documentation-link unresolved-destination-id="func(int,int).b"><code-block-identifier>b</code-block-identifier></documentation-link><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <soft-break></soft-break>
-<code-block-keyword>enum</code-block-keyword> <code-block-keyword>class</code-block-keyword> <internal-link unresolved-destination-id="bar"><code-block-identifier>bar</code-block-identifier></internal-link><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+<code-block-keyword>enum</code-block-keyword> <code-block-keyword>class</code-block-keyword> <documentation-link unresolved-destination-id="bar"><code-block-identifier>bar</code-block-identifier></documentation-link><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 </code-block>
 <entity-documentation id="foo&lt;A,B,C&gt;">
 <heading>Struct <code>foo</code></heading>
-<code-block language="cpp"><code-block-keyword>template</code-block-keyword> <code-block-punctuation>&lt;</code-block-punctuation><code-block-keyword>typename</code-block-keyword> <internal-link unresolved-destination-id="foo&lt;A,B,C&gt;.A"><code-block-identifier>A</code-block-identifier></internal-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>typename</code-block-keyword> <internal-link unresolved-destination-id="foo&lt;A,B,C&gt;.B"><code-block-identifier>B</code-block-identifier></internal-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>typename</code-block-keyword> <code-block-identifier>C</code-block-identifier><code-block-punctuation>&gt;</code-block-punctuation><soft-break></soft-break>
+<code-block language="cpp"><code-block-keyword>template</code-block-keyword> <code-block-punctuation>&lt;</code-block-punctuation><code-block-keyword>typename</code-block-keyword> <documentation-link unresolved-destination-id="foo&lt;A,B,C&gt;.A"><code-block-identifier>A</code-block-identifier></documentation-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>typename</code-block-keyword> <documentation-link unresolved-destination-id="foo&lt;A,B,C&gt;.B"><code-block-identifier>B</code-block-identifier></documentation-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>typename</code-block-keyword> <code-block-identifier>C</code-block-identifier><code-block-punctuation>&gt;</code-block-punctuation><soft-break></soft-break>
 <code-block-keyword>struct</code-block-keyword> <code-block-identifier>foo</code-block-identifier><soft-break></soft-break>
-<code-block-punctuation>:</code-block-punctuation> <internal-link unresolved-destination-id="foo&lt;A,B,C&gt;::C"><code-block-identifier>C</code-block-identifier></internal-link><soft-break></soft-break>
+<code-block-punctuation>:</code-block-punctuation> <documentation-link unresolved-destination-id="foo&lt;A,B,C&gt;::C"><code-block-identifier>C</code-block-identifier></documentation-link><soft-break></soft-break>
 <code-block-punctuation>{</code-block-punctuation><soft-break></soft-break>
-    <code-block-keyword>int</code-block-keyword> <internal-link unresolved-destination-id="foo&lt;A,B,C&gt;::d"><code-block-identifier>d</code-block-identifier></internal-link><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+    <code-block-keyword>int</code-block-keyword> <documentation-link unresolved-destination-id="foo&lt;A,B,C&gt;::d"><code-block-identifier>d</code-block-identifier></documentation-link><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <soft-break></soft-break>
     <code-block-keyword>float</code-block-keyword> <code-block-identifier>e</code-block-identifier><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <soft-break></soft-break>
-    <code-block-keyword>void</code-block-keyword><code-block-punctuation>*</code-block-punctuation> <internal-link unresolved-destination-id="foo&lt;A,B,C&gt;::f"><code-block-identifier>f</code-block-identifier></internal-link><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+    <code-block-keyword>void</code-block-keyword><code-block-punctuation>*</code-block-punctuation> <documentation-link unresolved-destination-id="foo&lt;A,B,C&gt;::f"><code-block-identifier>f</code-block-identifier></documentation-link><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <code-block-punctuation>};</code-block-punctuation><soft-break></soft-break>
 </code-block>
 <brief-section id="foo&lt;A,B,C&gt;-brief">Class.</brief-section>
@@ -196,7 +196,7 @@ enum class bar
 </entity-documentation>
 <entity-documentation id="func(int,int)">
 <heading>Function <code>func</code></heading>
-<code-block language="cpp"><code-block-keyword>void</code-block-keyword> <code-block-identifier>func</code-block-identifier><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <internal-link unresolved-destination-id="func(int,int).a"><code-block-identifier>a</code-block-identifier></internal-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>int</code-block-keyword> <internal-link unresolved-destination-id="func(int,int).b"><code-block-identifier>b</code-block-identifier></internal-link><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+<code-block language="cpp"><code-block-keyword>void</code-block-keyword> <code-block-identifier>func</code-block-identifier><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <documentation-link unresolved-destination-id="func(int,int).a"><code-block-identifier>a</code-block-identifier></documentation-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>int</code-block-keyword> <documentation-link unresolved-destination-id="func(int,int).b"><code-block-identifier>b</code-block-identifier></documentation-link><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 </code-block>
 <brief-section id="func(int,int)-brief">Function.</brief-section>
 <list-section name="Parameters">
@@ -214,8 +214,8 @@ enum class bar
 <heading>Enumeration <code>bar</code></heading>
 <code-block language="cpp"><code-block-keyword>enum</code-block-keyword> <code-block-keyword>class</code-block-keyword> <code-block-identifier>bar</code-block-identifier><soft-break></soft-break>
 <code-block-punctuation>{</code-block-punctuation><soft-break></soft-break>
-    <internal-link unresolved-destination-id="bar::a"><code-block-identifier>a</code-block-identifier></internal-link><code-block-punctuation>,</code-block-punctuation><soft-break></soft-break>
-    <internal-link unresolved-destination-id="bar::b"><code-block-identifier>b</code-block-identifier></internal-link><soft-break></soft-break>
+    <documentation-link unresolved-destination-id="bar::a"><code-block-identifier>a</code-block-identifier></documentation-link><code-block-punctuation>,</code-block-punctuation><soft-break></soft-break>
+    <documentation-link unresolved-destination-id="bar::b"><code-block-identifier>b</code-block-identifier></documentation-link><soft-break></soft-break>
 <code-block-punctuation>};</code-block-punctuation><soft-break></soft-break>
 </code-block>
 <brief-section id="bar-brief">Enum.</brief-section>
@@ -248,8 +248,8 @@ void a(int param);
         REQUIRE(markup::as_xml(*doc) == R"*(<file-documentation id="documentation__groups.cpp">
 <heading>Header file <code>documentation__groups.cpp</code></heading>
 <code-block language="cpp">//=== The a ===//<soft-break></soft-break>
-<code-block-keyword>void</code-block-keyword> <internal-link unresolved-destination-id="a"><code-block-identifier>a</code-block-identifier></internal-link><code-block-punctuation>(</code-block-punctuation><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
-<code-block-keyword>void</code-block-keyword> <internal-link unresolved-destination-id="a(int)"><code-block-identifier>a</code-block-identifier></internal-link><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <code-block-identifier>param</code-block-identifier><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+<code-block-keyword>void</code-block-keyword> <documentation-link unresolved-destination-id="a"><code-block-identifier>a</code-block-identifier></documentation-link><code-block-punctuation>(</code-block-punctuation><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+<code-block-keyword>void</code-block-keyword> <documentation-link unresolved-destination-id="a(int)"><code-block-identifier>a</code-block-identifier></documentation-link><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <code-block-identifier>param</code-block-identifier><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 </code-block>
 <entity-documentation id="a()">
 <heading>The a</heading>
@@ -325,11 +325,11 @@ namespace ns
         REQUIRE(markup::as_xml(*result) == R"*(<entity-index id="entity-index">
 <heading>Project index</heading>
 <entity-index-item id="a()">
-<entity><internal-link unresolved-destination-id="a()"><code>a</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="a()"><code>a</code></documentation-link></entity>
 <brief>brief</brief>
 </entity-index-item>
 <entity-index-item id="b()">
-<entity><internal-link unresolved-destination-id="b()"><code>b</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="b()"><code>b</code></documentation-link></entity>
 </entity-index-item>
 <namespace-documentation id="ns">
 <heading>Namespace <code>ns</code></heading>
@@ -338,23 +338,23 @@ namespace ns
 <paragraph>It even has details!</paragraph>
 </details-section>
 <entity-index-item id="ns::c()">
-<entity><internal-link unresolved-destination-id="ns::c()"><code>c</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="ns::c()"><code>c</code></documentation-link></entity>
 </entity-index-item>
 <entity-index-item id="ns::d()">
-<entity><internal-link unresolved-destination-id="ns::d()"><code>d</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="ns::d()"><code>d</code></documentation-link></entity>
 <brief>brief</brief>
 </entity-index-item>
 <entity-index-item id="ns::e&lt;T&gt;">
-<entity><internal-link unresolved-destination-id="ns::e&lt;T&gt;"><code>e</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="ns::e&lt;T&gt;"><code>e</code></documentation-link></entity>
 <brief>brief</brief>
 </entity-index-item>
 <entity-index-item id="ns::g()">
-<entity><internal-link unresolved-destination-id="ns::g()"><code>g</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="ns::g()"><code>g</code></documentation-link></entity>
 </entity-index-item>
 <namespace-documentation id="ns::inner">
 <heading>Namespace <code>inner</code></heading>
 <entity-index-item id="ns::inner::h()">
-<entity><internal-link unresolved-destination-id="ns::inner::h()"><code>h</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="ns::inner::h()"><code>h</code></documentation-link></entity>
 </entity-index-item>
 </namespace-documentation>
 </namespace-documentation>
@@ -387,18 +387,18 @@ void foo(int);
 <module-documentation id="bar">
 <heading>Module <code>bar</code></heading>
 <entity-index-item id="bar()">
-<entity><internal-link unresolved-destination-id="bar()"><code>bar</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="bar()"><code>bar</code></documentation-link></entity>
 </entity-index-item>
 </module-documentation>
 <module-documentation id="foo">
 <heading>Module <code>foo</code></heading>
 <brief-section>brief</brief-section>
 <entity-index-item id="foo()">
-<entity><internal-link unresolved-destination-id="foo()"><code>foo</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="foo()"><code>foo</code></documentation-link></entity>
 <brief>brief</brief>
 </entity-index-item>
 <entity-index-item id="foo(int)">
-<entity><internal-link unresolved-destination-id="foo(int)"><code>foo</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="foo(int)"><code>foo</code></documentation-link></entity>
 </entity-index-item>
 </module-documentation>
 </module-index>
@@ -494,31 +494,31 @@ namespace ns
         // long links
         REQUIRE(
             details[0]
-            == R"*(<paragraph><internal-link destination-document="doc" destination-id="other_func()"><code>other_func()</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="target" destination-id="func(int)"><code>func(int)</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="target" destination-id="func(int)"><code>func(int).a</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="target" destination-id="documentation__linking_target.cpp"><code>func2(int)</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="target" destination-id="documentation__linking_target.cpp"><code>func2(int).a</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="target" destination-id="foo&lt;T&gt;"><code>foo&lt;T&gt;</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="target" destination-id="foo&lt;T&gt;::member"><code>foo&lt;T&gt;::member</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="target" destination-id="foo&lt;T&gt;::bar()"><code>foo&lt;T&gt;::bar()</code></internal-link></paragraph>
+            == R"*(<paragraph><documentation-link destination-document="doc" destination-id="other_func()"><code>other_func()</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="target" destination-id="func(int)"><code>func(int)</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="target" destination-id="func(int)"><code>func(int).a</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="target" destination-id="documentation__linking_target.cpp"><code>func2(int)</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="target" destination-id="documentation__linking_target.cpp"><code>func2(int).a</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="target" destination-id="foo&lt;T&gt;"><code>foo&lt;T&gt;</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="target" destination-id="foo&lt;T&gt;::member"><code>foo&lt;T&gt;::member</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="target" destination-id="foo&lt;T&gt;::bar()"><code>foo&lt;T&gt;::bar()</code></documentation-link></paragraph>
 )*");
         // short links
         REQUIRE(
             details[1]
-            == R"*(<paragraph><internal-link destination-document="doc" destination-id="other_func()"><code>other_func</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="target" destination-id="func(int)"><code>func</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="target" destination-id="func(int)"><code>func().a</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="target" destination-id="foo&lt;T&gt;"><code>foo</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="target" destination-id="foo&lt;T&gt;::member"><code>foo::member</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="target" destination-id="foo&lt;T&gt;::bar()"><code>foo::bar</code></internal-link></paragraph>
+            == R"*(<paragraph><documentation-link destination-document="doc" destination-id="other_func()"><code>other_func</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="target" destination-id="func(int)"><code>func</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="target" destination-id="func(int)"><code>func().a</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="target" destination-id="foo&lt;T&gt;"><code>foo</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="target" destination-id="foo&lt;T&gt;::member"><code>foo::member</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="target" destination-id="foo&lt;T&gt;::bar()"><code>foo::bar</code></documentation-link></paragraph>
 )*");
         // relative links
         REQUIRE(
             details[2]
-            == R"*(<paragraph><internal-link destination-document="doc" destination-id="ns::a()"><code>a</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="doc" destination-id="ns::b&lt;T&gt;"><code>b</code></internal-link><soft-break></soft-break>
-<internal-link destination-document="doc" destination-id="ns::b&lt;T&gt;::c()"><code>c</code></internal-link></paragraph>
+            == R"*(<paragraph><documentation-link destination-document="doc" destination-id="ns::a()"><code>a</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="doc" destination-id="ns::b&lt;T&gt;"><code>b</code></documentation-link><soft-break></soft-break>
+<documentation-link destination-document="doc" destination-id="ns::b&lt;T&gt;::c()"><code>c</code></documentation-link></paragraph>
 )*");
     }
 }

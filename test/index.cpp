@@ -75,22 +75,22 @@ using c = int;
     auto xml = R"(<entity-index id="entity-index">
 <heading>Project index</heading>
 <entity-index-item id="a">
-<entity><internal-link unresolved-destination-id="a"><code>a</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="a"><code>a</code></documentation-link></entity>
 </entity-index-item>
 <entity-index-item id="b">
-<entity><internal-link unresolved-destination-id="b"><code>b</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="b"><code>b</code></documentation-link></entity>
 <brief>some brief documentation</brief>
 </entity-index-item>
 <entity-index-item id="c">
-<entity><internal-link unresolved-destination-id="c"><code>c</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="c"><code>c</code></documentation-link></entity>
 </entity-index-item>
 <namespace-documentation id="ns1">
 <heading>no heading</heading>
 <entity-index-item id="a">
-<entity><internal-link unresolved-destination-id="a"><code>a</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="a"><code>a</code></documentation-link></entity>
 </entity-index-item>
 <entity-index-item id="b">
-<entity><internal-link unresolved-destination-id="b"><code>b</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="b"><code>b</code></documentation-link></entity>
 <brief>some brief documentation</brief>
 </entity-index-item>
 </namespace-documentation>
@@ -98,16 +98,16 @@ using c = int;
 <heading>no heading</heading>
 <brief-section>some brief documentation</brief-section>
 <entity-index-item id="a">
-<entity><internal-link unresolved-destination-id="a"><code>a</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="a"><code>a</code></documentation-link></entity>
 </entity-index-item>
 <entity-index-item id="b">
-<entity><internal-link unresolved-destination-id="b"><code>b</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="b"><code>b</code></documentation-link></entity>
 <brief>some brief documentation</brief>
 </entity-index-item>
 <namespace-documentation id="inner">
 <heading>no heading</heading>
 <entity-index-item id="c">
-<entity><internal-link unresolved-destination-id="c"><code>c</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="c"><code>c</code></documentation-link></entity>
 </entity-index-item>
 </namespace-documentation>
 </namespace-documentation>
@@ -134,14 +134,14 @@ TEST_CASE("file_index")
     auto xml = R"(<file-index id="file-index">
 <heading>Project files</heading>
 <entity-index-item id="a.cpp">
-<entity><internal-link unresolved-destination-id="a.cpp"><code>a.cpp</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="a.cpp"><code>a.cpp</code></documentation-link></entity>
 </entity-index-item>
 <entity-index-item id="b.cpp">
-<entity><internal-link unresolved-destination-id="b.cpp"><code>b.cpp</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="b.cpp"><code>b.cpp</code></documentation-link></entity>
 <brief>some brief documentation</brief>
 </entity-index-item>
 <entity-index-item id="c.cpp">
-<entity><internal-link unresolved-destination-id="c.cpp"><code>c.cpp</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="c.cpp"><code>c.cpp</code></documentation-link></entity>
 </entity-index-item>
 </file-index>
 )";
@@ -188,17 +188,17 @@ TEST_CASE("module_index")
 <module-documentation id="module-a">
 <heading>Module A</heading>
 <entity-index-item id="foo">
-<entity><internal-link unresolved-destination-id="foo"><code>foo</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="foo"><code>foo</code></documentation-link></entity>
 <brief>brief</brief>
 </entity-index-item>
 <entity-index-item id="bar">
-<entity><internal-link unresolved-destination-id="bar"><code>bar</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="bar"><code>bar</code></documentation-link></entity>
 </entity-index-item>
 </module-documentation>
 <module-documentation id="module-b">
 <heading>Module B</heading>
 <entity-index-item id="baz">
-<entity><internal-link unresolved-destination-id="baz"><code>baz</code></internal-link></entity>
+<entity><documentation-link unresolved-destination-id="baz"><code>baz</code></documentation-link></entity>
 <brief>brief</brief>
 </entity-index-item>
 </module-documentation>

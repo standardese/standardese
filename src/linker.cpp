@@ -16,13 +16,17 @@
 #include <standardese/markup/documentation.hpp>
 #include <standardese/markup/entity_kind.hpp>
 #include <standardese/markup/index.hpp>
-#include <standardese/markup/link.hpp>
 #include <standardese/doc_entity.hpp>
 #include <standardese/logger.hpp>
 
 #include "get_special_entity.hpp"
 
 using namespace standardese;
+
+void linker::register_external(std::string namespace_name, std::string url)
+{
+    external_doc_[std::move(namespace_name)] = std::move(url);
+}
 
 namespace
 {
@@ -132,6 +136,28 @@ bool linker::register_documentation(std::string link_name, const markup::documen
 
 namespace
 {
+    bool has_scope(const std::string& str, const std::string& scope)
+    {
+        return std::strncmp(str.c_str(), scope.c_str(), scope.size()) == 0
+               && str[scope.size()] == ':';
+    }
+
+    markup::url get_url(const std::string& url, const std::string& link_name)
+    {
+        std::string result;
+
+        for (auto iter = url.begin(); iter != url.end(); ++iter)
+        {
+            if (*iter == '$' && iter != std::prev(url.end()) && *++iter == '$')
+                // sequence of two dollar signs
+                result += link_name;
+            else
+                result += *iter;
+        }
+
+        return markup::url(result);
+    }
+
     std::string get_scope_name(const cppast::cpp_entity& entity)
     {
         auto scope      = entity.scope_name();
@@ -152,25 +178,37 @@ namespace
     }
 }
 
-type_safe::optional_ref<const markup::block_reference> linker::lookup_documentation(
-    type_safe::optional_ref<const cppast::cpp_entity> context, std::string link_name) const
+type_safe::variant<type_safe::nullvar_t, markup::block_reference, markup::url> linker::
+    lookup_documentation(type_safe::optional_ref<const cppast::cpp_entity> context,
+                         std::string                                       link_name) const
 {
     auto relative = is_relative(link_name);
     link_name     = process_link_name(std::move(link_name));
 
+    // performs local lookup
     auto do_lookup = [&](const std::string& link_name)
-        -> type_safe::optional_ref<const markup::block_reference> {
+        -> type_safe::variant<type_safe::nullvar_t, markup::block_reference, markup::url> {
         std::lock_guard<std::mutex> lock(mutex_);
         auto                        iter = map_.find(process_link_name(link_name));
         if (iter == map_.end())
-            return nullptr;
-        return type_safe::ref(iter->second);
+            return type_safe::nullvar;
+        return iter->second;
     };
 
-    if (!relative)
+    auto external_iter = external_doc_.lower_bound(link_name);
+    if (external_iter != external_doc_.begin()
+        && has_scope(link_name, std::prev(external_iter)->first))
+    {
+        // external doc
+        --external_iter;
+        return get_url(external_iter->second, link_name);
+    }
+    else if (!relative)
+        // absolute lookup
         return do_lookup(link_name);
     else
     {
+        // relative lookup
         while (context)
         {
             if (auto result = do_lookup(get_entity_scope(context.value()) + link_name))
@@ -180,7 +218,7 @@ type_safe::optional_ref<const markup::block_reference> linker::lookup_documentat
             context = context.value().parent();
         }
 
-        return nullptr;
+        return type_safe::nullvar;
     }
 }
 
@@ -272,8 +310,8 @@ void standardese::register_documentations(const cppast::diagnostic_logger& logge
 
 namespace
 {
-    cppast::source_location get_location(const markup::document_entity& document,
-                                         const markup::internal_link&   link)
+    cppast::source_location get_location(const markup::document_entity&    document,
+                                         const markup::documentation_link& link)
     {
         auto result = cppast::source_location::make_file(document.output_name().name());
 
@@ -316,23 +354,26 @@ void standardese::resolve_links(const cppast::diagnostic_logger& logger, const l
 
     type_safe::optional_ref<const cppast::cpp_entity> context;
     markup::visit(document, [&](const markup::entity& entity) {
-        if (entity.kind() == markup::entity_kind::internal_link)
+        if (entity.kind() == markup::entity_kind::documentation_link)
         {
-            auto& link = static_cast<const markup::internal_link&>(entity);
+            auto& link = static_cast<const markup::documentation_link&>(entity);
             if (auto unresolved = link.unresolved_destination())
             {
                 auto destination = l.lookup_documentation(context, unresolved.value());
-                if (destination)
+                if (auto block = destination.optional_value(
+                        type_safe::variant_type<markup::block_reference>{}))
                 {
-                    auto same_document = !destination.value().document()
-                                         || destination.value().document().value().name()
-                                                == document.output_name().name();
+                    auto same_document =
+                        !block.value().document()
+                        || block.value().document().value().name() == document.output_name().name();
                     if (!same_document
-                        || destination.value().id().as_str()
-                               != get_documentation_block(entity).as_str())
+                        || block.value().id().as_str() != get_documentation_block(entity).as_str())
                         // only resolve if points to something different
-                        link.resolve_destination(destination.value());
+                        link.resolve_destination(block.value());
                 }
+                else if (auto url =
+                             destination.optional_value(type_safe::variant_type<markup::url>{}))
+                    link.resolve_destination(url.value());
                 else
                     logger.log("standardese linker",
                                make_diagnostic(get_location(document, link),

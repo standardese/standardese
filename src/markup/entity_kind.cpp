@@ -24,7 +24,7 @@ bool standardese::markup::is_phrasing(standardese::markup::entity_kind kind) noe
     case entity_kind::term:
     case entity_kind::description:
     case entity_kind::external_link:
-    case entity_kind::internal_link:
+    case entity_kind::documentation_link:
         return true;
 
     case entity_kind::main_document:
@@ -100,7 +100,7 @@ bool standardese::markup::is_block(standardese::markup::entity_kind kind) noexce
     case entity_kind::term:
     case entity_kind::description:
     case entity_kind::external_link:
-    case entity_kind::internal_link:
+    case entity_kind::documentation_link:
     case entity_kind::brief_section:
     case entity_kind::details_section:
     case entity_kind::inline_section:
@@ -157,7 +157,7 @@ bool standardese::markup::is_documentation(standardese::markup::entity_kind kind
     case entity_kind::soft_break:
     case entity_kind::hard_break:
     case entity_kind::external_link:
-    case entity_kind::internal_link:
+    case entity_kind::documentation_link:
         break;
     }
 

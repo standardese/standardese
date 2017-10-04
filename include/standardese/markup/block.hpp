@@ -102,7 +102,7 @@ namespace standardese
 
         /// A reference to a block specified by output name and id.
         ///
-        /// It is used as the target of [standardese::markup::internal_link](),
+        /// It is used as the target of [standardese::markup::documentation_link](),
         /// for example.
         class block_reference
         {
