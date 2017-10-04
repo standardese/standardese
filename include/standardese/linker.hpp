@@ -5,11 +5,14 @@
 #ifndef STANDARDESE_LINKER_HPP_INCLUDED
 #define STANDARDESE_LINKER_HPP_INCLUDED
 
+#include <map>
 #include <mutex>
 #include <stdexcept>
 #include <unordered_map>
 
-#include <standardese/markup/block.hpp>
+#include <type_safe/variant.hpp>
+
+#include <standardese/markup/link.hpp>
 
 namespace cppast
 {
@@ -30,6 +33,8 @@ namespace standardese
     class linker
     {
     public:
+        void register_external(std::string namespace_name, std::string url);
+
         /// \effects Registers the given documentation under a certain name.
         /// All unresolved links with that name will resolve to the given documentation.
         /// If `force` is `true`, it will replace a previous registered documentation.
@@ -41,12 +46,15 @@ namespace standardese
 
         /// \returns A reference to the documentation for the given linke name, if there is any.
         /// \notes This function is thread safe.
-        type_safe::optional_ref<const markup::block_reference> lookup_documentation(
-            type_safe::optional_ref<const cppast::cpp_entity> context, std::string link_name) const;
+        type_safe::variant<type_safe::nullvar_t, markup::block_reference, markup::url>
+            lookup_documentation(type_safe::optional_ref<const cppast::cpp_entity> context,
+                                 std::string                                       link_name) const;
 
     private:
         mutable std::mutex                                               mutex_;
         mutable std::unordered_map<std::string, markup::block_reference> map_;
+
+        std::map<std::string, std::string> external_doc_;
     };
 
     /// Registers all documentations in a document.
