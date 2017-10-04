@@ -96,3 +96,51 @@ std::unique_ptr<entity> entity_index::do_clone() const
             detail::unchecked_downcast<markup::block_entity>(child.clone()));
     return b.finish();
 }
+
+entity_kind module_documentation::do_get_kind() const noexcept
+{
+    return entity_kind::module_documentation;
+}
+
+void module_documentation::do_visit(detail::visitor_callback_t cb, void* mem) const
+{
+    if (header())
+        cb(mem, header().value().heading());
+    for (auto& sec : doc_sections())
+        cb(mem, sec);
+
+    for (auto& child : *this)
+        cb(mem, child);
+}
+
+std::unique_ptr<entity> module_documentation::do_clone() const
+{
+    builder b(id(),
+              header() ? type_safe::make_optional(header().value().clone()) : type_safe::nullopt);
+    for (auto& sec : doc_sections())
+        b.add_section_impl(detail::unchecked_downcast<doc_section>(sec.clone()));
+    for (auto& child : *this)
+        b.container_builder::add_child(
+            detail::unchecked_downcast<entity_index_item>(child.clone()));
+    return b.finish();
+}
+
+entity_kind module_index::do_get_kind() const noexcept
+{
+    return entity_kind::module_index;
+}
+
+void module_index::do_visit(detail::visitor_callback_t cb, void* mem) const
+{
+    cb(mem, heading());
+    for (auto& child : *this)
+        cb(mem, child);
+}
+
+std::unique_ptr<entity> module_index::do_clone() const
+{
+    builder b(detail::unchecked_downcast<markup::heading>(heading().clone()));
+    for (auto& child : *this)
+        b.add_child(detail::unchecked_downcast<module_documentation>(child.clone()));
+    return b.finish();
+}

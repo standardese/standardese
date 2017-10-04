@@ -242,3 +242,27 @@ std::unique_ptr<markup::file_index> file_index::generate() const
 
     return builder.finish();
 }
+
+void module_index::register_module(markup::module_documentation::builder doc) const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto                        iter = std::upper_bound(modules_.begin(), modules_.end(), doc,
+                                 [](const markup::module_documentation::builder& lhs,
+                                    const markup::module_documentation::builder& rhs) {
+                                     return lhs.id().as_str() < rhs.id().as_str();
+                                 });
+    modules_.insert(iter, std::move(doc));
+}
+
+std::unique_ptr<markup::module_index> module_index::generate() const
+{
+    markup::module_index::builder builder(
+        markup::heading::build(markup::block_id(), "Project modules"));
+
+    std::unique_lock<std::mutex> lock(mutex_);
+    for (auto& module : modules_)
+        builder.add_child(module.finish());
+    lock.unlock();
+
+    return builder.finish();
+}

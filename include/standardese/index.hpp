@@ -115,6 +115,24 @@ namespace standardese
         mutable std::mutex        mutex_;
         mutable std::vector<file> files_;
     };
+
+    /// An index of all the modules.
+    class module_index
+    {
+    public:
+        /// \effects Registers a module passing its (incomplete) documentation.
+        /// \notes This function is thread safe.
+        void register_module(markup::module_documentation::builder doc) const;
+
+        /// \returns The markup containing the index of all modules registered so far.
+        /// \requires This function must only be called once.
+        /// \notes This function is thread safe.
+        std::unique_ptr<markup::module_index> generate() const;
+
+    private:
+        mutable std::mutex                                         mutex_;
+        mutable std::vector<markup::module_documentation::builder> modules_;
+    };
 } // namespace standardese
 
 #endif // STANDARDESE_INDEX_HPP_INCLUDED

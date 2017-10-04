@@ -19,11 +19,13 @@ namespace standardese
             file_documentation,
             entity_documentation,
             namespace_documentation,
+            module_documentation,
 
             entity_index_item,
 
             file_index,
             entity_index,
+            module_index,
 
             heading,
             subheading,

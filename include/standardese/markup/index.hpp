@@ -210,6 +210,65 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
         };
+
+        /// The documentation of a module.
+        ///
+        /// It is meant to be used in the module index.
+        class module_documentation final : public documentation_entity,
+                                           public container_entity<entity_index_item>
+        {
+        public:
+            /// Builds the documentation of a module.
+            class builder : public documentation_builder<container_builder<module_documentation>>
+            {
+            public:
+                /// \effects Creates it giving the id and header.
+                builder(block_id id, type_safe::optional<documentation_header> h)
+                : documentation_builder(std::unique_ptr<module_documentation>(
+                      new module_documentation(std::move(id), std::move(h), nullptr)))
+                {
+                }
+            };
+
+        private:
+            entity_kind do_get_kind() const noexcept override;
+
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
+            std::unique_ptr<entity> do_clone() const override;
+
+            using documentation_entity::documentation_entity;
+        };
+
+        /// The index of all module.
+        /// \notes This is created by the [standardese::module_index]().
+        class module_index final : public index_entity,
+                                   public container_entity<module_documentation>
+        {
+        public:
+            /// Builds the file index.
+            class builder : public container_builder<module_index>
+            {
+            public:
+                /// \effects Creates it given the heading.
+                builder(std::unique_ptr<markup::heading> h)
+                : container_builder(std::unique_ptr<module_index>(new module_index(std::move(h))))
+                {
+                }
+            };
+
+        private:
+            module_index(std::unique_ptr<markup::heading> h)
+            : index_entity(block_id("module-index"), std::move(h))
+            {
+            }
+
+            entity_kind do_get_kind() const noexcept override;
+
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
+            std::unique_ptr<entity> do_clone() const override;
+        };
     }
 } // namespace standardese::markup
 

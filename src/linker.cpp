@@ -193,7 +193,8 @@ namespace
         markup::visit(document, [&](const markup::entity& e) {
             if (e.kind() == markup::entity_kind::file_documentation)
                 file_visitor(static_cast<const markup::file_documentation&>(e));
-            else if (e.kind() == markup::entity_kind::namespace_documentation)
+            else if (e.kind() == markup::entity_kind::namespace_documentation
+                     || e.kind() == markup::entity_kind::module_documentation)
                 // note: no need to handle entity_documentation
                 doc_visitor(static_cast<const markup::documentation_entity&>(e));
         });

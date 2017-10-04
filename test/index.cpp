@@ -146,3 +146,31 @@ TEST_CASE("file_index")
 )";
     REQUIRE(markup::as_xml(*index.generate()) == xml);
 }
+
+TEST_CASE("module_index")
+{
+    // no need to test much here, the markup test does the most
+
+    auto module_a = markup::module_documentation::builder(markup::block_id("module-a"),
+                                                          markup::heading::build(markup::block_id(),
+                                                                                 "Module A"));
+    auto module_b = markup::module_documentation::builder(markup::block_id("module-b"),
+                                                          markup::heading::build(markup::block_id(),
+                                                                                 "Module B"));
+
+    module_index index;
+    index.register_module(std::move(module_b));
+    index.register_module(std::move(module_a));
+
+    auto xml = R"(<module-index id="module-index">
+<heading>Project modules</heading>
+<module-documentation id="module-a">
+<heading>Module A</heading>
+</module-documentation>
+<module-documentation id="module-b">
+<heading>Module B</heading>
+</module-documentation>
+</module-index>
+)";
+    REQUIRE(markup::as_xml(*index.generate()) == xml);
+}

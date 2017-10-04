@@ -140,3 +140,78 @@ TEST_CASE("markup::entity_index", "[markup]")
     REQUIRE(as_xml(*index->clone()) == xml);
     REQUIRE(as_html(*index) == html);
 }
+
+TEST_CASE("markup::module_index", "[markup]")
+{
+    // note: no need to test entity_index_item, already done by file
+    module_index::builder b(heading::build(block_id(), "The module index"));
+
+    module_documentation::builder module1(block_id("module1"),
+                                          heading::build(block_id(), "Module 1"));
+    module1.add_child(
+        entity_index_item::build(block_id("a"), term::build(text::build("Entity a"))));
+    b.add_child(module1.finish());
+
+    module_documentation::builder module2(block_id("module2"),
+                                          heading::build(block_id(), "Module 2"));
+    module2.add_brief(brief_section::builder().add_child(text::build("Brief")).finish());
+    module2.add_details(
+        details_section::builder()
+            .add_child(paragraph::builder().add_child(text::build("Details")).finish())
+            .finish());
+    module2.add_child(
+        entity_index_item::build(block_id("b"), term::build(text::build("Entity b"))));
+    b.add_child(module2.finish());
+
+    auto index = b.finish();
+
+    auto xml  = R"(<module-index id="module-index">
+<heading>The module index</heading>
+<module-documentation id="module1">
+<heading>Module 1</heading>
+<entity-index-item id="a">
+<entity>Entity a</entity>
+</entity-index-item>
+</module-documentation>
+<module-documentation id="module2">
+<heading>Module 2</heading>
+<brief-section>Brief</brief-section>
+<details-section>
+<paragraph>Details</paragraph>
+</details-section>
+<entity-index-item id="b">
+<entity>Entity b</entity>
+</entity-index-item>
+</module-documentation>
+</module-index>
+)";
+    auto html = R"(<ul id="standardese-module-index" class="standardese-module-index">
+<h1>The module index</h1>
+<li id="standardese-module1" class="standardese-module-documentation">
+<h2 class="standardese-module-documentation-heading">Module 1</h2>
+<ul class="standardese-module-members">
+<li id="standardese-a" class="standardese-entity-index-item">
+<dl>
+<dt>Entity a</dt>
+</dl>
+</li>
+</ul>
+</li>
+<li id="standardese-module2" class="standardese-module-documentation">
+<h2 class="standardese-module-documentation-heading">Module 2</h2>
+<p class="standardese-brief-section">Brief</p>
+<p>Details</p>
+<ul class="standardese-module-members">
+<li id="standardese-b" class="standardese-entity-index-item">
+<dl>
+<dt>Entity b</dt>
+</dl>
+</li>
+</ul>
+</li>
+</ul>
+)";
+
+    REQUIRE(as_xml(*index->clone()) == xml);
+    REQUIRE(as_html(*index) == html);
+}

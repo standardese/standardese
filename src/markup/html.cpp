@@ -412,6 +412,18 @@ namespace
             write_index_child(list, child);
     }
 
+    void write(stream& s, const module_documentation& doc)
+    {
+        auto item = s.open_tag(true, true, "li", doc.id(), "module-documentation");
+
+        write_doc_header(item, doc, "module-documentation-heading");
+        write_documentation(item, doc);
+
+        auto list = item.open_tag(true, true, "ul", block_id(), "module-members");
+        for (auto& child : doc)
+            write(list, child);
+    }
+
     void write_term_description(stream& s, const term& t, const description* desc, block_id id,
                                 const char* class_name);
 
@@ -427,6 +439,11 @@ namespace
     void write_index_child(stream& s, const entity_index_item& item)
     {
         write(s, item);
+    }
+
+    void write_index_child(stream& s, const module_documentation& doc)
+    {
+        write(s, doc);
     }
 
     template <class Index>
@@ -446,6 +463,11 @@ namespace
     void write(stream& s, const entity_index& index)
     {
         write_index(s, index, "entity-index");
+    }
+
+    void write(stream& s, const module_index& index)
+    {
+        write_index(s, index, "module-index");
     }
 
     void write(stream& s, const heading& h, const char* tag)
@@ -668,6 +690,7 @@ namespace
 
             STANDARDESE_DETAIL_HANDLE(file_index)
             STANDARDESE_DETAIL_HANDLE(entity_index)
+            STANDARDESE_DETAIL_HANDLE(module_index)
 
             STANDARDESE_DETAIL_HANDLE(heading)
             STANDARDESE_DETAIL_HANDLE(subheading)
@@ -704,6 +727,7 @@ namespace
 #undef STANDARDESE_DETAIL_HANDLE_CODE_BLOCK
 
         case entity_kind::namespace_documentation:
+        case entity_kind::module_documentation:
         case entity_kind::entity_index_item:
         case entity_kind::list_item:
         case entity_kind::term:
