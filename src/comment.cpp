@@ -4,13 +4,13 @@
 
 #include <standardese/comment.hpp>
 
-#include <cppast/cpp_class.hpp>
-#include <cppast/cpp_file.hpp>
-#include <cppast/cpp_function.hpp>
-#include <cppast/cpp_template.hpp>
+#include <cppast/cpp_friend.hpp>
+#include <cppast/cpp_namespace.hpp>
 #include <cppast/visitor.hpp>
 
 #include <algorithm>
+
+#include "get_special_entity.hpp"
 
 using namespace standardese;
 
@@ -70,38 +70,6 @@ namespace
         return make_diagnostic(cppast::source_location::make_entity(entity.name()),
                                std::forward<Args>(args)...);
     }
-
-    type_safe::optional_ref<const cppast::cpp_function_base> get_function(
-        const cppast::cpp_entity& e)
-    {
-        if (cppast::is_function(e.kind()))
-            return type_safe::ref(static_cast<const cppast::cpp_function_base&>(e));
-        else if (cppast::is_template(e.kind()))
-            return get_function(*static_cast<const cppast::cpp_template&>(e).begin());
-        else
-            return type_safe::nullopt;
-    }
-
-    type_safe::optional_ref<const cppast::cpp_template> get_template(const cppast::cpp_entity& e)
-    {
-        if (cppast::is_template(e.kind()))
-            return type_safe::ref(static_cast<const cppast::cpp_template&>(e));
-        else if (cppast::is_templated(e))
-            return get_template(e.parent().value());
-        else
-            return type_safe::nullopt;
-    }
-
-    type_safe::optional_ref<const cppast::cpp_class> get_class(const cppast::cpp_entity& e)
-    {
-        if (e.kind() == cppast::cpp_class::kind())
-            return type_safe::ref(static_cast<const cppast::cpp_class&>(e));
-        else if (cppast::is_template(e.kind()))
-            return get_class(*static_cast<const cppast::cpp_template&>(e).begin());
-        else
-            return type_safe::nullopt;
-    }
-
     template <class Inline>
     type_safe::optional<comment::unmatched_doc_comment> find_inline(comment::parse_result& result,
                                                                     const Inline&          entity)
@@ -148,13 +116,13 @@ namespace
                          const cppast::cpp_entity& entity, const MatchRegister& register_commented,
                          const UnmatchRegister& register_uncommented)
     {
-        if (auto func = get_function(entity))
+        if (auto func = detail::get_function(entity))
             process_inlines<comment::inline_param>(comment, func.value().parameters(),
                                                    register_commented, register_uncommented);
-        if (auto templ = get_template(entity))
+        if (auto templ = detail::get_template(entity))
             process_inlines<comment::inline_param>(comment, templ.value().parameters(),
                                                    register_commented, register_uncommented);
-        if (auto c = get_class(entity))
+        if (auto c = detail::get_class(entity))
             process_inlines<comment::inline_base>(comment, c.value().bases(), register_commented,
                                                   register_uncommented);
 
@@ -205,11 +173,10 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
                     return comment::parse(p, str);
                 });
 
-                if (comment)
+                if (comment && comment.value().comment)
                     // register comment
-                    // important to do this before the inlines, as parent needs to be processed before the child,
-                    // for the unqiue name calculation
-                    register_commented(type_safe::ref(entity), std::move(comment.value().comment));
+                    register_commented(type_safe::ref(entity),
+                                       std::move(comment.value().comment.value()));
                 else
                     register_uncommented(type_safe::ref(entity));
 
@@ -232,12 +199,15 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
         if (comment::is_file(comment.entity))
         {
             // comment for current file
-            if (!register_commented(file, std::move(comment.comment)))
+            if (!register_commented(file, std::move(comment.comment.value())))
                 logger_->log("standardese comment",
                              make_semantic_diagnostic(*file, "multiple file comments"));
         }
         else if (auto name = comment::get_remote_entity(comment.entity))
+        {
+            assert(comment.comment);
             free_comments_.push_back(std::move(comment));
+        }
         else
             logger_->log("standardese comment",
                          make_semantic_diagnostic(*file, "unmatched comment doesn't have a remote "
@@ -247,13 +217,24 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
 
 comment_registry file_comment_parser::finish()
 {
+    // find suitable entities for the free comments
     for (auto& free : free_comments_)
     {
-        auto iter = uncommented_.find(comment::get_remote_entity(free.entity).value());
-        if (iter != uncommented_.end())
+        auto result = uncommented_.equal_range(comment::get_remote_entity(free.entity).value());
+        if (result.first != result.second)
         {
-            register_commented(type_safe::ref(*iter->second), std::move(free.comment));
-            uncommented_.erase(iter);
+            auto metadata = free.comment.value().metadata();
+
+            register_commented(type_safe::ref(*result.first->second),
+                               std::move(free.comment.value()));
+            uncommented_.erase(result.first++);
+
+            while (result.first != result.second)
+            {
+                register_commented(type_safe::ref(*result.first->second),
+                                   comment::doc_comment(metadata, nullptr, {}));
+                ++result.first;
+            }
         }
         else
             logger_->log("standardese comment",
@@ -266,6 +247,23 @@ comment_registry file_comment_parser::finish()
     return std::move(registry_);
 }
 
+bool file_comment_parser::register_commented(type_safe::object_ref<const cppast::cpp_entity> entity,
+                                             comment::doc_comment comment) const
+{
+    auto cmd_comment = !comment.brief_section() && comment.sections().empty();
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (comment.metadata().group())
+        registry_.add_to_group(comment.metadata().group().value().name(), entity);
+    auto result = registry_.register_comment(entity, std::move(comment));
+
+    if (cmd_comment)
+        // a pure "command" comment, allow later sections
+        uncommented_.emplace(lookup_unique_name(registry_, *entity), &*entity);
+
+    return result;
+}
+
 namespace
 {
     bool is_relative_unique_name(const std::string& unique_name)
@@ -275,7 +273,7 @@ namespace
 
     std::string get_template_parameters(const cppast::cpp_entity& e)
     {
-        auto templ = get_template(e);
+        auto templ = detail::get_template(e);
         if (!templ)
             return "";
 
@@ -289,7 +287,7 @@ namespace
 
     std::string get_signature(const cppast::cpp_entity& e)
     {
-        auto function = get_function(e);
+        auto function = detail::get_function(e);
         if (!function)
             return "";
         return function.value().signature();
@@ -298,10 +296,60 @@ namespace
     // get unique name of entity only w/o parent
     std::string get_unique_name(const cppast::cpp_entity& e)
     {
-        auto result = e.name();
-        result += get_template_parameters(e);
-        result += get_signature(e);
-        return result;
+        if (e.kind() == cppast::cpp_file::kind())
+        {
+            auto index = e.name().find_last_of("/\\");
+            assert(index != e.name().size());
+            if (index != std::string::npos)
+                return e.name().substr(index + 1u);
+            else
+                return e.name();
+        }
+        else if (e.kind() == cppast::cpp_friend::kind())
+        {
+            auto& f = static_cast<const cppast::cpp_friend&>(e);
+            if (f.entity())
+                return get_unique_name(f.entity().value());
+            else
+                return "";
+        }
+        else if (e.name().empty() && cppast::is_parameter(e.kind()))
+        {
+            auto& parent = e.parent().value();
+
+            // find index and use it as name
+            if (auto func = detail::get_function(parent))
+            {
+                auto count = 0u;
+                for (auto& param : func.value().parameters())
+                {
+                    if (&param == &e)
+                        return std::to_string(count);
+                    ++count;
+                }
+            }
+
+            if (auto templ = detail::get_template(parent))
+            {
+                auto count = 0u;
+                for (auto& param : templ.value().parameters())
+                {
+                    if (&param == &e)
+                        return std::to_string(count);
+                    ++count;
+                }
+            }
+
+            assert(false);
+            return "";
+        }
+        else
+        {
+            auto result = e.name();
+            result += get_template_parameters(e);
+            result += get_signature(e);
+            return result;
+        }
     }
 
     std::string get_separator(const cppast::cpp_entity& e)
@@ -327,39 +375,38 @@ namespace
 
         return result;
     }
-}
 
-bool file_comment_parser::register_commented(type_safe::object_ref<const cppast::cpp_entity> entity,
-                                             comment::doc_comment comment) const
-{
-    // set unique name
-    auto& unique_name = comment.metadata().unique_name();
-    if (!unique_name)
+    template <class Lookup>
+    std::string lookup_parent_unique_name(const Lookup& get_comment, const cppast::cpp_entity& e)
     {
-        // need to create one
-        auto parent = get_parent_unique_name(*entity);
-        comment.metadata().set_unique_name(
-            get_full_unique_name(parent, *entity, get_unique_name(*entity)));
-    }
-    else if (is_relative_unique_name(unique_name.value()))
-    {
-        // need to add parent unique name
-        auto parent = get_parent_unique_name(*entity);
-        comment.metadata().set_unique_name(
-            get_full_unique_name(parent, *entity, unique_name.value()));
-    }
+        auto parent = e.parent();
+        while (parent
+               && (cppast::is_templated(parent.value()) || cppast::is_friended(parent.value())))
+            parent = parent.value().parent();
+        if (!parent)
+            return "";
 
-    if (!comment.brief_section() && comment.sections().empty())
-    {
-        // a pure "command" comment, allow later sections
-        std::lock_guard<std::mutex> lock(mutex_);
-        uncommented_.emplace(unique_name.value(), &*entity);
-    }
+        // don't need unique name for parents that don't have a scope
+        // except for functions or templates, those are fine
+        auto need_name = parent.value().scope_name() || detail::get_function(parent.value())
+                         || detail::get_template(parent.value());
+        if (!need_name)
+            return "";
 
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (comment.metadata().group())
-        registry_.add_to_group(comment.metadata().group().value().name(), entity);
-    return registry_.register_comment(entity, std::move(comment));
+        auto result =
+            parent
+                .map([&](const cppast::cpp_entity& p) {
+                    return p.scope_name() || detail::get_function(p) ? get_comment(p) :
+                                                                       type_safe::nullopt;
+                })
+                .map([](const comment::doc_comment& c) { return c.metadata().unique_name(); });
+        if (result)
+            return result.value();
+
+        // parent doesn't have a unique name
+        return get_full_unique_name(lookup_parent_unique_name(get_comment, parent.value()),
+                                    parent.value(), get_unique_name(parent.value()));
+    }
 }
 
 void file_comment_parser::register_uncommented(
@@ -374,28 +421,31 @@ void file_comment_parser::register_uncommented(
 
 std::string file_comment_parser::get_parent_unique_name(const cppast::cpp_entity& e) const
 {
-    auto parent = e.parent();
-    while (parent && (cppast::is_templated(parent.value()) || cppast::is_friended(parent.value())))
-        parent = parent.value().parent();
-    if (!parent)
-        return "";
+    return lookup_parent_unique_name([&](const cppast::cpp_entity& e) { return get_comment(e); },
+                                     e);
+}
 
-    // don't need unique name for parents that don't have a scope
-    // except for functions, those are fine
-    auto need_name = parent.value().scope_name() || get_function(parent.value());
-    if (!need_name)
-        return "";
+std::string standardese::lookup_unique_name(const comment_registry&   registry,
+                                            const cppast::cpp_entity& e)
+{
+    auto comment = registry.get_comment(e);
+    if (comment && comment.value().metadata().unique_name())
+    {
+        if (is_relative_unique_name(comment.value().metadata().unique_name().value()))
+        {
+            auto parent = lookup_parent_unique_name([&](const cppast::cpp_entity&
+                                                            e) { return registry.get_comment(e); },
+                                                    e);
+            return get_full_unique_name(parent, e,
+                                        comment.value().metadata().unique_name().value().substr(1));
+        }
+        else
+            return comment.value().metadata().unique_name().value();
+    }
 
-    auto result =
-        parent
-            .map([&](const cppast::cpp_entity& p) {
-                return p.scope_name() || get_function(p) ? get_comment(p) : type_safe::nullopt;
-            })
-            .map([](const comment::doc_comment& c) { return c.metadata().unique_name(); });
-    if (result)
-        return result.value();
-
-    // parent doesn't have a unique name yet
-    return get_full_unique_name(get_parent_unique_name(parent.value()), parent.value(),
-                                get_unique_name(parent.value()));
+    // calculate unique name
+    auto parent = lookup_parent_unique_name([&](const cppast::cpp_entity&
+                                                    e) { return registry.get_comment(e); },
+                                            e);
+    return get_full_unique_name(parent, e, get_unique_name(e));
 }

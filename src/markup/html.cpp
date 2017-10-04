@@ -248,12 +248,14 @@ namespace
     void write_list_item(stream& s, const list_item_base& item);
 
     // write synopsis and sections
-    void write_documentation(stream& s, const documentation& doc)
+    template <class Documentation>
+    void write_documentation(stream& s, const Documentation& doc)
     {
         auto id_prefix = doc.id().empty() ? "" : doc.id().as_str() + "-";
 
         // write synopsis
-        write(s, doc.synopsis(), true);
+        if (doc.synopsis())
+            write(s, doc.synopsis().value(), true);
 
         // write brief section
         if (auto brief = doc.brief_section())
@@ -325,19 +327,24 @@ namespace
         // <article> represents the actual content of a website
         auto article = s.open_tag(true, true, "article", doc.id(), "file-documentation");
 
-        auto heading =
-            article.open_tag(false, true, "h1", doc.heading().id(), "file-documentation-heading");
-        write_children(heading, doc.heading());
-        if (doc.module())
-            write_module(heading, doc.module().value());
-        heading.close();
+        if (doc.header())
+        {
+            auto& header = doc.header().value();
+
+            auto heading = article.open_tag(false, true, "h1", header.heading().id(),
+                                            "file-documentation-heading");
+            write_children(heading, header.heading());
+
+            if (header.module())
+                write_module(heading, header.module().value());
+        }
 
         write_documentation(article, doc);
 
         write_children(article, doc);
     }
 
-    const char* get_entity_documentation_heading_tag(const entity_documentation& doc)
+    const char* get_documentation_heading_tag(const documentation_entity& doc)
     {
         for (auto cur = doc.parent(); cur; cur = cur.value().parent())
             if (cur.value().kind() == entity_kind::entity_documentation)
@@ -347,31 +354,40 @@ namespace
         return "h2";
     }
 
+    void write_doc_header(stream& s, const documentation_entity& doc, const char* class_name)
+    {
+        if (doc.header())
+        {
+            auto& header = doc.header().value();
+
+            auto heading = s.open_tag(false, true, get_documentation_heading_tag(doc),
+                                      header.heading().id(), class_name);
+            write_children(heading, header.heading());
+
+            if (header.module())
+                write_module(heading, header.module().value());
+        }
+    }
+
     void write(stream& s, const entity_documentation& doc)
     {
         // <section> represents a semantic section in the website
         auto section = s.open_tag(true, true, "section", doc.id(), "entity-documentation");
 
-        auto heading = section.open_tag(false, true, get_entity_documentation_heading_tag(doc),
-                                        doc.heading().id(), "entity-documentation-heading");
-        write_children(heading, doc.heading());
-        if (doc.module())
-            write_module(heading, doc.module().value());
-        heading.close();
-
+        write_doc_header(section, doc, "entity-documentation-heading");
         write_documentation(section, doc);
-
         write_children(section, doc);
 
         section.close();
 
-        s.write_html(R"(<hr class="standardese-entity-documentation-break" />)"
-                     "\n");
+        if (doc.header())
+            s.write_html(R"(<hr class="standardese-entity-documentation-break" />)"
+                         "\n");
     }
 
-    void write(stream& s, const heading& h)
+    void write(stream& s, const heading& h, const char* tag = "h4")
     {
-        auto heading = s.open_tag(false, true, "h4", h.id());
+        auto heading = s.open_tag(false, true, tag, h.id());
         write_children(heading, h);
     }
 
@@ -387,6 +403,23 @@ namespace
         write_children(paragraph, p);
     }
 
+    void write_term_description(stream& s, const term& t, const description* desc, block_id id,
+                                const char* class_name)
+    {
+        auto dl = s.open_tag(true, true, "dl", std::move(id), class_name);
+
+        auto dt = s.open_tag(false, true, "dt");
+        write_children(dt, t);
+        dt.close();
+
+        if (desc)
+        {
+            auto dd = s.open_tag(false, true, "dd");
+            dd.write_html("&mdash; ");
+            write_children(dd, *desc);
+        }
+    }
+
     void write_list_item(stream& s, const list_item_base& item)
     {
         auto li = s.open_tag(true, true, "li", item.id());
@@ -399,16 +432,7 @@ namespace
         {
             auto& term        = static_cast<const term_description_item&>(item).term();
             auto& description = static_cast<const term_description_item&>(item).description();
-
-            auto dl = s.open_tag(true, true, "dl", item.id(), "term-description-item");
-
-            auto dt = s.open_tag(false, true, "dt");
-            write_children(dt, term);
-            dt.close();
-
-            auto dd = s.open_tag(false, true, "dd");
-            dd.write_html("&mdash; ");
-            write_children(dd, description);
+            write_term_description(s, term, &description, item.id(), "term-description-item");
         }
         else
             assert(false);
@@ -543,21 +567,21 @@ namespace
 
     void write(stream& s, const internal_link& link)
     {
-        std::string url;
         if (link.destination())
         {
-            url = link.destination()
-                      .value()
-                      .document()
-                      .map(&output_name::file_name, "html")
-                      .value_or("");
+            auto url = link.destination()
+                           .value()
+                           .document()
+                           .map(&output_name::file_name, "html")
+                           .value_or("");
             url += "#standardese-" + link.destination().value().id().as_str();
+
+            auto a = s.open_link(link.title().c_str(), url.c_str());
+            write_children(a, link);
         }
         else
-            url = "standardese://" + link.unresolved_destination().value() + "/";
-
-        auto a = s.open_link(link.title().c_str(), url.c_str());
-        write_children(a, link);
+            // only write link content
+            write_children(s, link);
     }
 
     void write_entity(stream& s, const entity& e)

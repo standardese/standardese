@@ -12,6 +12,8 @@
 #include <standardese/markup/heading.hpp>
 #include <standardese/markup/paragraph.hpp>
 #include <standardese/markup/list.hpp>
+#include <cppast/cpp_file.hpp>
+#include <cppast/cpp_namespace.hpp>
 
 using namespace standardese::markup;
 
@@ -64,7 +66,10 @@ TEST_CASE("file_documentation", "[markup]")
 </file-documentation>
 )";
 
-    file_documentation::builder builder(block_id("file-hpp"), heading::build(block_id(), "A file"),
+    cppast::cpp_file::builder file("foo");
+
+    file_documentation::builder builder(type_safe::ref(file.get()), block_id("file-hpp"),
+                                        heading::build(block_id(), "A file"),
                                         code_block::build(block_id(), "cpp", "the synopsis();"));
     builder.add_brief(
         brief_section::builder().add_child(text::build("The brief documentation.")).finish());
@@ -117,10 +122,16 @@ TEST_CASE("entity_documentation", "[markup]")
 </entity-documentation>
 )";
 
-    entity_documentation::builder a(block_id("a"), heading::build(block_id(), "Entity A"),
-                                    code_block::build(block_id(), "cpp", "void a();"), "module_a");
-    entity_documentation::builder b(block_id("b"), heading::build(block_id(), "Entity B"),
-                                    code_block::build(block_id(), "cpp", "void b();"), "module_b");
+    cppast::cpp_namespace::builder entity("foo", false);
+
+    entity_documentation::builder a(type_safe::ref(entity.get()), block_id("a"),
+                                    documentation_header(heading::build(block_id(), "Entity A"),
+                                                         "module_a"),
+                                    code_block::build(block_id(), "cpp", "void a();"));
+    entity_documentation::builder b(type_safe::ref(entity.get()), block_id("b"),
+                                    documentation_header(heading::build(block_id(), "Entity B"),
+                                                         "module_b"),
+                                    code_block::build(block_id(), "cpp", "void b();"));
     b.add_brief(
         brief_section::builder().add_child(text::build("The brief documentation.")).finish());
     a.add_child(b.finish());

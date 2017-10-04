@@ -114,6 +114,7 @@ namespace standardese
             }
 
             /// \returns The unresolved destination id of the link, if it hasn't been resolved already.
+            /// It might have been unresolved on purpose and should render just the content.
             type_safe::optional_ref<const std::string> unresolved_destination() const noexcept
             {
                 return dest_.optional_value(type_safe::variant_type<std::string>{});

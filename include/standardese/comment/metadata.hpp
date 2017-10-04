@@ -28,7 +28,7 @@ namespace standardese
         {
         public:
             /// \effects Creates a group given the name,
-            /// optional heading and whether or not the name is also an output section.
+            /// optional heading and whether or not the heading is also an output section.
             member_group(std::string name, type_safe::optional<std::string> heading,
                          bool is_section)
             : heading_(std::move(heading)), name_(std::move(name)), is_section_(is_section)
@@ -50,8 +50,12 @@ namespace standardese
             /// \returns The output section of the group, if there is one.
             type_safe::optional_ref<const std::string> output_section() const noexcept
             {
-                return is_section_ ? type_safe::optional_ref<const std::string>(name_) :
-                                     type_safe::nullopt;
+                if (!is_section_)
+                    return type_safe::nullopt;
+                else if (heading_)
+                    return type_safe::ref(heading_.value());
+                else
+                    return type_safe::ref(name_);
             }
 
         private:
@@ -169,6 +173,12 @@ namespace standardese
             const type_safe::optional<std::string>& output_section() const noexcept
             {
                 return section_;
+            }
+
+            /// \returns Whether or not any metadata is actually specified.
+            bool is_empty() const noexcept
+            {
+                return !group_ && !unique_name_ && !synopsis_ && !module_ && !section_ && !exclude_;
             }
 
         private:

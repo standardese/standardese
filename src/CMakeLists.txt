@@ -28,6 +28,7 @@ set(markup_header
     ../include/standardese/markup/visitor.hpp)
 set(header
     ../include/standardese/comment.hpp
+    ../include/standardese/doc_entity.hpp
     ../include/standardese/logger.hpp)
 
 set(comment_src
@@ -54,7 +55,11 @@ set(markup_src
     markup/visitor.cpp
     markup/xml.cpp)
 set(src
-    comment.cpp)
+    entity_visitor.hpp
+    get_special_entity.hpp
+    comment.cpp
+    doc_entity.cpp
+    )
 
 add_library(standardese ${detail_header} ${comment_header} ${markup_header} ${header} ${comment_src} ${markup_src} ${src})
 target_include_directories(standardese PUBLIC

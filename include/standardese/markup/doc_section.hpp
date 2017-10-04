@@ -43,6 +43,7 @@ namespace standardese
         {
         public:
             /// \returns The type of section it is.
+            /// It may return [*section_type::invalid]() if there is no directly associated type.
             section_type type() const noexcept
             {
                 return do_get_section_type();
@@ -149,6 +150,7 @@ namespace standardese
                 std::unique_ptr<inline_section> finish() noexcept
                 {
                     result_->paragraph_ = paragraph_.finish();
+                    result_->set_ownership(*result_->paragraph_);
                     return std::move(result_);
                 }
 

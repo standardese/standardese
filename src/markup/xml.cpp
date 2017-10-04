@@ -197,12 +197,18 @@ namespace
     void write(stream& s, const heading& h);
     void write(stream& s, const code_block& cb);
 
-    void write_documentation(stream& s, const documentation& doc, const char* tag_name)
+    template <class Documentation>
+    void write_documentation(stream& s, const Documentation& doc, const char* tag_name)
     {
-        auto tag = s.open_tag(stream::block_tag, tag_name, std::make_pair("id", doc.id().as_str()),
-                              std::make_pair("module", doc.module().value_or("")));
-        write(tag, doc.heading());
-        write(tag, doc.synopsis());
+        auto tag =
+            s.open_tag(stream::block_tag, tag_name, std::make_pair("id", doc.id().as_str()),
+                       std::make_pair("module", doc.header() ?
+                                                    doc.header().value().module().value_or("") :
+                                                    ""));
+        if (doc.header())
+            write(tag, doc.header().value().heading());
+        if (doc.synopsis())
+            write(tag, doc.synopsis().value());
         for (auto& sec : doc.doc_sections())
             write_entity(tag, sec);
         write_children(tag, doc);
@@ -238,15 +244,15 @@ namespace
         write_block(s, "list-item", item);
     }
 
-    void write(stream& s, const term& t)
+    void write(stream& s, const term& t, const char* tag_name = "term")
     {
-        auto tag = s.open_tag(stream::line_tag, "term");
+        auto tag = s.open_tag(stream::line_tag, tag_name);
         write_children(tag, t);
     }
 
-    void write(stream& s, const description& desc)
+    void write(stream& s, const description& desc, const char* tag_name = "description")
     {
-        auto tag = s.open_tag(stream::line_tag, "description");
+        auto tag = s.open_tag(stream::line_tag, tag_name);
         write_children(tag, desc);
     }
 

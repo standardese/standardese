@@ -251,7 +251,10 @@ namespace
             else
             {
                 auto unique_name = cmark_node_get_literal(child);
-                return markup::internal_link::builder(unique_name).finish();
+                auto is_relative = *unique_name == '?' || *unique_name == '*';
+                return markup::internal_link::builder(unique_name)
+                    .add_child(markup::code::build(is_relative ? unique_name + 1 : unique_name))
+                    .finish();
             }
         }
         else if (*url == '\0')
@@ -403,8 +406,10 @@ namespace
 
     struct comment_builder
     {
-        matching_entity                                   entity;
-        metadata                                          data;
+        matching_entity entity;
+
+        metadata data;
+
         std::unique_ptr<markup::brief_section>            brief;
         std::vector<std::unique_ptr<markup::doc_section>> sections;
         std::vector<unmatched_doc_comment>                inlines;
@@ -498,7 +503,9 @@ namespace
             break;
 
         case command_type::group:
-            if (!data.set_group(parse_group(node)))
+            if (data.output_section())
+                error(node, "cannot have group and output section");
+            else if (!data.set_group(parse_group(node)))
                 error(node, "multiple group commands for entity");
             break;
         case command_type::module:
@@ -506,7 +513,9 @@ namespace
                 error(node, "multiple module commands for entity");
             break;
         case command_type::output_section:
-            if (!data.set_output_section(detail::get_command_arguments(node)))
+            if (data.group())
+                error(node, "cannot have group and output section");
+            else if (!data.set_output_section(detail::get_command_arguments(node)))
                 error(node, "multiple output section commands for entity");
             break;
 
@@ -731,7 +740,11 @@ parse_result comment::parse(const parser& p, const std::string& comment)
     comment_builder builder;
     add_children(p.config(), builder, root.get());
 
-    return parse_result{doc_comment(std::move(builder.data), std::move(builder.brief),
-                                    std::move(builder.sections)),
-                        std::move(builder.entity), std::move(builder.inlines)};
+    if (builder.brief || !builder.sections.empty() || !builder.data.is_empty())
+        return parse_result{doc_comment(std::move(builder.data), std::move(builder.brief),
+                                        std::move(builder.sections)),
+                            std::move(builder.entity), std::move(builder.inlines)};
+    else
+        return parse_result{type_safe::nullopt, std::move(builder.entity),
+                            std::move(builder.inlines)};
 }

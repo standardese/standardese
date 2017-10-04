@@ -15,8 +15,9 @@ void check_details(const char* comment, const char* xml)
 {
     parser p;
     auto   result = parse(p, comment);
-    REQUIRE(result.comment.sections().size() == 1u);
-    REQUIRE(markup::as_xml(*result.comment.sections().begin()) == xml);
+    REQUIRE(result.comment.has_value());
+    REQUIRE(result.comment.value().sections().size() == 1u);
+    REQUIRE(markup::as_xml(*result.comment.value().sections().begin()) == xml);
 }
 
 TEST_CASE("cmark inlines", "[comment]")
@@ -56,7 +57,7 @@ TEST_CASE("cmark link", "[comment]")
 <external-link title="title" url="http://standardese.foonathan.net/">external link <code>2</code></external-link><soft-break></soft-break>
 <internal-link unresolved-destination-id="name">internal &lt;link&gt;</internal-link><soft-break></soft-break>
 <internal-link title="title" unresolved-destination-id="name">internal link <code>2</code></internal-link><soft-break></soft-break>
-<internal-link unresolved-destination-id="name&lt;T&gt;name"></internal-link></paragraph>
+<internal-link unresolved-destination-id="name&lt;T&gt;name"><code>name&lt;T&gt;name</code></internal-link></paragraph>
 </details-section>
 )";
 
@@ -432,10 +433,10 @@ It requires extra long description.</description>
     parser p;
     auto   parsed = parse(p, comment);
 
-    auto result = parsed.comment.brief_section() ?
-                      markup::as_xml(parsed.comment.brief_section().value()) :
+    auto result = parsed.comment.value().brief_section() ?
+                      markup::as_xml(parsed.comment.value().brief_section().value()) :
                       "";
-    for (auto& section : parsed.comment.sections())
+    for (auto& section : parsed.comment.value().sections())
         result += markup::as_xml(section);
     REQUIRE(result == xml);
 }
@@ -443,7 +444,7 @@ It requires extra long description.</description>
 metadata parse_metadata(const char* comment)
 {
     parser p;
-    return parse(p, comment).comment.metadata();
+    return parse(p, comment).comment.value().metadata();
 }
 
 matching_entity parse_entity(const char* comment)
@@ -482,6 +483,7 @@ TEST_CASE("commands", "[comment]")
         REQUIRE(parse_metadata("foo\nbar").group() == type_safe::nullopt);
         REQUIRE_THROWS_AS(parse_metadata(R"(\group)"), parse_error);
         REQUIRE_THROWS_AS(parse_metadata("\\group a\n\\group b"), parse_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\group a\n\\output_section bar"), parse_error);
 
         auto a = parse_metadata(R"(\group a)").group().value();
         REQUIRE(a.name() == "a");
@@ -496,7 +498,7 @@ TEST_CASE("commands", "[comment]")
         auto c = parse_metadata(R"(\group c a heading)").group().value();
         REQUIRE(c.name() == "c");
         REQUIRE(c.heading() == "a heading");
-        REQUIRE(c.output_section().value() == "c");
+        REQUIRE(c.output_section().value() == "a heading");
     }
     SECTION("module")
     {
@@ -612,10 +614,10 @@ This is unrelated.
 </details-section>
 )";
         {
-            auto str = result.comment.brief_section() ?
-                           markup::as_xml(result.comment.brief_section().value()) :
+            auto str = result.comment.value().brief_section() ?
+                           markup::as_xml(result.comment.value().brief_section().value()) :
                            "";
-            for (auto& sec : result.comment.sections())
+            for (auto& sec : result.comment.value().sections())
                 str += markup::as_xml(sec);
             REQUIRE(str == xml);
         }

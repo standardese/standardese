@@ -58,6 +58,12 @@ namespace standardese
         protected:
             entity() noexcept = default;
 
+            /// \effects Sets the parent of `child` to `*this`.
+            void set_ownership(entity& child) const
+            {
+                child.parent_ = type_safe::ref(*this);
+            }
+
         private:
             /// \returns The kind of entity.
             virtual entity_kind do_get_kind() const noexcept = 0;
@@ -106,7 +112,7 @@ namespace standardese
                 using reference         = const T&;
                 using pointer           = const T*;
                 using difference_type   = std::ptrdiff_t;
-                using iterator_category = std::forward_iterator_tag;
+                using iterator_category = std::bidirectional_iterator_tag;
 
                 vector_ptr_iterator() noexcept : cur_(nullptr) {}
 
@@ -132,6 +138,19 @@ namespace standardese
                 {
                     auto tmp = *this;
                     ++(*this);
+                    return tmp;
+                }
+
+                vector_ptr_iterator& operator--() noexcept
+                {
+                    --cur_;
+                    return *this;
+                }
+
+                vector_ptr_iterator operator--(int)noexcept
+                {
+                    auto tmp = *this;
+                    --(*this);
                     return tmp;
                 }
 
@@ -215,8 +234,11 @@ namespace standardese
                 /// \effects Adds a new child for the container.
                 container_builder& add_child(std::unique_ptr<T> entity)
                 {
-                    detail::parent_updater::set(*entity, type_safe::ref(*result_));
-                    as_container().children_.push_back(std::move(entity));
+                    if (entity)
+                    {
+                        detail::parent_updater::set(*entity, type_safe::ref(*result_));
+                        as_container().children_.push_back(std::move(entity));
+                    }
                     return *this;
                 }
 
@@ -242,7 +264,14 @@ namespace standardese
                 }
 
                 /// \returns The not yet finished entity.
+                /// \group peek
                 Derived& peek() noexcept
+                {
+                    return *result_;
+                }
+
+                /// \group peek
+                const Derived& peek() const noexcept
                 {
                     return *result_;
                 }

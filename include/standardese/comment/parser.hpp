@@ -77,7 +77,8 @@ namespace standardese
         /// The result of parsing.
         struct parse_result
         {
-            doc_comment                        comment; //< The comment.
+            type_safe::optional<doc_comment>
+                                               comment; //< The comment or null if there were only inline entities.
             matching_entity                    entity;  //< The matching entity.
             std::vector<unmatched_doc_comment> inlines; //< The inline entities.
         };

@@ -70,6 +70,10 @@ namespace standardese
         /// \returns Whether or not the entity is a block,
         /// that is, derived from [standardese::markup::block_entity]().
         bool is_block(entity_kind kind) noexcept;
+
+        /// \returns Whether or not the entity is a documentation,
+        /// that is, derived from [standardese::markup::documentation_entity]().
+        bool is_documentation(entity_kind kind) noexcept;
     }
 } // namespace standardese::markup
 

@@ -10,22 +10,11 @@
 #include <cppast/cpp_class.hpp>
 #include <cppast/cpp_function.hpp>
 #include <cppast/cpp_template.hpp>
-#include <cppast/libclang_parser.hpp>
 #include <cppast/visitor.hpp>
 
+#include "test_parser.hpp"
+
 using namespace standardese;
-
-std::unique_ptr<cppast::cpp_file> parse_file(const char* name, const char* content)
-{
-    static cppast::libclang_compile_config config;
-    static cppast::libclang_parser         parser(cppast::default_logger());
-
-    std::ofstream file(name);
-    file << content;
-    file.close();
-
-    return parser.parse({}, name, config);
-}
 
 template <class Container>
 void test_comments(const comment_registry& registry, const Container& container)
@@ -47,7 +36,7 @@ TEST_CASE("comment")
 {
     SECTION("matched comments")
     {
-        auto file = parse_file("comment_matched_comments.cpp", R"(
+        auto file = parse_file({}, "comment_matched_comments.cpp", R"(
 /// \module a
 using a = int;
 
@@ -62,13 +51,13 @@ enum class c
 };
 )");
 
-        file_comment_parser parser(cppast::default_logger());
+        file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
         test_comments(parser.finish(), *file);
     }
     SECTION("param")
     {
-        auto file = parse_file("comment_param.cpp", R"(
+        auto file = parse_file({}, "comment_param.cpp", R"(
 /// \module a
 ///
 /// \param b
@@ -81,14 +70,14 @@ enum class c
 void a(int b, int c, int);
 )");
 
-        file_comment_parser parser(cppast::default_logger());
+        file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
         test_comments(parser.finish(),
                       static_cast<const cppast::cpp_function_base&>(*file->begin()).parameters());
     }
     SECTION("tparam")
     {
-        auto file = parse_file("comment_tparam.cpp", R"(
+        auto file = parse_file({}, "comment_tparam.cpp", R"(
 /// \module a
 ///
 /// \tparam b
@@ -102,14 +91,14 @@ template <int b, int c, int>
 void a();
 )");
 
-        file_comment_parser parser(cppast::default_logger());
+        file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
         test_comments(parser.finish(),
                       static_cast<const cppast::cpp_template&>(*file->begin()).parameters());
     }
     SECTION("base")
     {
-        auto file = parse_file("comment_base.cpp", R"(
+        auto file = parse_file({}, "comment_base.cpp", R"(
 struct b {};
 struct c {};
 
@@ -123,14 +112,14 @@ struct c {};
 struct a : b, c {};
 )");
 
-        file_comment_parser parser(cppast::default_logger());
+        file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
         test_comments(parser.finish(),
                       static_cast<const cppast::cpp_class&>(*file->begin()).bases());
     }
     SECTION("remote")
     {
-        auto file = parse_file("comment_remote.cpp", R"(
+        auto file = parse_file({}, "comment_remote.cpp", R"(
 /// \file
 /// \module comment_remote.cpp
 
@@ -170,7 +159,7 @@ struct foo : a
 struct c : foo<int> {};
 )");
 
-        file_comment_parser parser(cppast::default_logger());
+        file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
         auto registry = parser.finish();
 
@@ -199,7 +188,7 @@ struct c : foo<int> {};
     }
     SECTION("member groups")
     {
-        auto file = parse_file("comment_member_groups.cpp", R"(
+        auto file = parse_file({}, "comment_member_groups.cpp", R"(
 /// \group a
 void a();
 
@@ -219,7 +208,7 @@ void c();
 void a(float);
 )");
 
-        file_comment_parser parser(cppast::default_logger());
+        file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
         auto groups = parser.finish();
 

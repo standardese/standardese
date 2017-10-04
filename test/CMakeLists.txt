@@ -20,9 +20,12 @@ set(tests
     markup/phrasing.cpp
     markup/quote.cpp
     markup/thematic_break.cpp
-    comment.cpp)
+    comment.cpp
+    doc_entity.cpp
+    documentation.cpp
+    synopsis.cpp)
 
-add_executable(standardese_test test.cpp ${tests})
+add_executable(standardese_test test.cpp test_logger.hpp test_parser.hpp ${tests})
 target_include_directories(standardese_test PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(standardese_test PUBLIC standardese)
 set_target_properties(standardese_test PROPERTIES CXX_STANDARD 11)

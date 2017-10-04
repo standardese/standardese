@@ -49,8 +49,7 @@ namespace standardese
         {
             auto iter = groups_.find(name);
             if (iter == groups_.end())
-                return type_safe::array_ref<const type_safe::object_ref<const cppast::cpp_entity>>(
-                    nullptr);
+                return nullptr;
             return type_safe::ref(iter->second.data(), iter->second.size());
         }
 
@@ -69,8 +68,8 @@ namespace standardese
     {
     public:
         /// \effects Gives it the logger and comment configuration.
-        file_comment_parser(type_safe::object_ref<const cppast::diagnostic_logger> logger,
-                            comment::config config = comment::config())
+        explicit file_comment_parser(type_safe::object_ref<const cppast::diagnostic_logger> logger,
+                                     comment::config config = comment::config())
         : config_(std::move(config)), logger_(logger)
         {
         }
@@ -81,7 +80,8 @@ namespace standardese
 
         /// \effects Finishes parsing of the comments.
         /// \returns The registry containing all registered comments.
-        /// \requires This function must only be called once.
+        /// \requires This function must only be called once,
+        /// and you must not call `parse()` afterwards.
         comment_registry finish();
 
     private:
@@ -99,10 +99,10 @@ namespace standardese
 
         std::string get_parent_unique_name(const cppast::cpp_entity& e) const;
 
-        mutable std::mutex                                                 mutex_;
-        mutable std::unordered_map<std::string, const cppast::cpp_entity*> uncommented_;
-        mutable comment_registry                                           registry_;
-        mutable std::vector<comment::parse_result>                         free_comments_;
+        mutable std::mutex                                                      mutex_;
+        mutable std::unordered_multimap<std::string, const cppast::cpp_entity*> uncommented_;
+        mutable comment_registry                                                registry_;
+        mutable std::vector<comment::parse_result>                              free_comments_;
 
         comment::config                                        config_;
         type_safe::object_ref<const cppast::diagnostic_logger> logger_;
