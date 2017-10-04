@@ -19,7 +19,8 @@ set(tests
     markup/paragraph.cpp
     markup/phrasing.cpp
     markup/quote.cpp
-    markup/thematic_break.cpp)
+    markup/thematic_break.cpp
+    comment.cpp)
 
 add_executable(standardese_test test.cpp ${tests})
 target_include_directories(standardese_test PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

@@ -70,58 +70,6 @@ namespace standardese
             return !(a == b);
         }
 
-        //// Tag type to indicate that a comment belongs to the current file.
-        struct current_file
-        {
-        };
-
-        /// Tag type to indicate that a comment belongs to the entity of the given name.
-        struct remote_entity
-        {
-            std::string unique_name;
-
-            explicit remote_entity(std::string name) : unique_name(std::move(name))
-            {
-            }
-        };
-
-        /// Tag type to indicate that a comment belongs to a parameter of given name.
-        struct inline_param
-        {
-            std::string unique_name;
-
-            explicit inline_param(std::string name) : unique_name(std::move(name))
-            {
-            }
-        };
-
-        /// Tag type to indicate that a comment belongs to a template parameter of given name.
-        struct inline_tparam
-        {
-            std::string unique_name;
-
-            explicit inline_tparam(std::string name) : unique_name(std::move(name))
-            {
-            }
-        };
-
-        /// Tag type to indicate that a comment belongs to a base of given name.
-        struct inline_base
-        {
-            std::string unique_name;
-
-            explicit inline_base(std::string name) : unique_name(std::move(name))
-            {
-            }
-        };
-
-        /// The entity a comment belongs to.
-        ///
-        /// If it belongs to the matched entity, it is empty.
-        using matching_entity =
-            type_safe::variant<type_safe::nullvar_t, current_file, remote_entity, inline_param,
-                               inline_tparam, inline_base>;
-
         /// The metadata of a comment.
         ///
         /// It stores the information that can be set by commands.
@@ -132,37 +80,6 @@ namespace standardese
             ///
             /// This is the metadata for a comment without any commands.
             metadata() = default;
-
-            /// \effects Sets the matching entity.
-            /// \returns Whether it wasn't set previously.
-            bool set_entity(matching_entity e)
-            {
-                auto set = entity_.has_value();
-                entity_  = std::move(e);
-                return !set;
-            }
-
-            /// \returns The entity it belongs to.
-            const matching_entity& entity() const noexcept
-            {
-                return entity_;
-            }
-
-            /// \returns Whether or not this is a remote comment,
-            /// i.e. corresponds to a different entity.
-            bool is_remote() const noexcept
-            {
-                return entity_.has_value();
-            }
-
-            /// \returns Whether or not this is an inline comment.
-            /// \notes An inline comment is also considered remote.
-            bool is_inline() const noexcept
-            {
-                return entity_.has_value(type_safe::variant_type<inline_param>{})
-                       || entity_.has_value(type_safe::variant_type<inline_tparam>{})
-                       || entity_.has_value(type_safe::variant_type<inline_base>{});
-            }
 
             /// \effects Sets the exclude mode.
             /// \returns Whether it wasn't previously set.
@@ -255,7 +172,6 @@ namespace standardese
             }
 
         private:
-            matching_entity                   entity_;
             type_safe::optional<member_group> group_;
             type_safe::optional<std::string>  unique_name_, synopsis_, module_, section_;
             type_safe::optional<exclude_mode> exclude_;

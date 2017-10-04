@@ -9,11 +9,13 @@
 #include <vector>
 
 #include <type_safe/optional.hpp>
-#include <type_safe/variant.hpp>
 
 #include <standardese/markup/doc_section.hpp>
+#include <standardese/markup/documentation.hpp>
 
 #include <standardese/comment/config.hpp>
+#include <standardese/comment/doc_comment.hpp>
+#include <standardese/comment/matching_entity.hpp>
 #include <standardese/comment/metadata.hpp>
 
 extern "C" {
@@ -57,213 +59,36 @@ namespace standardese
             cmark_parser*   parser_;
         };
 
-        /// The root of the CommonMark AST.
+        /// An unmatched documentation comment.
         ///
-        /// This is just a RAII wrapper over the `cmark_node`.
-        class ast_root
+        /// That is, a comment not yet associated with an entity
+        /// and still containing the matching entity information.
+        struct unmatched_doc_comment
         {
-        public:
-            /// \effects Takes ownership of the given node.
-            /// It will call `cmark_node_free()` in the destructor.
-            explicit ast_root(cmark_node* root) : root_(root)
+            doc_comment     comment;
+            matching_entity entity;
+
+            unmatched_doc_comment(matching_entity entity, doc_comment comment)
+            : comment(std::move(comment)), entity(std::move(entity))
             {
             }
-
-            ast_root(ast_root&& other) noexcept : root_(other.root_)
-            {
-                other.root_ = nullptr;
-            }
-
-            ~ast_root() noexcept;
-
-            ast_root& operator=(ast_root&& other) noexcept
-            {
-                ast_root tmp(std::move(other));
-                std::swap(root_, tmp.root_);
-                return *this;
-            }
-
-            /// \returns The node.
-            cmark_node* get() const noexcept
-            {
-                return root_;
-            }
-
-        private:
-            cmark_node* root_;
         };
 
-        /// Reads the CommonMark AST from the comment text.
-        ///
-        /// It assumes the text has already been parsed and does not contain the comment markers anymore.
-        ///
-        /// \returns The root node of the AST.
-        ast_root read_ast(const parser& p, const std::string& comment);
-
-        /// An inline comment.
-        class inline_comment
+        /// The result of parsing.
+        struct parse_result
         {
-        public:
-            /// \effects Creates it giving it the metadata and brief and details section.
-            /// \requires `data.is_inline()`.
-            inline_comment(comment::metadata data, std::unique_ptr<markup::brief_section> brief,
-                           std::unique_ptr<markup::details_section> details)
-            : data_(std::move(data)), brief_(std::move(brief)), details_(std::move(details))
-            {
-            }
-
-            /// \effects Creates it giving it the metadata and brief section.
-            /// \requires `data.is_inline()`.
-            inline_comment(comment::metadata data, std::unique_ptr<markup::brief_section> brief)
-            : inline_comment(std::move(data), std::move(brief), nullptr)
-            {
-            }
-
-            /// \returns The metadata.
-            const comment::metadata& metadata() const noexcept
-            {
-                return data_;
-            }
-
-            /// \returns The brief section.
-            const markup::brief_section& brief_section() const noexcept
-            {
-                return *brief_;
-            }
-
-            /// \returns The details section, if there is one.
-            type_safe::optional_ref<const markup::details_section> details_section() const noexcept
-            {
-                return type_safe::opt_ref(details_.get());
-            }
-
-        private:
-            comment::metadata                        data_;
-            std::unique_ptr<markup::brief_section>   brief_;
-            std::unique_ptr<markup::details_section> details_;
+            doc_comment                        comment; //< The comment.
+            matching_entity                    entity;  //< The matching entity.
+            std::vector<unmatched_doc_comment> inlines; //< The inline entities.
         };
 
-        /// The translated CommonMark AST.
-        ///
-        /// All the information are extracted.
-        class translated_ast
-        {
-            using section_iterator = markup::container_entity<markup::doc_section>::iterator;
-
-            class section_range
-            {
-            public:
-                section_range(const std::vector<std::unique_ptr<markup::doc_section>>& sections)
-                : begin_(sections.begin()), end_(sections.end())
-                {
-                }
-
-                std::size_t size() const noexcept
-                {
-                    return std::size_t(end_ - begin_);
-                }
-
-                section_iterator begin() const noexcept
-                {
-                    return begin_;
-                }
-
-                section_iterator end() const noexcept
-                {
-                    return end_;
-                }
-
-            private:
-                std::vector<std::unique_ptr<markup::doc_section>>::const_iterator begin_, end_;
-            };
-
-        public:
-            class builder;
-
-            /// \returns A range-like object to the non-brief documentation sections.
-            section_range sections() const noexcept
-            {
-                return section_range(sections_);
-            }
-
-            /// \returns A reference to the brief section, if there is one.
-            type_safe::optional_ref<const markup::brief_section> brief_section() const noexcept
-            {
-                return type_safe::opt_ref(brief_.get());
-            }
-
-            /// \returns The metadata of the comment.
-            const comment::metadata& metadata() const noexcept
-            {
-                return data_;
-            }
-
-            /// \returns A range-like object to the inline comments of the entity.
-            /// \exclude return
-            const std::vector<inline_comment>& inlines() const noexcept
-            {
-                return inlines_;
-            }
-
-        private:
-            translated_ast() = default;
-
-            comment::metadata                                 data_;
-            std::vector<std::unique_ptr<markup::doc_section>> sections_;
-            std::vector<inline_comment>                       inlines_;
-            std::unique_ptr<markup::brief_section>            brief_;
-        };
-
-        class translated_ast::builder
-        {
-        public:
-            builder() = default;
-
-            /// \effects Adds a documentation section.
-            /// \requires It must not be a brief section.
-            void add_section(std::unique_ptr<markup::doc_section> sec)
-            {
-                result_.sections_.push_back(std::move(sec));
-            }
-
-            /// \effects Adds an inline comment.
-            void add_inline(inline_comment c)
-            {
-                result_.inlines_.push_back(std::move(c));
-            }
-
-            /// \effects Sets the brief section.
-            /// \returns Whether or not it was called the first time.
-            bool brief(std::unique_ptr<markup::brief_section> brief)
-            {
-                auto set       = bool(result_.brief_);
-                result_.brief_ = std::move(brief);
-                return !set;
-            }
-
-            /// \returns A reference to the metadata.
-            comment::metadata& metadata()
-            {
-                return result_.data_;
-            }
-
-            /// \returns The finished AST.
-            translated_ast finish()
-            {
-                return std::move(result_);
-            }
-
-        private:
-            translated_ast result_;
-        };
-
-        /// A translation error.
-        class translation_error : public std::runtime_error
+        /// A parse error.
+        class parse_error : public std::runtime_error
         {
         public:
             /// \effects Creates it given the line and column of the error,
             /// and a message.
-            translation_error(unsigned line, unsigned column, std::string msg)
+            parse_error(unsigned line, unsigned column, std::string msg)
             : std::runtime_error(std::move(msg)), line_(line), column_(column)
             {
             }
@@ -284,9 +109,10 @@ namespace standardese
             unsigned line_, column_;
         };
 
-        /// Translates the CommonMark AST.
-        /// \returns The translated AST.
-        translated_ast translate_ast(const parser& p, const ast_root& root);
+        /// Parses the comment.
+        /// \returns The parsed comment.
+        /// \throws [standardese::comment::parse_error]() if an error occurred.
+        parse_result parse(const parser& p, const std::string& comment);
     }
 } // namespace standardese::comment
 

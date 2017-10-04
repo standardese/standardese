@@ -5,6 +5,8 @@
 set(comment_header
     ../include/standardese/comment/commands.hpp
     ../include/standardese/comment/config.hpp
+    ../include/standardese/comment/doc_comment.hpp
+    ../include/standardese/comment/matching_entity.hpp
     ../include/standardese/comment/metadata.hpp
     ../include/standardese/comment/parser.hpp)
 set(markup_header
@@ -22,12 +24,17 @@ set(markup_header
     ../include/standardese/markup/paragraph.hpp
     ../include/standardese/markup/phrasing.hpp
     ../include/standardese/markup/quote.hpp
-    ../include/standardese/markup/thematic_break.hpp)
-set(header)
+    ../include/standardese/markup/thematic_break.hpp
+    ../include/standardese/markup/visitor.hpp)
+set(header
+    ../include/standardese/comment.hpp
+    ../include/standardese/logger.hpp)
+
 set(comment_src
-    comment/cmark_ext_command.hpp
-    comment/cmark_ext_command.cpp
+    comment/cmark_ext.hpp
+    comment/cmark_ext.cpp
     comment/config.cpp
+    comment/doc_comment.cpp
     comment/parser.cpp)
 set(markup_src
     markup/code_block.cpp
@@ -44,14 +51,14 @@ set(markup_src
     markup/phrasing.cpp
     markup/quote.cpp
     markup/thematic_break.cpp
+    markup/visitor.cpp
     markup/xml.cpp)
-set(src)
+set(src
+    comment.cpp)
 
 add_library(standardese ${detail_header} ${comment_header} ${markup_header} ${header} ${comment_src} ${markup_src} ${src})
 target_include_directories(standardese PUBLIC
                                 $<BUILD_INTERFACE:${STANDARDESE_SOURCE_DIR}/include>
-                                $<BUILD_INTERFACE:${SPDLOG_INCLUDE_DIR}>
-                                $<BUILD_INTERFACE:${_standardese_comp_include}>
                                 $<INSTALL_INTERFACE:${include_dest}>
                                 $<INSTALL_INTERFACE:${include_dest}/comp>)
 target_compile_definitions(standardese PUBLIC
@@ -68,11 +75,6 @@ target_link_libraries(standardese PUBLIC cppast)
 
 # link cmark
 target_link_libraries(standardese PUBLIC libcmark-gfm_static)
-
-# link Boost
-find_package(Boost COMPONENTS filesystem system thread date_time chrono REQUIRED)
-target_include_directories(standardese PUBLIC ${Boost_INCLUDE_DIR})
-target_link_libraries(standardese PUBLIC ${Boost_LIBRARIES})
 
 # install library: TODO
 #install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")

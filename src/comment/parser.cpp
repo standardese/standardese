@@ -24,7 +24,7 @@
 #include <standardese/markup/thematic_break.hpp>
 #include <standardese/markup/entity_kind.hpp>
 
-#include "cmark_ext_command.hpp"
+#include "cmark_ext.hpp"
 
 using namespace standardese;
 using namespace standardese::comment;
@@ -32,8 +32,11 @@ using namespace standardese::comment;
 parser::parser(comment::config c)
 : config_(std::move(c)), parser_(cmark_parser_new(CMARK_OPT_SMART))
 {
-    auto ext = detail::create_command_extension(config_);
-    cmark_parser_attach_syntax_extension(parser_, ext);
+    auto command_ext = detail::create_command_extension(config_);
+    cmark_parser_attach_syntax_extension(parser_, command_ext);
+
+    auto html_ext = detail::create_no_html_extension();
+    cmark_parser_attach_syntax_extension(parser_, html_ext);
 }
 
 parser::~parser()
@@ -48,28 +51,55 @@ parser::~parser()
     cmark_parser_free(parser_);
 }
 
-ast_root::~ast_root()
-{
-    if (root_)
-        cmark_node_free(root_);
-}
-
-ast_root standardese::comment::read_ast(const parser& p, const std::string& comment)
-{
-    cmark_parser_feed(p.get(), comment.c_str(), comment.size());
-    auto root = cmark_parser_finish(p.get());
-    return ast_root(root);
-}
-
 namespace
 {
+    class ast_root
+    {
+    public:
+        explicit ast_root(cmark_node* root) : root_(root) {}
+
+        ast_root(ast_root&& other) noexcept : root_(other.root_)
+        {
+            other.root_ = nullptr;
+        }
+
+        ~ast_root() noexcept
+        {
+            if (root_)
+                cmark_node_free(root_);
+        }
+
+        ast_root& operator=(ast_root&& other) noexcept
+        {
+            ast_root tmp(std::move(other));
+            std::swap(root_, tmp.root_);
+            return *this;
+        }
+
+        /// \returns The node.
+        cmark_node* get() const noexcept
+        {
+            return root_;
+        }
+
+    private:
+        cmark_node* root_;
+    };
+
+    ast_root read_ast(const parser& p, const std::string& comment)
+    {
+        cmark_parser_feed(p.get(), comment.c_str(), comment.size());
+        auto root = cmark_parser_finish(p.get());
+        return ast_root(root);
+    }
+
     template <class Builder>
     void add_children(const config& c, Builder& b, cmark_node* parent);
 
     [[noreturn]] void error(cmark_node* node, std::string msg)
     {
-        throw translation_error(unsigned(cmark_node_get_start_line(node)),
-                                unsigned(cmark_node_get_start_column(node)), std::move(msg));
+        throw parse_error(unsigned(cmark_node_get_start_line(node)),
+                          unsigned(cmark_node_get_start_column(node)), std::move(msg));
     }
 
     std::unique_ptr<markup::block_quote> parse_block_quote(const config& c, cmark_node* node)
@@ -371,39 +401,14 @@ namespace
         return nullptr;
     }
 
-    template <class Builder, typename T>
-    auto add_child(int, Builder& b, std::unique_ptr<T> entity)
-        -> decltype(void(b.add_child(std::move(entity))))
+    struct comment_builder
     {
-        b.add_child(std::move(entity));
-    }
-
-    template <class Builder, typename T>
-    auto add_child(int, Builder& b, std::unique_ptr<T> entity)
-        -> decltype(void(b.add_item(std::move(entity))))
-    {
-        b.add_item(std::move(entity));
-    }
-
-    void add_child(int, translated_ast::builder& result, std::unique_ptr<markup::doc_section> ptr)
-    {
-        if (ptr->kind() == markup::entity_kind::brief_section)
-        {
-            auto brief = std::unique_ptr<markup::brief_section>(
-                static_cast<markup::brief_section*>(ptr.release()));
-            if (!result.brief(std::move(brief)))
-                error(nullptr, "multiple brief sections for comment");
-        }
-        else
-            result.add_section(std::move(ptr));
-    }
-
-    template <class Builder, typename T>
-    void add_child(short, Builder&, std::unique_ptr<T>)
-    {
-        assert(!"unexpected child");
-    }
-
+        matching_entity                                   entity;
+        metadata                                          data;
+        std::unique_ptr<markup::brief_section>            brief;
+        std::vector<std::unique_ptr<markup::doc_section>> sections;
+        std::vector<unmatched_doc_comment>                inlines;
+    };
     bool starts_with(const char* str, const char* target)
     {
         return std::strncmp(str, target, std::strlen(target)) == 0;
@@ -414,9 +419,8 @@ namespace
         auto args = detail::get_command_arguments(node);
         for (auto ptr = args; *ptr; ++ptr)
             if (*ptr == ' ' || *ptr == '\t')
-                error(node,
-                      std::string("multiple arguments given for command '") + cmd
-                          + "', but only one expected");
+                error(node, std::string("multiple arguments given for command '") + cmd
+                                + "', but only one expected");
         return args;
     }
 
@@ -473,7 +477,7 @@ namespace
             return member_group(std::move(name), std::move(heading), true);
     }
 
-    void parse_command(metadata& data, cmark_node* node)
+    void parse_command_impl(comment_builder* builder, metadata& data, cmark_node* node)
     {
         assert(cmark_node_get_type(node) == detail::node_command());
         auto command = detail::get_command_type(node);
@@ -507,14 +511,22 @@ namespace
             break;
 
         case command_type::entity:
-            if (!data.set_entity(remote_entity(get_single_arg(node, "entity"))))
+            if (!builder)
+                error(node, "entity command not allowed for this node");
+            else if (builder->entity.has_value())
                 error(node, "multiple file/entity commands for entity");
+            else
+                builder->entity = remote_entity(detail::get_command_arguments(node));
             break;
         case command_type::file:
-            if (*detail::get_command_arguments(node))
-                error(node, "arguments given to file command but none required");
-            if (!data.set_entity(current_file{}))
+            if (!builder)
+                error(node, "file command not allowed for this node");
+            else if (builder->entity.has_value())
                 error(node, "multiple file/entity commands for entity");
+            else if (*detail::get_command_arguments(node))
+                error(node, "arguments given to file command but none required");
+            else
+                builder->entity = current_file{};
             break;
 
         case command_type::count:
@@ -523,9 +535,14 @@ namespace
         }
     }
 
-    void parse_command(translated_ast::builder& ast, cmark_node* node)
+    void parse_command(metadata& data, cmark_node* node)
     {
-        parse_command(ast.metadata(), node);
+        parse_command_impl(nullptr, data, node);
+    }
+
+    void parse_command(comment_builder& builder, cmark_node* node)
+    {
+        parse_command_impl(&builder, builder.data, node);
     }
 
     template <typename T>
@@ -542,9 +559,8 @@ namespace
         switch (detail::get_inline_type(node))
         {
         case inline_type::param:
-            return inline_param(detail::get_inline_entity(node));
         case inline_type::tparam:
-            return inline_tparam(detail::get_inline_entity(node));
+            return inline_param(detail::get_inline_entity(node));
         case inline_type::base:
             return inline_base(detail::get_inline_entity(node));
 
@@ -557,15 +573,13 @@ namespace
         return current_file{};
     }
 
-    void parse_inline(const config& c, translated_ast::builder& ast, cmark_node* node)
+    void parse_inline(const config& c, comment_builder& builder, cmark_node* node)
     {
         assert(cmark_node_get_type(node) == detail::node_inline());
 
-        metadata data;
-        data.set_entity(parse_matching(node));
-
-        std::unique_ptr<markup::brief_section>   brief;
-        std::unique_ptr<markup::details_section> details;
+        metadata                                          data;
+        std::unique_ptr<markup::brief_section>            brief;
+        std::vector<std::unique_ptr<markup::doc_section>> details;
         for (auto child = cmark_node_first_child(node); child; child = cmark_node_next(child))
         {
             if (cmark_node_get_type(child) == detail::node_command())
@@ -579,8 +593,7 @@ namespace
                 }
                 else if (detail::get_section_type(child) == section_type::details)
                 {
-                    assert(!details);
-                    details = parse_details(c, child);
+                    details.push_back(parse_details(c, child));
                 }
                 else
                     assert(!"unexpected section");
@@ -589,13 +602,51 @@ namespace
                 assert(!"unexpected child");
         }
 
-        ast.add_inline(inline_comment(std::move(data), std::move(brief), std::move(details)));
+        builder.inlines.push_back(
+            unmatched_doc_comment(parse_matching(node),
+                                  doc_comment(std::move(data), std::move(brief),
+                                              std::move(details))));
     }
 
     template <typename T>
     void parse_inline(const config&, const T&, cmark_node*)
     {
         assert(!"unexpected inline");
+    }
+
+    template <class Builder, typename T>
+    auto add_child(int, Builder& b, std::unique_ptr<T> entity)
+        -> decltype(void(b.add_child(std::move(entity))))
+    {
+        b.add_child(std::move(entity));
+    }
+
+    template <class Builder, typename T>
+    auto add_child(int, Builder& b, std::unique_ptr<T> entity)
+        -> decltype(void(b.add_item(std::move(entity))))
+    {
+        b.add_item(std::move(entity));
+    }
+
+    void add_child(int, comment_builder& builder, std::unique_ptr<markup::doc_section> ptr)
+    {
+        if (ptr->kind() == markup::entity_kind::brief_section)
+        {
+            auto brief = std::unique_ptr<markup::brief_section>(
+                static_cast<markup::brief_section*>(ptr.release()));
+            if (builder.brief)
+                error(nullptr, "multiple brief sections for comment");
+            else
+                builder.brief = std::move(brief);
+        }
+        else
+            builder.sections.push_back(std::move(ptr));
+    }
+
+    template <class Builder, typename T>
+    void add_child(short, Builder&, std::unique_ptr<T>)
+    {
+        assert(!"unexpected child");
     }
 
     template <class Builder>
@@ -661,9 +712,8 @@ namespace
                 case CMARK_NODE_CUSTOM_BLOCK:
                 case CMARK_NODE_CUSTOM_INLINE:
                 case CMARK_NODE_IMAGE:
-                    error(cur,
-                          std::string("forbidden CommonMark node of type \"")
-                              + cmark_node_get_type_string(cur) + "\"");
+                    error(cur, std::string("forbidden CommonMark node of type \"")
+                                   + cmark_node_get_type_string(cur) + "\"");
 
                 case CMARK_NODE_NONE:
                 case CMARK_NODE_DOCUMENT:
@@ -674,12 +724,14 @@ namespace
     }
 }
 
-translated_ast standardese::comment::translate_ast(const parser& p, const ast_root& root)
+parse_result comment::parse(const parser& p, const std::string& comment)
 {
-    assert(cmark_node_get_type(root.get()) == CMARK_NODE_DOCUMENT);
+    auto root = read_ast(p, comment);
 
-    translated_ast::builder builder;
+    comment_builder builder;
     add_children(p.config(), builder, root.get());
 
-    return builder.finish();
+    return parse_result{doc_comment(std::move(builder.data), std::move(builder.brief),
+                                    std::move(builder.sections)),
+                        std::move(builder.entity), std::move(builder.inlines)};
 }
