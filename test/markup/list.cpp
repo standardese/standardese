@@ -55,7 +55,7 @@ TEST_CASE("unordered_list", "[markup]")
         term_description_item::build(block_id(), term::build(text::build("A term")),
                                      description::build(text::build("A description"))));
 
-    auto ptr = builder.finish();
+    auto ptr = builder.finish()->clone();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr) == xml);
 }
@@ -90,7 +90,7 @@ TEST_CASE("ordered_list", "[markup]")
                          .finish());
     builder.add_item(
         list_item::build(paragraph::builder().add_child(text::build("text")).finish()));
-    auto ptr = builder.finish();
+    auto ptr = builder.finish()->clone();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr) == xml);
 }

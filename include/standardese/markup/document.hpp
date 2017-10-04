@@ -41,6 +41,8 @@ namespace standardese
             }
 
         private:
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
             markup::output_name output_name_;
             std::string         title_;
         };
@@ -63,6 +65,8 @@ namespace standardese
 
         private:
             entity_kind do_get_kind() const noexcept override;
+
+            std::unique_ptr<entity> do_clone() const override;
 
             main_document(std::string title, std::string name)
             : document_entity(std::move(title), markup::output_name::from_name(std::move(name)))
@@ -89,6 +93,8 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
+            std::unique_ptr<entity> do_clone() const override;
+
             subdocument(std::string title, std::string name)
             : document_entity(std::move(title), markup::output_name::from_name(std::move(name)))
             {
@@ -113,6 +119,8 @@ namespace standardese
 
         private:
             entity_kind do_get_kind() const noexcept override;
+
+            std::unique_ptr<entity> do_clone() const override;
 
             template_document(std::string title, std::string file_name);
         };

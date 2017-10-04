@@ -5,12 +5,14 @@
 #ifndef STANDARDESE_MARKUP_ENTITY_HPP_INCLUDED
 #define STANDARDESE_MARKUP_ENTITY_HPP_INCLUDED
 
-#include <type_safe/optional_ref.hpp>
-
 #include <memory>
 #include <string>
 #include <type_traits>
 #include <vector>
+
+#include <type_safe/optional_ref.hpp>
+
+#include <standardese/markup/visitor.hpp>
 
 namespace standardese
 {
@@ -47,6 +49,12 @@ namespace standardese
                 return parent_;
             }
 
+            /// \returns A copy of itself.
+            std::unique_ptr<entity> clone() const
+            {
+                return do_clone();
+            }
+
         protected:
             entity() noexcept = default;
 
@@ -54,10 +62,37 @@ namespace standardese
             /// \returns The kind of entity.
             virtual entity_kind do_get_kind() const noexcept = 0;
 
+            /// \effects Invokes the callback for all children.
+            virtual void do_visit(detail::visitor_callback_t cb, void* mem) const = 0;
+
+            /// \returns A copy of itself.
+            virtual std::unique_ptr<entity> do_clone() const = 0;
+
             type_safe::optional_ref<const entity> parent_;
 
             friend detail::parent_updater;
+            friend void detail::call_visit(const entity& e, visitor_callback_t cb, void* mem);
         };
+
+        /// \exclude
+        namespace detail
+        {
+            template <typename U, typename T>
+            std::unique_ptr<U> unchecked_downcast(std::unique_ptr<T> ptr)
+            {
+                return std::unique_ptr<U>(static_cast<U*>(ptr.release()));
+            }
+        } // namespace detail
+
+        /// \returns A copy of the given entity.
+        /// \requires `T` must be derived from [standardese::markup::entity]().
+        template <typename T>
+        std::unique_ptr<T> clone(const T& obj)
+        {
+            static_assert(std::is_base_of<entity, T>::value, "must be derived from entity");
+            return std::unique_ptr<T>(static_cast<T*>(obj.clone().release()));
+        }
+
         /// \exclude
         namespace detail
         {

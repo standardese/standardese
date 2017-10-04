@@ -23,7 +23,7 @@ TEST_CASE("paragraph", "[markup]")
     builder.add_child(emphasis::build("b"));
     builder.add_child(
         code::builder().add_child(emphasis::build("c")).add_child(text::build("d")).finish());
-    auto ptr = builder.finish();
+    auto ptr = builder.finish()->clone();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr) == xml);
 }

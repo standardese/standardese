@@ -87,7 +87,7 @@ TEST_CASE("file_documentation", "[markup]")
                                                description::build(text::build("the answer!"))));
     builder.add_section(list_section::build(section_type::returns, "Return values", list.finish()));
 
-    auto ptr = builder.finish();
+    auto ptr = builder.finish()->clone();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr) == xml);
 }
@@ -125,7 +125,7 @@ TEST_CASE("entity_documentation", "[markup]")
         brief_section::builder().add_child(text::build("The brief documentation.")).finish());
     a.add_child(b.finish());
 
-    auto ptr = a.finish();
+    auto ptr = a.finish()->clone();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr) == xml);
 }

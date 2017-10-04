@@ -24,7 +24,7 @@ TEST_CASE("heading", "[markup]")
 
     auto ptr = builder.finish();
     REQUIRE(as_html(*ptr) == html);
-    REQUIRE(as_xml(*ptr) == xml);
+    REQUIRE(as_xml(*ptr->clone()) == xml);
 }
 
 TEST_CASE("subheading", "[markup]")
@@ -41,5 +41,5 @@ TEST_CASE("subheading", "[markup]")
 
     auto ptr = builder.finish();
     REQUIRE(as_html(*ptr) == html);
-    REQUIRE(as_xml(*ptr) == xml);
+    REQUIRE(as_xml(*ptr->clone()) == xml);
 }
