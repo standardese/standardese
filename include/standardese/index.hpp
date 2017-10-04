@@ -124,6 +124,14 @@ namespace standardese
         /// \notes This function is thread safe.
         void register_module(markup::module_documentation::builder doc) const;
 
+        /// \effects Registers an entity for the given module.
+        /// \returns Whether or not there was a module already.
+        /// If `false`, this function had no effect.
+        /// \notes This function is thread safe.
+        bool register_entity(std::string module, std::string link_name,
+                             const cppast::cpp_entity&                            entity,
+                             type_safe::optional_ref<const markup::brief_section> brief) const;
+
         /// \returns The markup containing the index of all modules registered so far.
         /// \requires This function must only be called once.
         /// \notes This function is thread safe.

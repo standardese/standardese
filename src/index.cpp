@@ -254,6 +254,20 @@ void module_index::register_module(markup::module_documentation::builder doc) co
     modules_.insert(iter, std::move(doc));
 }
 
+bool module_index::register_entity(std::string module, std::string link_name,
+                                   const cppast::cpp_entity&                            entity,
+                                   type_safe::optional_ref<const markup::brief_section> brief) const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto                        iter = std::lower_bound(modules_.begin(), modules_.end(), module,
+                                 [](const markup::module_documentation::builder& lhs,
+                                    const std::string& rhs) { return lhs.id().as_str() < rhs; });
+    if (iter == modules_.end())
+        return false;
+    iter->add_child(get_entity_entry(entity.name(), std::move(link_name), std::move(brief)));
+    return true;
+}
+
 std::unique_ptr<markup::module_index> module_index::generate() const
 {
     markup::module_index::builder builder(
