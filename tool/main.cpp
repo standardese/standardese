@@ -2,43 +2,34 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
-#include <cassert>
-#include <fstream>
 #include <iostream>
-#include <vector>
 
-#include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 
-#include <cmark_version.h>
-#include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
-
-#include <standardese/error.hpp>
-#include <standardese/generator.hpp>
-#include <standardese/index.hpp>
-#include <standardese/output.hpp>
-#include <standardese/parser.hpp>
-#include <standardese/template_processor.hpp>
-
 #include "filesystem.hpp"
-#include "options.hpp"
+#include "generator.hpp"
 #include "thread_pool.hpp"
 
-namespace fs = boost::filesystem;
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 constexpr auto terminal_width = 100u; // assume 100 columns for terminal help text
+
+inline bool default_msvc_comp() noexcept
+{
+#ifdef _MSC_VER
+    return true;
+#else
+    return false;
+#endif
+}
 
 void print_version(const char* exe_name)
 {
     std::clog << exe_name << " version " << STANDARDESE_VERSION_MAJOR << '.'
               << STANDARDESE_VERSION_MINOR << '\n';
-    std::clog << "Copyright (C) 2016 Jonathan Müller <jonathanmueller.dev@gmail.com>\n";
+    std::clog << "Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>\n";
     std::clog << '\n';
-    std::clog << "Using libclang version: " << standardese::string(clang_getClangVersion()).c_str()
-              << '\n';
-    std::clog << "Using cmark version: " << CMARK_VERSION_STRING << '\n';
 }
 
 void print_usage(const char* exe_name, const po::options_description& generic,
@@ -51,111 +42,205 @@ void print_usage(const char* exe_name, const po::options_description& generic,
     std::clog << configuration << '\n';
 }
 
-std::vector<std::pair<standardese::translation_unit, std::string>> parse_files(
-    standardese::parser& parser, const standardese::compile_config& compile_config,
-    const po::variables_map& map, std::size_t no_threads,
-    std::vector<standardese::template_file>& templates)
+po::variables_map get_options(int argc, char* argv[], const po::options_description& generic,
+                              const po::options_description& configuration)
 {
-    auto input              = map.at("input-files").as<std::vector<fs::path>>();
-    auto source_ext         = map.at("input.source_ext").as<std::vector<std::string>>();
-    auto blacklist_ext      = map.at("input.blacklist_ext").as<std::vector<std::string>>();
-    auto blacklist_file     = map.at("input.blacklist_file").as<std::vector<std::string>>();
-    auto blacklist_dir      = map.at("input.blacklist_dir").as<std::vector<std::string>>();
-    auto blacklist_dotfiles = map.at("input.blacklist_dotfiles").as<bool>();
-    auto force_blacklist    = map.at("input.force_blacklist").as<bool>();
+    po::variables_map map;
 
-    assert(!input.empty());
-    for (auto& path : input)
-        parser.get_preprocessor().whitelist_include_dir(path.parent_path().generic_string());
+    po::options_description input("");
+    input.add_options()("input-files", po::value<std::vector<fs::path>>(), "input files");
+    po::positional_options_description input_pos;
+    input_pos.add("input-files", -1);
 
-    std::vector<std::future<std::pair<standardese::translation_unit, std::string>>> futures;
-    futures.reserve(input.size());
+    po::options_description cmd;
+    cmd.add(generic).add(configuration).add(input);
 
-    auto parse = [&](const fs::path& p, const fs::path& relative) {
-        parser.get_logger()->info("Parsing file {}...", p);
-        auto output_name = standardese_tool::get_output_name(relative);
-        return std::make_pair(parser.parse(p.generic_string().c_str(), compile_config,
-                                           relative.generic_string().c_str()),
-                              std::move(output_name));
-    };
+    auto cmd_result = po::command_line_parser(argc, argv)
+                          .options(cmd)
+                          .positional(input_pos)
+                          .allow_unregistered()
+                          .run();
+    po::store(cmd_result, map);
+    po::notify(map);
 
+    auto               iter = map.find("config");
+    po::parsed_options file_result(nullptr);
+    if (iter != map.end())
     {
-        standardese_tool::thread_pool pool(no_threads);
-        for (auto& path : input)
-            standardese_tool::
-                handle_path(path, source_ext, blacklist_ext, blacklist_file, blacklist_dir,
-                            blacklist_dotfiles, force_blacklist,
-                            [&](bool is_source_file, const fs::path& p, const fs::path& relative) {
-                                if (is_source_file)
-                                    futures.push_back(
-                                        standardese_tool::add_job(pool, parse, p, relative));
-                                else
-                                {
-                                    std::ifstream file(p.generic_string());
-                                    if (!file.is_open())
-                                        parser.get_logger()
-                                            ->error("unable to open template file '{}",
-                                                    p.generic_string());
-                                    templates
-                                        .emplace_back(standardese_tool::get_output_name(relative)
-                                                          + relative.extension().generic_string(),
-                                                      std::string(std::istreambuf_iterator<char>(
-                                                                      file),
-                                                                  std::istreambuf_iterator<
-                                                                      char>{}));
-                                }
-                            });
+        auto          path = iter->second.as<fs::path>();
+        std::ifstream config(path.string());
+        if (!config.is_open())
+            throw std::runtime_error("config file '" + path.generic_string() + "' not found");
+
+        po::options_description conf;
+        conf.add(configuration);
+
+        file_result = po::parse_config_file(config, configuration, true);
+        po::store(file_result, map);
+        po::notify(map);
     }
 
-    std::vector<std::pair<standardese::translation_unit, std::string>> result;
-    for (auto& f : futures)
-        result.push_back(f.get());
-
-    return result;
+    return map;
 }
 
-void write_output_files(const standardese_tool::configuration& config,
-                        const standardese::index& idx, std::size_t no_threads,
-                        const standardese::template_file* default_template, fs::path prefix,
-                        const std::vector<standardese::documentation>& documentations,
-                        const std::vector<standardese::raw_document>&  raw_documents)
+bool has_option(const po::variables_map& map, const char* name)
 {
-    using namespace standardese;
+    return map.count(name) != 0u;
+}
 
-    for (auto& format : config.formats)
-    {
-        config.parser->get_logger()->info("Writing files for output format {}...",
-                                          format->extension());
+template <typename T>
+type_safe::optional<T> get_option(const po::variables_map& map, const char* name)
+{
+    auto iter = map.find(name);
+    if (iter != map.end())
+        return iter->second.as<T>();
+    else
+        return type_safe::nullopt;
+}
 
-        auto prefix_dir = prefix.parent_path();
-        if (!prefix_dir.empty())
-            fs::create_directories(prefix_dir);
+inline cppast::cpp_standard parse_standard(const std::string& str)
+{
+    using cppast::cpp_standard;
 
-        output out(*config.parser, idx, prefix.generic_string(), *format);
-        standardese_tool::for_each(no_threads, documentations,
-                                   [](const standardese::documentation& doc) {
-                                       return doc.document != nullptr;
-                                   },
-                                   [&](const standardese::documentation& doc) {
-                                       config.parser->get_logger()
-                                           ->debug("writing documentation file '{}'",
-                                                   doc.document->get_output_name());
-                                       if (default_template)
-                                           out.render_template(config.parser->get_logger(),
-                                                               *default_template, doc,
-                                                               config.link_extension());
-                                       else
-                                           out.render(config.parser->get_logger(), *doc.document,
-                                                      config.link_extension());
-                                   });
-        standardese_tool::for_each(no_threads, raw_documents,
-                                   [](const standardese::raw_document&) { return true; },
-                                   [&](const standardese::raw_document& doc) {
-                                       config.parser->get_logger()
-                                           ->debug("writing template file '{}'", doc.file_name);
-                                       out.render_raw(config.parser->get_logger(), doc);
-                                   });
-    }
+    if (str == "c++98")
+        return cpp_standard::cpp_98;
+    else if (str == "c++03")
+        return cpp_standard::cpp_03;
+    else if (str == "c++11")
+        return cpp_standard::cpp_11;
+    else if (str == "c++14")
+        return cpp_standard::cpp_14;
+    else
+        throw std::invalid_argument("invalid C++ standard '" + str + "'");
+}
+
+cppast::libclang_compile_config get_compile_config(const po::variables_map& options)
+{
+    cppast::libclang_compile_config config;
+
+    cppast::compile_flags flags;
+    if (auto gnu_ext = get_option<bool>(options, "compilation.gnu_extensions"))
+        flags.set(cppast::compile_flag::gnu_extensions, gnu_ext.value());
+    if (auto ms_ext = get_option<bool>(options, "compilation.ms_extensions"))
+        flags.set(cppast::compile_flag::ms_extensions, ms_ext.value());
+    if (auto ms_comp = get_option<bool>(options, "compilation.ms_compatibility"))
+        flags.set(cppast::compile_flag::ms_compatibility, ms_comp.value());
+
+    auto standard = parse_standard(options.at("compilation.standard").as<std::string>());
+    config.set_flags(standard, flags);
+
+    if (auto includes = get_option<std::vector<std::string>>(options, "compilation.include_dir"))
+        for (auto& include : includes.value())
+            config.add_include_dir(include);
+
+    if (auto macros = get_option<std::vector<std::string>>(options, "compilation.macro_definition"))
+        for (auto& macro : macros.value())
+        {
+            auto pos = macro.find('=');
+            if (pos == std::string::npos)
+                config.define_macro(macro, "");
+            else
+                config.define_macro(macro.substr(0, pos), macro.substr(pos + 1));
+        }
+
+    if (auto macros =
+            get_option<std::vector<std::string>>(options, "compilation.macro_undefinition"))
+        for (auto& macro : macros.value())
+            config.undefine_macro(macro);
+
+    return config;
+}
+
+type_safe::optional<cppast::libclang_compilation_database> get_compilation_database(
+    const po::variables_map& options)
+{
+    if (auto dir = get_option<std::string>(options, "compilation.commands_dir"))
+        return cppast::libclang_compilation_database(dir.value());
+    else
+        return type_safe::nullopt;
+}
+
+std::vector<standardese_tool::input_file> get_input(const po::variables_map& options)
+{
+    auto source_ext = get_option<std::vector<std::string>>(options, "input.source_ext").value();
+    auto blacklist_ext =
+        get_option<std::vector<std::string>>(options, "input.blacklist_ext").value();
+    auto blacklist_files =
+        get_option<std::vector<std::string>>(options, "input.blacklist_file").value();
+    auto blacklist_dirs =
+        get_option<std::vector<std::string>>(options, "input.blacklist_dir").value();
+    auto blacklist_dotfiles = get_option<bool>(options, "input.blacklist_dotfiles").value();
+    auto force_blacklist    = get_option<bool>(options, "input.force_blacklist").value();
+
+    auto input_files = get_option<std::vector<fs::path>>(options, "input-files");
+    if (!input_files)
+        throw std::invalid_argument("no input files specified");
+
+    std::vector<standardese_tool::input_file> files;
+    for (auto& file : input_files.value())
+        standardese_tool::handle_path(file, source_ext, blacklist_ext, blacklist_files,
+                                      blacklist_dirs, blacklist_dotfiles, force_blacklist,
+                                      [&](bool, const fs::path& path, const fs::path& relative) {
+                                          files.push_back({path, relative});
+                                      });
+
+    return files;
+}
+
+standardese::comment::config get_comment_config(const po::variables_map& options)
+{
+    standardese::comment::config config(
+        get_option<char>(options, "comment.command_character").value());
+
+    // TODO: handle command overrides
+
+    return config;
+}
+
+standardese::synopsis_config get_synopsis_config(const po::variables_map& options)
+{
+    standardese::synopsis_config config;
+
+    if (auto tab = get_option<unsigned>(options, "output.tab_width"))
+        config.set_tab_width(tab.value());
+
+    config.set_flag(standardese::synopsis_config::show_complex_noexcept,
+                    get_option<bool>(options, "output.show_complex_noexcept").value());
+    config.set_flag(standardese::synopsis_config::show_macro_replacement,
+                    get_option<bool>(options, "output.show_macro_replacement").value());
+    config.set_flag(standardese::synopsis_config::show_group_output_section,
+                    get_option<bool>(options, "output.show_group_output_section").value());
+
+    return config;
+}
+
+standardese::generation_config get_generation_config(const po::variables_map& options)
+{
+    standardese::generation_config config;
+
+    config.set_flag(standardese::generation_config::document_uncommented,
+                    !get_option<bool>(options, "input.require_comment").value());
+    config.set_flag(standardese::generation_config::inline_doc,
+                    get_option<bool>(options, "output.inline_doc").value());
+
+    return config;
+}
+
+std::vector<std::pair<standardese::markup::generator, const char*>> get_formats(
+    const po::variables_map& options)
+{
+    std::vector<std::pair<standardese::markup::generator, const char*>> formats;
+
+    auto option = get_option<std::vector<std::string>>(options, "output.format").value();
+    for (auto& format : option)
+        if (format == "html")
+            formats.emplace_back(standardese::markup::html_generator(), "html");
+        else if (format == "xml")
+            formats.emplace_back(standardese::markup::xml_generator(), "xml");
+        else
+            throw std::invalid_argument("unknown format '" + format + "'");
+
+    return formats;
 }
 
 int main(int argc, char* argv[])
@@ -163,231 +248,175 @@ int main(int argc, char* argv[])
     // clang-format off
     po::options_description generic("Generic options", terminal_width), configuration("Configuration", terminal_width);
     generic.add_options()
-            ("version,V", "prints version information and exits")
-            ("help,h", "prints this help message and exits")
-            ("config,c", po::value<fs::path>(), "read options from additional config file as well")
-            ("verbose,v", po::value<bool>()->implicit_value(true)->default_value(false),
-             "prints more information")
-            ("jobs,j", po::value<unsigned>()->default_value(standardese_tool::default_no_threads()),
-             "sets the number of threads to use")
-            ("color", po::value<bool>()->implicit_value(true)->default_value(true),
-             "enable/disable color support of logger");
+        ("version,V", "prints version information and exits")
+        ("help,h", "prints this help message and exits")
+        ("config,c", po::value<fs::path>(), "read options from additional config file as well")
+        ("verbose,v", po::value<bool>()->implicit_value(true)->default_value(false),
+         "prints more information")
+        ("jobs,j", po::value<unsigned>()->default_value(standardese_tool::default_no_threads()),
+         "sets the number of threads to use");
 
     configuration.add_options()
-            ("input.source_ext",
-             po::value<std::vector<std::string>>()
-             ->default_value({".h", ".hpp", ".h++", ".hxx"}, "(common C++ header file extensions"),
-            "file extensions that are treated as header files and where files will be parsed")
-            ("input.blacklist_ext",
-             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
-             "file extension that is forbidden (e.g. \".md\"; \".\" for no extension)")
-            ("input.blacklist_file",
-             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
-             "file that is forbidden, relative to traversed directory")
-            ("input.blacklist_dir",
-             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
-             "directory that is forbidden, relative to traversed directory")
-            ("input.blacklist_dotfiles",
-             po::value<bool>()->implicit_value(true)->default_value(true),
-             "whether or not dotfiles are blacklisted")
-            ("input.blacklist_entity_name",
-             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
-             "C++ entity names (and all children) that are forbidden")
-            ("input.blacklist_namespace",
-             po::value<std::vector<std::string>>()->default_value({}, "(none)"),
-             "C++ namespace names (with all children) that are forbidden")
-            ("input.force_blacklist",
-             po::value<bool>()->implicit_value(true)->default_value(false),
-             "force the blacklist for explictly given files")
-            ("input.require_comment",
-             po::value<bool>()->implicit_value(true)->default_value(true),
-             "only generates documentation for entities that have a documentation comment")
-            ("input.extract_private",
-             po::value<bool>()->implicit_value(true)->default_value(false),
-             "whether or not to document private entities")
+        ("input.source_ext",
+         po::value<std::vector<std::string>>()
+         ->default_value({".h", ".hpp", ".h++", ".hxx"}, "(common C++ header file extensions)"),
+         "file extensions that are treated as header files and where files will be parsed")
+        ("input.blacklist_ext",
+         po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+         R"(file extension that is forbidden (e.g. ".md"; "." for no extension))")
+        ("input.blacklist_file",
+         po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+         "file that is forbidden, relative to traversed directory")
+        ("input.blacklist_dir",
+         po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+         "directory that is forbidden, relative to traversed directory")
+        ("input.blacklist_dotfiles",
+         po::value<bool>()->implicit_value(true)->default_value(true),
+         "whether or not dotfiles are blacklisted")
+        ("input.blacklist_entity_name", // TODO
+         po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+         "C++ entity names (and all children) that are forbidden")
+        ("input.blacklist_namespace", // TODO
+         po::value<std::vector<std::string>>()->default_value({}, "(none)"),
+         "C++ namespace names (with all children) that are forbidden")
+        ("input.force_blacklist",
+         po::value<bool>()->implicit_value(true)->default_value(false),
+         "force the blacklist for explictly given files")
+        ("input.require_comment",
+         po::value<bool>()->implicit_value(true)->default_value(true),
+         "only generates documentation for entities that have a documentation comment")
+        ("input.extract_private",
+         po::value<bool>()->implicit_value(true)->default_value(false),
+         "whether or not to document private entities")
 
-            ("compilation.commands_dir", po::value<std::string>(),
-             "the directory where a compile_commands.json is located, its options have lower priority than the other ones")
-            ("compilation.standard", po::value<std::string>()->default_value("c++14"),
-             "the C++ standard to use for parsing, valid values are c++98/03/11/14")
-            ("compilation.include_dir,I", po::value<std::vector<std::string>>(),
-             "adds an additional include directory to use for parsing")
-            ("compilation.macro_definition,D", po::value<std::vector<std::string>>(),
-             "adds an implicit #define before parsing")
-            ("compilation.macro_undefinition,U", po::value<std::vector<std::string>>(),
-             "adds an implicit #undef before parsing")
-            ("compilation.preprocess_dir,P", po::value<std::vector<std::string>>(),
-             "whitelists all includes to that directory so that they show up in the output")
-            ("compilation.ms_extensions",
-             po::value<bool>()->implicit_value(true)->default_value(standardese_tool::default_msvc_comp()),
-             "enable/disable MSVC extension support (-fms-extensions)")
-            ("compilation.ms_compatibility",
-             po::value<unsigned>()->default_value(standardese_tool::default_msvc_version()),
-             "set MSVC compatibility version to fake, 0 to disable (-fms-compatibility[-version])")
-            ("compilation.clang_binary", po::value<std::string>(),
-             "path to clang++ binary")
-            ("compilation.comments_in_macro", po::value<bool>()->implicit_value(true)->default_value(true),
-            "whether or not documentation in macros are supported, can lead to some problems with advanced preprocessor")
+        ("compilation.commands_dir", po::value<std::string>(),
+         "the directory where a compile_commands.json is located, its options have lower priority than the other ones")
+        ("compilation.standard", po::value<std::string>()->default_value("c++14"),
+         "the C++ standard to use for parsing, valid values are c++98/03/11/14")
+        ("compilation.include_dir,I", po::value<std::vector<std::string>>(),
+         "adds an additional include directory to use for parsing")
+        ("compilation.macro_definition,D", po::value<std::vector<std::string>>(),
+         "adds an implicit #define before parsing")
+        ("compilation.macro_undefinition,U", po::value<std::vector<std::string>>(),
+         "adds an implicit #undef before parsing")
+        ("compilation.gnu_extensions",
+         po::value<bool>()->implicit_value(true)->default_value(false),
+         "enable/disable GNU extension support (-std=gnu++XX vs -std=c++XX)")
+        ("compilation.ms_extensions",
+         po::value<bool>()->implicit_value(true)->default_value(default_msvc_comp()),
+         "enable/disable MSVC extension support (-fms-extensions)")
+        ("compilation.ms_compatibility",
+         po::value<bool>()->implicit_value(true)->default_value(default_msvc_comp()),
+         "enable/disable MSVC compatibility (-fms-compatibility)")
 
-            ("comment.command_character", po::value<char>()->default_value('\\'),
-             "character used to introduce special commands")
-            ("comment.cmd_name_", po::value<std::string>(),
-             "override name for the command following the name_ (e.g. comment.cmd_name_requires=require)")
-            ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""),
-             "syntax is prefix=url, supports linking to a different URL for entities starting with prefix")
+        ("comment.command_character", po::value<char>()->default_value(standardese::comment::config::default_command_character()),
+         "character used to introduce special commands")
+        ("comment.cmd_name_", po::value<std::string>(), // TODO
+         "override name for the command following the name_ (e.g. comment.cmd_name_requires=require)")
+        ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""), // TODO
+         "syntax is prefix=url, supports linking to a different URL for entities starting with prefix")
 
-            ("template.default_template", po::value<std::string>()->default_value("", ""),
-             "set the default template for all output")
-            ("template.delimiter_begin", po::value<std::string>()->default_value("{{"),
-             "set the template delimiter begin string")
-            ("template.delimiter_end", po::value<std::string>()->default_value("}}"),
-            "set the template delimiter end string")
-            ("template.cmd_name_", po::value<std::string>(),
-            "override the name for the template command following the name_ (e.g. template.cmd_name_if=my_if);"
-            "standardese prefix will be added automatically")
+        // TODO
+        ("template.default_template", po::value<std::string>()->default_value("", ""),
+         "set the default template for all output")
+        ("template.delimiter_begin", po::value<std::string>()->default_value("{{"),
+         "set the template delimiter begin string")
+        ("template.delimiter_end", po::value<std::string>()->default_value("}}"),
+         "set the template delimiter end string")
+        ("template.cmd_name_", po::value<std::string>(),
+         "override the name for the template command following the name_ (e.g. template.cmd_name_if=my_if);"
+         "standardese prefix will be added automatically")
 
-            ("output.format",
-             po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"commonmark"}, "{commonmark}"),
-             "the output format used (commonmark, latex, man, html, xml)")
-            ("output.link_extension", po::value<std::string>(),
-             "the file extension of the links to entities, useful if you convert standardese output to a different format and change the extension")
-            ("output.prefix",
-            po::value<std::string>()->default_value(""),
-            "a prefix that will be added to all output files")
-            ("output.section_name_", po::value<std::string>(),
-             "override output name for the section following the name_ (e.g. output.section_name_requires=Require)")
-            ("output.tab_width", po::value<unsigned>()->default_value(4),
-             "the tab width (i.e. number of spaces, won't emit tab) of the code in the synthesis")
-            ("output.width", po::value<unsigned>()->default_value(terminal_width),
-             "the width of the output (used in e.g. commonmark format)")
-            ("output.inline_doc", po::value<bool>()->default_value(true)->implicit_value(true),
-             "whether or not some entity documentation (parameters etc.) will be shown inline")
-            ("output.advanced_code_block", po::value<bool>()->default_value(true)->implicit_value(true),
-            "whether or not an advanced (HTML) code block will be used")
-            ("output.require_comment_for_full_synopsis", po::value<bool>()->default_value(true)->implicit_value(true),
-            "whether or not the full definition of a non-documented class/enum will be shown in the synopsis of the parent entity")
-            ("output.show_complex_noexcept", po::value<bool>()->default_value(true)->implicit_value(true),
-             "whether or not complex noexcept expressions will be shown in the synopsis or replaced by \"see below\"")
-            ("output.show_macro_replacement", po::value<bool>()->default_value(false)->implicit_value(true),
-             "whether or not the replacement of macros will be shown")
-            ("output.show_group_member_id", po::value<bool>()->default_value(true)->implicit_value(true),
-             "whether or not to show the index of member group members in the synopsis")
-            ("output.show_group_output_section", po::value<bool>()->default_value(true)->implicit_value(true),
-            "whether or not member groups have an implicit output section")
-            ("output.show_modules", po::value<bool>()->default_value(true)->implicit_value(true),
-            "whether or not the module of an entity is shown in the documentation");
+        ("output.format",
+         po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"html"}, "{html}"),
+         "the output format used (html, xml)")
+        ("output.link_extension", po::value<std::string>(), // TODO
+         "the file extension of the links to entities, useful if you convert standardese output to a different format and change the extension")
+        ("output.prefix",
+         po::value<std::string>()->default_value(""),
+         "a prefix that will be added to all output files")
+        ("output.section_name_", po::value<std::string>(), // TODO
+         "override output name for the section following the name_ (e.g. output.section_name_requires=Require)")
+        ("output.tab_width", po::value<unsigned>()->default_value(standardese::synopsis_config::default_tab_width()),
+         "the tab width (i.e. number of spaces, won't emit tab) of the code in the synthesis")
+        ("output.inline_doc", po::value<bool>()->default_value(true)->implicit_value(true),
+         "whether or not some entity documentation (parameters etc.) will be shown inline")
+        ("output.show_complex_noexcept", po::value<bool>()->default_value(true)->implicit_value(true),
+         "whether or not complex noexcept expressions will be shown in the synopsis or replaced by \"see below\"")
+        ("output.show_macro_replacement", po::value<bool>()->default_value(false)->implicit_value(true),
+         "whether or not the replacement of macros will be shown")
+        ("output.show_group_output_section", po::value<bool>()->default_value(true)->implicit_value(true),
+         "whether or not member groups have an implicit output section");
     // clang-format on
 
-    standardese_tool::configuration config;
     try
     {
-        config = standardese_tool::get_configuration(argc, argv, generic, configuration);
+        auto options = get_options(argc, argv, generic, configuration);
+
+        if (has_option(options, "version"))
+            print_version(argv[0]);
+        else if (has_option(options, "help"))
+            print_usage(argv[0], generic, configuration);
+        else
+        {
+            auto no_threads = get_option<unsigned>(options, "jobs").value();
+
+            auto compile_config = get_compile_config(options);
+            auto database       = get_compilation_database(options);
+            auto input          = get_input(options);
+
+            auto comment_config    = get_comment_config(options);
+            auto synopsis_config   = get_synopsis_config(options);
+            auto generation_config = get_generation_config(options);
+
+            auto exclude_private = !get_option<bool>(options, "input.extract_private").value();
+
+            auto formats = get_formats(options);
+            auto prefix  = get_option<std::string>(options, "output.prefix").value();
+
+            try
+            {
+                cppast::cpp_entity_index index;
+
+                std::clog << "parsing C++ files...\n";
+                auto parsed =
+                    standardese_tool::parse(compile_config, database, input, index, no_threads);
+                if (!parsed)
+                    return 1;
+
+                std::clog << "parsing documentation comments...\n";
+                auto comments =
+                    standardese_tool::parse_comments(comment_config, parsed.value(), no_threads);
+                auto files = standardese_tool::build_files(comments, std::move(parsed.value()),
+                                                           exclude_private, no_threads);
+
+                std::clog << "generating documentation...\n";
+                auto docs = standardese_tool::generate(generation_config, synopsis_config, index,
+                                                       files, no_threads);
+
+                for (auto& format : formats)
+                {
+                    std::clog << "writing files in format '" << format.second << "'...\n";
+
+                    auto format_prefix =
+                        formats.size() > 1u ? format.second + '/' + prefix : prefix;
+                    if (!format_prefix.empty())
+                        fs::create_directories(fs::path(format_prefix).parent_path());
+                    standardese_tool::write_files(docs, format.first, std::move(format_prefix),
+                                                  format.second, no_threads);
+                }
+            }
+            catch (std::exception& ex)
+            {
+                std::cerr << "error: " << ex.what() << '\n';
+            }
+        }
     }
     catch (std::exception& ex)
     {
-        std::cerr << ex.what() << '\n';
+        std::cerr << "error: " << ex.what() << '\n';
+        std::cerr << '\n';
         print_usage(argv[0], generic, configuration);
         return 1;
     }
-
-    auto& map            = config.map;
-    auto& parser         = *config.parser;
-    auto& compile_config = config.compile_config;
-    auto& log            = parser.get_logger();
-
-    if (map.count("help"))
-        print_usage(argv[0], generic, configuration);
-    else if (map.count("version"))
-        print_version(argv[0]);
-    else if (map.count("input-files") == 0u)
-    {
-        log->critical("no input file(s) specified");
-        print_usage(argv[0], generic, configuration);
-        return 1;
-    }
-    else
-        try
-        {
-            using namespace standardese;
-            log->debug("Using libclang version: {}", string(clang_getClangVersion()).c_str());
-            log->debug("Using cmark version: {}", CMARK_VERSION_STRING);
-
-            auto               no_threads = map.at("jobs").as<unsigned>();
-            standardese::index index;
-
-            // parse files
-            std::vector<template_file> templates;
-            auto files = parse_files(parser, compile_config, map, no_threads, templates);
-
-            // generate documentations
-            auto documentations =
-                standardese_tool::for_each(no_threads, files,
-                                           [](const std::pair<translation_unit, std::string>&) {
-                                               return true;
-                                           },
-                                           [&](const std::pair<translation_unit, std::string>&
-                                                   pair) {
-                                               log->info("Generating documentation for {}...",
-                                                         pair.first.get_file().get_name().c_str());
-
-                                               standardese::documentation result(nullptr, nullptr);
-                                               try
-                                               {
-                                                   result = generate_doc_file(parser, index,
-                                                                              pair.first.get_file(),
-                                                                              pair.second);
-                                               }
-                                               catch (cmark_error& ex)
-                                               {
-                                                   log->error("cmark error in '{}'", ex.what());
-                                               }
-
-                                               return result;
-                                           });
-
-            // generate indices
-            log->info("Generating indices...");
-            documentations.push_back(generate_file_index(index));
-            documentations.push_back(generate_entity_index(index));
-            documentations.push_back(generate_module_index(parser, index));
-
-            // process templates
-            auto raw_documents =
-                standardese_tool::for_each(no_threads, templates,
-                                           [](const template_file&) { return true; },
-                                           [&](const template_file& f) {
-                                               log->info("Processing template file '{}'...",
-                                                         f.output_name);
-                                               return process_template(parser, index, f);
-                                           });
-
-            // write output
-            auto templ_path = map.at("template.default_template").as<std::string>();
-            auto prefix     = map.at("output.prefix").as<std::string>();
-            if (templ_path.empty())
-                write_output_files(config, index, no_threads, nullptr, prefix, documentations,
-                                   raw_documents);
-            else
-            {
-                std::ifstream file(templ_path);
-                if (!file.is_open())
-                    log->critical("unable to open template file '{}'", templ_path);
-                else
-                {
-                    template_file templ("", std::string(std::istreambuf_iterator<char>(file),
-                                                        std::istreambuf_iterator<char>{}));
-                    write_output_files(config, index, no_threads, &templ, prefix, documentations,
-                                       raw_documents);
-                }
-            }
-        }
-        catch (standardese::libclang_error& error)
-        {
-            log->critical("libclang error '{}'", error.what());
-        }
-        catch (std::exception& ex)
-        {
-            log->critical(ex.what());
-            return 1;
-        }
 }

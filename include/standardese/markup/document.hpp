@@ -90,6 +90,8 @@ namespace standardese
                       new subdocument(std::move(title), std::move(output_name))))
                 {
                 }
+
+                using container_builder::peek;
             };
 
         private:

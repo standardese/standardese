@@ -122,7 +122,7 @@ namespace standardese_tool
         return true;
     }
 
-    inline std::string get_output_name(const fs::path& relative)
+    inline std::string get_output_file_name(const fs::path& relative)
     {
         std::string output_name;
         // convert "detail/some_file.hpp" to "detail__some_file"
