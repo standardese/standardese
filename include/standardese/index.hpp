@@ -37,6 +37,7 @@ namespace standardese
     {
     public:
         /// \effects Registers an entity and its documentation.
+        /// Duplicate registration has no effect.
         /// \requires The entity must not be a file or namespace and must be at namespace or global scope.
         /// The user data of the entity must be `nullptr` or the corresponding [standardese::doc_entity].
         /// \notes This function is thread safe.
@@ -45,6 +46,7 @@ namespace standardese
 
         /// \effects Registers a namespace and its (incomplete) documentation.
         /// The user data of the namespace must be `nullptr` or the corresponding [standardese::doc_entity].
+        /// Duplicate registration will merge documentation.
         /// \notes This function is thread safe.
         void register_namespace(const cppast::cpp_namespace&             ns,
                                 markup::namespace_documentation::builder doc) const;
@@ -91,6 +93,7 @@ namespace standardese
     {
     public:
         /// \effects Registers the given file and its documentation.
+        /// Duplicate registration has no effect.
         /// \notes This function is thread safe.
         void register_file(std::string link_name, std::string file_name,
                            type_safe::optional_ref<const markup::brief_section> brief) const;
@@ -121,6 +124,7 @@ namespace standardese
     {
     public:
         /// \effects Registers a module passing its (incomplete) documentation.
+        /// Duplicate registration has no effect.
         /// \notes This function is thread safe.
         void register_module(markup::module_documentation::builder doc) const;
 
@@ -141,6 +145,12 @@ namespace standardese
         mutable std::mutex                                         mutex_;
         mutable std::vector<markup::module_documentation::builder> modules_;
     };
+
+    class comment_registry;
+
+    /// Registers all entities in a module for the corresponding module.
+    void register_module_entities(const module_index& index, const comment_registry& registry,
+                                  const cppast::cpp_file& file);
 } // namespace standardese
 
 #endif // STANDARDESE_INDEX_HPP_INCLUDED

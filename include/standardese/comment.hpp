@@ -12,6 +12,7 @@
 #include <standardese/comment/doc_comment.hpp>
 #include <standardese/comment/parser.hpp>
 #include <standardese/logger.hpp>
+#include "index.hpp"
 
 namespace cppast
 {

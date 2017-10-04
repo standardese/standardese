@@ -73,3 +73,9 @@ void standardese::comment::set_sections(markup::namespace_documentation::builder
 {
     set_sections_impl(builder, comment);
 }
+
+void standardese::comment::set_sections(markup::module_documentation::builder& builder,
+                                        const doc_comment&                     comment)
+{
+    set_sections_impl(builder, comment);
+}

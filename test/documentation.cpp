@@ -262,11 +262,11 @@ void a(int param);
 </file-documentation>
 )*");
     }
-    SECTION("index")
+    SECTION("entity_index")
     {
         file_comment_parser parser(test_logger());
 
-        auto cpp_file_a = parse_file(index, "documentation__index1.cpp", R"(
+        auto cpp_file_a = parse_file(index, "documentation__entity_index1.cpp", R"(
 /// brief
 void a();
 
@@ -279,7 +279,7 @@ namespace ns
 )");
         parser.parse(type_safe::ref(*cpp_file_a));
 
-        auto cpp_file_b = parse_file(index, "documentation__index2.cpp", R"(
+        auto cpp_file_b = parse_file(index, "documentation__entity_index2.cpp", R"(
 namespace ns
 {
     /// brief
@@ -295,7 +295,7 @@ namespace ns
 )");
         parser.parse(type_safe::ref(*cpp_file_b));
 
-        auto cpp_file_c = parse_file(index, "documentation__index3.cpp", R"(
+        auto cpp_file_c = parse_file(index, "documentation__entity_index3.cpp", R"(
 /// A fancy namespace.
 ///
 /// It even has details!
@@ -359,6 +359,49 @@ namespace ns
 </namespace-documentation>
 </namespace-documentation>
 </entity-index>
+)*");
+    }
+    SECTION("module index")
+    {
+        auto file = build_doc_entities(comments, index, "documentation__module_index.cpp", R"(
+/// brief
+/// \module foo
+void foo();
+
+/// \module foo
+/// brief
+
+/// \module bar
+void bar();
+
+/// \module foo
+void foo(int);
+)");
+
+        module_index mindex;
+        register_module_entities(mindex, comments, file->file());
+
+        auto result = mindex.generate();
+        REQUIRE(markup::as_xml(*result) == R"*(<module-index id="module-index">
+<heading>Project modules</heading>
+<module-documentation id="bar">
+<heading>Module <code>bar</code></heading>
+<entity-index-item id="bar()">
+<entity><internal-link unresolved-destination-id="bar()"><code>bar</code></internal-link></entity>
+</entity-index-item>
+</module-documentation>
+<module-documentation id="foo">
+<heading>Module <code>foo</code></heading>
+<brief-section>brief</brief-section>
+<entity-index-item id="foo()">
+<entity><internal-link unresolved-destination-id="foo()"><code>foo</code></internal-link></entity>
+<brief>brief</brief>
+</entity-index-item>
+<entity-index-item id="foo(int)">
+<entity><internal-link unresolved-destination-id="foo(int)"><code>foo</code></internal-link></entity>
+</entity-index-item>
+</module-documentation>
+</module-index>
 )*");
     }
     SECTION("linking")

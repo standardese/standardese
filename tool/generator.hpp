@@ -50,6 +50,7 @@ namespace standardese_tool
 
     documents generate(const standardese::generation_config&                          gen_config,
                        const standardese::synopsis_config&                            syn_config,
+                       const standardese::comment_registry&                           comments,
                        const cppast::cpp_entity_index&                                index,
                        const std::vector<std::unique_ptr<standardese::doc_cpp_file>>& files,
                        unsigned                                                       no_threads);

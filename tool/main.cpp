@@ -391,8 +391,8 @@ int main(int argc, char* argv[])
                                                            exclude_private, no_threads);
 
                 std::clog << "generating documentation...\n";
-                auto docs = standardese_tool::generate(generation_config, synopsis_config, index,
-                                                       files, no_threads);
+                auto docs = standardese_tool::generate(generation_config, synopsis_config, comments,
+                                                       index, files, no_threads);
 
                 for (auto& format : formats)
                 {
