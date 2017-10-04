@@ -15,6 +15,7 @@
 #include <standardese/markup/generator.hpp>
 #include <standardese/comment.hpp>
 #include <standardese/doc_entity.hpp>
+#include <standardese/linker.hpp>
 
 #include "filesystem.hpp"
 
@@ -48,10 +49,10 @@ namespace standardese_tool
 
     using documents = std::vector<std::unique_ptr<standardese::markup::document_entity>>;
 
-    documents generate(const standardese::generation_config&                          gen_config,
-                       const standardese::synopsis_config&                            syn_config,
-                       const standardese::comment_registry&                           comments,
-                       const cppast::cpp_entity_index&                                index,
+    documents generate(const standardese::generation_config& gen_config,
+                       const standardese::synopsis_config&   syn_config,
+                       const standardese::comment_registry&  comments,
+                       const cppast::cpp_entity_index& index, const standardese::linker& linker,
                        const std::vector<std::unique_ptr<standardese::doc_cpp_file>>& files,
                        unsigned                                                       no_threads);
 

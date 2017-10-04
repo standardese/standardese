@@ -243,6 +243,24 @@ std::vector<std::pair<standardese::markup::generator, const char*>> get_formats(
     return formats;
 }
 
+void register_external_documentations(standardese::linker& l, const po::variables_map& options)
+{
+    l.register_external("std", "http://en.cppreference.com/mwiki/"
+                               "index.php?title=Special%3ASearch&search=$$");
+
+    auto external = get_option<std::vector<std::string>>(options, "comment.external_doc").value();
+    for (auto& arg : external)
+    {
+        auto equal = arg.find('=');
+        if (equal == std::string::npos)
+            throw std::invalid_argument("invalid format for external doc '" + arg + "'");
+
+        auto ns_name = arg.substr(0, equal);
+        auto url     = arg.substr(equal + 1u);
+        l.register_external(std::move(ns_name), std::move(url));
+    }
+}
+
 int main(int argc, char* argv[])
 {
     // clang-format off
@@ -313,8 +331,8 @@ int main(int argc, char* argv[])
          "character used to introduce special commands")
         ("comment.cmd_name_", po::value<std::string>(), // TODO
          "override name for the command following the name_ (e.g. comment.cmd_name_requires=require)")
-        ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""), // TODO
-         "syntax is prefix=url, supports linking to a different URL for entities starting with prefix")
+        ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""),
+         "syntax is namespace=url, supports linking to a different URL for entities in a certain namespace")
 
         // TODO
         ("template.default_template", po::value<std::string>()->default_value("", ""),
@@ -374,6 +392,9 @@ int main(int argc, char* argv[])
             auto formats = get_formats(options);
             auto prefix  = get_option<std::string>(options, "output.prefix").value();
 
+            standardese::linker linker;
+            register_external_documentations(linker, options);
+
             try
             {
                 cppast::cpp_entity_index index;
@@ -392,7 +413,7 @@ int main(int argc, char* argv[])
 
                 std::clog << "generating documentation...\n";
                 auto docs = standardese_tool::generate(generation_config, synopsis_config, comments,
-                                                       index, files, no_threads);
+                                                       index, linker, files, no_threads);
 
                 for (auto& format : formats)
                 {
