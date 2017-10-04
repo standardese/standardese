@@ -24,8 +24,11 @@ set(markup_header
     ../include/standardese/markup/paragraph.hpp
     ../include/standardese/markup/phrasing.hpp
     ../include/standardese/markup/quote.hpp
-    ../include/standardese/markup/thematic_break.hpp)
-set(header)
+    ../include/standardese/markup/thematic_break.hpp
+    ../include/standardese/markup/visitor.hpp)
+set(header
+    ../include/standardese/logger.hpp)
+
 set(comment_src
     comment/cmark_ext_command.hpp
     comment/cmark_ext_command.cpp
@@ -47,6 +50,7 @@ set(markup_src
     markup/phrasing.cpp
     markup/quote.cpp
     markup/thematic_break.cpp
+    markup/visitor.cpp
     markup/xml.cpp)
 set(src)
 
