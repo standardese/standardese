@@ -152,8 +152,8 @@ namespace
             process_inlines<comment::inline_param>(comment, func.value().parameters(),
                                                    register_commented, register_uncommented);
         if (auto templ = get_template(entity))
-            process_inlines<comment::inline_tparam>(comment, templ.value().parameters(),
-                                                    register_commented, register_uncommented);
+            process_inlines<comment::inline_param>(comment, templ.value().parameters(),
+                                                   register_commented, register_uncommented);
         if (auto c = get_class(entity))
             process_inlines<comment::inline_base>(comment, c.value().bases(), register_commented,
                                                   register_uncommented);
@@ -165,13 +165,9 @@ namespace
                 if (auto param = comment::get_inline_param(inl.entity))
                     logger.log("standardese comment",
                                make_semantic_diagnostic(entity,
-                                                        "unable to find function parameter named '",
+                                                        "unable to find function or "
+                                                        "template parameter named '",
                                                         param.value(), "'"));
-                else if (auto tparam = comment::get_inline_tparam(inl.entity))
-                    logger.log("standardese comment",
-                               make_semantic_diagnostic(entity,
-                                                        "unable to find template parameter named '",
-                                                        tparam.value(), "'"));
                 else if (auto base = comment::get_inline_base(inl.entity))
                     logger.log("standardese comment",
                                make_semantic_diagnostic(entity, "unable to find base named '",

@@ -32,7 +32,7 @@ namespace standardese
             }
         };
 
-        /// Tag type to indicate that a comment belongs to a parameter of given name.
+        /// Tag type to indicate that a comment belongs to a (template) parameter of given name.
         struct inline_param
         {
             std::string unique_name;
@@ -44,23 +44,6 @@ namespace standardese
                 return lhs.unique_name == rhs.unique_name;
             }
             friend bool operator!=(const inline_param& lhs, const inline_param& rhs)
-            {
-                return !(rhs == lhs);
-            }
-        };
-
-        /// Tag type to indicate that a comment belongs to a template parameter of given name.
-        struct inline_tparam
-        {
-            std::string unique_name;
-
-            explicit inline_tparam(std::string name) : unique_name(std::move(name)) {}
-
-            friend bool operator==(const inline_tparam& lhs, const inline_tparam& rhs)
-            {
-                return lhs.unique_name == rhs.unique_name;
-            }
-            friend bool operator!=(const inline_tparam& lhs, const inline_tparam& rhs)
             {
                 return !(rhs == lhs);
             }
@@ -84,9 +67,8 @@ namespace standardese
         };
 
         /// The entity a comment belongs to.
-        using matching_entity =
-            type_safe::variant<type_safe::nullvar_t, current_file, remote_entity, inline_param,
-                               inline_tparam, inline_base>;
+        using matching_entity = type_safe::variant<type_safe::nullvar_t, current_file,
+                                                   remote_entity, inline_param, inline_base>;
 
         /// \returns Whether or not the comment belongs to a separate entity altogether.
         /// If it is not remote it belongs to the entity the comment text was associated with.
@@ -116,14 +98,6 @@ namespace standardese
         {
             return type_safe::copy(entity.optional_value(type_safe::variant_type<inline_param>{})
                                        .map(&inline_param::unique_name));
-        }
-
-        /// \group get_inline
-        inline type_safe::optional<std::string> get_inline_tparam(
-            const matching_entity& entity) noexcept
-        {
-            return type_safe::copy(entity.optional_value(type_safe::variant_type<inline_tparam>{})
-                                       .map(&inline_tparam::unique_name));
         }
 
         /// \group get_inline

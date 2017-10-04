@@ -574,7 +574,7 @@ Details again.
     SECTION("matching entity")
     {
         REQUIRE(get_inline_param(parse_entity_inline(R"(\param foo)")) == "foo");
-        REQUIRE(get_inline_tparam(parse_entity_inline(R"(\tparam foo)")) == "foo");
+        REQUIRE(get_inline_param(parse_entity_inline(R"(\tparam foo)")) == "foo");
         REQUIRE(get_inline_base(parse_entity_inline(R"(\base foo)")) == "foo");
     }
     SECTION("content")

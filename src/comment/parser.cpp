@@ -559,9 +559,8 @@ namespace
         switch (detail::get_inline_type(node))
         {
         case inline_type::param:
-            return inline_param(detail::get_inline_entity(node));
         case inline_type::tparam:
-            return inline_tparam(detail::get_inline_entity(node));
+            return inline_param(detail::get_inline_entity(node));
         case inline_type::base:
             return inline_base(detail::get_inline_entity(node));
 
