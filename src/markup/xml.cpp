@@ -437,24 +437,33 @@ namespace
     {
         auto tag =
             s.open_tag(stream::inline_tag, "external-link", std::make_pair("title", link.title()),
-                       std::make_pair("url", link.url()));
+                       std::make_pair("url", link.url().as_str()));
         write_children(tag, link);
     }
 
     void write(stream& s, const documentation_link& link)
     {
-        if (link.destination())
+        if (link.internal_destination())
+        {
+            auto tag =
+                s.open_tag(stream::inline_tag, "documentation-link",
+                           std::make_pair("title", link.title()),
+                           std::make_pair("destination-document",
+                                          link.internal_destination()
+                                              .value()
+                                              .document()
+                                              .value_or(output_name::from_name(""))
+                                              .name()),
+                           std::make_pair("destination-id",
+                                          link.internal_destination().value().id().as_str()));
+            write_children(tag, link);
+        }
+        else if (link.external_destination())
         {
             auto tag = s.open_tag(stream::inline_tag, "documentation-link",
                                   std::make_pair("title", link.title()),
-                                  std::make_pair("destination-document",
-                                                 link.destination()
-                                                     .value()
-                                                     .document()
-                                                     .value_or(output_name::from_name(""))
-                                                     .name()),
-                                  std::make_pair("destination-id",
-                                                 link.destination().value().id().as_str()));
+                                  std::make_pair("destination-url",
+                                                 link.external_destination().value().as_str()));
             write_children(tag, link);
         }
         else

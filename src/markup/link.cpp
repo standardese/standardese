@@ -34,18 +34,15 @@ entity_kind documentation_link::do_get_kind() const noexcept
 
 std::unique_ptr<entity> documentation_link::do_clone() const
 {
-    if (unresolved_destination())
-    {
-        builder b(title(), unresolved_destination().value());
-        for (auto& child : *this)
-            b.add_child(detail::unchecked_downcast<phrasing_entity>(child.clone()));
-        return b.finish();
-    }
-    else
-    {
-        builder b(title(), destination().value());
-        for (auto& child : *this)
-            b.add_child(detail::unchecked_downcast<phrasing_entity>(child.clone()));
-        return b.finish();
-    }
+    builder b(title(), type_safe::copy(unresolved_destination()).value_or(""));
+
+    if (internal_destination())
+        b.peek().resolve_destination(internal_destination().value());
+    else if (external_destination())
+        b.peek().resolve_destination(external_destination().value());
+
+    for (auto& child : *this)
+        b.add_child(detail::unchecked_downcast<phrasing_entity>(child.clone()));
+
+    return b.finish();
 }

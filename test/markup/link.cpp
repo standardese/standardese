@@ -14,7 +14,7 @@ using namespace standardese::markup;
 
 TEST_CASE("external_link", "[markup]")
 {
-    external_link::builder a("http://foonathan.net/");
+    external_link::builder a(url("http://foonathan.net/"));
     a.add_child(emphasis::build("awesome"));
     a.add_child(text::build(" website"));
 
@@ -24,7 +24,7 @@ TEST_CASE("external_link", "[markup]")
         as_xml(*a_ptr)
         == R"(<external-link url="http://foonathan.net/"><emphasis>awesome</emphasis> website</external-link>)");
 
-    external_link::builder b("title\"", "foo/bar/< &>\n");
+    external_link::builder b("title\"", url("foo/bar/< &>\n"));
     b.add_child(text::build("with title"));
 
     auto b_ptr = b.finish()->clone();
@@ -63,8 +63,9 @@ TEST_CASE("documentation_link", "[markup]")
     REQUIRE(as_html(*doc1) == doc1_html);
     REQUIRE(as_xml(*doc1->clone()) == doc1_xml);
 
-    documentation_link::builder builder(
-        block_reference(output_name::from_file_name("doc1.templ"), block_id("p1")));
+    documentation_link::builder builder("",
+                                        block_reference(output_name::from_file_name("doc1.templ"),
+                                                        block_id("p1")));
     builder.add_child(text::build("link 2"));
 
     auto ptr = builder.finish()->clone();
@@ -74,8 +75,8 @@ TEST_CASE("documentation_link", "[markup]")
         == R"(<documentation-link destination-document="doc1.templ" destination-id="p1">link 2</documentation-link>)");
 
     // non existing link, but doesn't matter
-    documentation_link::builder builder2(
-        block_reference(output_name::from_name("doc2"), block_id("p3")));
+    documentation_link::builder builder2("", block_reference(output_name::from_name("doc2"),
+                                                             block_id("p3")));
     builder2.add_child(text::build("link 3"));
 
     auto ptr2 = builder2.finish()->clone();
@@ -83,4 +84,12 @@ TEST_CASE("documentation_link", "[markup]")
     REQUIRE(
         as_xml(*ptr2)
         == R"(<documentation-link destination-document="doc2" destination-id="p3">link 3</documentation-link>)");
+
+    // URL link
+    auto ptr3 = documentation_link::builder("").add_child(text::build("link 4")).finish();
+    ptr3->resolve_destination(url("http://foonathan.net"));
+    REQUIRE(as_html(*ptr3->clone()) == R"(<a href="http://foonathan.net">link 4</a>)");
+    REQUIRE(
+        as_xml(*ptr3->clone())
+        == R"(<documentation-link destination-url="http://foonathan.net">link 4</documentation-link>)");
 }

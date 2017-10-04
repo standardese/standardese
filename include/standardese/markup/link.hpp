@@ -36,6 +36,21 @@ namespace standardese
             std::string title_;
         };
 
+        /// An URL.
+        class url
+        {
+        public:
+            explicit url(std::string url) : str_(std::move(url)) {}
+
+            const std::string& as_str() const noexcept
+            {
+                return str_;
+            }
+
+        private:
+            std::string str_;
+        };
+
         /// A link to some external URL.
         class external_link final : public link_base
         {
@@ -45,18 +60,18 @@ namespace standardese
             {
             public:
                 /// \effects Creates it giving the title and URL.
-                builder(std::string title, std::string url)
+                builder(std::string title, markup::url u)
                 : container_builder(std::unique_ptr<external_link>(
-                      new external_link(std::move(title), std::move(url))))
+                      new external_link(std::move(title), std::move(u))))
                 {
                 }
 
                 /// \effects Creates it giving the URL only.
-                builder(std::string url) : builder("", std::move(url)) {}
+                builder(markup::url url) : builder("", std::move(url)) {}
             };
 
             /// \returns The URL of the external location it links to.
-            const std::string& url() const noexcept
+            const markup::url& url() const noexcept
             {
                 return url_;
             }
@@ -66,17 +81,17 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            external_link(std::string title, std::string url)
+            external_link(std::string title, markup::url url)
             : link_base(std::move(title)), url_(std::move(url))
             {
             }
 
-            std::string url_;
+            markup::url url_;
         };
 
         /// A link to another part of the documentation.
         ///
-        /// Precisely, a link to another [standardese::markup::block_entity]().
+        /// Precisely, a link to another [standardese::markup::block_entity]() or some external URL.
         class documentation_link final : public link_base
         {
         public:
@@ -94,23 +109,28 @@ namespace standardese
                 /// \effects Creates it giving the unresolved destination only.
                 builder(std::string dest) : builder("", std::move(dest)) {}
 
-                /// \effects Creates it giving the title and resolved destination.
+                /// \effects Creates it giving the title and an internal destination.
                 builder(std::string title, block_reference dest) : builder(std::move(title), "")
                 {
                     peek().resolve_destination(std::move(dest));
                 }
 
-                /// \effects Creates it giving the resolved destination.
-                builder(block_reference dest) : builder("")
-                {
-                    peek().resolve_destination(std::move(dest));
-                }
+            private:
+                using container_builder::peek;
+
+                friend documentation_link;
             };
 
-            /// \returns The destination of the link, if it has been resolved already.
-            type_safe::optional_ref<const block_reference> destination() const noexcept
+            /// \returns The internal destination of the link, if it has been resolved to an internal destination.
+            type_safe::optional_ref<const block_reference> internal_destination() const noexcept
             {
                 return dest_.optional_value(type_safe::variant_type<block_reference>{});
+            }
+
+            /// \returns The external destination of the link, if it has been resolved to an external destination.
+            type_safe::optional_ref<const markup::url> external_destination() const noexcept
+            {
+                return dest_.optional_value(type_safe::variant_type<markup::url>{});
             }
 
             /// \returns The unresolved destination id of the link, if it hasn't been resolved already.
@@ -122,9 +142,16 @@ namespace standardese
 
             /// \effects Resolves the destination of the link.
             /// \notes This function is not thread safe.
+            /// \group resolve
             void resolve_destination(block_reference ref) const
             {
                 dest_ = std::move(ref);
+            }
+
+            /// \group resolve
+            void resolve_destination(markup::url url) const
+            {
+                dest_ = std::move(url);
             }
 
         private:
@@ -137,7 +164,7 @@ namespace standardese
             {
             }
 
-            mutable type_safe::variant<block_reference, std::string> dest_;
+            mutable type_safe::variant<block_reference, markup::url, std::string> dest_;
         };
     }
 } // namespace standardese::markup

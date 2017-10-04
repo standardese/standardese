@@ -239,7 +239,7 @@ namespace
                                                                cmark_node* node, const char* title,
                                                                const char* url)
     {
-        markup::external_link::builder builder(title, url);
+        markup::external_link::builder builder(title, markup::url(url));
         add_children(c, builder, has_matching_entity, node);
         return builder.finish();
     }

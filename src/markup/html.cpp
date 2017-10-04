@@ -646,20 +646,27 @@ namespace
 
     void write(stream& s, const external_link& link)
     {
-        auto a = s.open_link(link.title().c_str(), link.url().c_str());
+        auto a = s.open_link(link.title().c_str(), link.url().as_str().c_str());
         write_children(a, link);
     }
 
     void write(stream& s, const documentation_link& link)
     {
-        if (link.destination())
+        if (link.internal_destination())
         {
-            auto url = link.destination()
+            auto url = link.internal_destination()
                            .value()
                            .document()
                            .map(&output_name::file_name, "html")
                            .value_or("");
-            url += "#standardese-" + link.destination().value().id().as_str();
+            url += "#standardese-" + link.internal_destination().value().id().as_str();
+
+            auto a = s.open_link(link.title().c_str(), url.c_str());
+            write_children(a, link);
+        }
+        else if (link.external_destination())
+        {
+            auto url = link.external_destination().value().as_str();
 
             auto a = s.open_link(link.title().c_str(), url.c_str());
             write_children(a, link);
