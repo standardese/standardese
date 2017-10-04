@@ -49,9 +49,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            list_item(block_id id) : list_item_base(std::move(id))
-            {
-            }
+            list_item(block_id id) : list_item_base(std::move(id)) {}
         };
 
         /// The term of a [standardese::markup::term_description_list_item]().
@@ -63,9 +61,7 @@ namespace standardese
             {
             public:
                 /// \effects Creates an empty term.
-                builder() : container_builder(std::unique_ptr<term>(new term))
-                {
-                }
+                builder() : container_builder(std::unique_ptr<term>(new term)) {}
             };
 
             /// \returns A built term consisting of the single entity.
@@ -93,9 +89,7 @@ namespace standardese
             {
             public:
                 /// \effects Creates an empty description.
-                builder() : container_builder(std::unique_ptr<description>(new description))
-                {
-                }
+                builder() : container_builder(std::unique_ptr<description>(new description)) {}
             };
 
             /// \returns A newly built description consisting only of the given phrasing entity.
@@ -191,9 +185,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            unordered_list(block_id id) : block_entity(std::move(id))
-            {
-            }
+            unordered_list(block_id id) : block_entity(std::move(id)) {}
         };
 
         /// An ordered list of items.
@@ -228,9 +220,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            ordered_list(block_id id) : block_entity(std::move(id))
-            {
-            }
+            ordered_list(block_id id) : block_entity(std::move(id)) {}
         };
     }
 } // namespace standardese::markup

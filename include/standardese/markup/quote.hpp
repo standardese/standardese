@@ -33,9 +33,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            block_quote(block_id id) : block_entity(std::move(id))
-            {
-            }
+            block_quote(block_id id) : block_entity(std::move(id)) {}
         };
     }
 } // namespace standardese::markup

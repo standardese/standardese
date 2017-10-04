@@ -176,17 +176,17 @@ const char* config::default_list_section_name(section_type section) noexcept
 
 config::config(char command_character) : command_character_(command_character)
 {
-    for (auto i           = 0u; i != unsigned(section_type::count); ++i)
+    for (auto i = 0u; i != unsigned(section_type::count); ++i)
         command_names_[i] = default_command_name(make_section(i));
     for (auto i = unsigned(section_type::count) + 1u; i != unsigned(command_type::count); ++i)
         command_names_[i] = default_command_name(make_command(i));
     for (auto i = unsigned(command_type::count) + 1u; i != unsigned(inline_type::count); ++i)
         command_names_[i] = default_command_name(make_inline(i));
 
-    for (auto i             = 0u; i != unsigned(section_type::count); ++i)
+    for (auto i = 0u; i != unsigned(section_type::count); ++i)
         inline_sections_[i] = default_inline_section_name(make_section(i));
 
-    for (auto i           = 0u; i != unsigned(section_type::count); ++i)
+    for (auto i = 0u; i != unsigned(section_type::count); ++i)
         list_sections_[i] = default_list_section_name(make_section(i));
 }
 

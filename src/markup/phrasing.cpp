@@ -13,9 +13,7 @@ entity_kind text::do_get_kind() const noexcept
     return entity_kind::text;
 }
 
-void text::do_visit(detail::visitor_callback_t, void*) const
-{
-}
+void text::do_visit(detail::visitor_callback_t, void*) const {}
 
 std::unique_ptr<entity> text::do_clone() const
 {
@@ -84,9 +82,7 @@ entity_kind soft_break::do_get_kind() const noexcept
     return entity_kind::soft_break;
 }
 
-void soft_break::do_visit(detail::visitor_callback_t, void*) const
-{
-}
+void soft_break::do_visit(detail::visitor_callback_t, void*) const {}
 
 std::unique_ptr<entity> soft_break::do_clone() const
 {
@@ -98,9 +94,7 @@ entity_kind hard_break::do_get_kind() const noexcept
     return entity_kind::hard_break;
 }
 
-void hard_break::do_visit(detail::visitor_callback_t, void*) const
-{
-}
+void hard_break::do_visit(detail::visitor_callback_t, void*) const {}
 
 std::unique_ptr<entity> hard_break::do_clone() const
 {

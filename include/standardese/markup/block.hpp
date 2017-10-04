@@ -66,14 +66,10 @@ namespace standardese
         {
         public:
             /// \effects Creates an empty id.
-            explicit block_id() : block_id("")
-            {
-            }
+            explicit block_id() : block_id("") {}
 
             /// \effects Creates it given the string representation.
-            explicit block_id(std::string id) : id_(std::move(id))
-            {
-            }
+            explicit block_id(std::string id) : id_(std::move(id)) {}
 
             /// \returns Whether or not the id is empty.
             bool empty() const noexcept
@@ -119,9 +115,7 @@ namespace standardese
 
             /// \effects Creates it giving id only,
             /// the block is then in the same file as the entity that stores the reference.
-            block_reference(block_id id) : id_(std::move(id))
-            {
-            }
+            block_reference(block_id id) : id_(std::move(id)) {}
 
             /// \returns The output name of the document the block is in.
             /// If it does not have a document, the block is in the same document.
@@ -155,9 +149,7 @@ namespace standardese
 
         protected:
             /// \effects Creates it giving the id.
-            block_entity(block_id id) : id_(std::move(id))
-            {
-            }
+            block_entity(block_id id) : id_(std::move(id)) {}
 
         private:
             block_id id_;

@@ -108,13 +108,9 @@ namespace standardese
                 using difference_type   = std::ptrdiff_t;
                 using iterator_category = std::forward_iterator_tag;
 
-                vector_ptr_iterator() noexcept : cur_(nullptr)
-                {
-                }
+                vector_ptr_iterator() noexcept : cur_(nullptr) {}
 
-                vector_ptr_iterator(typename container::const_iterator cur) : cur_(cur)
-                {
-                }
+                vector_ptr_iterator(typename container::const_iterator cur) : cur_(cur) {}
 
                 reference operator*() const noexcept
                 {

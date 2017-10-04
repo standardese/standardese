@@ -28,9 +28,7 @@ namespace standardese
 
         protected:
             /// \effects Sets the title of the link.
-            link_base(std::string title) : title_(std::move(title))
-            {
-            }
+            link_base(std::string title) : title_(std::move(title)) {}
 
         private:
             void do_visit(detail::visitor_callback_t cb, void* mem) const override;
@@ -54,9 +52,7 @@ namespace standardese
                 }
 
                 /// \effects Creates it giving the URL only.
-                builder(std::string url) : builder("", std::move(url))
-                {
-                }
+                builder(std::string url) : builder("", std::move(url)) {}
             };
 
             /// \returns The URL of the external location it links to.
@@ -96,9 +92,7 @@ namespace standardese
                 }
 
                 /// \effects Creates it giving the unresolved destination only.
-                builder(std::string dest) : builder("", std::move(dest))
-                {
-                }
+                builder(std::string dest) : builder("", std::move(dest)) {}
 
                 /// \effects Creates it giving the title and resolved destination.
                 builder(std::string title, block_reference dest) : builder(std::move(title), "")

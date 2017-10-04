@@ -43,9 +43,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            text(std::string text) : text_(std::move(text))
-            {
-            }
+            text(std::string text) : text_(std::move(text)) {}
 
             std::string text_;
         };
@@ -61,9 +59,7 @@ namespace standardese
             {
             public:
                 /// \effects Creates it without any children.
-                builder() : container_builder(std::unique_ptr<emphasis>(new emphasis()))
-                {
-                }
+                builder() : container_builder(std::unique_ptr<emphasis>(new emphasis())) {}
             };
 
             /// \returns A new emphasized text fragment.
@@ -131,9 +127,7 @@ namespace standardese
             {
             public:
                 /// \effects Creates it without any children.
-                builder() : container_builder(std::unique_ptr<code>(new code()))
-                {
-                }
+                builder() : container_builder(std::unique_ptr<code>(new code())) {}
             };
 
             /// \returns A new code fragment containing the given text.

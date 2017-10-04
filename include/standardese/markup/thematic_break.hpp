@@ -28,9 +28,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            thematic_break() : block_entity(block_id())
-            {
-            }
+            thematic_break() : block_entity(block_id()) {}
         };
     }
 } // namespace standardese::markup

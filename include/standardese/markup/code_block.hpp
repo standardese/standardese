@@ -35,18 +35,14 @@ namespace standardese
                     return Tag::kind();
                 }
 
-                void do_visit(detail::visitor_callback_t, void*) const override
-                {
-                }
+                void do_visit(detail::visitor_callback_t, void*) const override {}
 
                 std::unique_ptr<entity> do_clone() const override
                 {
                     return build(text_);
                 }
 
-                code_block_entity(std::string text) : text_(std::move(text))
-                {
-                }
+                code_block_entity(std::string text) : text_(std::move(text)) {}
 
                 std::string text_;
             };

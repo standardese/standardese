@@ -43,9 +43,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            heading(block_id id) : block_entity(std::move(id))
-            {
-            }
+            heading(block_id id) : block_entity(std::move(id)) {}
         };
 
         /// A subheading.
@@ -78,9 +76,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            subheading(block_id id) : block_entity(std::move(id))
-            {
-            }
+            subheading(block_id id) : block_entity(std::move(id)) {}
         };
     }
 } // namespace standardese::markup

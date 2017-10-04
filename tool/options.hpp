@@ -61,10 +61,10 @@ namespace standardese_tool
         auto standard = detail::parse_standard(map.at("compilation.standard").as<std::string>());
         auto dir      = map.find("compilation.commands_dir");
 
-        compile_config result(standard,
-                              dir == map.end() ? "" :
-                                                 fs::system_complete(dir->second.as<std::string>())
-                                                     .generic_string());
+        compile_config result(standard, dir == map.end() ?
+                                            "" :
+                                            fs::system_complete(dir->second.as<std::string>())
+                                                .generic_string());
 
         auto incs = map.find("compilation.include_dir");
         if (incs != map.end())
@@ -223,9 +223,7 @@ namespace standardese_tool
         standardese::compile_config                                   compile_config;
         boost::program_options::variables_map                         map;
 
-        configuration() : compile_config(standardese::cpp_standard::cpp_14)
-        {
-        }
+        configuration() : compile_config(standardese::cpp_standard::cpp_14) {}
 
         configuration(std::unique_ptr<standardese::parser> p, standardese::compile_config c,
                       boost::program_options::variables_map m)

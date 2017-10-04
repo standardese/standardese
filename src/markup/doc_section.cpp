@@ -52,8 +52,9 @@ namespace
 
     block_id get_section_id(type_safe::optional_ref<const entity> parent, section_type type)
     {
-        if (!parent || (parent.value().kind() != entity_kind::entity_documentation
-                        && parent.value().kind() != entity_kind::file_documentation))
+        if (!parent
+            || (parent.value().kind() != entity_kind::entity_documentation
+                && parent.value().kind() != entity_kind::file_documentation))
             return block_id();
         auto entity_id = static_cast<const block_entity&>(parent.value()).id();
         return block_id(entity_id.as_str() + '-' + get_suffix(type));

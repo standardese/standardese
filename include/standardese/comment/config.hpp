@@ -85,7 +85,7 @@ namespace standardese
             std::array<std::string, unsigned(inline_type::count)>  command_names_;
             std::array<std::string, unsigned(section_type::count)> inline_sections_;
             std::array<std::string, unsigned(section_type::count)> list_sections_;
-            char command_character_;
+            char                                                   command_character_;
         };
     }
 } // namespace standardese::comment

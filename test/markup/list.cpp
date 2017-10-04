@@ -72,7 +72,7 @@ TEST_CASE("ordered_list", "[markup]")
 </li>
 </ol>
 )";
-    auto xml = R"(<ordered-list id="list">
+    auto xml  = R"(<ordered-list id="list">
 <list-item>
 <paragraph></paragraph>
 <paragraph></paragraph>

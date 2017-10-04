@@ -406,29 +406,29 @@ cmark_syntax_extension* standardese::comment::detail::create_command_extension(c
         else
             return "<unknown>";
     });
-    cmark_syntax_extension_set_can_contain_func(ext, [](cmark_syntax_extension*, cmark_node* node,
-                                                        cmark_node_type child_type) -> int {
-        if (cmark_node_get_type(node) == node_command())
-            return false;
-        else if (cmark_node_get_type(node) == node_section())
-        {
-            if (get_section_type(node) == section_type::details)
-                // can contain any block
-                return (child_type & CMARK_NODE_TYPE_MASK) == CMARK_NODE_TYPE_BLOCK;
+    cmark_syntax_extension_set_can_contain_func(
+        ext, [](cmark_syntax_extension*, cmark_node* node, cmark_node_type child_type) -> int {
+            if (cmark_node_get_type(node) == node_command())
+                return false;
+            else if (cmark_node_get_type(node) == node_section())
+            {
+                if (get_section_type(node) == section_type::details)
+                    // can contain any block
+                    return (child_type & CMARK_NODE_TYPE_MASK) == CMARK_NODE_TYPE_BLOCK;
+                else
+                    // can only contain paragraphs
+                    return child_type == CMARK_NODE_PARAGRAPH;
+            }
+            else if (cmark_node_get_type(node) == node_inline())
+                // can contain paragraphs, sections or commands
+                // first it will only contain paragraphs or commands,
+                // but postprocessing will add brief and details sections,
+                // so it won't contain paragraphs anymore
+                return child_type == CMARK_NODE_PARAGRAPH || child_type == node_section()
+                       || child_type == node_command();
             else
-                // can only contain paragraphs
-                return child_type == CMARK_NODE_PARAGRAPH;
-        }
-        else if (cmark_node_get_type(node) == node_inline())
-            // can contain paragraphs, sections or commands
-            // first it will only contain paragraphs or commands,
-            // but postprocessing will add brief and details sections,
-            // so it won't contain paragraphs anymore
-            return child_type == CMARK_NODE_PARAGRAPH || child_type == node_section()
-                   || child_type == node_command();
-        else
-            return false;
-    });
+                return false;
+        });
     cmark_syntax_extension_set_open_block_func(ext, &try_open_block);
     cmark_syntax_extension_set_match_block_func(ext, &last_block_matches);
     cmark_syntax_extension_set_postprocess_func(ext, &create_implicit_brief_details);
@@ -496,60 +496,60 @@ const char* standardese::comment::detail::get_inline_entity(cmark_node* node)
 cmark_syntax_extension* standardese::comment::detail::create_no_html_extension()
 {
     auto ext = cmark_syntax_extension_new("standardese_no_html");
-    cmark_syntax_extension_set_postprocess_func(ext, [](cmark_syntax_extension* self, cmark_parser*,
-                                                        cmark_node* root) -> cmark_node* {
-        auto iter = cmark_iter_new(root);
+    cmark_syntax_extension_set_postprocess_func(
+        ext, [](cmark_syntax_extension* self, cmark_parser*, cmark_node* root) -> cmark_node* {
+            auto iter = cmark_iter_new(root);
 
-        auto ev = CMARK_EVENT_NONE;
-        while ((ev = cmark_iter_next(iter)) != CMARK_EVENT_DONE)
-        {
-            if (ev == CMARK_EVENT_EXIT)
-                continue;
-
-            auto node = cmark_iter_get_node(iter);
-            if (cmark_node_get_type(node) == CMARK_NODE_HTML_INLINE)
+            auto ev = CMARK_EVENT_NONE;
+            while ((ev = cmark_iter_next(iter)) != CMARK_EVENT_DONE)
             {
-                cmark_node* text;
+                if (ev == CMARK_EVENT_EXIT)
+                    continue;
 
-                auto prev = cmark_node_previous(node);
-                if (prev && cmark_node_get_type(prev) == CMARK_NODE_TEXT)
+                auto node = cmark_iter_get_node(iter);
+                if (cmark_node_get_type(node) == CMARK_NODE_HTML_INLINE)
                 {
-                    text = prev;
+                    cmark_node* text;
 
-                    // prepend to previous text
-                    std::string content = cmark_node_get_literal(text);
-                    content += cmark_node_get_literal(node);
-                    cmark_node_set_literal(text, content.c_str());
+                    auto prev = cmark_node_previous(node);
+                    if (prev && cmark_node_get_type(prev) == CMARK_NODE_TEXT)
+                    {
+                        text = prev;
+
+                        // prepend to previous text
+                        std::string content = cmark_node_get_literal(text);
+                        content += cmark_node_get_literal(node);
+                        cmark_node_set_literal(text, content.c_str());
+                    }
+                    else
+                    {
+                        // create new text and replace node
+                        text = cmark_node_new(CMARK_NODE_TEXT);
+                        cmark_node_set_syntax_extension(text, self);
+                        cmark_node_set_literal(text, cmark_node_get_literal(node));
+
+                        cmark_node_replace(node, text);
+                    }
+
+                    cmark_node_free(node);
+
+                    auto next = cmark_node_next(text);
+                    if (next && cmark_node_get_type(next) == CMARK_NODE_TEXT)
+                    {
+                        // merge with following text node
+                        std::string content = cmark_node_get_literal(text);
+                        content += cmark_node_get_literal(next);
+                        cmark_node_set_literal(text, content.c_str());
+
+                        cmark_node_free(next);
+                    }
+
+                    cmark_iter_reset(iter, text, CMARK_EVENT_ENTER);
                 }
-                else
-                {
-                    // create new text and replace node
-                    text = cmark_node_new(CMARK_NODE_TEXT);
-                    cmark_node_set_syntax_extension(text, self);
-                    cmark_node_set_literal(text, cmark_node_get_literal(node));
-
-                    cmark_node_replace(node, text);
-                }
-
-                cmark_node_free(node);
-
-                auto next = cmark_node_next(text);
-                if (next && cmark_node_get_type(next) == CMARK_NODE_TEXT)
-                {
-                    // merge with following text node
-                    std::string content = cmark_node_get_literal(text);
-                    content += cmark_node_get_literal(next);
-                    cmark_node_set_literal(text, content.c_str());
-
-                    cmark_node_free(next);
-                }
-
-                cmark_iter_reset(iter, text, CMARK_EVENT_ENTER);
             }
-        }
 
-        cmark_iter_free(iter);
-        return nullptr; // no new root
-    });
+            cmark_iter_free(iter);
+            return nullptr; // no new root
+        });
     return ext;
 }

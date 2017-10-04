@@ -99,10 +99,10 @@ std::vector<std::pair<standardese::translation_unit, std::string>> parse_files(
                                     templates
                                         .emplace_back(standardese_tool::get_output_name(relative)
                                                           + relative.extension().generic_string(),
-                                                      std::
-                                                          string(std::istreambuf_iterator<char>(
-                                                                     file),
-                                                                 std::istreambuf_iterator<char>{}));
+                                                      std::string(std::istreambuf_iterator<char>(
+                                                                      file),
+                                                                  std::istreambuf_iterator<
+                                                                      char>{}));
                                 }
                             });
     }
