@@ -8,6 +8,7 @@
 #include <standardese/comment/metadata.hpp>
 #include <standardese/markup/documentation.hpp>
 #include <standardese/markup/doc_section.hpp>
+#include <standardese/markup/index.hpp>
 
 namespace standardese
 {
@@ -107,6 +108,10 @@ namespace standardese
 
         /// \group set_sections
         void set_sections(markup::file_documentation::builder& builder, const doc_comment& comment);
+
+        /// \group set_sections
+        void set_sections(markup::namespace_documentation::builder& builder,
+                          const doc_comment&                        comment);
     }
 } // namespace standardese::comment
 

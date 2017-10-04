@@ -14,6 +14,7 @@ set(tests
     markup/document.cpp
     markup/documentation.cpp
     markup/heading.cpp
+    markup/index.cpp
     markup/link.cpp
     markup/list.cpp
     markup/paragraph.cpp
@@ -23,6 +24,7 @@ set(tests
     comment.cpp
     doc_entity.cpp
     documentation.cpp
+    index.cpp
     linker.cpp
     synopsis.cpp)
 

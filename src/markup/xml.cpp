@@ -17,6 +17,7 @@
 #include <standardese/markup/entity.hpp>
 #include <standardese/markup/entity_kind.hpp>
 #include <standardese/markup/heading.hpp>
+#include <standardese/markup/index.hpp>
 #include <standardese/markup/link.hpp>
 #include <standardese/markup/list.hpp>
 #include <standardese/markup/paragraph.hpp>
@@ -224,6 +225,30 @@ namespace
         write_documentation(s, doc, "entity-documentation");
     }
 
+    void write(stream& s, const namespace_documentation& doc)
+    {
+        write_documentation(s, doc, "namespace-documentation");
+    }
+
+    template <class Index>
+    void write_index(stream& s, const Index& index, const char* tag_name)
+    {
+        auto tag =
+            s.open_tag(stream::block_tag, tag_name, std::make_pair("id", index.id().as_str()));
+        write(tag, index.heading());
+        write_children(tag, index);
+    }
+
+    void write(stream& s, const file_index& index)
+    {
+        write_index(s, index, "file-index");
+    }
+
+    void write(stream& s, const entity_index& index)
+    {
+        write_index(s, index, "entity-index");
+    }
+
     void write(stream& s, const heading& h)
     {
         write_line_block(s, "heading", h);
@@ -262,6 +287,15 @@ namespace
                               std::make_pair("id", item.id().as_str()));
         write(tag, item.term());
         write(tag, item.description());
+    }
+
+    void write(stream& s, const entity_index_item& item)
+    {
+        auto tag = s.open_tag(stream::block_tag, "entity-index-item",
+                              std::make_pair("id", item.id().as_str()));
+        write(tag, item.entity(), "entity");
+        if (item.brief())
+            write(tag, item.brief().value(), "brief");
     }
 
     void write(stream& s, const unordered_list& list)
@@ -441,6 +475,12 @@ namespace
 
             STANDARDESE_DETAIL_HANDLE(file_documentation)
             STANDARDESE_DETAIL_HANDLE(entity_documentation)
+            STANDARDESE_DETAIL_HANDLE(namespace_documentation)
+
+            STANDARDESE_DETAIL_HANDLE(entity_index_item)
+
+            STANDARDESE_DETAIL_HANDLE(file_index)
+            STANDARDESE_DETAIL_HANDLE(entity_index)
 
             STANDARDESE_DETAIL_HANDLE(heading)
             STANDARDESE_DETAIL_HANDLE(subheading)

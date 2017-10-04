@@ -18,6 +18,12 @@ namespace standardese
 
             file_documentation,
             entity_documentation,
+            namespace_documentation,
+
+            entity_index_item,
+
+            file_index,
+            entity_index,
 
             heading,
             subheading,

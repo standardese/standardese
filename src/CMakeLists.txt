@@ -19,6 +19,7 @@ set(markup_header
     ../include/standardese/markup/entity_kind.hpp
     ../include/standardese/markup/generator.hpp
     ../include/standardese/markup/heading.hpp
+    ../include/standardese/markup/index.hpp
     ../include/standardese/markup/link.hpp
     ../include/standardese/markup/list.hpp
     ../include/standardese/markup/paragraph.hpp
@@ -29,6 +30,7 @@ set(markup_header
 set(header
     ../include/standardese/comment.hpp
     ../include/standardese/doc_entity.hpp
+    ../include/standardese/index.hpp
     ../include/standardese/linker.hpp
     ../include/standardese/logger.hpp)
 
@@ -47,6 +49,7 @@ set(markup_src
     markup/generator.cpp
     markup/heading.cpp
     markup/html.cpp
+    markup/index.cpp
     markup/link.cpp
     markup/list.cpp
     markup/paragraph.cpp
@@ -60,6 +63,7 @@ set(src
     get_special_entity.hpp
     comment.cpp
     doc_entity.cpp
+    index.cpp
     linker.cpp)
 
 add_library(standardese ${detail_header} ${comment_header} ${markup_header} ${header} ${comment_src} ${markup_src} ${src})

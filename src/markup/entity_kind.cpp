@@ -32,6 +32,10 @@ bool standardese::markup::is_phrasing(standardese::markup::entity_kind kind) noe
     case entity_kind::template_document:
     case entity_kind::file_documentation:
     case entity_kind::entity_documentation:
+    case entity_kind::namespace_documentation:
+    case entity_kind::entity_index_item:
+    case entity_kind::file_index:
+    case entity_kind::entity_index:
     case entity_kind::heading:
     case entity_kind::subheading:
     case entity_kind::paragraph:
@@ -60,6 +64,10 @@ bool standardese::markup::is_block(standardese::markup::entity_kind kind) noexce
     case entity_kind::template_document:
     case entity_kind::file_documentation:
     case entity_kind::entity_documentation:
+    case entity_kind::namespace_documentation:
+    case entity_kind::entity_index_item:
+    case entity_kind::file_index:
+    case entity_kind::entity_index:
     case entity_kind::heading:
     case entity_kind::subheading:
     case entity_kind::paragraph:
@@ -104,11 +112,15 @@ bool standardese::markup::is_documentation(standardese::markup::entity_kind kind
     {
     case entity_kind::file_documentation:
     case entity_kind::entity_documentation:
+    case entity_kind::namespace_documentation:
         return true;
 
     case entity_kind::main_document:
     case entity_kind::subdocument:
     case entity_kind::template_document:
+    case entity_kind::entity_index_item:
+    case entity_kind::file_index:
+    case entity_kind::entity_index:
     case entity_kind::heading:
     case entity_kind::subheading:
     case entity_kind::paragraph:

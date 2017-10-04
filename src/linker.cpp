@@ -15,6 +15,7 @@
 #include <standardese/markup/document.hpp>
 #include <standardese/markup/documentation.hpp>
 #include <standardese/markup/entity_kind.hpp>
+#include <standardese/markup/index.hpp>
 #include <standardese/markup/link.hpp>
 #include <standardese/doc_entity.hpp>
 #include <standardese/logger.hpp>
@@ -185,14 +186,16 @@ type_safe::optional_ref<const markup::block_reference> linker::lookup_documentat
 
 namespace
 {
-    template <class FileVisitor>
+    template <class FileVisitor, class DocVisitor>
     void visit_documentations(const markup::document_entity& document,
-                              const FileVisitor&             file_visitor)
+                              const FileVisitor& file_visitor, const DocVisitor& doc_visitor)
     {
         markup::visit(document, [&](const markup::entity& e) {
             if (e.kind() == markup::entity_kind::file_documentation)
                 file_visitor(static_cast<const markup::file_documentation&>(e));
-            // note: no need to handle entity_documentation
+            else if (e.kind() == markup::entity_kind::namespace_documentation)
+                // note: no need to handle entity_documentation
+                doc_visitor(static_cast<const markup::documentation_entity&>(e));
         });
     }
 
@@ -228,30 +231,42 @@ void standardese::register_documentations(const cppast::diagnostic_logger& logge
         }
     };
 
-    visit_documentations(document, [&](const markup::file_documentation& file) {
-        cppast::visit(file.file(),
-                      [&](const cppast::cpp_entity& e, const cppast::visitor_info& info) {
-                          if (info.event != cppast::visitor_info::container_entity_exit
-                              && !cppast::is_templated(e) && !cppast::is_friended(e)
-                              && e.kind() != cppast::cpp_namespace::kind()) // if not already done
-                          {
-                              register_doc(e);
+    visit_documentations(document,
+                         [&](const markup::file_documentation& file) {
+                             cppast::visit(file.file(), [&](const cppast::cpp_entity&   e,
+                                                            const cppast::visitor_info& info) {
+                                 if (info.event != cppast::visitor_info::container_entity_exit
+                                     && !cppast::is_templated(e) && !cppast::is_friended(e)
+                                     && e.kind()
+                                            != cppast::cpp_namespace::kind()) // if not already done
+                                 {
+                                     register_doc(e);
 
-                              // handle inline entities
-                              if (auto func = detail::get_function(e))
-                                  for (auto& param : func.value().parameters())
-                                      register_doc(param);
-                              if (auto templ = detail::get_template(e))
-                                  for (auto& param : templ.value().parameters())
-                                      register_doc(param);
-                              if (auto c = detail::get_class(e))
-                                  for (auto& base : c.value().bases())
-                                      register_doc(base);
-                          }
+                                     // handle inline entities
+                                     if (auto func = detail::get_function(e))
+                                         for (auto& param : func.value().parameters())
+                                             register_doc(param);
+                                     if (auto templ = detail::get_template(e))
+                                         for (auto& param : templ.value().parameters())
+                                             register_doc(param);
+                                     if (auto c = detail::get_class(e))
+                                         for (auto& base : c.value().bases())
+                                             register_doc(base);
+                                 }
 
-                          return true;
-                      });
-    });
+                                 return true;
+                             });
+                         },
+                         [&](const markup::documentation_entity& entity) {
+                             auto result = l.register_documentation(entity.id().as_str(), document,
+                                                                    entity.id());
+                             if (!result)
+                                 logger.log("standardese linker",
+                                            make_diagnostic(cppast::source_location::make_entity(
+                                                                entity.id().as_str()),
+                                                            "duplicate registration of link name '",
+                                                            entity.id().as_str(), "'"));
+                         });
 }
 
 namespace
@@ -284,6 +299,9 @@ void standardese::resolve_links(const cppast::diagnostic_logger& logger, const l
         else if (entity.kind() == markup::entity_kind::entity_documentation)
             return type_safe::opt_ref(
                 &static_cast<const markup::entity_documentation&>(entity).entity());
+        else if (entity.kind() == markup::entity_kind::namespace_documentation)
+            return type_safe::opt_ref(
+                &static_cast<const markup::namespace_documentation&>(entity).namespace_());
         else
             return nullptr;
     };

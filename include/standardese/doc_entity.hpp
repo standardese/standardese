@@ -14,6 +14,7 @@
 #include <standardese/comment/doc_comment.hpp>
 #include <standardese/markup/code_block.hpp>
 #include <standardese/markup/documentation.hpp>
+#include <standardese/markup/index.hpp>
 
 namespace standardese
 {
@@ -520,6 +521,10 @@ namespace standardese
         {
             return *entity_;
         }
+
+        /// \returns The incomplete namespace documentation.
+        /// It is used for the [standardese::entity_index]().
+        markup::namespace_documentation::builder get_builder() const;
 
     private:
         doc_cpp_namespace(std::string                                         link_name,

@@ -8,6 +8,7 @@
 
 #include <standardese/markup/document.hpp>
 #include <standardese/markup/generator.hpp>
+#include <standardese/index.hpp>
 #include <standardese/linker.hpp>
 
 #include "test_parser.hpp"
@@ -259,6 +260,105 @@ void a(int param);
 <brief-section id="a()-brief">Documentation.</brief-section>
 </entity-documentation>
 </file-documentation>
+)*");
+    }
+    SECTION("index")
+    {
+        file_comment_parser parser(test_logger());
+
+        auto cpp_file_a = parse_file(index, "documentation__index1.cpp", R"(
+/// brief
+void a();
+
+extern "C" void b();
+
+namespace ns
+{
+    void c();
+}
+)");
+        parser.parse(type_safe::ref(*cpp_file_a));
+
+        auto cpp_file_b = parse_file(index, "documentation__index2.cpp", R"(
+namespace ns
+{
+    /// brief
+    void d();
+
+    /// brief
+    template <typename T>
+    struct e
+    {
+        void f();
+    };
+}
+)");
+        parser.parse(type_safe::ref(*cpp_file_b));
+
+        auto cpp_file_c = parse_file(index, "documentation__index3.cpp", R"(
+/// A fancy namespace.
+///
+/// It even has details!
+namespace ns
+{
+    void g();
+
+    namespace inner
+    {
+        void h();
+    }
+}
+)");
+        parser.parse(type_safe::ref(*cpp_file_c));
+        comments = parser.finish();
+
+        auto file_a = build_doc_entities(comments, std::move(cpp_file_a));
+        auto file_b = build_doc_entities(comments, std::move(cpp_file_b));
+        auto file_c = build_doc_entities(comments, std::move(cpp_file_c));
+
+        entity_index eindex;
+        register_index_entities(eindex, file_a->file());
+        register_index_entities(eindex, file_c->file());
+        register_index_entities(eindex, file_b->file());
+
+        auto result = eindex.generate();
+        REQUIRE(markup::as_xml(*result) == R"*(<entity-index id="entity-index">
+<heading>Project index</heading>
+<entity-index-item id="a()">
+<entity><internal-link unresolved-destination-id="a()"><code>a</code></internal-link></entity>
+<brief>brief</brief>
+</entity-index-item>
+<entity-index-item id="b()">
+<entity><internal-link unresolved-destination-id="b()"><code>b</code></internal-link></entity>
+</entity-index-item>
+<namespace-documentation id="ns">
+<heading>Namespace <code>ns</code></heading>
+<brief-section>A fancy namespace.</brief-section>
+<details-section>
+<paragraph>It even has details!</paragraph>
+</details-section>
+<entity-index-item id="ns::c()">
+<entity><internal-link unresolved-destination-id="ns::c()"><code>c</code></internal-link></entity>
+</entity-index-item>
+<entity-index-item id="ns::d()">
+<entity><internal-link unresolved-destination-id="ns::d()"><code>d</code></internal-link></entity>
+<brief>brief</brief>
+</entity-index-item>
+<entity-index-item id="ns::e&lt;T&gt;">
+<entity><internal-link unresolved-destination-id="ns::e&lt;T&gt;"><code>e</code></internal-link></entity>
+<brief>brief</brief>
+</entity-index-item>
+<entity-index-item id="ns::g()">
+<entity><internal-link unresolved-destination-id="ns::g()"><code>g</code></internal-link></entity>
+</entity-index-item>
+<namespace-documentation id="ns::inner">
+<heading>Namespace <code>inner</code></heading>
+<entity-index-item id="ns::inner::h()">
+<entity><internal-link unresolved-destination-id="ns::inner::h()"><code>h</code></internal-link></entity>
+</entity-index-item>
+</namespace-documentation>
+</namespace-documentation>
+</entity-index>
 )*");
     }
     SECTION("linking")

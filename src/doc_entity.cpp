@@ -833,6 +833,16 @@ std::unique_ptr<markup::documentation_entity> doc_cpp_namespace::do_generate_doc
     }
 }
 
+markup::namespace_documentation::builder doc_cpp_namespace::get_builder() const
+{
+    markup::namespace_documentation::builder builder(entity_, get_documentation_id(),
+                                                     get_header(namespace_(), comment(),
+                                                                namespace_().name()));
+    if (comment())
+        comment::set_sections(builder, comment().value());
+    return builder;
+}
+
 std::unique_ptr<markup::documentation_entity> doc_cpp_file::do_generate_documentation(
     const generation_config& gen_config, const synopsis_config& syn_config,
     const cppast::cpp_entity_index&     index, type_safe::optional_ref<detail::inline_entity_list>,

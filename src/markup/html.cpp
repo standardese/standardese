@@ -21,6 +21,7 @@
 #include <standardese/markup/entity.hpp>
 #include <standardese/markup/entity_kind.hpp>
 #include <standardese/markup/heading.hpp>
+#include <standardese/markup/index.hpp>
 #include <standardese/markup/link.hpp>
 #include <standardese/markup/list.hpp>
 #include <standardese/markup/paragraph.hpp>
@@ -347,7 +348,8 @@ namespace
     const char* get_documentation_heading_tag(const documentation_entity& doc)
     {
         for (auto cur = doc.parent(); cur; cur = cur.value().parent())
-            if (cur.value().kind() == entity_kind::entity_documentation)
+            if (cur.value().kind() == entity_kind::entity_documentation
+                || cur.value().kind() == entity_kind::namespace_documentation)
                 // use h3 when entity has a parent entity
                 return "h3";
         // return h2 otherwise
@@ -385,7 +387,68 @@ namespace
                          "\n");
     }
 
-    void write(stream& s, const heading& h, const char* tag = "h4")
+    void write(stream& s, const entity_index_item& item);
+    void write(stream& s, const namespace_documentation& doc);
+
+    void write_index_child(stream& s, const block_entity& child)
+    {
+        if (child.kind() == entity_kind::entity_index_item)
+            write(s, static_cast<const entity_index_item&>(child));
+        else if (child.kind() == entity_kind::namespace_documentation)
+            write(s, static_cast<const namespace_documentation&>(child));
+        else
+            assert(false);
+    }
+
+    void write(stream& s, const namespace_documentation& doc)
+    {
+        auto item = s.open_tag(true, true, "li", doc.id(), "namespace-documentation");
+
+        write_doc_header(item, doc, "namespace-documentation-heading");
+        write_documentation(item, doc);
+
+        auto list = item.open_tag(true, true, "ul", block_id(), "namespace-members");
+        for (auto& child : doc)
+            write_index_child(list, child);
+    }
+
+    void write_term_description(stream& s, const term& t, const description* desc, block_id id,
+                                const char* class_name);
+
+    void write(stream& s, const entity_index_item& item)
+    {
+        auto li = s.open_tag(true, true, "li", item.id(), "entity-index-item");
+        write_term_description(li, item.entity(), item.brief() ? &item.brief().value() : nullptr,
+                               block_id(), "");
+    }
+
+    void write(stream& s, const heading& h, const char* tag = "h4");
+
+    void write_index_child(stream& s, const entity_index_item& item)
+    {
+        write(s, item);
+    }
+
+    template <class Index>
+    void write_index(stream& s, const Index& index, const char* class_name)
+    {
+        auto ul = s.open_tag(true, true, "ul", index.id(), class_name);
+        write(ul, index.heading(), "h1");
+        for (auto& child : index)
+            write_index_child(ul, child);
+    }
+
+    void write(stream& s, const file_index& index)
+    {
+        write_index(s, index, "file-index");
+    }
+
+    void write(stream& s, const entity_index& index)
+    {
+        write_index(s, index, "entity-index");
+    }
+
+    void write(stream& s, const heading& h, const char* tag)
     {
         auto heading = s.open_tag(false, true, tag, h.id());
         write_children(heading, h);
@@ -603,6 +666,9 @@ namespace
             STANDARDESE_DETAIL_HANDLE(file_documentation)
             STANDARDESE_DETAIL_HANDLE(entity_documentation)
 
+            STANDARDESE_DETAIL_HANDLE(file_index)
+            STANDARDESE_DETAIL_HANDLE(entity_index)
+
             STANDARDESE_DETAIL_HANDLE(heading)
             STANDARDESE_DETAIL_HANDLE(subheading)
 
@@ -637,6 +703,8 @@ namespace
 #undef STANDARDESE_DETAIL_HANDLE
 #undef STANDARDESE_DETAIL_HANDLE_CODE_BLOCK
 
+        case entity_kind::namespace_documentation:
+        case entity_kind::entity_index_item:
         case entity_kind::list_item:
         case entity_kind::term:
         case entity_kind::description:
