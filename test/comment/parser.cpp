@@ -14,7 +14,7 @@ using namespace standardese::comment;
 void check_details(const char* comment, const char* xml)
 {
     parser p;
-    auto   result = parse(p, comment);
+    auto   result = parse(p, comment, true);
     REQUIRE(result.comment.has_value());
     REQUIRE(result.comment.value().sections().size() == 1u);
     REQUIRE(markup::as_xml(*result.comment.value().sections().begin()) == xml);
@@ -431,7 +431,7 @@ It requires extra long description.</description>
     }
 
     parser p;
-    auto   parsed = parse(p, comment);
+    auto   parsed = parse(p, comment, true);
 
     auto result = parsed.comment.value().brief_section() ?
                       markup::as_xml(parsed.comment.value().brief_section().value()) :
@@ -444,13 +444,13 @@ It requires extra long description.</description>
 metadata parse_metadata(const char* comment)
 {
     parser p;
-    return parse(p, comment).comment.value().metadata();
+    return parse(p, comment, true).comment.value().metadata();
 }
 
 matching_entity parse_entity(const char* comment)
 {
     parser p;
-    return parse(p, comment).entity;
+    return parse(p, comment, false).entity;
 }
 
 TEST_CASE("commands", "[comment]")
@@ -502,10 +502,14 @@ TEST_CASE("commands", "[comment]")
     }
     SECTION("module")
     {
+        // as metadata
         REQUIRE(parse_metadata("foo\nbar").module() == type_safe::nullopt);
         REQUIRE(parse_metadata(R"(\module new)").module() == "new");
         REQUIRE_THROWS_AS(parse_metadata(R"(\module a b c)"), parse_error);
         REQUIRE_THROWS_AS(parse_metadata("\\module a\n\\module b"), parse_error);
+
+        // as module documentation
+        REQUIRE(get_module(parse_entity(R"(\module foo)")) == "foo");
     }
     SECTION("output_section")
     {
@@ -532,7 +536,7 @@ TEST_CASE("commands", "[comment]")
 matching_entity parse_entity_inline(const char* comment)
 {
     parser p;
-    auto   result  = parse(p, comment);
+    auto   result  = parse(p, comment, true);
     auto&  inlines = result.inlines;
     REQUIRE(inlines.size() == 1u);
     return inlines[0u].entity;
@@ -603,7 +607,7 @@ This is unrelated.
 )";
 
         parser p;
-        auto   result = parse(p, comment);
+        auto   result = parse(p, comment, true);
 
         auto xml = R"(<brief-section>This is unrelated.</brief-section>
 <details-section>

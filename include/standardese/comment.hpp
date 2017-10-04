@@ -33,9 +33,18 @@ namespace standardese
         bool register_comment(type_safe::object_ref<const cppast::cpp_entity> entity,
                               comment::doc_comment                            comment);
 
+        /// \effects Registers the comment for the given module.
+        /// \returns Whether or not a comment was registered already.
+        /// \notes It will not merge multiple comments.
+        bool register_comment(std::string module_name, comment::doc_comment comment);
+
         /// \returns The comment of an entity, if there is any.
         type_safe::optional_ref<const comment::doc_comment> get_comment(
             const cppast::cpp_entity& e) const;
+
+        /// \returns The comment of a module, if there is any.
+        type_safe::optional_ref<const comment::doc_comment> get_comment(
+            const std::string& module_name) const;
 
         /// \effects Adds an entity to the group of the given name.
         void add_to_group(std::string name, type_safe::object_ref<const cppast::cpp_entity> entity)
@@ -57,7 +66,8 @@ namespace standardese
         std::unordered_map<const cppast::cpp_entity*, comment::doc_comment> map_;
         std::unordered_map<std::string,
                            std::vector<type_safe::object_ref<const cppast::cpp_entity>>>
-            groups_;
+                                                              groups_;
+        std::unordered_map<std::string, comment::doc_comment> modules_;
     };
 
     /// \returns The unique name of the given entity.

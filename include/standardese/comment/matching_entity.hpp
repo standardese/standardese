@@ -66,9 +66,20 @@ namespace standardese
             }
         };
 
+        /// Tag type to indicate that a comment belongs to the module of the given name.
+        struct module
+        {
+            std::string name;
+
+            explicit module(std::string name) : name(std::move(name)) {}
+        };
+
         /// The entity a comment belongs to.
-        using matching_entity = type_safe::variant<type_safe::nullvar_t, current_file,
-                                                   remote_entity, inline_param, inline_base>;
+        ///
+        /// If it is empty, it belongs to the associated entity of the comment.
+        using matching_entity =
+            type_safe::variant<type_safe::nullvar_t, current_file, remote_entity, inline_param,
+                               inline_base, module>;
 
         /// \returns Whether or not the comment belongs to a separate entity altogether.
         /// If it is not remote it belongs to the entity the comment text was associated with.
@@ -84,8 +95,7 @@ namespace standardese
         }
 
         /// \returns The unique name of the remote entity it refers to, if any.
-        inline type_safe::optional<std::string> get_remote_entity(
-            const matching_entity& entity) noexcept
+        inline type_safe::optional<std::string> get_remote_entity(const matching_entity& entity)
         {
             return type_safe::copy(entity.optional_value(type_safe::variant_type<remote_entity>{})
                                        .map(&remote_entity::unique_name));
@@ -93,19 +103,24 @@ namespace standardese
 
         /// \returns The unique name of the inline entity it refers to, if any.
         /// \group get_inline Get inline entity
-        inline type_safe::optional<std::string> get_inline_param(
-            const matching_entity& entity) noexcept
+        inline type_safe::optional<std::string> get_inline_param(const matching_entity& entity)
         {
             return type_safe::copy(entity.optional_value(type_safe::variant_type<inline_param>{})
                                        .map(&inline_param::unique_name));
         }
 
         /// \group get_inline
-        inline type_safe::optional<std::string> get_inline_base(
-            const matching_entity& entity) noexcept
+        inline type_safe::optional<std::string> get_inline_base(const matching_entity& entity)
         {
             return type_safe::copy(entity.optional_value(type_safe::variant_type<inline_base>{})
                                        .map(&inline_base::unique_name));
+        }
+
+        /// \returns The name of the module it refers to, if any.
+        inline type_safe::optional<std::string> get_module(const matching_entity& entity)
+        {
+            return type_safe::copy(
+                entity.optional_value(type_safe::variant_type<module>{}).map(&module::name));
         }
     }
 } // namespace standardese::comment

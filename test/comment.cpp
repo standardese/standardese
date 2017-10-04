@@ -227,4 +227,28 @@ void a(float);
         for (auto entity : c)
             REQUIRE(entity->name() == "c");
     }
+    SECTION("module")
+    {
+        // set synopsis to same name as module
+        // this doesn't make any sense, but is sufficient for testing here
+        auto file = parse_file({}, "comment_module.cpp", R"(
+/// \module foo
+/// \synopsis foo
+
+/// \module bar
+/// \synopsis bar
+)");
+
+        file_comment_parser parser(test_logger());
+        parser.parse(type_safe::ref(*file));
+        auto comments = parser.finish();
+
+        auto foo = comments.get_comment("foo");
+        REQUIRE(foo);
+        REQUIRE(foo.value().metadata().synopsis() == "foo");
+
+        auto bar = comments.get_comment("bar");
+        REQUIRE(bar);
+        REQUIRE(bar.value().metadata().synopsis() == "bar");
+    }
 }
