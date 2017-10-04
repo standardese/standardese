@@ -272,8 +272,8 @@ void standardese::register_documentations(const cppast::diagnostic_logger& logge
 
 namespace
 {
-    cppast::source_location get_location(const markup::document_entity& document,
-                                         const markup::internal_link&   link)
+    cppast::source_location get_location(const markup::document_entity&    document,
+                                         const markup::documentation_link& link)
     {
         auto result = cppast::source_location::make_file(document.output_name().name());
 
@@ -316,9 +316,9 @@ void standardese::resolve_links(const cppast::diagnostic_logger& logger, const l
 
     type_safe::optional_ref<const cppast::cpp_entity> context;
     markup::visit(document, [&](const markup::entity& entity) {
-        if (entity.kind() == markup::entity_kind::internal_link)
+        if (entity.kind() == markup::entity_kind::documentation_link)
         {
-            auto& link = static_cast<const markup::internal_link&>(entity);
+            auto& link = static_cast<const markup::documentation_link&>(entity);
             if (auto unresolved = link.unresolved_destination())
             {
                 auto destination = l.lookup_documentation(context, unresolved.value());

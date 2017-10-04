@@ -650,7 +650,7 @@ namespace
         write_children(a, link);
     }
 
-    void write(stream& s, const internal_link& link)
+    void write(stream& s, const documentation_link& link)
     {
         if (link.destination())
         {
@@ -721,7 +721,7 @@ namespace
             STANDARDESE_DETAIL_HANDLE(hard_break)
 
             STANDARDESE_DETAIL_HANDLE(external_link)
-            STANDARDESE_DETAIL_HANDLE(internal_link)
+            STANDARDESE_DETAIL_HANDLE(documentation_link)
 
 #undef STANDARDESE_DETAIL_HANDLE
 #undef STANDARDESE_DETAIL_HANDLE_CODE_BLOCK

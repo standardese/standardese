@@ -53,8 +53,9 @@ namespace
         const std::string& name, std::string link_name,
         type_safe::optional_ref<const markup::brief_section> brief)
     {
-        auto link =
-            markup::internal_link::builder(link_name).add_child(markup::code::build(name)).finish();
+        auto link = markup::documentation_link::builder(link_name)
+                        .add_child(markup::code::build(name))
+                        .finish();
         auto term = markup::term::build(std::move(link));
 
         if (brief)

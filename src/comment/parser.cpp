@@ -264,7 +264,7 @@ namespace
             {
                 auto unique_name = cmark_node_get_literal(child);
                 auto is_relative = *unique_name == '?' || *unique_name == '*';
-                return markup::internal_link::builder(unique_name)
+                return markup::documentation_link::builder(unique_name)
                     .add_child(markup::code::build(is_relative ? unique_name + 1 : unique_name))
                     .finish();
             }
@@ -272,7 +272,7 @@ namespace
         else if (*url == '\0')
         {
             // url is empty, unique name is title
-            markup::internal_link::builder builder(title);
+            markup::documentation_link::builder builder(title);
             add_children(c, builder, has_matching_entity, node);
             return builder.finish();
         }
@@ -283,7 +283,7 @@ namespace
             if (!unique_name.empty() && unique_name.back() == '/')
                 unique_name.pop_back();
 
-            markup::internal_link::builder builder(title, unique_name);
+            markup::documentation_link::builder builder(title, unique_name);
             add_children(c, builder, has_matching_entity, node);
             return builder.finish();
         }
@@ -309,8 +309,8 @@ namespace
             if (*key)
             {
                 // found one
-                auto                           unique_name = std::string(begin, key - begin);
-                markup::internal_link::builder link(unique_name);
+                auto                                unique_name = std::string(begin, key - begin);
+                markup::documentation_link::builder link(unique_name);
                 link.add_child(markup::text::build(std::move(unique_name)));
                 return link.finish();
             }

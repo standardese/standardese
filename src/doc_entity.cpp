@@ -314,7 +314,7 @@ private:
         if (is_documented(entity))
         {
             // only generate link if the entity has actual documentation
-            markup::internal_link::builder link(entity.link_name());
+            markup::documentation_link::builder link(entity.link_name());
             link.add_child(markup::code_block::identifier::build(name.c_str()));
             builder_.add_child(link.finish());
         }

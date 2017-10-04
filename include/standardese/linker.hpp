@@ -26,12 +26,12 @@ namespace standardese
 
     /// Stores the information about the location of the entity documentation in the output.
     ///
-    /// This is used to resolve internal links.
+    /// This is used to resolve documentation links.
     class linker
     {
     public:
         /// \effects Registers the given documentation under a certain name.
-        /// All unresolved internal links will resolve to the given documentation.
+        /// All unresolved links with that name will resolve to the given documentation.
         /// If `force` is `true`, it will replace a previous registered documentation.
         /// \returns `false` if the link name was used twice.
         /// \notes This function is thread safe.
@@ -57,7 +57,7 @@ namespace standardese
                                  const markup::document_entity& document);
 
     /// Resolves all unresolved links in a document.
-    /// \effects For all [standardese::markup::internal_link]() entities that are not yet resolved,
+    /// \effects For all [standardese::markup::documentation_link]() entities that are not yet resolved,
     /// uses the linker to resolve them.
     /// \notes This function is *not* thread safe and must be called after the linker is entirely populated.
     void resolve_links(const cppast::diagnostic_logger& logger, const linker& l,

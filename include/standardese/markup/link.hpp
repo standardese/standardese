@@ -77,17 +77,17 @@ namespace standardese
         /// A link to another part of the documentation.
         ///
         /// Precisely, a link to another [standardese::markup::block_entity]().
-        class internal_link final : public link_base
+        class documentation_link final : public link_base
         {
         public:
-            /// Builds an internal link.
-            class builder : public container_builder<internal_link>
+            /// Builds a documentation link.
+            class builder : public container_builder<documentation_link>
             {
             public:
                 /// \effects Creates it giving the title and unresolved destination.
                 builder(std::string title, std::string dest)
-                : container_builder(std::unique_ptr<internal_link>(
-                      new internal_link(std::move(title), std::move(dest))))
+                : container_builder(std::unique_ptr<documentation_link>(
+                      new documentation_link(std::move(title), std::move(dest))))
                 {
                 }
 
@@ -132,7 +132,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            internal_link(std::string title, std::string dest)
+            documentation_link(std::string title, std::string dest)
             : link_base(std::move(title)), dest_(std::move(dest))
             {
             }

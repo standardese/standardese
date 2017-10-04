@@ -27,12 +27,12 @@ std::unique_ptr<entity> external_link::do_clone() const
     return b.finish();
 }
 
-entity_kind internal_link::do_get_kind() const noexcept
+entity_kind documentation_link::do_get_kind() const noexcept
 {
-    return entity_kind::internal_link;
+    return entity_kind::documentation_link;
 }
 
-std::unique_ptr<entity> internal_link::do_clone() const
+std::unique_ptr<entity> documentation_link::do_clone() const
 {
     if (unresolved_destination())
     {

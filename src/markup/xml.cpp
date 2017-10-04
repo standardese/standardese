@@ -441,11 +441,11 @@ namespace
         write_children(tag, link);
     }
 
-    void write(stream& s, const internal_link& link)
+    void write(stream& s, const documentation_link& link)
     {
         if (link.destination())
         {
-            auto tag = s.open_tag(stream::inline_tag, "internal-link",
+            auto tag = s.open_tag(stream::inline_tag, "documentation-link",
                                   std::make_pair("title", link.title()),
                                   std::make_pair("destination-document",
                                                  link.destination()
@@ -459,7 +459,7 @@ namespace
         }
         else
         {
-            auto tag = s.open_tag(stream::inline_tag, "internal-link",
+            auto tag = s.open_tag(stream::inline_tag, "documentation-link",
                                   std::make_pair("title", link.title()),
                                   std::make_pair("unresolved-destination-id",
                                                  link.unresolved_destination().value()));
@@ -534,7 +534,7 @@ namespace
             STANDARDESE_DETAIL_HANDLE(hard_break)
 
             STANDARDESE_DETAIL_HANDLE(external_link)
-            STANDARDESE_DETAIL_HANDLE(internal_link)
+            STANDARDESE_DETAIL_HANDLE(documentation_link)
 
 #undef STANDARDESE_DETAIL_HANDLE
 #undef STANDARDESE_DETAIL_HANDLE_CODE_BLOCK

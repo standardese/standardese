@@ -68,7 +68,7 @@ namespace standardese
             hard_break,
 
             external_link,
-            internal_link,
+            documentation_link,
         };
 
         /// \returns Whether or not the entity is a phrasing entity,
