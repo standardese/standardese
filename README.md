@@ -4,6 +4,8 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/1aw8ml5lawu4mtyv/branch/master?svg=true)](https://ci.appveyor.com/project/foonathan/standardese/branch/master)
 [![Join the chat at https://gitter.im/foonathan/standardese](https://badges.gitter.im/foonathan/standardese.svg)](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+***Note:** The development branch is currently getting a major overhaul, this README is partly out of data and some features are missing.*
+
 Standardese aims to be a nextgen [Doxygen](http://doxygen.org).
 It consists of two parts: a library and a tool.
 
