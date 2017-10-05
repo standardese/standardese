@@ -928,13 +928,44 @@ namespace
         else
             return false;
     }
+}
 
+bool entity_blacklist::is_blacklisted(const cppast::cpp_entity&         entity,
+                                      cppast::cpp_access_specifier_kind access) const
+{
+    if (!extract_private_ && access == cppast::cpp_private && !is_virtual(entity)
+        && !is_friend_func_def(entity))
+        return true;
+    else if (entity.kind() == cppast::cpp_namespace::kind())
+    {
+        auto name = entity.name();
+        if (ns_blacklist_.count(name))
+            return true;
+
+        for (auto cur = entity.parent(); cur; cur = cur.value().parent())
+        {
+            auto scope = cur.value().scope_name();
+            if (scope)
+            {
+                name = scope.value().name() + "::" + name;
+                if (ns_blacklist_.count(name))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+    else
+        return false;
+}
+
+namespace
+{
     bool is_excluded(const cppast::cpp_entity& e, cppast::cpp_access_specifier_kind access,
                      type_safe::optional_ref<const comment::doc_comment> comment,
-                     bool                                                exclude_private)
+                     const entity_blacklist&                             blacklist)
     {
-        if (exclude_private && access == cppast::cpp_private && !is_virtual(e)
-            && !is_friend_func_def(e))
+        if (blacklist.is_blacklisted(e, access))
             return true;
         else if (!comment
                  && (e.kind() == cppast::cpp_entity_kind::class_t
@@ -962,18 +993,18 @@ namespace
     std::unique_ptr<doc_entity> build_entity(const comment_registry&           registry,
                                              const cppast::cpp_entity&         e,
                                              cppast::cpp_access_specifier_kind access,
-                                             bool                              exclude_private);
+                                             const entity_blacklist&           blacklist);
 
     std::unique_ptr<doc_cpp_entity> build_cpp_entity(const comment_registry&   registry,
                                                      const cppast::cpp_entity& e,
-                                                     bool                      exclude_private)
+                                                     const entity_blacklist&   blacklist)
     {
         doc_cpp_entity::builder builder(lookup_unique_name(registry, e), type_safe::ref(e),
                                         registry.get_comment(e));
 
         auto visitor = [&](const cppast::cpp_entity&         entity,
                            cppast::cpp_access_specifier_kind access = cppast::cpp_public) {
-            if (auto child = build_entity(registry, entity, access, exclude_private))
+            if (auto child = build_entity(registry, entity, access, blacklist))
                 builder.add_child(std::move(child));
         };
 
@@ -996,7 +1027,7 @@ namespace
     std::unique_ptr<doc_member_group_entity> build_member_group(const comment_registry& registry,
                                                                 const std::string&      group_name,
                                                                 const cppast::cpp_entity& e,
-                                                                bool exclude_private)
+                                                                const entity_blacklist&   blacklist)
     {
         auto group = registry.lookup_group(group_name);
         assert(group.size() >= 1u);
@@ -1005,20 +1036,20 @@ namespace
 
         doc_member_group_entity::builder builder(group_name);
         for (auto& member : group)
-            builder.add_member(build_cpp_entity(registry, *member, exclude_private));
+            builder.add_member(build_cpp_entity(registry, *member, blacklist));
         return builder.finish();
     }
 
     std::unique_ptr<doc_cpp_namespace> build_namespace(const comment_registry&      registry,
                                                        const cppast::cpp_namespace& ns,
-                                                       bool                         exclude_private)
+                                                       const entity_blacklist&      blacklist)
     {
         doc_cpp_namespace::builder builder(lookup_unique_name(registry, ns), type_safe::ref(ns),
                                            registry.get_comment(ns));
 
         detail::visit_children(ns, [&](const cppast::cpp_entity&         entity,
                                        cppast::cpp_access_specifier_kind access) {
-            if (auto child = build_entity(registry, entity, access, exclude_private))
+            if (auto child = build_entity(registry, entity, access, blacklist))
                 builder.add_child(std::move(child));
         });
 
@@ -1028,10 +1059,10 @@ namespace
     std::unique_ptr<doc_entity> build_entity(const comment_registry&           registry,
                                              const cppast::cpp_entity&         e,
                                              cppast::cpp_access_specifier_kind access,
-                                             bool                              exclude_private)
+                                             const entity_blacklist&           blacklist)
     {
         auto comment = registry.get_comment(e);
-        if (is_excluded(e, access, comment, exclude_private))
+        if (is_excluded(e, access, comment, blacklist))
         {
             e.set_user_data(&excluded_entity);
             return nullptr;
@@ -1045,18 +1076,18 @@ namespace
             return nullptr;
         else if (e.kind() == cppast::cpp_namespace::kind())
             return build_namespace(registry, static_cast<const cppast::cpp_namespace&>(e),
-                                   exclude_private);
+                                   blacklist);
         else if (comment.has_value() && comment.value().metadata().group())
             return build_member_group(registry, comment.value().metadata().group().value().name(),
-                                      e, exclude_private);
+                                      e, blacklist);
         else
-            return build_cpp_entity(registry, e, exclude_private);
+            return build_cpp_entity(registry, e, blacklist);
     }
 }
 
 std::unique_ptr<doc_cpp_file> standardese::build_doc_entities(
     type_safe::object_ref<const comment_registry> registry, std::unique_ptr<cppast::cpp_file> file,
-    std::string output_name, bool exclude_private)
+    std::string output_name, const entity_blacklist& blacklist)
 {
     auto&                 f = *file;
     doc_cpp_file::builder builder(std::move(output_name), lookup_unique_name(*registry, f),
@@ -1064,7 +1095,7 @@ std::unique_ptr<doc_cpp_file> standardese::build_doc_entities(
 
     detail::visit_children(f, [&](const cppast::cpp_entity&         entity,
                                   cppast::cpp_access_specifier_kind access) {
-        if (auto child = build_entity(*registry, entity, access, exclude_private))
+        if (auto child = build_entity(*registry, entity, access, blacklist))
             builder.add_child(std::move(child));
     });
 

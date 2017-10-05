@@ -66,7 +66,7 @@ standardese::comment_registry standardese_tool::parse_comments(
 
 std::vector<std::unique_ptr<standardese::doc_cpp_file>> standardese_tool::build_files(
     const standardese::comment_registry& registry, std::vector<parsed_file>&& files,
-    bool exclude_private, unsigned no_threads)
+    const standardese::entity_blacklist& blacklist, unsigned no_threads)
 {
     std::vector<std::unique_ptr<standardese::doc_cpp_file>> result;
 
@@ -77,7 +77,7 @@ std::vector<std::unique_ptr<standardese::doc_cpp_file>> standardese_tool::build_
             add_job(pool, [&] {
                 auto entity =
                     standardese::build_doc_entities(type_safe::ref(registry), std::move(file.file),
-                                                    std::move(file.output_name), exclude_private);
+                                                    std::move(file.output_name), blacklist);
 
                 std::lock_guard<std::mutex> lock(mutex);
                 result.push_back(std::move(entity));

@@ -6,6 +6,7 @@
 #define STANDARDESE_DOC_ENTITY_HPP_INCLUDED
 
 #include <cassert>
+#include <unordered_set>
 
 #include <cppast/cpp_entity.hpp>
 #include <cppast/cpp_namespace.hpp>
@@ -627,12 +628,39 @@ namespace standardese
 
     class comment_registry;
 
+    /// Controls which entities are excluded in the documentation.
+    class entity_blacklist
+    {
+    public:
+        /// \effects Creates a blacklist that blacklists private entities.
+        entity_blacklist() : entity_blacklist(false) {}
+
+        /// \effects Creates a blacklist that may blacklist private entities.
+        explicit entity_blacklist(bool extract_private) : extract_private_(extract_private) {}
+
+        /// \effects Blacklist a namespace name.
+        /// It can either be a single name like `detail` or a nested one like `foo::bar`.
+        void blacklist_namespace(std::string name)
+        {
+            ns_blacklist_.emplace(std::move(name));
+        }
+
+        /// \returns Whether or not the given entity is blacklisted according to this blacklist.
+        bool is_blacklisted(const cppast::cpp_entity&         entity,
+                            cppast::cpp_access_specifier_kind access) const;
+
+    private:
+        std::unordered_set<std::string> ns_blacklist_;
+        bool                            extract_private_;
+    };
+
     /// Creates the [standardese::doc_entity]() hierarchy.
     /// \effects Traverses over all entities in the file, builds matching doc entities and marks excluded entities.
     /// \returns The corresponding documentation file.
     std::unique_ptr<doc_cpp_file> build_doc_entities(
         type_safe::object_ref<const comment_registry> registry,
-        std::unique_ptr<cppast::cpp_file> file, std::string output_name, bool exclude_private);
+        std::unique_ptr<cppast::cpp_file> file, std::string output_name,
+        const entity_blacklist& blacklist);
 } // namespace standardese
 
 #endif // STANDARDESE_DOC_ENTITY_HPP_INCLUDED

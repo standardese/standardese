@@ -45,7 +45,7 @@ namespace standardese_tool
 
     std::vector<std::unique_ptr<standardese::doc_cpp_file>> build_files(
         const standardese::comment_registry& registry, std::vector<parsed_file>&& files,
-        bool exclude_private, unsigned no_threads);
+        const standardese::entity_blacklist& blacklist, unsigned no_threads);
 
     using documents = std::vector<std::unique_ptr<standardese::markup::document_entity>>;
 

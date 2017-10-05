@@ -243,6 +243,19 @@ std::vector<std::pair<standardese::markup::generator, const char*>> get_formats(
     return formats;
 }
 
+standardese::entity_blacklist get_blacklist(const po::variables_map& options)
+{
+    standardese::entity_blacklist blacklist(
+        get_option<bool>(options, "input.extract_private").value());
+
+    auto blacklist_ns =
+        get_option<std::vector<std::string>>(options, "input.blacklist_namespace").value();
+    for (auto& ns : blacklist_ns)
+        blacklist.blacklist_namespace(ns);
+
+    return blacklist;
+}
+
 void register_external_documentations(standardese::linker& l, const po::variables_map& options)
 {
     l.register_external("std", "http://en.cppreference.com/mwiki/"
@@ -291,10 +304,7 @@ int main(int argc, char* argv[])
         ("input.blacklist_dotfiles",
          po::value<bool>()->implicit_value(true)->default_value(true),
          "whether or not dotfiles are blacklisted")
-        ("input.blacklist_entity_name", // TODO
-         po::value<std::vector<std::string>>()->default_value({}, "(none)"),
-         "C++ entity names (and all children) that are forbidden")
-        ("input.blacklist_namespace", // TODO
+        ("input.blacklist_namespace",
          po::value<std::vector<std::string>>()->default_value({}, "(none)"),
          "C++ namespace names (with all children) that are forbidden")
         ("input.force_blacklist",
@@ -387,7 +397,7 @@ int main(int argc, char* argv[])
             auto synopsis_config   = get_synopsis_config(options);
             auto generation_config = get_generation_config(options);
 
-            auto exclude_private = !get_option<bool>(options, "input.extract_private").value();
+            auto blacklist = get_blacklist(options);
 
             auto formats = get_formats(options);
             auto prefix  = get_option<std::string>(options, "output.prefix").value();
@@ -409,7 +419,7 @@ int main(int argc, char* argv[])
                 auto comments =
                     standardese_tool::parse_comments(comment_config, parsed.value(), no_threads);
                 auto files = standardese_tool::build_files(comments, std::move(parsed.value()),
-                                                           exclude_private, no_threads);
+                                                           blacklist, no_threads);
 
                 std::clog << "generating documentation...\n";
                 auto docs = standardese_tool::generate(generation_config, synopsis_config, comments,

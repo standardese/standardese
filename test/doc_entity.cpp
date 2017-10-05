@@ -148,6 +148,42 @@ file - doc_entity__excluded
   entity - foo
 )");
     }
+    SECTION("blacklisted")
+    {
+        entity_blacklist blacklist;
+        blacklist.blacklist_namespace("foo");
+        blacklist.blacklist_namespace("outer::inner");
+
+        auto file = build_doc_entities(comments, {}, "doc_entity__blacklisted.cpp", R"(
+namespace foo
+{
+    struct a {};
+}
+
+namespace inner
+{
+    struct b {};
+}
+
+namespace outer
+{
+    struct a {};
+
+    namespace inner
+    {
+         struct b {};
+    }
+}
+)", blacklist);
+
+        REQUIRE(debug_string(*file) == R"(
+file - doc_entity__blacklisted.cpp
+  namespace - inner
+    entity - inner::b
+  namespace - outer
+    entity - outer::a
+)");
+    }
     SECTION("member groups")
     {
         auto file = build_doc_entities(comments, {}, "doc_entity__member_groups", R"(
