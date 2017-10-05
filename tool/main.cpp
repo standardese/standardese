@@ -231,10 +231,14 @@ std::vector<std::pair<standardese::markup::generator, const char*>> get_formats(
 {
     std::vector<std::pair<standardese::markup::generator, const char*>> formats;
 
+    auto link_extension = get_option<std::string>(options, "output.link_extension");
+
     auto option = get_option<std::vector<std::string>>(options, "output.format").value();
     for (auto& format : option)
         if (format == "html")
-            formats.emplace_back(standardese::markup::html_generator(), "html");
+            formats.emplace_back(standardese::markup::html_generator(
+                                     link_extension.value_or("html")),
+                                 "html");
         else if (format == "xml")
             formats.emplace_back(standardese::markup::xml_generator(), "xml");
         else
@@ -358,7 +362,7 @@ int main(int argc, char* argv[])
         ("output.format",
          po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"html"}, "{html}"),
          "the output format used (html, xml)")
-        ("output.link_extension", po::value<std::string>(), // TODO
+        ("output.link_extension", po::value<std::string>(),
          "the file extension of the links to entities, useful if you convert standardese output to a different format and change the extension")
         ("output.prefix",
          po::value<std::string>()->default_value(""),

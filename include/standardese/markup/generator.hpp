@@ -6,6 +6,7 @@
 #define STANDARDESE_MARKUP_GENERATOR_HPP_INCLUDED
 
 #include <iosfwd>
+#include <functional>
 #include <string>
 
 namespace standardese
@@ -17,7 +18,7 @@ namespace standardese
         /// A generator.
         ///
         /// It will write the entity representation to the given stream.
-        using generator = void (*)(std::ostream&, const entity&);
+        using generator = std::function<void(std::ostream&, const entity&)>;
 
         /// Renders an entity to a string.
         ///
@@ -27,7 +28,7 @@ namespace standardese
         /// An HTML generator.
         ///
         /// \returns A generator that will generate the HTML representation.
-        generator html_generator() noexcept;
+        generator html_generator(const std::string& extension = "html") noexcept;
 
         /// Renders an entity as HTML.
         ///

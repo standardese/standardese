@@ -36,14 +36,15 @@ namespace
     class stream
     {
     public:
-        explicit stream(type_safe::object_ref<std::ostream> out)
-        : out_(out), top_level_(true), closing_newl_(false)
+        explicit stream(type_safe::object_ref<std::ostream> out, std::string extension)
+        : out_(out), ext_(std::move(extension)), top_level_(true), closing_newl_(false)
         {
         }
 
         stream(stream&& other)
         : closing_(std::move(other.closing_)),
           out_(other.out_),
+          ext_(other.extension()),
           top_level_(other.top_level_),
           closing_newl_(other.closing_newl_)
         {
@@ -57,6 +58,11 @@ namespace
         ~stream()
         {
             close();
+        }
+
+        const std::string& extension() const noexcept
+        {
+            return ext_;
         }
 
         // opens a new tag
@@ -88,7 +94,7 @@ namespace
             if (open_newl)
                 *out_ << "\n";
 
-            return stream(out_, tag, closing_newl);
+            return stream(out_, extension(), tag, closing_newl);
         }
 
         stream open_link(const char* title, const char* url)
@@ -103,7 +109,7 @@ namespace
                 *out_ << '"';
             }
             *out_ << ">";
-            return stream(out_, "a", false);
+            return stream(out_, extension(), "a", false);
         }
 
         // closes the current tag
@@ -158,9 +164,13 @@ namespace
         }
 
     private:
-        explicit stream(type_safe::object_ref<std::ostream> out, std::string closing,
-                        bool closing_newl)
-        : closing_(std::move(closing)), out_(out), top_level_(false), closing_newl_(closing_newl)
+        explicit stream(type_safe::object_ref<std::ostream> out, std::string extension,
+                        std::string closing, bool closing_newl)
+        : closing_(std::move(closing)),
+          out_(out),
+          ext_(std::move(extension)),
+          top_level_(false),
+          closing_newl_(closing_newl)
         {
         }
 
@@ -198,6 +208,7 @@ namespace
 
         std::string                         closing_;
         type_safe::object_ref<std::ostream> out_;
+        std::string                         ext_;
         type_safe::flag                     top_level_, closing_newl_;
     };
 
@@ -657,7 +668,7 @@ namespace
             auto url = link.internal_destination()
                            .value()
                            .document()
-                           .map(&output_name::file_name, "html")
+                           .map(&output_name::file_name, s.extension().c_str())
                            .value_or("");
             url += "#standardese-" + link.internal_destination().value().id().as_str();
 
@@ -750,10 +761,10 @@ namespace
     }
 }
 
-generator standardese::markup::html_generator() noexcept
+generator standardese::markup::html_generator(const std::string& extension) noexcept
 {
-    return [](std::ostream& out, const entity& e) {
-        stream s(type_safe::ref(out));
+    return [extension](std::ostream& out, const entity& e) {
+        stream s(type_safe::ref(out), extension);
         write_entity(s, e);
     };
 }
