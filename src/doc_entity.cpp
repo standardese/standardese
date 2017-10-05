@@ -112,6 +112,7 @@ namespace
         }
 
         assert(false);
+        return {};
     }
 
     bool generate_output_section(const cppast::code_generator::output& code, bool is_main,

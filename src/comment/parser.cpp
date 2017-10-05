@@ -661,8 +661,8 @@ namespace
     }
 
     template <class Builder, typename T>
-    auto add_child(int, Builder& b, std::unique_ptr<T> entity)
-        -> decltype(void(b.add_item(std::move(entity))))
+    void add_child(int, Builder& b, std::unique_ptr<T> entity,
+                   decltype(std::declval<Builder>().add_item(std::unique_ptr<T>{}), 0) = 0)
     {
         b.add_item(std::move(entity));
     }
