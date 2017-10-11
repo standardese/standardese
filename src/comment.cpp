@@ -76,7 +76,7 @@ namespace
     cppast::diagnostic make_parse_diagnostic(const cppast::cpp_entity&   entity,
                                              const comment::parse_error& ex)
     {
-        return make_diagnostic(make_location(entity, ex), ex.what());
+        return {ex.what(), make_location(entity, ex), cppast::severity::error};
     }
 
     template <typename... Args>
@@ -182,26 +182,38 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
             };
 
             // parse comment
+            type_safe::optional<comment::parse_result> comment;
             try
             {
-                auto comment = type_safe::copy(entity.comment()).map([&](const std::string& str) {
+                comment = type_safe::copy(entity.comment()).map([&](const std::string& str) {
                     return comment::parse(p, str, true);
                 });
-
-                if (comment && comment.value().comment)
-                    // register comment
-                    register_commented(type_safe::ref(entity),
-                                       std::move(comment.value().comment.value()));
-                else
-                    register_uncommented(type_safe::ref(entity));
-
-                process_inlines(*logger_, comment, entity, register_commented,
-                                register_uncommented);
             }
             catch (comment::parse_error& ex)
             {
                 logger_->log("standardese comment", make_parse_diagnostic(entity, ex));
+                comment = comment::
+                    parse_result{comment::
+                                     doc_comment(comment::metadata(),
+                                                 markup::brief_section::builder()
+                                                     .add_child(markup::text::build(
+                                                         std::string(
+                                                             "(error while parsing comment text: ")
+                                                         + ex.what() + ")"))
+                                                     .finish(),
+                                                 {}),
+                                 type_safe::nullvar,
+                                 {}};
             }
+
+            if (comment && comment.value().comment)
+                // register comment
+                register_commented(type_safe::ref(entity),
+                                   std::move(comment.value().comment.value()));
+            else
+                register_uncommented(type_safe::ref(entity));
+
+            process_inlines(*logger_, comment, entity, register_commented, register_uncommented);
         }
 
         return true;
