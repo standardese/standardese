@@ -961,20 +961,27 @@ bool entity_blacklist::is_blacklisted(const cppast::cpp_entity&         entity,
 
 namespace
 {
+    bool is_class(const cppast::cpp_entity& e)
+    {
+        return e.kind() == cppast::cpp_entity_kind::class_t
+               || e.kind() == cppast::cpp_entity_kind::class_template_t
+               || e.kind() == cppast::cpp_entity_kind::class_template_specialization_t
+               || e.kind() == cppast::cpp_entity_kind::class_template_specialization_t;
+    }
+
     bool is_excluded(const cppast::cpp_entity& e, cppast::cpp_access_specifier_kind access,
                      type_safe::optional_ref<const comment::doc_comment> comment,
                      const entity_blacklist&                             blacklist)
     {
         if (blacklist.is_blacklisted(e, access))
             return true;
-        else if (!comment
-                 && (e.kind() == cppast::cpp_entity_kind::class_t
-                     || e.kind() == cppast::cpp_entity_kind::class_template_t
-                     || e.kind() == cppast::cpp_entity_kind::class_template_specialization_t
-                     || e.kind() == cppast::cpp_entity_kind::class_template_specialization_t
-                     || e.kind() == cppast::cpp_entity_kind::enum_t)
+        else if (!comment && (is_class(e) || e.kind() == cppast::cpp_entity_kind::enum_t)
                  && !cppast::is_definition(e))
             // remove uncommented type forward declarations
+            return true;
+        else if (e.parent() && !is_class(e.parent().value())
+                 && e.kind() == cppast::cpp_static_assert::kind())
+            // remove static asserts that are not at class scope
             return true;
         else
             return comment && comment.value().metadata().exclude() == comment::exclude_mode::entity;

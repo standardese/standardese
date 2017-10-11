@@ -123,10 +123,13 @@ namespace ns
    void c();
 }
 
+static_assert(true, "true!");
+
 class foo
 {
    void d(); // excluded
    virtual void e();
+   static_assert(true, "true!");
 
 protected:
    void f();
