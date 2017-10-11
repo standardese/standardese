@@ -110,7 +110,9 @@ file - doc_entity__ignored
     }
     SECTION("excluded")
     {
-        auto file = build_doc_entities(comments, {}, "doc_entity__excluded", R"(
+        auto file = build_doc_entities(comments, {}, "doc_entity__excluded.hpp", R"(
+#define TEST_DOC_ENTITY__EXCLUDED_HPP_INCLUDED
+
 /// \exclude
 void a();
 
@@ -143,7 +145,7 @@ class foo;
 )");
 
         REQUIRE(debug_string(*file) == R"(
-file - doc_entity__excluded
+file - doc_entity__excluded.hpp
   entity - foo
     entity - foo::e()
     entity - foo::f()

@@ -961,6 +961,34 @@ bool entity_blacklist::is_blacklisted(const cppast::cpp_entity&         entity,
 
 namespace
 {
+    // an include guard macro is a non function like macro with no replacement containing the file name
+    bool is_include_guard_macro(const cppast::cpp_macro_definition& macro)
+    {
+        if (macro.is_function_like() || !macro.replacement().empty())
+            return false;
+        else
+        {
+            assert(macro.parent().value().kind() == cppast::cpp_file::kind());
+            auto file_name = macro.parent().value().name();
+
+            auto separator = file_name.find_last_of(R"(/\:)");
+            if (separator != std::string::npos)
+                file_name = file_name.substr(separator + 1u);
+
+            for (auto& c : file_name)
+            {
+                if (c == '.')
+                    // convert . to underscore
+                    c = '_';
+                else
+                    // convert all to uppercase
+                    c = char(std::toupper(c));
+            }
+
+            return macro.name().find(file_name) != std::string::npos;
+        }
+    }
+
     bool is_class(const cppast::cpp_entity& e)
     {
         return e.kind() == cppast::cpp_entity_kind::class_t
@@ -982,6 +1010,9 @@ namespace
         else if (e.parent() && !is_class(e.parent().value())
                  && e.kind() == cppast::cpp_static_assert::kind())
             // remove static asserts that are not at class scope
+            return true;
+        else if (e.kind() == cppast::cpp_macro_definition::kind()
+                 && is_include_guard_macro(static_cast<const cppast::cpp_macro_definition&>(e)))
             return true;
         else
             return comment && comment.value().metadata().exclude() == comment::exclude_mode::entity;
