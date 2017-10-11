@@ -54,7 +54,7 @@ ns::foo<ns::foo<int>> make();
             markup::as_xml(*file_synopsis)
             == R"(<code-block language="cpp"><code-block-preprocessor>#define</code-block-preprocessor> <code-block-identifier>FOO</code-block-identifier><soft-break></soft-break>
 <soft-break></soft-break>
-<code-block-keyword>void</code-block-keyword> <code-block-identifier>func</code-block-identifier><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <code-block-identifier>i</code-block-identifier><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>char</code-block-keyword> <code-block-identifier>c</code-block-identifier> <code-block-punctuation>=</code-block-punctuation> 42<code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+<code-block-keyword>void</code-block-keyword> <code-block-identifier>func</code-block-identifier><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <code-block-identifier>i</code-block-identifier><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>char</code-block-keyword> <code-block-identifier>c</code-block-identifier> <code-block-punctuation>=</code-block-punctuation> <code-block-int-literal>42</code-block-int-literal><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <soft-break></soft-break>
 <code-block-keyword>namespace</code-block-keyword> <code-block-identifier>ns</code-block-identifier><soft-break></soft-break>
 <code-block-punctuation>{</code-block-punctuation><soft-break></soft-break>

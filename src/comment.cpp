@@ -210,7 +210,7 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
     // add free comments
     for (auto& free : file->unmatched_comments())
     {
-        auto comment = comment::parse(p, free, false);
+        auto comment = comment::parse(p, free.content, false);
         if (comment::is_file(comment.entity))
         {
             // comment for current file
@@ -227,7 +227,8 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
 
             if (!result)
                 logger_->log("standardese comment",
-                             make_diagnostic(cppast::source_location::make_entity(module.value()),
+                             make_diagnostic(cppast::source_location::make_file(file->name(),
+                                                                                free.line),
                                              "multiple comments for module '", module.value(),
                                              "'"));
         }
@@ -237,9 +238,10 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
             free_comments_.push_back(std::move(comment));
         }
         else
-            logger_->log("standardese comment",
-                         make_semantic_diagnostic(*file, "unmatched comment doesn't have a remote "
-                                                         "entity specified"));
+            logger_
+                ->log("standardese comment",
+                      make_diagnostic(cppast::source_location::make_file(file->name(), free.line),
+                                      "unmatched comment doesn't have a remote entity specified"));
     }
 }
 
