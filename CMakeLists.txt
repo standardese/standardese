@@ -21,6 +21,7 @@ if (MSVC)
         -D_CRT_SECURE_NO_WARNINGS
         -D_SCL_SECURE_NO_WARNINGS
         /wd4503 # decorated name length exceeded, name was truncated
+        /MP # Multi-processor compilation
         )
 endif()
 
