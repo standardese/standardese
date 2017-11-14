@@ -1041,7 +1041,7 @@ namespace
                                         registry.get_comment(e));
 
         auto visitor = [&](const cppast::cpp_entity&         entity,
-                           cppast::cpp_access_specifier_kind access = cppast::cpp_public) {
+                           cppast::cpp_access_specifier_kind access) {
             if (auto child = build_entity(registry, entity, access, blacklist))
                 builder.add_child(std::move(child));
         };
@@ -1049,10 +1049,10 @@ namespace
         // handle inline entities
         if (auto templ = detail::get_template(e))
             for (auto& param : templ.value().parameters())
-                visitor(param);
+                visitor(param, cppast::cpp_public);
         if (auto func = detail::get_function(e))
             for (auto& param : func.value().parameters())
-                visitor(param);
+                visitor(param, cppast::cpp_public);
         if (auto c = detail::get_class(e))
             for (auto& base : c.value().bases())
                 visitor(base, base.access_specifier());

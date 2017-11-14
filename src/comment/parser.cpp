@@ -39,7 +39,7 @@ parser::parser(comment::config c)
     cmark_parser_attach_syntax_extension(parser_, html_ext);
 }
 
-parser::~parser()
+parser::~parser() noexcept
 {
     auto cur = cmark_parser_get_syntax_extensions(parser_);
     while (cur)
@@ -309,7 +309,7 @@ namespace
             if (*key)
             {
                 // found one
-                auto                                unique_name = std::string(begin, key - begin);
+                auto unique_name = std::string(begin, std::size_t(key - begin));
                 markup::documentation_link::builder link(unique_name);
                 link.add_child(markup::text::build(std::move(unique_name)));
                 return link.finish();
@@ -587,7 +587,7 @@ namespace
     template <typename T>
     void parse_command(const T&, bool, cmark_node*)
     {
-        assert(!"unexpected command");
+        assert(!static_cast<bool>("unexpected command"));
     }
 
     matching_entity parse_matching(cmark_node* node)
@@ -608,7 +608,7 @@ namespace
             break;
         }
 
-        assert(!"invalid inline type");
+        assert(!static_cast<bool>("invalid inline type"));
         return current_file{};
     }
 
@@ -635,10 +635,10 @@ namespace
                     details.push_back(parse_details(c, true, child));
                 }
                 else
-                    assert(!"unexpected section");
+                    assert(!static_cast<bool>("unexpected section"));
             }
             else
-                assert(!"unexpected child");
+                assert(!static_cast<bool>("unexpected child"));
         }
 
         builder.inlines.push_back(
@@ -650,7 +650,7 @@ namespace
     template <typename T>
     void parse_inline(const config&, const T&, bool, cmark_node*)
     {
-        assert(!"unexpected inline");
+        assert(!static_cast<bool>("unexpected inline"));
     }
 
     template <class Builder, typename T>
@@ -685,7 +685,7 @@ namespace
     template <class Builder, typename T>
     void add_child(short, Builder&, std::unique_ptr<T>)
     {
-        assert(!"unexpected child");
+        assert(!static_cast<bool>("unexpected child"));
     }
 
     template <class Builder>
@@ -751,12 +751,15 @@ namespace
                 case CMARK_NODE_CUSTOM_BLOCK:
                 case CMARK_NODE_CUSTOM_INLINE:
                 case CMARK_NODE_IMAGE:
+                case CMARK_NODE_FOOTNOTE_DEFINITION:
+                case CMARK_NODE_FOOTNOTE_REFERENCE:
                     error(cur, std::string("forbidden CommonMark node of type \"")
                                    + cmark_node_get_type_string(cur) + "\"");
+                    break;
 
                 case CMARK_NODE_NONE:
                 case CMARK_NODE_DOCUMENT:
-                    assert(!"invalid node type");
+                    assert(!static_cast<bool>("invalid node type"));
                     break;
                 }
         }
