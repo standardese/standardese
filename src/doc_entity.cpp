@@ -5,6 +5,7 @@
 #include <standardese/doc_entity.hpp>
 
 #include <cassert>
+#include <cctype>
 #include <stack>
 
 #include <cppast/cpp_enum.hpp>
