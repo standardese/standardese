@@ -3,6 +3,7 @@
 // found in the top-level directory of this distribution.
 
 #include <iostream>
+#include <fstream>
 
 #include <boost/program_options.hpp>
 

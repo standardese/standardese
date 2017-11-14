@@ -78,7 +78,7 @@ namespace standardese
         private:
             entity_kind do_get_kind() const noexcept override;
 
-            section_type do_get_section_type() const noexcept
+            section_type do_get_section_type() const noexcept override
             {
                 return section_type::brief;
             }
