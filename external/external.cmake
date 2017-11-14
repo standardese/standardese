@@ -38,7 +38,7 @@ if((NOT CMARK_LIBRARY) OR (NOT CMARK_INCLUDE_DIR))
     set_target_properties(api_test PROPERTIES EXCLUDE_FROM_ALL 1)
 
     # fixup target properties
-    target_include_directories(libcmark-gfm_static PUBLIC
+    target_include_directories(libcmark-gfm_static SYSTEM PUBLIC
                                $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/cmark/src>
                                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/cmark/src>)
     target_compile_definitions(libcmark-gfm_static PUBLIC CMARK_STATIC_DEFINE)
