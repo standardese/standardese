@@ -43,5 +43,5 @@ script:
   - mkdir build && cd build
   - $CMAKE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror -pedantic -Wall -Wextra -Wconversion -Wsign-conversion -Wno-parentheses" -DLLVM_DOWNLOAD_OS_NAME=$LLVM_DOWNLOAD_OS_NAME -DLLVM_PREFERRED_VERSION=$LLVM_VERSION ../
   - $CMAKE --build .
-  - if [[ $BUILD_TOOL = true ]]; then ./tool/standardese --version; fi
+  - ./tool/standardese --version
   - ./test/standardese_test
