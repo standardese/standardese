@@ -28,6 +28,9 @@ namespace standardese
     class comment_registry
     {
     public:
+        /// \effects Registers everything from the other comment registry.
+        void merge(comment_registry&& other);
+
         /// \effects Registers the comment for the given entity.
         /// \returns Whether or not a comment was registered already.
         /// \notes It will merge multiple comments where appropriate.

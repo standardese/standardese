@@ -14,6 +14,16 @@
 
 using namespace standardese;
 
+void comment_registry::merge(comment_registry&& other)
+{
+    map_.insert(std::make_move_iterator(other.map_.begin()),
+                std::make_move_iterator(other.map_.end()));
+    groups_.insert(std::make_move_iterator(other.groups_.begin()),
+                   std::make_move_iterator(other.groups_.end()));
+    modules_.insert(std::make_move_iterator(other.modules_.begin()),
+                    std::make_move_iterator(other.modules_.end()));
+}
+
 bool comment_registry::register_comment(type_safe::object_ref<const cppast::cpp_entity> entity,
                                         comment::doc_comment                            comment)
 {

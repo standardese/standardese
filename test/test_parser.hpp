@@ -66,8 +66,9 @@ inline std::unique_ptr<standardese::doc_cpp_file> build_doc_entities(
     const standardese::comment_registry& comments, std::unique_ptr<cppast::cpp_file> file,
     const standardese::entity_blacklist& blacklist = {})
 {
-    return standardese::build_doc_entities(type_safe::ref(comments), std::move(file), file->name(),
-                                           blacklist);
+    auto name = file->name();
+    return standardese::build_doc_entities(type_safe::ref(comments), std::move(file),
+                                           std::move(name), blacklist);
 }
 
 inline std::unique_ptr<standardese::doc_cpp_file> build_doc_entities(
@@ -75,7 +76,7 @@ inline std::unique_ptr<standardese::doc_cpp_file> build_doc_entities(
     const char* name, const char* source, const standardese::entity_blacklist& blacklist = {})
 {
     auto file = parse_file(index, name, source);
-    comments  = parse_comments(*file);
+    comments.merge(parse_comments(*file));
     return build_doc_entities(comments, std::move(file), blacklist);
 }
 
