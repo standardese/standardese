@@ -414,9 +414,10 @@ namespace
                                      const std::string& e_name)
     {
         std::string result = parent;
-
-        if (!(parent.empty() || parent.back() == ':' || parent.back() == '.'
-              || e_name.front() == ':' || e_name.front() == '.'))
+        if (e_name.empty())
+            return result;
+        else if (!(parent.empty() || parent.back() == ':' || parent.back() == '.'
+                   || e_name.front() == ':' || e_name.front() == '.'))
             result += get_separator(e);
 
         for (auto c : e_name)
