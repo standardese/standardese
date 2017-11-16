@@ -8,7 +8,7 @@
 message(STATUS "Installing cppast via submodule")
 execute_process(COMMAND git submodule update --init -- external/cppast
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-add_subdirectory(external/cppast)
+add_subdirectory(external/cppast EXCLUDE_FROM_ALL)
 
 #
 # add ThreadPool
@@ -34,11 +34,11 @@ if((NOT CMARK_LIBRARY) OR (NOT CMARK_INCLUDE_DIR))
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
     # add and exclude targets
-    add_subdirectory(external/cmark ${CMAKE_CURRENT_BINARY_DIR}/cmark)
+    add_subdirectory(external/cmark ${CMAKE_CURRENT_BINARY_DIR}/cmark EXCLUDE_FROM_ALL)
     set_target_properties(api_test PROPERTIES EXCLUDE_FROM_ALL 1)
 
     # fixup target properties
-    target_include_directories(libcmark-gfm_static PUBLIC
+    target_include_directories(libcmark-gfm_static SYSTEM PUBLIC
                                $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/cmark/src>
                                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/cmark/src>)
     target_compile_definitions(libcmark-gfm_static PUBLIC CMARK_STATIC_DEFINE)

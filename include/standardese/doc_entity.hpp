@@ -463,7 +463,7 @@ namespace standardese
                     set_comment(member->comment());
                     member->entity().set_user_data(&peek());
                 }
-                member->group_member_no_ = size() + 1u;
+                member->group_member_no_ = unsigned(size() + 1u);
 
                 add_child(std::move(member));
             }

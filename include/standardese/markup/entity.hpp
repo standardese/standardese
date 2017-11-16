@@ -77,7 +77,8 @@ namespace standardese
             type_safe::optional_ref<const entity> parent_;
 
             friend detail::parent_updater;
-            friend void detail::call_visit(const entity& e, visitor_callback_t cb, void* mem);
+            friend void detail::call_visit(const entity& e, detail::visitor_callback_t cb,
+                                           void* mem);
         };
 
         /// \exclude

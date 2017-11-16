@@ -3,6 +3,7 @@
 // found in the top-level directory of this distribution.
 
 #include <iostream>
+#include <fstream>
 
 #include <boost/program_options.hpp>
 
@@ -434,7 +435,7 @@ int main(int argc, char* argv[])
                     std::clog << "writing files in format '" << format.second << "'...\n";
 
                     auto format_prefix =
-                        formats.size() > 1u ? format.second + '/' + prefix : prefix;
+                        formats.size() > 1u ? std::string(format.second) + '/' + prefix : prefix;
                     if (!format_prefix.empty())
                         fs::create_directories(fs::path(format_prefix).parent_path());
                     standardese_tool::write_files(docs, format.first, std::move(format_prefix),

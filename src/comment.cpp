@@ -14,6 +14,16 @@
 
 using namespace standardese;
 
+void comment_registry::merge(comment_registry&& other)
+{
+    map_.insert(std::make_move_iterator(other.map_.begin()),
+                std::make_move_iterator(other.map_.end()));
+    groups_.insert(std::make_move_iterator(other.groups_.begin()),
+                   std::make_move_iterator(other.groups_.end()));
+    modules_.insert(std::make_move_iterator(other.modules_.begin()),
+                    std::make_move_iterator(other.modules_.end()));
+}
+
 bool comment_registry::register_comment(type_safe::object_ref<const cppast::cpp_entity> entity,
                                         comment::doc_comment                            comment)
 {
@@ -268,15 +278,13 @@ comment_registry file_comment_parser::finish()
             auto metadata = free.comment.value().metadata();
 
             register_commented(type_safe::ref(*result.first->second),
-                               std::move(free.comment.value()));
-            uncommented_.erase(result.first++);
+                               std::move(free.comment.value()), false);
 
-            while (result.first != result.second)
-            {
-                register_commented(type_safe::ref(*result.first->second),
-                                   comment::doc_comment(metadata, nullptr, {}));
-                ++result.first;
-            }
+            for (auto cur = std::next(result.first); cur != result.second; ++cur)
+                register_commented(type_safe::ref(*cur->second),
+                                   comment::doc_comment(metadata, nullptr, {}), false);
+
+            uncommented_.erase(result.first, result.second);
         }
         else
             logger_->log("standardese comment",
@@ -290,7 +298,7 @@ comment_registry file_comment_parser::finish()
 }
 
 bool file_comment_parser::register_commented(type_safe::object_ref<const cppast::cpp_entity> entity,
-                                             comment::doc_comment comment) const
+                                             comment::doc_comment comment, bool allow_cmd) const
 {
     auto cmd_comment = !comment.brief_section() && comment.sections().empty();
 
@@ -299,7 +307,7 @@ bool file_comment_parser::register_commented(type_safe::object_ref<const cppast:
         registry_.add_to_group(comment.metadata().group().value().name(), entity);
     auto result = registry_.register_comment(entity, std::move(comment));
 
-    if (cmd_comment)
+    if (cmd_comment && allow_cmd)
         // a pure "command" comment, allow later sections
         uncommented_.emplace(lookup_unique_name(registry_, *entity), &*entity);
 

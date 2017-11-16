@@ -139,9 +139,10 @@ namespace
         auto command = try_parse_command(cur, config);
         if (is_section(command))
         {
-            auto node =
-                create_node(self, indent, parser, parent_container, node_section(), command,
-                            parse_section_key(cur).map(&std::string::c_str).value_or(nullptr));
+            auto node = create_node(self, indent, parser, parent_container, node_section(), command,
+                                    parse_section_key(cur)
+                                        .map([](const std::string& str) { return str.c_str(); })
+                                        .value_or(nullptr));
 
             // skip command
             cmark_parser_advance_offset(parser, reinterpret_cast<char*>(input),

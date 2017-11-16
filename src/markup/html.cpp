@@ -755,7 +755,7 @@ namespace
         case entity_kind::details_section:
         case entity_kind::inline_section:
         case entity_kind::list_section:
-            assert(!"can't use this entity stand-alone");
+            assert(!static_cast<bool>("can't use this entity stand-alone"));
             break;
         }
     }

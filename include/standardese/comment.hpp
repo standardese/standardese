@@ -28,6 +28,9 @@ namespace standardese
     class comment_registry
     {
     public:
+        /// \effects Registers everything from the other comment registry.
+        void merge(comment_registry&& other);
+
         /// \effects Registers the comment for the given entity.
         /// \returns Whether or not a comment was registered already.
         /// \notes It will merge multiple comments where appropriate.
@@ -97,7 +100,7 @@ namespace standardese
 
     private:
         bool register_commented(type_safe::object_ref<const cppast::cpp_entity> entity,
-                                comment::doc_comment                            comment) const;
+                                comment::doc_comment comment, bool allow_cmd = true) const;
 
         void register_uncommented(type_safe::object_ref<const cppast::cpp_entity> entity) const;
 
