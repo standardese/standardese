@@ -100,7 +100,7 @@ namespace standardese
 
     private:
         bool register_commented(type_safe::object_ref<const cppast::cpp_entity> entity,
-                                comment::doc_comment                            comment) const;
+                                comment::doc_comment comment, bool allow_cmd = true) const;
 
         void register_uncommented(type_safe::object_ref<const cppast::cpp_entity> entity) const;
 
