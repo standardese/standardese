@@ -22,7 +22,7 @@ namespace
     void set_raw_command_type(cmark_node* node, unsigned cmd)
     {
         static_assert(sizeof(void*) >= sizeof(unsigned), "fix me for your platform");
-        auto as_void_ptr = reinterpret_cast<void*>(cmd);
+        auto as_void_ptr = reinterpret_cast<void*>(std::uintptr_t(cmd));
         cmark_node_set_user_data(node, as_void_ptr);
     }
 

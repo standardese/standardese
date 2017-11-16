@@ -349,7 +349,9 @@ void standardese::resolve_links(const cppast::diagnostic_logger& logger, const l
         for (auto cur = entity.parent(); cur; cur = cur.value().parent())
             if (markup::is_documentation(cur.value().kind()))
                 return static_cast<const markup::documentation_entity&>(cur.value()).id();
+
         assert(false);
+        return markup::block_id();
     };
 
     type_safe::optional_ref<const cppast::cpp_entity> context;

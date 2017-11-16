@@ -5,6 +5,7 @@
 #include <standardese/doc_entity.hpp>
 
 #include <cassert>
+#include <cctype>
 #include <stack>
 
 #include <cppast/cpp_enum.hpp>
@@ -112,6 +113,7 @@ namespace
         }
 
         assert(false);
+        return {};
     }
 
     bool generate_output_section(const cppast::code_generator::output& code, bool is_main,
