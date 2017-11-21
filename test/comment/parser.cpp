@@ -653,14 +653,11 @@ This is unrelated.
         auto xml_a = R"(<brief-section>This is brief.</brief-section>
 <details-section>
 <paragraph>This is details.</paragraph>
-</details-section>
-<details-section>
 <paragraph>This is still details.</paragraph>
 </details-section>
 )";
         REQUIRE(markup::as_xml(inlines[0].comment.brief_section().value())
                     + markup::as_xml(*inlines[0].comment.sections().begin())
-                    + markup::as_xml(*std::next(inlines[0].comment.sections().begin()))
                 == xml_a);
 
         auto xml_b = R"(<brief-section>This is just brief.</brief-section>

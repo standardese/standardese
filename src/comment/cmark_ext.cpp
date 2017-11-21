@@ -354,6 +354,36 @@ namespace
         return details;
     }
 
+    void merge_adjacent_details(cmark_node* root)
+    {
+        type_safe::flag last_details(false);
+        for (auto cur = cmark_node_first_child(root); cur; cur = cmark_node_next(cur))
+        {
+            if (cmark_node_get_type(cur) == node_section()
+                && detail::get_section_type(cur) == section_type::details)
+            {
+                if (last_details == true)
+                {
+                    // merge with last
+                    auto last = cmark_node_previous(cur);
+                    for (auto child = cmark_node_first_child(cur); child;)
+                    {
+                        auto next = cmark_node_next(child);
+                        cmark_node_append_child(last, child);
+                        child = next;
+                    }
+
+                    cmark_node_free(cur);
+                    cur = last;
+                }
+                else
+                    last_details.set();
+            }
+            else
+                last_details.reset();
+        }
+    }
+
     // finds a line break in a section/inline
     cmark_node* find_linebreak(cmark_node* section)
     {
@@ -423,6 +453,8 @@ namespace
                 cur = wrap_in_details(self, cur);
             }
         }
+
+        merge_adjacent_details(root);
 
         // don't have a new root node
         return nullptr;
