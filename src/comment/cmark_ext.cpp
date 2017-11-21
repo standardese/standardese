@@ -288,15 +288,38 @@ namespace
         cmark_node_free(terminator);
     }
 
+    bool is_punctuation(char c)
+    {
+        return c == '.' || c == '!' || c == '?';
+    }
+
     // returns the terminator of the brief section
     cmark_node* brief_terminator(cmark_node* paragraph)
     {
         assert(cmark_node_get_type(paragraph) == CMARK_NODE_PARAGRAPH);
 
         for (auto child = cmark_node_first_child(paragraph); child; child = cmark_node_next(child))
+        {
             if (cmark_node_get_type(child) == CMARK_NODE_SOFTBREAK
                 || cmark_node_get_type(child) == CMARK_NODE_LINEBREAK)
-                return child;
+            {
+                // terminate brief on double newlines
+                auto next = cmark_node_next(child);
+                if (cmark_node_get_type(next) == CMARK_NODE_SOFTBREAK
+                    || cmark_node_get_type(next) == CMARK_NODE_LINEBREAK)
+                    return child;
+
+                // or single newlines iff previous sentence has ended with a punctuation
+                auto prev = cmark_node_previous(child);
+                if (cmark_node_get_type(prev) == CMARK_NODE_TEXT)
+                {
+                    auto content = cmark_node_get_literal(prev);
+                    auto length  = std::strlen(content);
+                    if (is_punctuation(content[length - 1]))
+                        return child;
+                }
+            }
+        }
 
         return nullptr;
     }

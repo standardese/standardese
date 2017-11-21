@@ -253,7 +253,9 @@ A completely different paragraph.
 
 TEST_CASE("cmark paragraph", "[comment]")
 {
-    auto comment = R"(Brief.
+    SECTION("basic")
+    {
+        auto comment = R"(Brief.
 A.
 A.
 
@@ -262,7 +264,7 @@ B.
 C.
 C.)";
 
-    auto xml = R"(<details-section>
+        auto xml = R"(<details-section>
 <paragraph>A.<soft-break></soft-break>
 A.</paragraph>
 <paragraph>B.</paragraph>
@@ -271,7 +273,24 @@ C.</paragraph>
 </details-section>
 )";
 
-    check_details(comment, xml);
+        check_details(comment, xml);
+    }
+    SECTION("don't break sentences in brief")
+    {
+        auto comment = R"(Brief
+sentence
+split
+into
+multiple!
+Not brief.)";
+
+        auto xml = R"(<details-section>
+<paragraph>Not brief.</paragraph>
+</details-section>
+)";
+
+        check_details(comment, xml);
+    }
 }
 
 TEST_CASE("sections", "[comment]")
