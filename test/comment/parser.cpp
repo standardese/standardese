@@ -607,11 +607,12 @@ Details again.
         // just use param in all examples, doesn't matter
         auto comment = R"(\param a This is brief.
 This is details.
-This is still details.
+\details This is still details.
 
 This is unrelated.
 
 \param b This is just brief.
+\effects Section terminates inline.
 
 This is unrelated.
 
@@ -629,6 +630,7 @@ This is unrelated.
         auto   result = parse(p, comment, true);
 
         auto xml = R"(<brief-section>This is unrelated.</brief-section>
+<inline-section name="Effects">Section terminates inline.</inline-section>
 <details-section>
 <paragraph>This is unrelated.</paragraph>
 </details-section>
@@ -650,12 +652,15 @@ This is unrelated.
 
         auto xml_a = R"(<brief-section>This is brief.</brief-section>
 <details-section>
-<paragraph>This is details.<soft-break></soft-break>
-This is still details.</paragraph>
+<paragraph>This is details.</paragraph>
+</details-section>
+<details-section>
+<paragraph>This is still details.</paragraph>
 </details-section>
 )";
         REQUIRE(markup::as_xml(inlines[0].comment.brief_section().value())
                     + markup::as_xml(*inlines[0].comment.sections().begin())
+                    + markup::as_xml(*std::next(inlines[0].comment.sections().begin()))
                 == xml_a);
 
         auto xml_b = R"(<brief-section>This is just brief.</brief-section>

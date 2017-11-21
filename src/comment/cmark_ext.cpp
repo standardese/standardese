@@ -19,6 +19,16 @@ using namespace standardese::comment::detail;
 
 namespace
 {
+    // dummy node type for non brief/details section
+    // will be replaced by node_section() in the postprocessing step
+    // it is needed as the contains function only receives the node type,
+    // so we need to distinguish brief/details sections and other ones by the node type as well
+    cmark_node_type node_non_brief_details_section()
+    {
+        static const auto type = cmark_syntax_extension_add_node(0);
+        return type;
+    }
+
     void set_raw_command_type(cmark_node* node, unsigned cmd)
     {
         static_assert(sizeof(void*) >= sizeof(unsigned), "fix me for your platform");
@@ -139,10 +149,16 @@ namespace
         auto command = try_parse_command(cur, config);
         if (is_section(command))
         {
-            auto node = create_node(self, indent, parser, parent_container, node_section(), command,
-                                    parse_section_key(cur)
-                                        .map([](const std::string& str) { return str.c_str(); })
-                                        .value_or(nullptr));
+            auto section_t = make_section(command);
+            auto node =
+                create_node(self, indent, parser, parent_container,
+                            section_t == section_type::brief || section_t == section_type::details ?
+                                node_section() :
+                                node_non_brief_details_section(),
+                            command,
+                            parse_section_key(cur)
+                                .map([](const std::string& str) { return str.c_str(); })
+                                .value_or(nullptr));
 
             // skip command
             cmark_parser_advance_offset(parser, reinterpret_cast<char*>(input),
@@ -363,6 +379,10 @@ namespace
         type_safe::flag need_brief(true);
         for (auto cur = cmark_node_first_child(root); cur; cur = cmark_node_next(cur))
         {
+            if (cmark_node_get_type(cur) == node_non_brief_details_section())
+                // replace dummy node type
+                cmark_node_set_type(cur, node_section());
+
             if (need_brief.try_reset() && cmark_node_get_type(cur) == CMARK_NODE_PARAGRAPH)
             {
                 // create implicit brief
@@ -410,7 +430,8 @@ namespace
 
     // initialize node types globally
     // this avoids a race condition when the first parser is created
-    const auto init_nodes = (node_command(), node_inline(), node_section(), 0);
+    const auto init_nodes =
+        (node_command(), node_inline(), node_section(), node_non_brief_details_section(), 0);
 }
 
 cmark_syntax_extension* standardese::comment::detail::create_command_extension(config& c)
@@ -425,6 +446,8 @@ cmark_syntax_extension* standardese::comment::detail::create_command_extension(c
             return "standardese_command";
         else if (cmark_node_get_type(node) == node_section())
             return "standardese_section";
+        else if (cmark_node_get_type(node) == node_non_brief_details_section())
+            return "__standardese_non_brief_details_section";
         else if (cmark_node_get_type(node) == node_inline())
             return "standardese_inline";
         else
@@ -434,7 +457,8 @@ cmark_syntax_extension* standardese::comment::detail::create_command_extension(c
         ext, [](cmark_syntax_extension*, cmark_node* node, cmark_node_type child_type) -> int {
             if (cmark_node_get_type(node) == node_command())
                 return false;
-            else if (cmark_node_get_type(node) == node_section())
+            else if (cmark_node_get_type(node) == node_section()
+                     || cmark_node_get_type(node) == node_non_brief_details_section())
             {
                 if (get_section_type(node) == section_type::details)
                     // can contain any block
@@ -444,7 +468,7 @@ cmark_syntax_extension* standardese::comment::detail::create_command_extension(c
                     return child_type == CMARK_NODE_PARAGRAPH;
             }
             else if (cmark_node_get_type(node) == node_inline())
-                // can contain paragraphs, sections or commands
+                // can contain paragraphs, brief/details sections or commands
                 // first it will only contain paragraphs or commands,
                 // but postprocessing will add brief and details sections,
                 // so it won't contain paragraphs anymore
@@ -488,7 +512,8 @@ cmark_node_type standardese::comment::detail::node_section()
 
 section_type standardese::comment::detail::get_section_type(cmark_node* node)
 {
-    assert(cmark_node_get_type(node) == node_section());
+    assert(cmark_node_get_type(node) == node_section()
+           || cmark_node_get_type(node) == node_non_brief_details_section());
     return make_section(get_raw_command_type(node));
 }
 
