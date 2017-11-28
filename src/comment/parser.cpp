@@ -618,24 +618,22 @@ namespace
 
         metadata                                          data;
         std::unique_ptr<markup::brief_section>            brief;
-        std::vector<std::unique_ptr<markup::doc_section>> details;
+        std::vector<std::unique_ptr<markup::doc_section>> sections;
         for (auto child = cmark_node_first_child(node); child; child = cmark_node_next(child))
         {
             if (cmark_node_get_type(child) == detail::node_command())
                 parse_command(data, true, child);
             else if (cmark_node_get_type(child) == detail::node_section())
             {
+                auto section = parse_section(c, true, child);
                 if (detail::get_section_type(child) == section_type::brief)
                 {
                     assert(!brief);
-                    brief = parse_brief(c, true, child);
-                }
-                else if (detail::get_section_type(child) == section_type::details)
-                {
-                    details.push_back(parse_details(c, true, child));
+                    brief = std::unique_ptr<markup::brief_section>(
+                        static_cast<markup::brief_section*>(section.release()));
                 }
                 else
-                    assert(!static_cast<bool>("unexpected section"));
+                    sections.push_back(std::move(section));
             }
             else
                 assert(!static_cast<bool>("unexpected child"));
@@ -644,7 +642,7 @@ namespace
         builder.inlines.push_back(
             unmatched_doc_comment(parse_matching(node),
                                   doc_comment(std::move(data), std::move(brief),
-                                              std::move(details))));
+                                              std::move(sections))));
     }
 
     template <typename T>

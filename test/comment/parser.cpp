@@ -612,8 +612,7 @@ This is details.
 This is unrelated.
 
 \param b This is just brief.
-\effects Section terminates inline.
-
+\effects Section of inline.\
 This is unrelated.
 
 \param c This is brief.
@@ -630,7 +629,6 @@ This is unrelated.
         auto   result = parse(p, comment, true);
 
         auto xml = R"(<brief-section>This is unrelated.</brief-section>
-<inline-section name="Effects">Section terminates inline.</inline-section>
 <details-section>
 <paragraph>This is unrelated.</paragraph>
 <paragraph>This is unrelated.</paragraph>
@@ -659,9 +657,11 @@ This is unrelated.
                 == xml_a);
 
         auto xml_b = R"(<brief-section>This is just brief.</brief-section>
+<inline-section name="Effects">Section of inline.</inline-section>
 )";
-        REQUIRE(inlines[1].comment.sections().empty());
-        REQUIRE(markup::as_xml(inlines[1].comment.brief_section().value()) == xml_b);
+        REQUIRE(markup::as_xml(inlines[1].comment.brief_section().value())
+                    + markup::as_xml(*inlines[1].comment.sections().begin())
+                == xml_b);
 
         auto xml_c = R"(<brief-section>This is brief.</brief-section>
 <details-section>

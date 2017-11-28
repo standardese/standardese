@@ -366,11 +366,6 @@ namespace
 
             if (node == nullptr)
                 return false;
-            else if (cmark_node_get_type(node) == node_section_tmp()
-                     && get_raw_command_type(node) != unsigned(section_type::brief)
-                     && get_raw_command_type(node) != unsigned(section_type::details))
-                // invalid section
-                return false;
             else if (cmark_node_get_type(node) == node_inline_tmp())
                 // inlines are not allowed
                 return false;
@@ -392,6 +387,8 @@ namespace
             else if (!last_line
                      || std::abs(last_line.value() - cmark_node_get_start_line(node)) <= 1)
             {
+                // node is on the next line or same one,
+                // so extend the inline section
                 if (!last_line)
                     last_line = cmark_node_get_start_line(node);
                 else
