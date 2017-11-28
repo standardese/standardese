@@ -570,7 +570,7 @@ namespace
 
         case command_type::count:
         case command_type::invalid:
-            error(node, "invalid command");
+            error(node, std::string("unkown command ") + detail::get_command_arguments(node));
         }
     }
 

@@ -382,7 +382,6 @@ Still effects.</inline-section>
 Prevent brief.
 \synopsis Ignore all lines starting with a command.
 But please include me.
-\unknown Ignore unknown commands.
 
 > \effects In block quote.
 
@@ -392,8 +391,7 @@ But please include me.
         xml = R"(<details-section>
 <paragraph>Ignore \effects not starting at beginning.<soft-break></soft-break>
 Prevent brief.</paragraph>
-<paragraph>But please include me.<soft-break></soft-break>
-\unknown Ignore unknown commands.</paragraph>
+<paragraph>But please include me.</paragraph>
 <block-quote>
 <paragraph>\effects In block quote.</paragraph>
 </block-quote>
@@ -549,6 +547,10 @@ TEST_CASE("commands", "[comment]")
     {
         REQUIRE(is_file(parse_entity(R"(\file)")));
         REQUIRE_THROWS_AS(parse_metadata(R"(\file a)"), parse_error);
+    }
+    SECTION("invalid")
+    {
+        REQUIRE_THROWS_AS(parse_metadata(R"(\foo)"), parse_error);
     }
 }
 

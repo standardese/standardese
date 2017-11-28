@@ -63,7 +63,11 @@ cmark_node_type standardese::comment::detail::node_command()
 command_type standardese::comment::detail::get_command_type(cmark_node* node)
 {
     assert(cmark_node_get_type(node) == node_command());
-    return make_command(get_raw_command_type(node));
+    auto raw = get_raw_command_type(node);
+    if (raw == unsigned(command_type::invalid))
+        return command_type::invalid;
+    else
+        return make_command(raw);
 }
 
 const char* standardese::comment::detail::get_command_arguments(cmark_node* node)
@@ -158,7 +162,7 @@ namespace
         return word;
     }
 
-    unsigned try_parse_command(char*& cur, const config& c)
+    type_safe::optional<unsigned> try_parse_command(char*& cur, const config& c)
     {
         if (*cur == c.command_character())
         {
@@ -168,7 +172,7 @@ namespace
             return c.try_lookup(command.c_str());
         }
         else
-            return unsigned(command_type::invalid);
+            return type_safe::nullopt;
     }
 
     type_safe::optional<std::string> parse_section_key(char*& cur)
@@ -210,28 +214,33 @@ namespace
 
         auto save    = cur;
         auto command = try_parse_command(cur, config);
-        if (is_section(command))
+        if (!command)
+            return nullptr;
+        else if (is_section(command.value()))
         {
             auto key = parse_section_key(cur);
-            return make_node(self, parser, parent, indent, node_section_tmp(), command,
+            return make_node(self, parser, parent, indent, node_section_tmp(), command.value(),
                              key.map([](const std::string& str) { return str.c_str(); })
                                  .value_or(nullptr));
         }
-        else if (is_inline(command))
+        else if (is_inline(command.value()))
         {
             auto entity = parse_word(cur);
-            return make_node(self, parser, parent, indent, node_inline_tmp(), command,
+            return make_node(self, parser, parent, indent, node_inline_tmp(), command.value(),
                              entity.empty() ? nullptr : entity.c_str());
         }
-        else if (is_command(command))
+        else if (is_command(command.value()))
         {
             auto args = parse_command_args(cur);
-            return make_node(self, parser, parent, indent, node_command(), command, args.c_str());
+            return make_node(self, parser, parent, indent, node_command(), command.value(),
+                             args.c_str());
         }
         else
         {
-            cur = save;
-            return nullptr;
+            // add invalid command node
+            // this will trigger a warning
+            return make_node(self, parser, parent, indent, node_command(),
+                             unsigned(command_type::invalid), std::string(save, cur).c_str());
         }
     }
 
