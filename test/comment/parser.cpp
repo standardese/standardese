@@ -33,8 +33,8 @@ text
     auto xml = R"(<details-section>
 <paragraph>text<soft-break></soft-break>
 <code>code</code><soft-break></soft-break>
-<emphasis>emphasis with <code>code</code></emphasis><hard-break></hard-break>
-<strong-emphasis>strong emphasis with <emphasis>emphasis</emphasis></strong-emphasis></paragraph>
+<emphasis>emphasis with <code>code</code></emphasis></paragraph>
+<paragraph><strong-emphasis>strong emphasis with <emphasis>emphasis</emphasis></strong-emphasis></paragraph>
 </details-section>
 )";
 
@@ -253,7 +253,9 @@ A completely different paragraph.
 
 TEST_CASE("cmark paragraph", "[comment]")
 {
-    auto comment = R"(Brief.
+    SECTION("basic")
+    {
+        auto comment = R"(Brief.
 A.
 A.
 
@@ -262,7 +264,7 @@ B.
 C.
 C.)";
 
-    auto xml = R"(<details-section>
+        auto xml = R"(<details-section>
 <paragraph>A.<soft-break></soft-break>
 A.</paragraph>
 <paragraph>B.</paragraph>
@@ -271,7 +273,24 @@ C.</paragraph>
 </details-section>
 )";
 
-    check_details(comment, xml);
+        check_details(comment, xml);
+    }
+    SECTION("don't break sentences in brief")
+    {
+        auto comment = R"(Brief
+sentence
+split
+into
+multiple!
+Not brief.)";
+
+        auto xml = R"(<details-section>
+<paragraph>Not brief.</paragraph>
+</details-section>
+)";
+
+        check_details(comment, xml);
+    }
 }
 
 TEST_CASE("sections", "[comment]")
@@ -363,7 +382,6 @@ Still effects.</inline-section>
 Prevent brief.
 \synopsis Ignore all lines starting with a command.
 But please include me.
-\unknown Ignore unknown commands.
 
 > \effects In block quote.
 
@@ -373,8 +391,7 @@ But please include me.
         xml = R"(<details-section>
 <paragraph>Ignore \effects not starting at beginning.<soft-break></soft-break>
 Prevent brief.</paragraph>
-<paragraph>But please include me.<soft-break></soft-break>
-\unknown Ignore unknown commands.</paragraph>
+<paragraph>But please include me.</paragraph>
 <block-quote>
 <paragraph>\effects In block quote.</paragraph>
 </block-quote>
@@ -531,6 +548,10 @@ TEST_CASE("commands", "[comment]")
         REQUIRE(is_file(parse_entity(R"(\file)")));
         REQUIRE_THROWS_AS(parse_metadata(R"(\file a)"), parse_error);
     }
+    SECTION("invalid")
+    {
+        REQUIRE_THROWS_AS(parse_metadata(R"(\foo)"), parse_error);
+    }
 }
 
 matching_entity parse_entity_inline(const char* comment)
@@ -588,12 +609,12 @@ Details again.
         // just use param in all examples, doesn't matter
         auto comment = R"(\param a This is brief.
 This is details.
-This is still details.
+\details This is still details.
 
 This is unrelated.
 
 \param b This is just brief.
-
+\effects Section of inline.\
 This is unrelated.
 
 \param c This is brief.
@@ -612,8 +633,6 @@ This is unrelated.
         auto xml = R"(<brief-section>This is unrelated.</brief-section>
 <details-section>
 <paragraph>This is unrelated.</paragraph>
-</details-section>
-<details-section>
 <paragraph>This is unrelated.</paragraph>
 </details-section>
 )";
@@ -631,8 +650,8 @@ This is unrelated.
 
         auto xml_a = R"(<brief-section>This is brief.</brief-section>
 <details-section>
-<paragraph>This is details.<soft-break></soft-break>
-This is still details.</paragraph>
+<paragraph>This is details.</paragraph>
+<paragraph>This is still details.</paragraph>
 </details-section>
 )";
         REQUIRE(markup::as_xml(inlines[0].comment.brief_section().value())
@@ -640,9 +659,11 @@ This is still details.</paragraph>
                 == xml_a);
 
         auto xml_b = R"(<brief-section>This is just brief.</brief-section>
+<inline-section name="Effects">Section of inline.</inline-section>
 )";
-        REQUIRE(inlines[1].comment.sections().empty());
-        REQUIRE(markup::as_xml(inlines[1].comment.brief_section().value()) == xml_b);
+        REQUIRE(markup::as_xml(inlines[1].comment.brief_section().value())
+                    + markup::as_xml(*inlines[1].comment.sections().begin())
+                == xml_b);
 
         auto xml_c = R"(<brief-section>This is brief.</brief-section>
 <details-section>
