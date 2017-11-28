@@ -33,8 +33,8 @@ text
     auto xml = R"(<details-section>
 <paragraph>text<soft-break></soft-break>
 <code>code</code><soft-break></soft-break>
-<emphasis>emphasis with <code>code</code></emphasis><hard-break></hard-break>
-<strong-emphasis>strong emphasis with <emphasis>emphasis</emphasis></strong-emphasis></paragraph>
+<emphasis>emphasis with <code>code</code></emphasis></paragraph>
+<paragraph><strong-emphasis>strong emphasis with <emphasis>emphasis</emphasis></strong-emphasis></paragraph>
 </details-section>
 )";
 
@@ -633,8 +633,6 @@ This is unrelated.
 <inline-section name="Effects">Section terminates inline.</inline-section>
 <details-section>
 <paragraph>This is unrelated.</paragraph>
-</details-section>
-<details-section>
 <paragraph>This is unrelated.</paragraph>
 </details-section>
 )";
