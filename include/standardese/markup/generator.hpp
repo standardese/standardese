@@ -42,7 +42,8 @@ namespace standardese
         ///
         /// \returns A generator that will generate a CommonMark representation.
         /// If `use_html` is `true`, it will use HTML for complex parts that cannot be described using CommonMark.
-        generator markdown_generator(bool use_html = true) noexcept;
+        generator markdown_generator(bool               use_html  = true,
+                                     const std::string& extension = "md") noexcept;
 
         /// Renders an entity as CommonMark.
         ///

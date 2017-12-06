@@ -28,13 +28,19 @@ using namespace standardese::markup;
 
 namespace
 {
-    void build_entity(cmark_node* parent, bool use_html, const entity& e);
+    struct options
+    {
+        std::string extension;
+        bool        use_html;
+    };
+
+    void build_entity(cmark_node* parent, const options& opt, const entity& e);
 
     template <typename T>
-    void handle_children(cmark_node* node, bool use_html, const T& container)
+    void handle_children(cmark_node* node, const options& opt, const T& container)
     {
         for (auto& child : container)
-            build_entity(node, use_html, child);
+            build_entity(node, opt, child);
     }
 
     cmark_node* build_emph(const char* str)
@@ -61,13 +67,14 @@ namespace
         return heading;
     }
 
-    void build(cmark_node* parent, bool use_html, const code_block& cb);
+    void build(cmark_node* parent, const options& opt, const code_block& cb);
 
-    void build_list_item(cmark_node* list, bool use_html, const list_item_base& item);
+    void build_list_item(cmark_node* list, const options& opt, const list_item_base& item);
 
-    void build_documentation(cmark_node* parent, bool use_html, const documentation_entity& doc)
+    void build_documentation(cmark_node* parent, const options& opt,
+                             const documentation_entity& doc)
     {
-        if (use_html)
+        if (opt.use_html)
         {
             auto html = cmark_node_new(CMARK_NODE_HTML_BLOCK);
             cmark_node_set_literal(html,
@@ -76,12 +83,12 @@ namespace
         }
 
         if (doc.synopsis())
-            build(parent, use_html, doc.synopsis().value());
+            build(parent, opt, doc.synopsis().value());
 
         if (auto brief = doc.brief_section())
         {
             auto paragraph = cmark_node_new(CMARK_NODE_PARAGRAPH);
-            handle_children(paragraph, use_html, brief.value());
+            handle_children(paragraph, opt, brief.value());
             cmark_node_append_child(parent, paragraph);
         }
 
@@ -102,13 +109,13 @@ namespace
                     cmark_node_append_child(paragraph, emph);
 
                     // build section content
-                    handle_children(paragraph, use_html, sec);
+                    handle_children(paragraph, opt, sec);
                 }
         }
 
         // write details section
         if (auto details = doc.details_section())
-            handle_children(parent, use_html, details.value());
+            handle_children(parent, opt, details.value());
 
         // write list sections
         for (auto& section : doc.doc_sections())
@@ -129,7 +136,7 @@ namespace
                 cmark_node_append_child(parent, ul);
 
                 for (auto& item : list)
-                    build_list_item(ul, use_html, item);
+                    build_list_item(ul, opt, item);
             }
     }
 
@@ -140,30 +147,30 @@ namespace
         cmark_node_append_child(heading, text);
     }
 
-    void build_doc_header(cmark_node* parent, bool use_html, const documentation_header& header,
-                          unsigned level)
+    void build_doc_header(cmark_node* parent, const options& opt,
+                          const documentation_header& header, unsigned level)
     {
         auto heading = build_heading(level, nullptr);
         cmark_node_append_child(parent, heading);
 
-        handle_children(heading, use_html, header.heading());
+        handle_children(heading, opt, header.heading());
 
         if (header.module())
             append_module(heading, header.module().value());
     }
 
-    void build_doc_header(cmark_node* parent, bool use_html, const documentation_entity& doc,
+    void build_doc_header(cmark_node* parent, const options& opt, const documentation_entity& doc,
                           unsigned level)
     {
         if (doc.header())
-            build_doc_header(parent, use_html, doc.header().value(), level);
+            build_doc_header(parent, opt, doc.header().value(), level);
     }
 
-    void build(cmark_node* parent, bool use_html, const file_documentation& doc)
+    void build(cmark_node* parent, const options& opt, const file_documentation& doc)
     {
-        build_doc_header(parent, use_html, doc, 1);
-        build_documentation(parent, use_html, doc);
-        handle_children(parent, use_html, doc);
+        build_doc_header(parent, opt, doc, 1);
+        build_documentation(parent, opt, doc);
+        handle_children(parent, opt, doc);
     }
 
     unsigned get_documentation_heading_level(const documentation_entity& doc)
@@ -177,132 +184,132 @@ namespace
         return 2;
     }
 
-    void build(cmark_node* parent, bool use_html, const entity_documentation& doc)
+    void build(cmark_node* parent, const options& opt, const entity_documentation& doc)
     {
-        build_doc_header(parent, use_html, doc, get_documentation_heading_level(doc));
-        build_documentation(parent, use_html, doc);
-        handle_children(parent, use_html, doc);
+        build_doc_header(parent, opt, doc, get_documentation_heading_level(doc));
+        build_documentation(parent, opt, doc);
+        handle_children(parent, opt, doc);
 
         if (doc.header())
             cmark_node_append_child(parent, cmark_node_new(CMARK_NODE_THEMATIC_BREAK));
     }
 
-    void build(cmark_node* parent, bool use_html, const entity_index_item& item);
-    void build(cmark_node* parent, bool use_html, const namespace_documentation& doc);
-    void build(cmark_node* parent, bool use_html, const module_documentation& doc);
+    void build(cmark_node* parent, const options& opt, const entity_index_item& item);
+    void build(cmark_node* parent, const options& opt, const namespace_documentation& doc);
+    void build(cmark_node* parent, const options& opt, const module_documentation& doc);
 
-    void build_index_child(cmark_node* parent, bool use_html, const block_entity& child)
+    void build_index_child(cmark_node* parent, const options& opt, const block_entity& child)
     {
         if (child.kind() == entity_kind::entity_index_item)
-            build(parent, use_html, static_cast<const entity_index_item&>(child));
+            build(parent, opt, static_cast<const entity_index_item&>(child));
         else if (child.kind() == entity_kind::namespace_documentation)
-            build(parent, use_html, static_cast<const namespace_documentation&>(child));
+            build(parent, opt, static_cast<const namespace_documentation&>(child));
         else if (child.kind() == entity_kind::module_documentation)
-            build(parent, use_html, static_cast<const module_documentation&>(child));
+            build(parent, opt, static_cast<const module_documentation&>(child));
         else
             assert(false);
     }
 
     template <class T>
-    void build_module_ns(cmark_node* parent, bool use_html, const T& doc)
+    void build_module_ns(cmark_node* parent, const options& opt, const T& doc)
     {
         auto item = cmark_node_new(CMARK_NODE_ITEM);
         cmark_node_append_child(parent, item);
 
-        build_doc_header(item, use_html, doc, get_documentation_heading_level(doc));
-        build_documentation(item, use_html, doc);
+        build_doc_header(item, opt, doc, get_documentation_heading_level(doc));
+        build_documentation(item, opt, doc);
 
         auto list = cmark_node_new(CMARK_NODE_LIST);
         cmark_node_set_list_type(list, CMARK_BULLET_LIST);
         cmark_node_append_child(item, list);
 
         for (auto& child : doc)
-            build_index_child(list, use_html, child);
+            build_index_child(list, opt, child);
     }
 
-    void build(cmark_node* parent, bool use_html, const namespace_documentation& doc)
+    void build(cmark_node* parent, const options& opt, const namespace_documentation& doc)
     {
-        build_module_ns(parent, use_html, doc);
+        build_module_ns(parent, opt, doc);
     }
 
-    void build(cmark_node* parent, bool use_html, const module_documentation& doc)
+    void build(cmark_node* parent, const options& opt, const module_documentation& doc)
     {
-        build_module_ns(parent, use_html, doc);
+        build_module_ns(parent, opt, doc);
     }
 
-    void build_term_description(cmark_node* parent, bool use_html, const term& t,
+    void build_term_description(cmark_node* parent, const options& opt, const term& t,
                                 const description* desc);
 
-    void build(cmark_node* parent, bool use_html, const entity_index_item& item)
+    void build(cmark_node* parent, const options& opt, const entity_index_item& item)
     {
         auto node = cmark_node_new(CMARK_NODE_ITEM);
         cmark_node_append_child(parent, node);
-        build_term_description(node, use_html, item.entity(),
+        build_term_description(node, opt, item.entity(),
                                item.brief() ? &item.brief().value() : nullptr);
     }
 
     template <class Index>
-    void build_index(cmark_node* parent, bool use_html, const Index& index)
+    void build_index(cmark_node* parent, const options& opt, const Index& index)
     {
         auto heading = build_heading(1, nullptr);
         cmark_node_append_child(parent, heading);
-        handle_children(heading, use_html, index.heading());
+        handle_children(heading, opt, index.heading());
 
         auto list = cmark_node_new(CMARK_NODE_LIST);
         cmark_node_set_list_type(list, CMARK_BULLET_LIST);
         cmark_node_append_child(parent, list);
 
         for (auto& child : index)
-            build_index_child(list, use_html, child);
+            build_index_child(list, opt, child);
     }
 
-    void build(cmark_node* parent, bool use_html, const file_index& index)
+    void build(cmark_node* parent, const options& opt, const file_index& index)
     {
-        build_index(parent, use_html, index);
+        build_index(parent, opt, index);
     }
 
-    void build(cmark_node* parent, bool use_html, const entity_index& index)
+    void build(cmark_node* parent, const options& opt, const entity_index& index)
     {
-        build_index(parent, use_html, index);
+        build_index(parent, opt, index);
     }
 
-    void build(cmark_node* parent, bool use_html, const module_index& index)
+    void build(cmark_node* parent, const options& opt, const module_index& index)
     {
-        build_index(parent, use_html, index);
+        build_index(parent, opt, index);
     }
 
-    void build(cmark_node* parent, bool use_html, const heading& h)
+    void build(cmark_node* parent, const options& opt, const heading& h)
     {
         auto heading = build_heading(4, nullptr);
         cmark_node_append_child(parent, heading);
-        handle_children(heading, use_html, h);
+        handle_children(heading, opt, h);
     }
 
-    void build(cmark_node* parent, bool use_html, const subheading& h)
+    void build(cmark_node* parent, const options& opt, const subheading& h)
     {
         auto heading = build_heading(5, nullptr);
         cmark_node_append_child(parent, heading);
-        handle_children(heading, use_html, h);
+        handle_children(heading, opt, h);
     }
 
-    void build(cmark_node* parent, bool use_html, const paragraph& par)
+    void build(cmark_node* parent, const options& opt, const paragraph& par)
     {
         auto node = cmark_node_new(CMARK_NODE_PARAGRAPH);
         cmark_node_append_child(parent, node);
-        handle_children(node, use_html, par);
+        handle_children(node, opt, par);
     }
 
-    void build_term_description(cmark_node* parent, bool use_html, const term& t,
+    void build_term_description(cmark_node* parent, const options& opt, const term& t,
                                 const description* desc)
     {
         auto paragraph = cmark_node_new(CMARK_NODE_PARAGRAPH);
         cmark_node_append_child(parent, paragraph);
 
-        handle_children(paragraph, use_html, t);
+        handle_children(paragraph, opt, t);
 
         if (desc)
         {
-            if (use_html)
+            if (opt.use_html)
             {
                 auto html = cmark_node_new(CMARK_NODE_HTML_INLINE);
                 cmark_node_set_literal(html, " &mdash; ");
@@ -315,38 +322,38 @@ namespace
                 cmark_node_append_child(paragraph, text);
             }
 
-            handle_children(paragraph, use_html, *desc);
+            handle_children(paragraph, opt, *desc);
         }
     }
 
-    void build_list_item(cmark_node* parent, bool use_html, const list_item_base& item)
+    void build_list_item(cmark_node* parent, const options& opt, const list_item_base& item)
     {
         auto li = cmark_node_new(CMARK_NODE_ITEM);
         cmark_node_append_child(parent, li);
 
         if (item.kind() == entity_kind::list_item)
-            handle_children(li, use_html, static_cast<const list_item&>(item));
+            handle_children(li, opt, static_cast<const list_item&>(item));
         else if (item.kind() == entity_kind::term_description_item)
         {
             auto& term        = static_cast<const term_description_item&>(item).term();
             auto& description = static_cast<const term_description_item&>(item).description();
-            build_term_description(li, parent, term, &description);
+            build_term_description(li, opt, term, &description);
         }
         else
             assert(false);
     }
 
-    void build(cmark_node* parent, bool use_html, const unordered_list& list)
+    void build(cmark_node* parent, const options& opt, const unordered_list& list)
     {
         auto ul = cmark_node_new(CMARK_NODE_LIST);
         cmark_node_set_list_type(ul, CMARK_BULLET_LIST);
         cmark_node_append_child(parent, ul);
 
         for (auto& item : list)
-            build_list_item(ul, use_html, item);
+            build_list_item(ul, opt, item);
     }
 
-    void build(cmark_node* parent, bool use_html, const ordered_list& list)
+    void build(cmark_node* parent, const options& opt, const ordered_list& list)
     {
         auto ul = cmark_node_new(CMARK_NODE_LIST);
         cmark_node_set_list_type(ul, CMARK_ORDERED_LIST);
@@ -354,25 +361,25 @@ namespace
         cmark_node_append_child(parent, ul);
 
         for (auto& item : list)
-            build_list_item(ul, use_html, item);
+            build_list_item(ul, opt, item);
     }
 
-    void build(cmark_node* parent, bool use_html, const block_quote& quote)
+    void build(cmark_node* parent, const options& opt, const block_quote& quote)
     {
         auto node = cmark_node_new(CMARK_NODE_BLOCK_QUOTE);
         cmark_node_append_child(parent, node);
 
-        handle_children(node, use_html, quote);
+        handle_children(node, opt, quote);
     }
 
-    void build(cmark_node* parent, bool use_html, const code_block& cb)
+    void build(cmark_node* parent, const options& opt, const code_block& cb)
     {
-        if (use_html)
+        if (opt.use_html)
         {
             auto node = cmark_node_new(CMARK_NODE_HTML_BLOCK);
             cmark_node_append_child(parent, node);
 
-            auto html = render(html_generator("md"), cb);
+            auto html = render(html_generator(opt.extension), cb);
             cmark_node_set_literal(node, html.c_str());
         }
         else
@@ -383,7 +390,7 @@ namespace
             if (!cb.language().empty())
                 cmark_node_set_fence_info(node, cb.language().c_str());
 
-            handle_children(node, use_html, cb);
+            handle_children(node, opt, cb);
         }
     }
 
@@ -396,48 +403,48 @@ namespace
             cmark_node_set_literal(cb, text.c_str());
     }
 
-    void build(cmark_node* parent, bool, const code_block::keyword& text)
+    void build(cmark_node* parent, const options&, const code_block::keyword& text)
     {
         append_code_block_text(parent, text.string());
     }
 
-    void build(cmark_node* parent, bool, const code_block::identifier& text)
+    void build(cmark_node* parent, const options&, const code_block::identifier& text)
     {
         append_code_block_text(parent, text.string());
     }
 
-    void build(cmark_node* parent, bool, const code_block::string_literal& text)
+    void build(cmark_node* parent, const options&, const code_block::string_literal& text)
     {
         append_code_block_text(parent, text.string());
     }
 
-    void build(cmark_node* parent, bool, const code_block::int_literal& text)
+    void build(cmark_node* parent, const options&, const code_block::int_literal& text)
     {
         append_code_block_text(parent, text.string());
     }
 
-    void build(cmark_node* parent, bool, const code_block::float_literal& text)
+    void build(cmark_node* parent, const options&, const code_block::float_literal& text)
     {
         append_code_block_text(parent, text.string());
     }
 
-    void build(cmark_node* parent, bool, const code_block::punctuation& text)
+    void build(cmark_node* parent, const options&, const code_block::punctuation& text)
     {
         append_code_block_text(parent, text.string());
     }
 
-    void build(cmark_node* parent, bool, const code_block::preprocessor& text)
+    void build(cmark_node* parent, const options&, const code_block::preprocessor& text)
     {
         append_code_block_text(parent, text.string());
     }
 
-    void build(cmark_node* parent, bool, const thematic_break&)
+    void build(cmark_node* parent, const options&, const thematic_break&)
     {
         auto node = cmark_node_new(CMARK_NODE_THEMATIC_BREAK);
         cmark_node_append_child(parent, node);
     }
 
-    void build(cmark_node* parent, bool, const text& t)
+    void build(cmark_node* parent, const options&, const text& t)
     {
         if (cmark_node_get_type(parent) == CMARK_NODE_CODE_BLOCK
             || cmark_node_get_type(parent) == CMARK_NODE_CODE)
@@ -450,36 +457,36 @@ namespace
         }
     }
 
-    void build(cmark_node* parent, bool use_html, const emphasis& emph)
+    void build(cmark_node* parent, const options& opt, const emphasis& emph)
     {
         auto node = cmark_node_new(CMARK_NODE_EMPH);
         cmark_node_append_child(parent, node);
 
-        handle_children(node, use_html, emph);
+        handle_children(node, opt, emph);
     }
 
-    void build(cmark_node* parent, bool use_html, const strong_emphasis& emph)
+    void build(cmark_node* parent, const options& opt, const strong_emphasis& emph)
     {
         auto node = cmark_node_new(CMARK_NODE_STRONG);
         cmark_node_append_child(parent, node);
 
-        handle_children(node, use_html, emph);
+        handle_children(node, opt, emph);
     }
 
-    void build(cmark_node* parent, bool use_html, const code& c)
+    void build(cmark_node* parent, const options& opt, const code& c)
     {
         auto node = cmark_node_new(CMARK_NODE_CODE);
         cmark_node_append_child(parent, node);
-        handle_children(node, use_html, c);
+        handle_children(node, opt, c);
     }
 
-    void build(cmark_node* parent, bool, const soft_break&)
+    void build(cmark_node* parent, const options&, const soft_break&)
     {
         auto node = cmark_node_new(CMARK_NODE_SOFTBREAK);
         cmark_node_append_child(parent, node);
     }
 
-    void build(cmark_node* parent, bool, const hard_break&)
+    void build(cmark_node* parent, const options&, const hard_break&)
     {
         auto node = cmark_node_new(CMARK_NODE_LINEBREAK);
         cmark_node_append_child(parent, node);
@@ -495,36 +502,36 @@ namespace
         return node;
     }
 
-    void build(cmark_node* parent, bool use_html, const external_link& link)
+    void build(cmark_node* parent, const options& opt, const external_link& link)
     {
         if (cmark_node_get_type(parent) == CMARK_NODE_CODE_BLOCK)
-            handle_children(parent, use_html, link);
+            handle_children(parent, opt, link);
         else
         {
             auto node = build_link(link.title().c_str(), link.url().as_str().c_str());
             cmark_node_append_child(parent, node);
 
-            handle_children(node, use_html, link);
+            handle_children(node, opt, link);
         }
     }
 
-    void build(cmark_node* parent, bool use_html, const documentation_link& link)
+    void build(cmark_node* parent, const options& opt, const documentation_link& link)
     {
         if (cmark_node_get_type(parent) == CMARK_NODE_CODE_BLOCK)
-            handle_children(parent, use_html, link);
+            handle_children(parent, opt, link);
         else if (link.internal_destination())
         {
             auto url = link.internal_destination()
                            .value()
                            .document()
-                           .map(&output_name::file_name, "md")
+                           .map(&output_name::file_name, opt.extension.c_str())
                            .value_or("");
             url += "#standardese-" + link.internal_destination().value().id().as_str();
 
             auto node = build_link(link.title().c_str(), url.c_str());
             cmark_node_append_child(parent, node);
 
-            handle_children(node, use_html, link);
+            handle_children(node, opt, link);
         }
         else if (link.external_destination())
         {
@@ -533,24 +540,24 @@ namespace
             auto node = build_link(link.title().c_str(), url.c_str());
             cmark_node_append_child(parent, node);
 
-            handle_children(node, use_html, link);
+            handle_children(node, opt, link);
         }
         else
             // only write link content
-            handle_children(parent, use_html, link);
+            handle_children(parent, opt, link);
     }
 
-    void build_entity(cmark_node* parent, bool use_html, const entity& e)
+    void build_entity(cmark_node* parent, const options& opt, const entity& e)
     {
         switch (e.kind())
         {
 #define STANDARDESE_DETAIL_HANDLE(Kind)                                                            \
     case entity_kind::Kind:                                                                        \
-        build(parent, use_html, static_cast<const Kind&>(e));                                      \
+        build(parent, opt, static_cast<const Kind&>(e));                                           \
         break;
 #define STANDARDESE_DETAIL_HANDLE_CODE_BLOCK(Kind)                                                 \
     case entity_kind::code_block_##Kind:                                                           \
-        build(parent, use_html, static_cast<const code_block::Kind&>(e));                          \
+        build(parent, opt, static_cast<const code_block::Kind&>(e));                               \
         break;
 
             STANDARDESE_DETAIL_HANDLE(file_documentation)
@@ -614,17 +621,19 @@ namespace
     }
 }
 
-generator standardese::markup::markdown_generator(bool use_html) noexcept
+generator standardese::markup::markdown_generator(bool               use_html,
+                                                  const std::string& extension) noexcept
 {
-    return [use_html](std::ostream& out, const entity& e) {
+    options opt{extension, use_html};
+    return [opt](std::ostream& out, const entity& e) {
         auto doc = is_phrasing(e.kind()) ? cmark_node_new(CMARK_NODE_PARAGRAPH) :
                                            cmark_node_new(CMARK_NODE_DOCUMENT);
 
         if (e.kind() == entity_kind::main_document || e.kind() == entity_kind::subdocument
             || e.kind() == entity_kind::template_document)
-            handle_children(doc, use_html, static_cast<const document_entity&>(e));
+            handle_children(doc, opt, static_cast<const document_entity&>(e));
         else
-            build_entity(doc, use_html, e);
+            build_entity(doc, opt, e);
 
         auto str = cmark_render_commonmark(doc, CMARK_OPT_NOBREAKS, 0);
         out << str;
