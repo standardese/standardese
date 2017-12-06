@@ -105,8 +105,11 @@ namespace
                     cmark_node_append_child(parent, paragraph);
 
                     // add section name
-                    auto emph = build_emph((sec.name() + ": ").c_str());
+                    auto emph = build_emph((sec.name() + ":").c_str());
                     cmark_node_append_child(paragraph, emph);
+                    auto sep = cmark_node_new(CMARK_NODE_TEXT);
+                    cmark_node_set_literal(sep, " ");
+                    cmark_node_append_child(paragraph, sep);
 
                     // build section content
                     handle_children(paragraph, opt, sec);
