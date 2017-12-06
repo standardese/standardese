@@ -90,4 +90,9 @@ TEST_CASE("code-block", "[markup]")
     auto ptr = builder.finish();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr->clone()) == xml);
+    REQUIRE(render(markdown_generator(false), *ptr) == R"(``` cpp
+template <typename T>
+void foo();
+```
+)");
 }

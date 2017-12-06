@@ -6,6 +6,8 @@
 
 #include <catch.hpp>
 
+#include <algorithm>
+
 #include <standardese/markup/generator.hpp>
 #include <standardese/markup/paragraph.hpp>
 
@@ -25,6 +27,12 @@ TEST_CASE("block_quote", "[markup]")
 </block-quote>
 )";
 
+    auto md = std::string(R"(> some text
+>$
+> some more text
+)");
+    std::replace(md.begin(), md.end(), '$', ' ');
+
     block_quote::builder builder(block_id("foo"));
     builder.add_child(paragraph::builder().add_child(text::build("some text")).finish());
     builder.add_child(paragraph::builder().add_child(text::build("some more text")).finish());
@@ -32,4 +40,5 @@ TEST_CASE("block_quote", "[markup]")
     auto ptr = builder.finish()->clone();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr) == xml);
+    REQUIRE(as_markdown(*ptr) == md);
 }

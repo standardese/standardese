@@ -16,6 +16,8 @@ TEST_CASE("heading", "[markup]")
 )";
     auto xml  = R"(<heading>A <emphasis>heading</emphasis>!</heading>
 )";
+    auto md   = R"(#### A *heading*\!
+)";
 
     heading::builder builder(block_id{});
     builder.add_child(text::build("A "));
@@ -25,6 +27,7 @@ TEST_CASE("heading", "[markup]")
     auto ptr = builder.finish();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr->clone()) == xml);
+    REQUIRE(as_markdown(*ptr) == md);
 }
 
 TEST_CASE("subheading", "[markup]")
@@ -32,6 +35,8 @@ TEST_CASE("subheading", "[markup]")
     auto html = R"(<h5>A <em>subheading</em>!</h5>
 )";
     auto xml  = R"(<subheading>A <emphasis>subheading</emphasis>!</subheading>
+)";
+    auto md   = R"(##### A *subheading*\!
 )";
 
     subheading::builder builder(block_id{});
@@ -42,4 +47,5 @@ TEST_CASE("subheading", "[markup]")
     auto ptr = builder.finish();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr->clone()) == xml);
+    REQUIRE(as_markdown(*ptr) == md);
 }
