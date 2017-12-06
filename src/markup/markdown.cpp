@@ -482,14 +482,24 @@ namespace
 
     void build(cmark_node* parent, const options&, const soft_break&)
     {
-        auto node = cmark_node_new(CMARK_NODE_SOFTBREAK);
-        cmark_node_append_child(parent, node);
+        if (cmark_node_get_type(parent) == CMARK_NODE_CODE_BLOCK)
+            append_code_block_text(parent, "\n");
+        else
+        {
+            auto node = cmark_node_new(CMARK_NODE_SOFTBREAK);
+            cmark_node_append_child(parent, node);
+        }
     }
 
     void build(cmark_node* parent, const options&, const hard_break&)
     {
-        auto node = cmark_node_new(CMARK_NODE_LINEBREAK);
-        cmark_node_append_child(parent, node);
+        if (cmark_node_get_type(parent) == CMARK_NODE_CODE_BLOCK)
+            append_code_block_text(parent, "\n");
+        else
+        {
+            auto node = cmark_node_new(CMARK_NODE_LINEBREAK);
+            cmark_node_append_child(parent, node);
+        }
     }
 
     cmark_node* build_link(const char* title, const char* url)
