@@ -52,6 +52,7 @@ set(markup_src
     markup/index.cpp
     markup/link.cpp
     markup/list.cpp
+    markup/markdown.cpp
     markup/paragraph.cpp
     markup/phrasing.cpp
     markup/quote.cpp

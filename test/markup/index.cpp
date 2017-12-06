@@ -11,6 +11,23 @@
 
 using namespace standardese::markup;
 
+std::string remove_trailing_ws(const std::string& string)
+{
+    std::string result;
+    for (auto c : string)
+    {
+        if (c == '\n')
+        {
+            while (!result.empty() && result.back() == ' ')
+                result.pop_back();
+            result.push_back('\n');
+        }
+        else
+            result.push_back(c);
+    }
+    return result;
+}
+
 TEST_CASE("markup::file_index", "[markup]")
 {
     file_index::builder b(heading::build(block_id(), "The file index"));
@@ -45,9 +62,16 @@ TEST_CASE("markup::file_index", "[markup]")
 </li>
 </ul>
 )";
+    auto md   = R"(# The file index
+
+  - a.hpp
+
+  - b.hpp &mdash; with brief
+)";
 
     REQUIRE(as_xml(*index->clone()) == xml);
     REQUIRE(as_html(*index) == html);
+    REQUIRE(as_markdown(*index) == md);
 }
 
 TEST_CASE("markup::entity_index", "[markup]")
@@ -136,9 +160,34 @@ TEST_CASE("markup::entity_index", "[markup]")
 </li>
 </ul>
 )";
+    auto md   = R"(# The entity index
+
+  - ## Namespace ns1
+
+    <a id="standardese-ns1"/>
+
+      - Entity a
+
+  - ## Namespace ns2 \[module\]
+
+    <a id="standardese-ns2"/>
+
+    Brief documentation
+
+    Details
+
+      - ### Namespace ns3
+
+        <a id="standardese-ns3"/>
+
+        Brief
+
+      - Entity b
+)";
 
     REQUIRE(as_xml(*index->clone()) == xml);
     REQUIRE(as_html(*index) == html);
+    REQUIRE(remove_trailing_ws(as_markdown(*index)) == md);
 }
 
 TEST_CASE("markup::module_index", "[markup]")
@@ -211,7 +260,26 @@ TEST_CASE("markup::module_index", "[markup]")
 </li>
 </ul>
 )";
+    auto md   = R"(# The module index
+
+  - ## Module 1
+
+    <a id="standardese-module1"/>
+
+      - Entity a
+
+  - ## Module 2
+
+    <a id="standardese-module2"/>
+
+    Brief
+
+    Details
+
+      - Entity b
+)";
 
     REQUIRE(as_xml(*index->clone()) == xml);
     REQUIRE(as_html(*index) == html);
+    REQUIRE(remove_trailing_ws(as_markdown(*index)) == md);
 }

@@ -14,4 +14,5 @@ TEST_CASE("thematic_break", "[markup]")
 {
     REQUIRE(as_html(*thematic_break::build()) == "<hr />\n");
     REQUIRE(as_xml(*thematic_break::build()->clone()) == "<thematic-break></thematic-break>\n");
+    REQUIRE(as_markdown(*thematic_break::build()) == "-----\n");
 }

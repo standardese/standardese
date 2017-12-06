@@ -23,15 +23,21 @@ TEST_CASE("external_link", "[markup]")
     REQUIRE(
         as_xml(*a_ptr)
         == R"(<external-link url="http://foonathan.net/"><emphasis>awesome</emphasis> website</external-link>)");
+    REQUIRE(as_markdown(*a_ptr) == R"*([*awesome* website](http://foonathan.net/)
+)*");
 
-    external_link::builder b("title\"", url("foo/bar/< &>\n"));
+    external_link::builder b("title\"", url("foo/bar/< &>"));
     b.add_child(text::build("with title"));
 
     auto b_ptr = b.finish()->clone();
     REQUIRE(as_html(*b_ptr)
-            == "<a href=\"foo/bar/%3C%20&amp;%3E%0A\" title=\"title&quot;\">with title</a>");
-    REQUIRE(as_xml(*b_ptr) == R"(<external-link title="title&quot;" url="foo/bar/&lt; &amp;&gt;
-">with title</external-link>)");
+            == "<a href=\"foo/bar/%3C%20&amp;%3E\" title=\"title&quot;\">with title</a>");
+    REQUIRE(
+        as_xml(*b_ptr)
+        == R"(<external-link title="title&quot;" url="foo/bar/&lt; &amp;&gt;">with title</external-link>)");
+    REQUIRE(
+        as_markdown(*b_ptr)
+        == "[with title](foo/bar/\\<%20&\\> \"title\\\"\")\n"); // MSVC doesn't like a raw string here :(
 }
 
 TEST_CASE("documentation_link", "[markup]")
@@ -60,8 +66,12 @@ TEST_CASE("documentation_link", "[markup]")
 <paragraph id="p2"><documentation-link title="title" destination-id="p1">link 1</documentation-link></paragraph>
 </template-document>
 )";
+    auto doc1_md   = R"([link 1](#standardese-p1 "title")
+)";
+
     REQUIRE(as_html(*doc1) == doc1_html);
     REQUIRE(as_xml(*doc1->clone()) == doc1_xml);
+    REQUIRE(as_markdown(*doc1) == doc1_md);
 
     documentation_link::builder builder("",
                                         block_reference(output_name::from_file_name("doc1.templ"),
@@ -73,6 +83,8 @@ TEST_CASE("documentation_link", "[markup]")
     REQUIRE(
         as_xml(*ptr)
         == R"(<documentation-link destination-document="doc1.templ" destination-id="p1">link 2</documentation-link>)");
+    REQUIRE(as_markdown(*ptr) == R"([link 2](doc1.templ#standardese-p1)
+)");
 
     // non existing link, but doesn't matter
     documentation_link::builder builder2("", block_reference(output_name::from_name("doc2"),
@@ -84,6 +96,8 @@ TEST_CASE("documentation_link", "[markup]")
     REQUIRE(
         as_xml(*ptr2)
         == R"(<documentation-link destination-document="doc2" destination-id="p3">link 3</documentation-link>)");
+    REQUIRE(as_markdown(*ptr2) == R"([link 3](doc2.md#standardese-p3)
+)");
 
     // URL link
     auto ptr3 = documentation_link::builder("").add_child(text::build("link 4")).finish();
@@ -92,4 +106,6 @@ TEST_CASE("documentation_link", "[markup]")
     REQUIRE(
         as_xml(*ptr3->clone())
         == R"(<documentation-link destination-url="http://foonathan.net">link 4</documentation-link>)");
+    REQUIRE(as_markdown(*ptr3) == R"([link 4](http://foonathan.net)
+)");
 }

@@ -65,6 +65,25 @@ TEST_CASE("file_documentation", "[markup]")
 </list-section>
 </file-documentation>
 )";
+    auto md  = R"(# A file
+
+<a id="standardese-file-hpp"/>
+
+<pre><code class="standardese-language-cpp">the synopsis();</code></pre>
+
+The brief documentation.
+
+*Effects:* The effects of the - eh - file.
+
+*Notes:* Some notes.
+
+The details documentation.
+
+#### Return values
+
+  - Any integer
+  - 42 &mdash; the answer\!
+)";
 
     cppast::cpp_file::builder file("foo");
 
@@ -95,6 +114,7 @@ TEST_CASE("file_documentation", "[markup]")
     auto ptr = builder.finish()->clone();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr) == xml);
+    REQUIRE(as_markdown(*ptr) == md);
 }
 
 TEST_CASE("entity_documentation", "[markup]")
@@ -106,6 +126,7 @@ TEST_CASE("entity_documentation", "[markup]")
 <h3 class="standardese-entity-documentation-heading">Entity B<span class="standardese-module">[module_b]</span></h3>
 <pre><code class="standardese-language-cpp standardese-entity-synopsis">void b();</code></pre>
 <p id="standardese-b-brief" class="standardese-brief-section">The brief documentation.</p>
+<p>The details documentation.</p>
 </section>
 <hr class="standardese-entity-documentation-break" />
 </section>
@@ -118,8 +139,31 @@ TEST_CASE("entity_documentation", "[markup]")
 <heading>Entity B</heading>
 <code-block language="cpp">void b();</code-block>
 <brief-section id="b-brief">The brief documentation.</brief-section>
+<details-section>
+<paragraph>The details documentation.</paragraph>
+</details-section>
 </entity-documentation>
 </entity-documentation>
+)";
+    auto md   = R"(## Entity A \[module\_a\]
+
+<a id="standardese-a"/>
+
+<pre><code class="standardese-language-cpp">void a();</code></pre>
+
+### Entity B \[module\_b\]
+
+<a id="standardese-b"/>
+
+<pre><code class="standardese-language-cpp">void b();</code></pre>
+
+The brief documentation.
+
+The details documentation.
+
+-----
+
+-----
 )";
 
     cppast::cpp_namespace::builder entity("foo", false);
@@ -134,9 +178,15 @@ TEST_CASE("entity_documentation", "[markup]")
                                     code_block::build(block_id(), "cpp", "void b();"));
     b.add_brief(
         brief_section::builder().add_child(text::build("The brief documentation.")).finish());
+    b.add_details(
+        details_section::builder()
+            .add_child(
+                paragraph::builder().add_child(text::build("The details documentation.")).finish())
+            .finish());
     a.add_child(b.finish());
 
     auto ptr = a.finish()->clone();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr) == xml);
+    REQUIRE(as_markdown(*ptr) == md);
 }

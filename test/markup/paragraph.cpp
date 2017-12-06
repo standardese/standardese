@@ -17,6 +17,8 @@ TEST_CASE("paragraph", "[markup]")
     auto xml =
         R"(<paragraph id="foo">a<emphasis>b</emphasis><code><emphasis>c</emphasis>d</code></paragraph>
 )";
+    auto md = R"(a*b*`d`
+)";
 
     paragraph::builder builder(block_id("foo"));
     builder.add_child(text::build("a"));
@@ -26,4 +28,5 @@ TEST_CASE("paragraph", "[markup]")
     auto ptr = builder.finish()->clone();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr) == xml);
+    REQUIRE(as_markdown(*ptr) == md);
 }

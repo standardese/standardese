@@ -6,6 +6,8 @@
 
 #include <catch.hpp>
 
+#include <algorithm>
+
 #include <standardese/markup/generator.hpp>
 #include <standardese/markup/paragraph.hpp>
 
@@ -43,6 +45,13 @@ TEST_CASE("unordered_list", "[markup]")
 </term-description-item>
 </unordered-list>
 )";
+    auto md   = std::string(R"(  -$
+
+  - text
+
+  - A term &mdash; A description
+)");
+    std::replace(md.begin(), md.end(), '$', ' ');
 
     unordered_list::builder builder(block_id("list"));
     builder.add_item(list_item::builder()
@@ -58,6 +67,7 @@ TEST_CASE("unordered_list", "[markup]")
     auto ptr = builder.finish()->clone();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr) == xml);
+    REQUIRE(as_markdown(*ptr) == md);
 }
 
 TEST_CASE("ordered_list", "[markup]")
@@ -82,6 +92,11 @@ TEST_CASE("ordered_list", "[markup]")
 </list-item>
 </ordered-list>
 )";
+    auto md   = std::string(R"(1.$$
+
+2.  text
+)");
+    std::replace(md.begin(), md.end(), '$', ' ');
 
     ordered_list::builder builder(block_id("list"));
     builder.add_item(list_item::builder()
@@ -93,4 +108,5 @@ TEST_CASE("ordered_list", "[markup]")
     auto ptr = builder.finish()->clone();
     REQUIRE(as_html(*ptr) == html);
     REQUIRE(as_xml(*ptr) == xml);
+    REQUIRE(as_markdown(*ptr) == md);
 }

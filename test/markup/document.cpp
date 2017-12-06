@@ -32,6 +32,9 @@ void test_main_sub_document(const char* name)
 <paragraph>foo</paragraph>
 </)" + name + ">\n";
 
+    auto md = R"(foo
+)";
+
     typename T::builder builder("Hello World!", "my-file");
     builder.add_child(paragraph::builder(block_id("")).add_child(text::build("foo")).finish());
 
@@ -41,6 +44,7 @@ void test_main_sub_document(const char* name)
     REQUIRE(doc->output_name().needs_extension());
     REQUIRE(as_html(*doc) == html);
     REQUIRE(as_xml(*doc) == xml);
+    REQUIRE(as_markdown(*doc) == md);
 }
 
 TEST_CASE("main_document", "[markup]")
@@ -66,6 +70,8 @@ TEST_CASE("template_document", "[markup]")
 </template-document>
 )";
 
+    auto md = "\n";
+
     template_document::builder builder("Hello Templated World!", "foo.bar.baz");
     builder.add_child(paragraph::builder(block_id("")).finish());
 
@@ -75,4 +81,5 @@ TEST_CASE("template_document", "[markup]")
     REQUIRE(!doc->output_name().needs_extension());
     REQUIRE(as_html(*doc) == html);
     REQUIRE(as_xml(*doc) == xml);
+    REQUIRE(as_markdown(*doc) == md);
 }

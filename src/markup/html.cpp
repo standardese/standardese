@@ -528,7 +528,7 @@ namespace
         {
             auto& term        = static_cast<const term_description_item&>(item).term();
             auto& description = static_cast<const term_description_item&>(item).description();
-            write_term_description(s, term, &description, item.id(), "term-description-item");
+            write_term_description(li, term, &description, item.id(), "term-description-item");
         }
         else
             assert(false);
