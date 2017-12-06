@@ -35,8 +35,9 @@ TEST_CASE("external_link", "[markup]")
     REQUIRE(
         as_xml(*b_ptr)
         == R"(<external-link title="title&quot;" url="foo/bar/&lt; &amp;&gt;">with title</external-link>)");
-    REQUIRE(as_markdown(*b_ptr) == R"([with title](foo/bar/\<%20&\> "title\"")
-)");
+    REQUIRE(
+        as_markdown(*b_ptr)
+        == "[with title](foo/bar/\\<%20&\\> \"title\\\"\")\n"); // MSVC doesn't like a raw string here :(
 }
 
 TEST_CASE("documentation_link", "[markup]")

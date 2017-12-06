@@ -13,7 +13,7 @@ using namespace standardese::markup;
 
 std::string remove_trailing_ws(const std::string& string)
 {
-    std::__cxx11::string result;
+    std::string result;
     for (auto c : string)
     {
         if (c == '\n')

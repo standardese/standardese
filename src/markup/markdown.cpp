@@ -55,7 +55,7 @@ namespace
     cmark_node* build_heading(unsigned level, const char* str)
     {
         auto heading = cmark_node_new(CMARK_NODE_HEADING);
-        cmark_node_set_heading_level(heading, level);
+        cmark_node_set_heading_level(heading, int(level));
 
         if (str)
         {

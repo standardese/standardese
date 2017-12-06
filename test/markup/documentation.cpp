@@ -73,9 +73,9 @@ TEST_CASE("file_documentation", "[markup]")
 
 The brief documentation.
 
-*Effects: *The effects of the - eh - file.
+*Effects:* The effects of the - eh - file.
 
-*Notes: *Some notes.
+*Notes:* Some notes.
 
 The details documentation.
 
