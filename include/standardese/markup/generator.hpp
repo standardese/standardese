@@ -53,6 +53,16 @@ namespace standardese
             return render(markdown_generator(), e);
         }
 
+        /// A plain text generator.
+        /// \returns A generator that will generate plain text.
+        generator text_generator() noexcept;
+
+        /// Renders an entity as text.
+        inline std::string as_text(const entity& e)
+        {
+            return render(text_generator(), e);
+        }
+
         /// An XML generator.
         ///
         /// It will use a simple XML format to describe the markup AST.

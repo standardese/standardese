@@ -252,6 +252,8 @@ std::vector<std::pair<standardese::markup::generator, const char*>> get_formats(
                                                                          link_extension.value_or(
                                                                              "md")),
                                  "md");
+        else if (format == "text")
+            formats.emplace_back(standardese::markup::text_generator(), "txt");
         else
             throw std::invalid_argument("unknown format '" + format + "'");
 
@@ -372,7 +374,7 @@ int main(int argc, char* argv[])
 
         ("output.format",
          po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"html"}, "{html}"),
-         "the output format used (html, commonmark, commonmark_html, xml)")
+         "the output format used (html, commonmark, commonmark_html, xml, text)")
         ("output.link_extension", po::value<std::string>(),
          "the file extension of the links to entities, useful if you convert standardese output to a different format and change the extension")
         ("output.prefix",

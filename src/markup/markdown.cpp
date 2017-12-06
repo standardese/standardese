@@ -632,13 +632,9 @@ namespace
             break;
         }
     }
-}
 
-generator standardese::markup::markdown_generator(bool               use_html,
-                                                  const std::string& extension) noexcept
-{
-    options opt{extension, use_html};
-    return [opt](std::ostream& out, const entity& e) {
+    cmark_node* build_entity(const options& opt, const entity& e)
+    {
         auto doc = is_phrasing(e.kind()) ? cmark_node_new(CMARK_NODE_PARAGRAPH) :
                                            cmark_node_new(CMARK_NODE_DOCUMENT);
 
@@ -648,7 +644,32 @@ generator standardese::markup::markdown_generator(bool               use_html,
         else
             build_entity(doc, opt, e);
 
+        return doc;
+    }
+}
+
+generator standardese::markup::markdown_generator(bool               use_html,
+                                                  const std::string& extension) noexcept
+{
+    options opt{extension, use_html};
+    return [opt](std::ostream& out, const entity& e) {
+        auto doc = build_entity(opt, e);
+
         auto str = cmark_render_commonmark(doc, CMARK_OPT_NOBREAKS, 0);
+        out << str;
+        std::free(str);
+
+        cmark_node_free(doc);
+    };
+}
+
+generator standardese::markup::text_generator() noexcept
+{
+    options opt{"txt", false};
+    return [opt](std::ostream& out, const entity& e) {
+        auto doc = build_entity(opt, e);
+
+        auto str = cmark_render_plaintext(doc, CMARK_OPT_NOBREAKS, 0);
         out << str;
         std::free(str);
 
