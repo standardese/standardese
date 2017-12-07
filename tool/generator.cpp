@@ -142,7 +142,8 @@ documents standardese_tool::generate(
             future.get(); // to retrieve exceptions
     }
 
-    auto eindex_doc = get_index_document(eindex.generate(), "Entities", "standardese_entities");
+    auto eindex_doc =
+        get_index_document(eindex.generate(gen_config.order()), "Entities", "standardese_entities");
     standardese::register_documentations(*cppast::default_logger(), linker, *eindex_doc);
     result.push_back(std::move(eindex_doc));
 

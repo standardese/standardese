@@ -49,6 +49,11 @@ generation_config::flags generation_config::default_flags() noexcept
     return generation_config::inline_doc;
 }
 
+entity_index::order generation_config::default_order() noexcept
+{
+    return entity_index::namespace_inline_sorted;
+}
+
 namespace
 {
     // tag object to mark an excluded entity
@@ -853,7 +858,8 @@ markup::namespace_documentation::builder doc_cpp_namespace::get_builder() const
 {
     markup::namespace_documentation::builder builder(entity_, get_documentation_id(),
                                                      get_header(namespace_(), comment(),
-                                                                namespace_().name()));
+                                                                get_entity_name(true,
+                                                                                namespace_())));
     if (comment())
         comment::set_sections(builder, comment().value());
     return builder;

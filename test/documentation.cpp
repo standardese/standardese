@@ -321,7 +321,7 @@ namespace ns
         register_index_entities(eindex, file_c->file());
         register_index_entities(eindex, file_b->file());
 
-        auto result = eindex.generate();
+        auto result = eindex.generate(entity_index::namespace_inline_sorted);
         REQUIRE(markup::as_xml(*result) == R"*(<entity-index id="entity-index">
 <heading>Project index</heading>
 <entity-index-item id="a()">
@@ -352,7 +352,7 @@ namespace ns
 <entity><documentation-link unresolved-destination-id="ns::g()"><code>g</code></documentation-link></entity>
 </entity-index-item>
 <namespace-documentation id="ns::inner">
-<heading>Namespace <code>inner</code></heading>
+<heading>Namespace <code>ns::inner</code></heading>
 <entity-index-item id="ns::inner::h()">
 <entity><documentation-link unresolved-destination-id="ns::inner::h()"><code>h</code></documentation-link></entity>
 </entity-index-item>

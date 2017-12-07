@@ -16,6 +16,7 @@
 #include <standardese/markup/code_block.hpp>
 #include <standardese/markup/documentation.hpp>
 #include <standardese/markup/index.hpp>
+#include "index.hpp"
 
 namespace standardese
 {
@@ -111,8 +112,11 @@ namespace standardese
         /// \returns The default flags.
         static flags default_flags() noexcept;
 
+        /// \returns The default index order.
+        static entity_index::order default_order() noexcept;
+
         /// \effects Creates the default configuration.
-        generation_config() : flags_(default_flags()) {}
+        generation_config() : flags_(default_flags()), order_(default_order()) {}
 
         /// \returns Whether or not the given flag is set.
         bool is_flag_set(flag f) const noexcept
@@ -126,8 +130,22 @@ namespace standardese
             flags_.set(f, v);
         }
 
+        /// \returns The entity index order.
+        /// \notes This must be manually passed to the generate function!
+        entity_index::order order() const noexcept
+        {
+            return order_;
+        }
+
+        /// \effects Sets the entity index order.
+        void set_order(entity_index::order order) noexcept
+        {
+            order_ = order;
+        }
+
     private:
-        flags flags_;
+        flags               flags_;
+        entity_index::order order_;
     };
 
     namespace detail

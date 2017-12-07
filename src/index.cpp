@@ -106,6 +106,7 @@ namespace
                            markup::namespace_documentation::builder>
             builder;
 
+        // adds *this, which must be a namespace, to the previous list
         void pop(nested_list_builder& previous)
         {
             struct lambda
@@ -129,6 +130,7 @@ namespace
                                 .finish());
         }
 
+        // adds an item to the current list
         void add_item(std::unique_ptr<markup::entity_index_item> item)
         {
             struct lambda
@@ -150,7 +152,7 @@ namespace
     };
 }
 
-std::unique_ptr<markup::entity_index> entity_index::generate() const
+std::unique_ptr<markup::entity_index> entity_index::generate(order o) const
 {
     markup::entity_index::builder builder(
         markup::heading::build(markup::block_id(), "Project index"));
@@ -166,7 +168,7 @@ std::unique_ptr<markup::entity_index> entity_index::generate() const
         {
             auto ns = std::move(lists.back());
             lists.pop_back();
-            ns.pop(lists.back());
+            ns.pop(o == order::namespace_external ? lists.front() : lists.back());
         }
 
         if (auto ns = entity.doc.optional_value(
@@ -185,7 +187,7 @@ std::unique_ptr<markup::entity_index> entity_index::generate() const
         auto ns = std::move(lists.back());
         lists.pop_back();
         if (!lists.empty())
-            ns.pop(lists.back());
+            ns.pop(o == order::namespace_external ? lists.front() : lists.back());
     }
 
     return builder.finish();
