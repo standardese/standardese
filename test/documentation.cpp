@@ -88,7 +88,7 @@ namespace ns
 </entity-documentation>
 <entity-documentation id="ns">
 <entity-documentation id="ns::bar">
-<heading>Class <code>bar</code></heading>
+<heading>Class <code>ns::bar</code></heading>
 <code-block language="cpp"><code-block-keyword>class</code-block-keyword> <code-block-identifier>bar</code-block-identifier><soft-break></soft-break>
 <code-block-punctuation>{</code-block-punctuation><soft-break></soft-break>
     <code-block-keyword>virtual</code-block-keyword> <code-block-keyword>void</code-block-keyword> <documentation-link unresolved-destination-id="ns::bar::f1(int)"><code-block-identifier>f1</code-block-identifier></documentation-link><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <code-block-identifier>i</code-block-identifier><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
