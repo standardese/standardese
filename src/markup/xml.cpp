@@ -29,15 +29,15 @@ using namespace standardese::markup;
 
 namespace
 {
-    class stream
+    class xml_stream
     {
     public:
-        stream(type_safe::object_ref<std::ostream> out, bool include_attributes = true)
+        xml_stream(type_safe::object_ref<std::ostream> out, bool include_attributes = true)
         : out_(out), newl_(false), attributes_(include_attributes)
         {
         }
 
-        stream(stream&& other)
+        xml_stream(xml_stream&& other)
         : closing_(std::move(other.closing_)),
           out_(other.out_),
           newl_(other.newl_),
@@ -47,12 +47,12 @@ namespace
             other.newl_.reset();
         }
 
-        ~stream()
+        ~xml_stream()
         {
             close();
         }
 
-        stream& operator=(const stream&) = delete;
+        xml_stream& operator=(const xml_stream&) = delete;
 
         enum tag_kind
         {
@@ -62,7 +62,7 @@ namespace
         };
 
         template <typename... Attributes>
-        stream open_tag(tag_kind kind, const char* tag, const Attributes&... attributes)
+        xml_stream open_tag(tag_kind kind, const char* tag, const Attributes&... attributes)
         {
             *out_ << "<" << tag;
 
@@ -79,7 +79,7 @@ namespace
             *out_ << ">";
             if (kind == block_tag)
                 *out_ << '\n';
-            return stream(*this, tag, kind != inline_tag);
+            return xml_stream(*this, tag, kind != inline_tag);
         }
 
         // writes XML escaped text
@@ -115,7 +115,7 @@ namespace
         }
 
     private:
-        explicit stream(const stream& parent, std::string closing, bool newl)
+        explicit xml_stream(const xml_stream& parent, std::string closing, bool newl)
         : closing_(closing), out_(parent.out_), newl_(newl), attributes_(parent.attributes_)
         {
         }
@@ -138,71 +138,71 @@ namespace
         type_safe::flag                     newl_, attributes_;
     };
 
-    void write_entity(stream& s, const entity& e);
+    void write_entity(xml_stream& s, const entity& e);
 
     template <typename T>
-    void write_children(stream& s, const T& container)
+    void write_children(xml_stream& s, const T& container)
     {
         for (auto& child : container)
             write_entity(s, child);
     }
 
     template <typename T>
-    void write_block(stream& s, const char* tag_name, const T& block)
+    void write_block(xml_stream& s, const char* tag_name, const T& block)
     {
         auto tag =
-            s.open_tag(stream::block_tag, tag_name, std::make_pair("id", block.id().as_str()));
+            s.open_tag(xml_stream::block_tag, tag_name, std::make_pair("id", block.id().as_str()));
         write_children(tag, block);
     }
 
     template <typename T>
-    void write_line_block(stream& s, const char* tag_name, const T& block)
+    void write_line_block(xml_stream& s, const char* tag_name, const T& block)
     {
         auto tag =
-            s.open_tag(stream::line_tag, tag_name, std::make_pair("id", block.id().as_str()));
+            s.open_tag(xml_stream::line_tag, tag_name, std::make_pair("id", block.id().as_str()));
         write_children(tag, block);
     }
 
     template <typename T>
-    void write_phrasing(stream& s, const char* tag_name, const T& phrasing)
+    void write_phrasing(xml_stream& s, const char* tag_name, const T& phrasing)
     {
-        auto tag = s.open_tag(stream::inline_tag, tag_name);
+        auto tag = s.open_tag(xml_stream::inline_tag, tag_name);
         write_children(tag, phrasing);
     }
 
-    void write_document(stream& s, const document_entity& doc, const char* tag_name)
+    void write_document(xml_stream& s, const document_entity& doc, const char* tag_name)
     {
         s.write_xml(R"(<?xml version="1.0" encoding="UTF-8"?>)");
         s.write_xml("\n");
-        auto tag = s.open_tag(stream::block_tag, tag_name,
+        auto tag = s.open_tag(xml_stream::block_tag, tag_name,
                               std::make_pair("output-name", doc.output_name().name()),
                               std::make_pair("title", doc.title()));
         write_children(tag, doc);
     }
 
-    void write(stream& s, const main_document& doc)
+    void write(xml_stream& s, const main_document& doc)
     {
         write_document(s, doc, "main-document");
     }
 
-    void write(stream& s, const subdocument& doc)
+    void write(xml_stream& s, const subdocument& doc)
     {
         write_document(s, doc, "subdocument");
     }
 
-    void write(stream& s, const template_document& doc)
+    void write(xml_stream& s, const template_document& doc)
     {
         write_document(s, doc, "template-document");
     }
 
-    void write(stream& s, const heading& h);
-    void write(stream& s, const code_block& cb);
+    void write(xml_stream& s, const heading& h);
+    void write(xml_stream& s, const code_block& cb);
 
     template <class Documentation>
-    void write_documentation(stream& s, const Documentation& doc, const char* tag_name)
+    void write_documentation(xml_stream& s, const Documentation& doc, const char* tag_name)
     {
         auto tag =
-            s.open_tag(stream::block_tag, tag_name, std::make_pair("id", doc.id().as_str()),
+            s.open_tag(xml_stream::block_tag, tag_name, std::make_pair("id", doc.id().as_str()),
                        std::make_pair("module", doc.header() ?
                                                     doc.header().value().module().value_or("") :
                                                     ""));
@@ -215,238 +215,238 @@ namespace
         write_children(tag, doc);
     }
 
-    void write(stream& s, const file_documentation& doc)
+    void write(xml_stream& s, const file_documentation& doc)
     {
         write_documentation(s, doc, "file-documentation");
     }
 
-    void write(stream& s, const entity_documentation& doc)
+    void write(xml_stream& s, const entity_documentation& doc)
     {
         write_documentation(s, doc, "entity-documentation");
     }
 
-    void write(stream& s, const namespace_documentation& doc)
+    void write(xml_stream& s, const namespace_documentation& doc)
     {
         write_documentation(s, doc, "namespace-documentation");
     }
 
-    void write(stream& s, const module_documentation& doc)
+    void write(xml_stream& s, const module_documentation& doc)
     {
         write_documentation(s, doc, "module-documentation");
     }
 
     template <class Index>
-    void write_index(stream& s, const Index& index, const char* tag_name)
+    void write_index(xml_stream& s, const Index& index, const char* tag_name)
     {
         auto tag =
-            s.open_tag(stream::block_tag, tag_name, std::make_pair("id", index.id().as_str()));
+            s.open_tag(xml_stream::block_tag, tag_name, std::make_pair("id", index.id().as_str()));
         write(tag, index.heading());
         write_children(tag, index);
     }
 
-    void write(stream& s, const file_index& index)
+    void write(xml_stream& s, const file_index& index)
     {
         write_index(s, index, "file-index");
     }
 
-    void write(stream& s, const entity_index& index)
+    void write(xml_stream& s, const entity_index& index)
     {
         write_index(s, index, "entity-index");
     }
 
-    void write(stream& s, const module_index& index)
+    void write(xml_stream& s, const module_index& index)
     {
         write_index(s, index, "module-index");
     }
 
-    void write(stream& s, const heading& h)
+    void write(xml_stream& s, const heading& h)
     {
         write_line_block(s, "heading", h);
     }
 
-    void write(stream& s, const subheading& h)
+    void write(xml_stream& s, const subheading& h)
     {
         write_line_block(s, "subheading", h);
     }
 
-    void write(stream& s, const paragraph& p)
+    void write(xml_stream& s, const paragraph& p)
     {
         write_line_block(s, "paragraph", p);
     }
 
-    void write(stream& s, const list_item& item)
+    void write(xml_stream& s, const list_item& item)
     {
         write_block(s, "list-item", item);
     }
 
-    void write(stream& s, const term& t, const char* tag_name = "term")
+    void write(xml_stream& s, const term& t, const char* tag_name = "term")
     {
-        auto tag = s.open_tag(stream::line_tag, tag_name);
+        auto tag = s.open_tag(xml_stream::line_tag, tag_name);
         write_children(tag, t);
     }
 
-    void write(stream& s, const description& desc, const char* tag_name = "description")
+    void write(xml_stream& s, const description& desc, const char* tag_name = "description")
     {
-        auto tag = s.open_tag(stream::line_tag, tag_name);
+        auto tag = s.open_tag(xml_stream::line_tag, tag_name);
         write_children(tag, desc);
     }
 
-    void write(stream& s, const term_description_item& item)
+    void write(xml_stream& s, const term_description_item& item)
     {
-        auto tag = s.open_tag(stream::block_tag, "term-description-item",
+        auto tag = s.open_tag(xml_stream::block_tag, "term-description-item",
                               std::make_pair("id", item.id().as_str()));
         write(tag, item.term());
         write(tag, item.description());
     }
 
-    void write(stream& s, const entity_index_item& item)
+    void write(xml_stream& s, const entity_index_item& item)
     {
-        auto tag = s.open_tag(stream::block_tag, "entity-index-item",
+        auto tag = s.open_tag(xml_stream::block_tag, "entity-index-item",
                               std::make_pair("id", item.id().as_str()));
         write(tag, item.entity(), "entity");
         if (item.brief())
             write(tag, item.brief().value(), "brief");
     }
 
-    void write(stream& s, const unordered_list& list)
+    void write(xml_stream& s, const unordered_list& list)
     {
         write_block(s, "unordered-list", list);
     }
 
-    void write(stream& s, const ordered_list& list)
+    void write(xml_stream& s, const ordered_list& list)
     {
         write_block(s, "ordered-list", list);
     }
 
-    void write(stream& s, const block_quote& quote)
+    void write(xml_stream& s, const block_quote& quote)
     {
         write_block(s, "block-quote", quote);
     }
 
-    void write(stream& s, const code_block& code)
+    void write(xml_stream& s, const code_block& code)
     {
         auto tag =
-            s.open_tag(stream::line_tag, "code-block", std::make_pair("id", code.id().as_str()),
+            s.open_tag(xml_stream::line_tag, "code-block", std::make_pair("id", code.id().as_str()),
                        std::make_pair("language", code.language()));
         write_children(tag, code);
     }
 
     template <typename T>
-    void write_cb(stream& s, const char* tag_name, const T& cb)
+    void write_cb(xml_stream& s, const char* tag_name, const T& cb)
     {
-        auto tag = s.open_tag(stream::inline_tag, tag_name);
+        auto tag = s.open_tag(xml_stream::inline_tag, tag_name);
         tag.write(cb.string());
     }
 
-    void write(stream& s, const code_block::keyword& cb)
+    void write(xml_stream& s, const code_block::keyword& cb)
     {
         write_cb(s, "code-block-keyword", cb);
     }
 
-    void write(stream& s, const code_block::identifier& cb)
+    void write(xml_stream& s, const code_block::identifier& cb)
     {
         write_cb(s, "code-block-identifier", cb);
     }
 
-    void write(stream& s, const code_block::string_literal& cb)
+    void write(xml_stream& s, const code_block::string_literal& cb)
     {
         write_cb(s, "code-block-string-literal", cb);
     }
 
-    void write(stream& s, const code_block::int_literal& cb)
+    void write(xml_stream& s, const code_block::int_literal& cb)
     {
         write_cb(s, "code-block-int-literal", cb);
     }
 
-    void write(stream& s, const code_block::float_literal& cb)
+    void write(xml_stream& s, const code_block::float_literal& cb)
     {
         write_cb(s, "code-block-float-literal", cb);
     }
 
-    void write(stream& s, const code_block::punctuation& cb)
+    void write(xml_stream& s, const code_block::punctuation& cb)
     {
         write_cb(s, "code-block-punctuation", cb);
     }
 
-    void write(stream& s, const code_block::preprocessor& cb)
+    void write(xml_stream& s, const code_block::preprocessor& cb)
     {
         write_cb(s, "code-block-preprocessor", cb);
     }
 
-    void write(stream& s, const brief_section& section)
+    void write(xml_stream& s, const brief_section& section)
     {
         write_line_block(s, "brief-section", section);
     }
 
-    void write(stream& s, const details_section& section)
+    void write(xml_stream& s, const details_section& section)
     {
-        auto tag = s.open_tag(stream::block_tag, "details-section");
+        auto tag = s.open_tag(xml_stream::block_tag, "details-section");
         write_children(tag, section);
     }
 
-    void write(stream& s, const inline_section& section)
+    void write(xml_stream& s, const inline_section& section)
     {
-        auto tag =
-            s.open_tag(stream::line_tag, "inline-section", std::make_pair("name", section.name()));
+        auto tag = s.open_tag(xml_stream::line_tag, "inline-section",
+                              std::make_pair("name", section.name()));
         write_children(tag, section);
     }
 
-    void write(stream& s, const list_section& section)
+    void write(xml_stream& s, const list_section& section)
     {
-        auto tag =
-            s.open_tag(stream::block_tag, "list-section", std::make_pair("name", section.name()));
+        auto tag = s.open_tag(xml_stream::block_tag, "list-section",
+                              std::make_pair("name", section.name()));
         write_children(tag, section);
     }
 
-    void write(stream& s, const thematic_break&)
+    void write(xml_stream& s, const thematic_break&)
     {
-        s.open_tag(stream::line_tag, "thematic-break");
+        s.open_tag(xml_stream::line_tag, "thematic-break");
     }
 
-    void write(stream& s, const text& t)
+    void write(xml_stream& s, const text& t)
     {
         s.write(t.string());
     }
 
-    void write(stream& s, const emphasis& phrasing)
+    void write(xml_stream& s, const emphasis& phrasing)
     {
         write_phrasing(s, "emphasis", phrasing);
     }
 
-    void write(stream& s, const strong_emphasis& phrasing)
+    void write(xml_stream& s, const strong_emphasis& phrasing)
     {
         write_phrasing(s, "strong-emphasis", phrasing);
     }
 
-    void write(stream& s, const code& phrasing)
+    void write(xml_stream& s, const code& phrasing)
     {
         write_phrasing(s, "code", phrasing);
     }
 
-    void write(stream& s, const soft_break&)
+    void write(xml_stream& s, const soft_break&)
     {
-        s.open_tag(stream::line_tag, "soft-break");
+        s.open_tag(xml_stream::line_tag, "soft-break");
     }
 
-    void write(stream& s, const hard_break&)
+    void write(xml_stream& s, const hard_break&)
     {
-        s.open_tag(stream::line_tag, "hard-break");
+        s.open_tag(xml_stream::line_tag, "hard-break");
     }
 
-    void write(stream& s, const external_link& link)
+    void write(xml_stream& s, const external_link& link)
     {
-        auto tag =
-            s.open_tag(stream::inline_tag, "external-link", std::make_pair("title", link.title()),
-                       std::make_pair("url", link.url().as_str()));
+        auto tag = s.open_tag(xml_stream::inline_tag, "external-link",
+                              std::make_pair("title", link.title()),
+                              std::make_pair("url", link.url().as_str()));
         write_children(tag, link);
     }
 
-    void write(stream& s, const documentation_link& link)
+    void write(xml_stream& s, const documentation_link& link)
     {
         if (link.internal_destination())
         {
             auto tag =
-                s.open_tag(stream::inline_tag, "documentation-link",
+                s.open_tag(xml_stream::inline_tag, "documentation-link",
                            std::make_pair("title", link.title()),
                            std::make_pair("destination-document",
                                           link.internal_destination()
@@ -460,7 +460,7 @@ namespace
         }
         else if (link.external_destination())
         {
-            auto tag = s.open_tag(stream::inline_tag, "documentation-link",
+            auto tag = s.open_tag(xml_stream::inline_tag, "documentation-link",
                                   std::make_pair("title", link.title()),
                                   std::make_pair("destination-url",
                                                  link.external_destination().value().as_str()));
@@ -468,7 +468,7 @@ namespace
         }
         else
         {
-            auto tag = s.open_tag(stream::inline_tag, "documentation-link",
+            auto tag = s.open_tag(xml_stream::inline_tag, "documentation-link",
                                   std::make_pair("title", link.title()),
                                   std::make_pair("unresolved-destination-id",
                                                  link.unresolved_destination().value()));
@@ -476,7 +476,7 @@ namespace
         }
     }
 
-    void write_entity(stream& s, const entity& e)
+    void write_entity(xml_stream& s, const entity& e)
     {
         switch (e.kind())
         {
@@ -555,12 +555,12 @@ generator standardese::markup::xml_generator(bool include_attributes) noexcept
 {
     if (include_attributes)
         return [](std::ostream& out, const entity& e) {
-            stream s(type_safe::ref(out));
+            xml_stream s(type_safe::ref(out));
             write_entity(s, e);
         };
     else
         return [](std::ostream& out, const entity& e) {
-            stream s(type_safe::ref(out), false);
+            xml_stream s(type_safe::ref(out), false);
             write_entity(s, e);
         };
 }

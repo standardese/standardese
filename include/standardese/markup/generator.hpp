@@ -28,29 +28,30 @@ namespace standardese
         /// An HTML generator.
         ///
         /// \returns A generator that will generate the HTML representation.
-        generator html_generator(const std::string& extension = "html") noexcept;
+        generator html_generator(const std::string& link_prefix,
+                                 const std::string& extension) noexcept;
 
         /// Renders an entity as HTML.
         ///
         /// \returns `render(html_generator(), e)`.
         inline std::string as_html(const entity& e)
         {
-            return render(html_generator(), e);
+            return render(html_generator("", "html"), e);
         }
 
         /// A markdown generator.
         ///
         /// \returns A generator that will generate a CommonMark representation.
         /// If `use_html` is `true`, it will use HTML for complex parts that cannot be described using CommonMark.
-        generator markdown_generator(bool               use_html  = true,
-                                     const std::string& extension = "md") noexcept;
+        generator markdown_generator(bool use_html, const std::string& link_prefix,
+                                     const std::string& extension) noexcept;
 
         /// Renders an entity as CommonMark.
         ///
         /// \returns `render(commonmark_generator(), e)`.
         inline std::string as_markdown(const entity& e)
         {
-            return render(markdown_generator(), e);
+            return render(markdown_generator(true, "", "md"), e);
         }
 
         /// A plain text generator.

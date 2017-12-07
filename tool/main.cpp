@@ -232,23 +232,25 @@ std::vector<std::pair<standardese::markup::generator, const char*>> get_formats(
 {
     std::vector<std::pair<standardese::markup::generator, const char*>> formats;
 
+    auto link_prefix    = get_option<std::string>(options, "output.link_prefix").value_or("");
     auto link_extension = get_option<std::string>(options, "output.link_extension");
 
     auto option = get_option<std::vector<std::string>>(options, "output.format").value();
     for (auto& format : option)
         if (format == "html")
-            formats.emplace_back(standardese::markup::html_generator(
-                                     link_extension.value_or("html")),
+            formats.emplace_back(standardese::markup::html_generator(link_prefix,
+                                                                     link_extension.value_or(
+                                                                         "html")),
                                  "html");
         else if (format == "xml")
             formats.emplace_back(standardese::markup::xml_generator(), "xml");
         else if (format == "commonmark")
-            formats.emplace_back(standardese::markup::markdown_generator(false,
+            formats.emplace_back(standardese::markup::markdown_generator(false, link_prefix,
                                                                          link_extension.value_or(
                                                                              "md")),
                                  "md");
         else if (format == "commonmark_html")
-            formats.emplace_back(standardese::markup::markdown_generator(true,
+            formats.emplace_back(standardese::markup::markdown_generator(true, link_prefix,
                                                                          link_extension.value_or(
                                                                              "md")),
                                  "md");
@@ -377,6 +379,8 @@ int main(int argc, char* argv[])
          "the output format used (html, commonmark, commonmark_html, xml, text)")
         ("output.link_extension", po::value<std::string>(),
          "the file extension of the links to entities, useful if you convert standardese output to a different format and change the extension")
+        ("output.link_prefix", po::value<std::string>(),
+        "a prefix that will be added to all links, if not specified they'll be relative links")
         ("output.prefix",
          po::value<std::string>()->default_value(""),
          "a prefix that will be added to all output files")
