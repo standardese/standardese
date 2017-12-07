@@ -33,7 +33,7 @@ namespace
 {
     struct options
     {
-        std::string extension;
+        std::string prefix, extension;
         bool        use_html;
     };
 
@@ -390,7 +390,7 @@ namespace
             auto node = cmark_node_new(CMARK_NODE_HTML_BLOCK);
             cmark_node_append_child(parent, node);
 
-            auto html = render(html_generator(opt.extension), cb);
+            auto html = render(html_generator(opt.prefix, opt.extension), cb);
             cmark_node_set_literal(node, html.c_str());
         }
         else
@@ -542,11 +542,12 @@ namespace
             handle_children(parent, opt, link);
         else if (link.internal_destination())
         {
-            auto url = link.internal_destination()
-                           .value()
-                           .document()
-                           .map(&output_name::file_name, opt.extension.c_str())
-                           .value_or("");
+            auto url = opt.prefix
+                       + link.internal_destination()
+                             .value()
+                             .document()
+                             .map(&output_name::file_name, opt.extension.c_str())
+                             .value_or("");
             url += "#standardese-" + link.internal_destination().value().id().as_str();
 
             auto node = build_link(link.title().c_str(), url.c_str());
@@ -656,10 +657,10 @@ namespace
     }
 }
 
-generator standardese::markup::markdown_generator(bool               use_html,
+generator standardese::markup::markdown_generator(bool use_html, const std::string& prefix,
                                                   const std::string& extension) noexcept
 {
-    options opt{extension, use_html};
+    options opt{prefix, extension, use_html};
     return [opt](std::ostream& out, const entity& e) {
         auto doc = build_entity(opt, e);
 
@@ -673,7 +674,7 @@ generator standardese::markup::markdown_generator(bool               use_html,
 
 generator standardese::markup::text_generator() noexcept
 {
-    options opt{"txt", false};
+    options opt{"", "txt", false};
     return [opt](std::ostream& out, const entity& e) {
         auto doc = build_entity(opt, e);
 

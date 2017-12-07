@@ -36,14 +36,20 @@ namespace
     class html_stream
     {
     public:
-        explicit html_stream(type_safe::object_ref<std::ostream> out, std::string extension)
-        : out_(out), ext_(std::move(extension)), top_level_(true), closing_newl_(false)
+        explicit html_stream(type_safe::object_ref<std::ostream> out, std::string prefix,
+                             std::string extension)
+        : out_(out),
+          prefix_(std::move(prefix)),
+          ext_(std::move(extension)),
+          top_level_(true),
+          closing_newl_(false)
         {
         }
 
         html_stream(html_stream&& other)
         : closing_(std::move(other.closing_)),
           out_(other.out_),
+          prefix_(std::move(other.prefix_)),
           ext_(other.extension()),
           top_level_(other.top_level_),
           closing_newl_(other.closing_newl_)
@@ -94,12 +100,14 @@ namespace
             if (open_newl)
                 *out_ << "\n";
 
-            return html_stream(out_, extension(), tag, closing_newl);
+            return html_stream(out_, prefix_, extension(), tag, closing_newl);
         }
 
-        html_stream open_link(const char* title, const char* url)
+        html_stream open_link(const char* title, const char* url, bool prefix)
         {
             *out_ << "<a href=\"";
+            if (prefix)
+                detail::write_html_url(*out_, prefix_.c_str());
             detail::write_html_url(*out_, url);
             *out_ << '"';
             if (*title)
@@ -109,7 +117,7 @@ namespace
                 *out_ << '"';
             }
             *out_ << ">";
-            return html_stream(out_, extension(), "a", false);
+            return html_stream(out_, prefix_, extension(), "a", false);
         }
 
         // closes the current tag
@@ -146,10 +154,11 @@ namespace
         }
 
     private:
-        explicit html_stream(type_safe::object_ref<std::ostream> out, std::string extension,
-                             std::string closing, bool closing_newl)
+        explicit html_stream(type_safe::object_ref<std::ostream> out, std::string prefix,
+                             std::string extension, std::string closing, bool closing_newl)
         : closing_(std::move(closing)),
           out_(out),
+          prefix_(std::move(prefix)),
           ext_(std::move(extension)),
           top_level_(false),
           closing_newl_(closing_newl)
@@ -158,7 +167,7 @@ namespace
 
         std::string                         closing_;
         type_safe::object_ref<std::ostream> out_;
-        std::string                         ext_;
+        std::string                         prefix_, ext_;
         type_safe::flag                     top_level_, closing_newl_;
     };
 
@@ -607,7 +616,7 @@ namespace
 
     void write(html_stream& s, const external_link& link)
     {
-        auto a = s.open_link(link.title().c_str(), link.url().as_str().c_str());
+        auto a = s.open_link(link.title().c_str(), link.url().as_str().c_str(), false);
         write_children(a, link);
     }
 
@@ -622,14 +631,14 @@ namespace
                            .value_or("");
             url += "#standardese-" + link.internal_destination().value().id().as_str();
 
-            auto a = s.open_link(link.title().c_str(), url.c_str());
+            auto a = s.open_link(link.title().c_str(), url.c_str(), true);
             write_children(a, link);
         }
         else if (link.external_destination())
         {
             auto url = link.external_destination().value().as_str();
 
-            auto a = s.open_link(link.title().c_str(), url.c_str());
+            auto a = s.open_link(link.title().c_str(), url.c_str(), false);
             write_children(a, link);
         }
         else
@@ -711,10 +720,11 @@ namespace
     }
 }
 
-generator standardese::markup::html_generator(const std::string& extension) noexcept
+generator standardese::markup::html_generator(const std::string& prefix,
+                                              const std::string& extension) noexcept
 {
-    return [extension](std::ostream& out, const entity& e) {
-        html_stream s(type_safe::ref(out), extension);
+    return [prefix, extension](std::ostream& out, const entity& e) {
+        html_stream s(type_safe::ref(out), prefix, extension);
         write_entity(s, e);
     };
 }
