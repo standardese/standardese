@@ -7,6 +7,7 @@
 #include <cassert>
 #include <cmark.h>
 #include <ostream>
+#include <sstream>
 
 #include <standardese/markup/block.hpp>
 #include <standardese/markup/code_block.hpp>
@@ -23,6 +24,8 @@
 #include <standardese/markup/phrasing.hpp>
 #include <standardese/markup/quote.hpp>
 #include <standardese/markup/thematic_break.hpp>
+
+#include "escape.hpp"
 
 using namespace standardese::markup;
 
@@ -77,8 +80,13 @@ namespace
         if (opt.use_html)
         {
             auto html = cmark_node_new(CMARK_NODE_HTML_BLOCK);
-            cmark_node_set_literal(html,
-                                   ("<a id=\"standardese-" + doc.id().as_str() + "\"/>").c_str());
+
+            std::ostringstream stream;
+            stream << "<a id=\"standardese-";
+            detail::write_html_text(stream, doc.id().as_str().c_str());
+            stream << "\"></a>";
+
+            cmark_node_set_literal(html, stream.str().c_str());
             cmark_node_append_child(parent, html);
         }
 
