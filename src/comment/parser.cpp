@@ -514,10 +514,13 @@ namespace
             if (!data.set_exclude(parse_exclude_mode(node)))
                 error(node, "multiple exclude commands for entity");
             break;
-
         case command_type::unique_name:
             if (!data.set_unique_name(get_single_arg(node, "unique name")))
                 error(node, "multiple unique name commands for entity");
+            break;
+        case command_type::output_name:
+            if (!data.set_output_name(get_single_arg(node, "output name")))
+                error(node, "multiple output name commands for entity");
             break;
         case command_type::synopsis:
             if (!data.set_synopsis(detail::get_command_arguments(node)))

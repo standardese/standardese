@@ -1149,9 +1149,14 @@ std::unique_ptr<doc_cpp_file> standardese::build_doc_entities(
     type_safe::object_ref<const comment_registry> registry, std::unique_ptr<cppast::cpp_file> file,
     std::string output_name, const entity_blacklist& blacklist)
 {
-    auto&                 f = *file;
+    auto& f = *file;
+
+    auto comment = registry->get_comment(f);
+    if (comment && comment.value().metadata().output_name())
+        output_name = comment.value().metadata().output_name().value();
+
     doc_cpp_file::builder builder(std::move(output_name), lookup_unique_name(*registry, f),
-                                  std::move(file), registry->get_comment(f));
+                                  std::move(file), comment);
 
     detail::visit_children(f, [&](const cppast::cpp_entity&         entity,
                                   cppast::cpp_access_specifier_kind access) {

@@ -675,6 +675,7 @@ namespace standardese
     /// Creates the [standardese::doc_entity]() hierarchy.
     /// \effects Traverses over all entities in the file, builds matching doc entities and marks excluded entities.
     /// \returns The corresponding documentation file.
+    /// \notes The file output name is merely a suggestion, may be overriden by comment of file.
     std::unique_ptr<doc_cpp_file> build_doc_entities(
         type_safe::object_ref<const comment_registry> registry,
         std::unique_ptr<cppast::cpp_file> file, std::string output_name,

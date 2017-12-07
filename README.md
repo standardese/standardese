@@ -297,18 +297,18 @@ namespace ns
 {
     /// ns::a.
     struct a {};
-    
+
     /// [This will link to ::a, no lookup here](standardese://a/).
     /// [This will link to ns::a](standardese://*a/).
     void foo();
-    
+
     /// b
     template <typename T>
     struct b
     {
-        /// c.      
+        /// c.
         void c();
-        
+
         /// [This will link to ns::b<T>::c()](standardese://*c/).
         void foo();
     };
@@ -344,17 +344,21 @@ It is as if the entity never existed in the first place.
 If you specify `return` as argument, the return type of the function will be hidden in the synopsis.
 If you specify `target` as argument, the target of the namespace/type alias or underlying type of the enum will be hidden in the synopsis.
 
-* `unique_name {name}` - Overrides the unique name of an entity (e.g. for linking):
-```cpp
-/// Some documentation.
-/// I can now link to `bar()` by writing [foo]().
-///
-/// \unique_name foo
-void bar(int a, int c);
-```
-Note that if you override the unique name of a parent entity, this will also affect the unique names of child entities.
-If the unique name starts with '*' or '?', it will be a *relative* unique name,
-i.e. the unique name of the parent entity will be prepended to it (with seperator '::' if needed).
+*   `unique_name {name}` - Overrides the unique name of an entity (e.g. for linking):
+    ```cpp
+    /// Some documentation.
+    /// I can now link to `bar()` by writing [foo]().
+    ///
+    /// \unique_name foo
+    void bar(int a, int c);
+    ```
+    Note that if you override the unique name of a parent entity, this will also affect the unique names of child entities.
+    If the unique name starts with '*' or '?', it will be a *relative* unique name,
+    i.e. the unique name of the parent entity will be prepended to it (with seperator '::' if needed).
+
+* `output_name {name}` - Overrides the output name of a file.
+This will only change the base name, the `doc_` prefix and extension are still handled separately.
+Useful if there are multiple files with the same base name in a project, e.g a `.hpp` and `.h` header.
 
 * `synopsis {string}` - Overrides the synopsis in the output.
 You can pass any string that will be rendered instead of the actual synopsis.
@@ -362,93 +366,93 @@ Use `\n` to render a newline and use `\t` to render a tab.
 
 * `synopsis_return {string}` - Like `synopsis`, but only overrides the return type of the function.
 
-* `group <name> [heading]` - Add the entity to a member group.
-A member group consists of multiple entities that are direct members of the same entity (i.e. class, file, namespace,...) which will be grouped together in the output.
-For example:
-```cpp
-/// \group foo A heading
-/// This is in the group `foo`.
-/// Because this is the first entity in the group, it will be the "master".
-/// the group comment will be this comment, the group unique name will be this unique name, ...
-/// The optional heading (everything after the first whitespace) will be shown as heading in the output.
-void func();
+*   `group <name> [heading]` - Add the entity to a member group.
+    A member group consists of multiple entities that are direct members of the same entity (i.e. class, file, namespace,...) which will be grouped together in the output.
+    For example:
+    ```cpp
+    /// \group foo A heading
+    /// This is in the group `foo`.
+    /// Because this is the first entity in the group, it will be the "master".
+    /// the group comment will be this comment, the group unique name will be this unique name, ...
+    /// The optional heading (everything after the first whitespace) will be shown as heading in the output.
+    void func();
 
-/// \group foo
-/// This entity will be added to the same group.
-/// As it is not the first occurence of the group,
-/// this comment here will be ignored.
-/// But you can still use commands to modify this entity.
-void func(int);
+    /// \group foo
+    /// This entity will be added to the same group.
+    /// As it is not the first occurence of the group,
+    /// this comment here will be ignored.
+    /// But you can still use commands to modify this entity.
+    void func(int);
 
-/// This entity is not part of the group.
-void func(char);
+    /// This entity is not part of the group.
+    void func(char);
 
-/// \group foo
-/// But this one is (again, comment ignored).
-void func(short);
-```
-This will write the synopsis of all group members together and use the documentation text of the first entity.
-The group name only needs to be unique for one given scope.
-*Note: It will only show inline documentation for children, so don't use it on containers.*
+    /// \group foo
+    /// But this one is (again, comment ignored).
+    void func(short);
+    ```
+    This will write the synopsis of all group members together and use the documentation text of the first entity.
+    The group name only needs to be unique for one given scope.
+    *Note: It will only show inline documentation for children, so don't use it on containers.*
 
-* `module {name}` - Add the entity to a module.
-A module is just a way to group entities together,
-it will be inherited by all children.
-There is no need to define a module, but if you do,
-simply use the command in first place of a module and you can add documentation for it:
-```cpp
-/// This is an entity in the module 'bar'.
-/// \module bar
-void foo();
+*   `module {name}` - Add the entity to a module.
+    A module is just a way to group entities together,
+    it will be inherited by all children.
+    There is no need to define a module, but if you do,
+    simply use the command in first place of a module and you can add documentation for it:
+    ```cpp
+    /// This is an entity in the module 'bar'.
+    /// \module bar
+    void foo();
 
-/// \module bar
-/// This is the documentation for the module 'bar',
-/// because the command was the first one.
-```
+    /// \module bar
+    /// This is the documentation for the module 'bar',
+    /// because the command was the first one.
+    ```
 
-* `output_section {name}` - Generates a little section comment in the synopsis above the entity.
-This is implictly used for member groups with the group name as output section name,
-if the option `output.show_group_output_section` is `true` (the default).
-If a member group name starts with '-', it will never be used (the minus won't be shown).
-Given the following input:
-```cpp
-/// Some int getter.
-/// \output_section Getter functions
-int get_i();
+*   `output_section {name}` - Generates a little section comment in the synopsis above the entity.
+    This is implictly used for member groups with the group name as output section name,
+    if the option `output.show_group_output_section` is `true` (the default).
+    If a member group name starts with '-', it will never be used (the minus won't be shown).
+    Given the following input:
+    ```cpp
+    /// Some int getter.
+    /// \output_section Getter functions
+    int get_i();
 
-/// Some float getter.
-float get_f();
+    /// Some float getter.
+    float get_f();
 
-/// Some int setter.
-/// \output_section Setter functions
-void set_i(int val);
+    /// Some int setter.
+    /// \output_section Setter functions
+    void set_i(int val);
 
-/// Some float setter.
-void set_f(float f);
-```
-It will generate a synopsis like this:
-```cpp
-//=== Getter functions ===//
-int get_i();
+    /// Some float setter.
+    void set_f(float f);
+    ```
+    It will generate a synopsis like this:
+    ```cpp
+    //=== Getter functions ===//
+    int get_i();
 
-float get_f();
+    float get_f();
 
-//=== Setter functions ===//
-void set_i(int val);
+    //=== Setter functions ===//
+    void set_i(int val);
 
-void set_f(float f);
-```
+    void set_f(float f);
+    ```
 
-* `entity {unique-name}` - If put in the first place of a comment, names the entity to document,
-this allows "remote" comments:
-```cpp
-void foo();
+*   `entity {unique-name}` - If put in the first place of a comment, names the entity to document,
+    this allows "remote" comments:
+    ```cpp
+    void foo();
 
-/// \entity foo
-/// This comment has no corresponding entity.
-/// But the command specifies the entity it will belong to.
-```
-It also mixes with `unique_name` as you might expect.
+    /// \entity foo
+    /// This comment has no corresponding entity.
+    /// But the command specifies the entity it will belong to.
+    ```
+    It also mixes with `unique_name` as you might expect.
 
 * `file` - A shorthand for `\entity current-file-name`.
 

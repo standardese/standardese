@@ -115,19 +115,34 @@ namespace standardese
                 return unique_name_;
             }
 
+            /// \effects Sets the output name override.
+            /// \returns whether it wasn't previously set.
+            bool set_output_name(std::string output)
+            {
+                auto set            = synopsis_or_output_.has_value();
+                synopsis_or_output_ = std::move(output);
+                return !set;
+            }
+
+            /// \returns The output override, if there is one.
+            const type_safe::optional<std::string>& output_name() const noexcept
+            {
+                return synopsis_or_output_;
+            }
+
             /// \effects Sets the synopsis override.
             /// \returns whether it wasn't previously set.
             bool set_synopsis(std::string syn)
             {
-                auto set  = synopsis_.has_value();
-                synopsis_ = std::move(syn);
+                auto set            = synopsis_or_output_.has_value();
+                synopsis_or_output_ = std::move(syn);
                 return !set;
             }
 
             /// \returns The synopsis override, if there is one.
             const type_safe::optional<std::string>& synopsis() const noexcept
             {
-                return synopsis_;
+                return synopsis_or_output_;
             }
 
             /// \effects Sets the group.
@@ -178,12 +193,15 @@ namespace standardese
             /// \returns Whether or not any metadata is actually specified.
             bool is_empty() const noexcept
             {
-                return !group_ && !unique_name_ && !synopsis_ && !module_ && !section_ && !exclude_;
+                return !group_ && !unique_name_ && !synopsis_or_output_ && !module_ && !section_
+                       && !exclude_;
             }
 
         private:
+            // note: we can share synopsis override and output
+
             type_safe::optional<member_group> group_;
-            type_safe::optional<std::string>  unique_name_, synopsis_, module_, section_;
+            type_safe::optional<std::string>  unique_name_, synopsis_or_output_, module_, section_;
             type_safe::optional<exclude_mode> exclude_;
         };
     }

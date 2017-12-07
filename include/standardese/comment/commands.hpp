@@ -22,6 +22,7 @@ namespace standardese
 
             exclude,
             unique_name,
+            output_name,
             synopsis,
 
             group,

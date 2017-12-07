@@ -488,6 +488,13 @@ TEST_CASE("commands", "[comment]")
         REQUIRE_THROWS_AS(parse_metadata(R"(\unique_name a b c)"), parse_error);
         REQUIRE_THROWS_AS(parse_metadata("\\unique_name a\n\\unique_name b"), parse_error);
     }
+    SECTION("output_name")
+    {
+        REQUIRE(parse_metadata("foo\nbar").output_name() == type_safe::nullopt);
+        REQUIRE(parse_metadata(R"(\output_name new)").output_name() == "new");
+        REQUIRE_THROWS_AS(parse_metadata(R"(\output_name a b c)"), parse_error);
+        REQUIRE_THROWS_AS(parse_metadata("\\output_name a\n\\output_name b"), parse_error);
+    }
     SECTION("synopsis")
     {
         REQUIRE(parse_metadata("foo\nbar").synopsis() == type_safe::nullopt);

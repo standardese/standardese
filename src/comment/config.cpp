@@ -14,8 +14,11 @@ const char* config::default_command_name(command_type cmd) noexcept
         return "exclude";
     case command_type::unique_name:
         return "unique_name";
+    case command_type::output_name:
+        return "output_name";
     case command_type::synopsis:
         return "synopsis";
+
     case command_type::group:
         return "group";
     case command_type::module:
