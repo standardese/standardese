@@ -224,6 +224,14 @@ standardese::generation_config get_generation_config(const po::variables_map& op
     config.set_flag(standardese::generation_config::inline_doc,
                     get_option<bool>(options, "output.inline_doc").value());
 
+    auto order = get_option<std::string>(options, "output.entity_index_order").value();
+    if (order == "namespace_inline_sorted")
+        config.set_order(standardese::entity_index::namespace_inline_sorted);
+    else if (order == "namespace_external")
+        config.set_order(standardese::entity_index::namespace_external);
+    else
+        throw std::invalid_argument("unknown entity_index_order '" + order + "'");
+
     return config;
 }
 
@@ -374,6 +382,9 @@ int main(int argc, char* argv[])
          "override the name for the template command following the name_ (e.g. template.cmd_name_if=my_if);"
          "standardese prefix will be added automatically")
 
+        ("output.prefix",
+         po::value<std::string>()->default_value(""),
+         "a prefix that will be added to all output files")
         ("output.format",
          po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"html"}, "{html}"),
          "the output format used (html, commonmark, commonmark_html, xml, text)")
@@ -381,9 +392,9 @@ int main(int argc, char* argv[])
          "the file extension of the links to entities, useful if you convert standardese output to a different format and change the extension")
         ("output.link_prefix", po::value<std::string>(),
         "a prefix that will be added to all links, if not specified they'll be relative links")
-        ("output.prefix",
-         po::value<std::string>()->default_value(""),
-         "a prefix that will be added to all output files")
+        ("output.entity_index_order", po::value<std::string>()->default_value("namespace_inline_sorted"),
+         "how the namespaces are handled in the entity index: namespace_inline_sorted (sorted inline with all others), "
+         "namespace_external (namespaces in top-level list only, sorted by the end position in the source file)")
         ("output.section_name_", po::value<std::string>(), // TODO
          "override output name for the section following the name_ (e.g. output.section_name_requires=Require)")
         ("output.tab_width", po::value<unsigned>()->default_value(standardese::synopsis_config::default_tab_width()),

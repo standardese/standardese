@@ -51,10 +51,17 @@ namespace standardese
         void register_namespace(const cppast::cpp_namespace&             ns,
                                 markup::namespace_documentation::builder doc) const;
 
+        /// How the entities are ordered.
+        enum order
+        {
+            namespace_inline_sorted, //< Namespaces inline with other entities, alphabetically sorted.
+            namespace_external, //< Namespaces separate from other entities, alphabetically sorted.
+        };
+
         /// \returns The markup containing the index of all entities registered so far.
         /// \requires This function must only be called once.
         /// \notes This function is thread safe.
-        std::unique_ptr<markup::entity_index> generate() const;
+        std::unique_ptr<markup::entity_index> generate(order o) const;
 
     private:
         struct entity

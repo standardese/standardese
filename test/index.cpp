@@ -40,7 +40,7 @@ namespace ns2
   using b = int;
 }
 
-using c = int;
+using z = int;
 )");
 
     auto brief_doc = markup::brief_section::builder()
@@ -72,7 +72,9 @@ using c = int;
         return true;
     });
 
-    auto xml = R"(<entity-index id="entity-index">
+    SECTION("namespace_inline_sorted")
+    {
+        auto xml = R"(<entity-index id="entity-index">
 <heading>Project index</heading>
 <entity-index-item id="a">
 <entity><documentation-link unresolved-destination-id="a"><code>a</code></documentation-link></entity>
@@ -80,9 +82,6 @@ using c = int;
 <entity-index-item id="b">
 <entity><documentation-link unresolved-destination-id="b"><code>b</code></documentation-link></entity>
 <brief>some brief documentation</brief>
-</entity-index-item>
-<entity-index-item id="c">
-<entity><documentation-link unresolved-destination-id="c"><code>c</code></documentation-link></entity>
 </entity-index-item>
 <namespace-documentation id="ns1">
 <heading>no heading</heading>
@@ -111,9 +110,59 @@ using c = int;
 </entity-index-item>
 </namespace-documentation>
 </namespace-documentation>
+<entity-index-item id="z">
+<entity><documentation-link unresolved-destination-id="z"><code>z</code></documentation-link></entity>
+</entity-index-item>
 </entity-index>
 )";
-    REQUIRE(markup::as_xml(*index.generate()) == xml);
+        REQUIRE(markup::as_xml(*index.generate(entity_index::order::namespace_inline_sorted))
+                == xml);
+    }
+    SECTION("namespace_external")
+    {
+        auto xml = R"(<entity-index id="entity-index">
+<heading>Project index</heading>
+<entity-index-item id="a">
+<entity><documentation-link unresolved-destination-id="a"><code>a</code></documentation-link></entity>
+</entity-index-item>
+<entity-index-item id="b">
+<entity><documentation-link unresolved-destination-id="b"><code>b</code></documentation-link></entity>
+<brief>some brief documentation</brief>
+</entity-index-item>
+<namespace-documentation id="ns1">
+<heading>no heading</heading>
+<entity-index-item id="a">
+<entity><documentation-link unresolved-destination-id="a"><code>a</code></documentation-link></entity>
+</entity-index-item>
+<entity-index-item id="b">
+<entity><documentation-link unresolved-destination-id="b"><code>b</code></documentation-link></entity>
+<brief>some brief documentation</brief>
+</entity-index-item>
+</namespace-documentation>
+<namespace-documentation id="inner">
+<heading>no heading</heading>
+<entity-index-item id="c">
+<entity><documentation-link unresolved-destination-id="c"><code>c</code></documentation-link></entity>
+</entity-index-item>
+</namespace-documentation>
+<namespace-documentation id="ns2">
+<heading>no heading</heading>
+<brief-section>some brief documentation</brief-section>
+<entity-index-item id="a">
+<entity><documentation-link unresolved-destination-id="a"><code>a</code></documentation-link></entity>
+</entity-index-item>
+<entity-index-item id="b">
+<entity><documentation-link unresolved-destination-id="b"><code>b</code></documentation-link></entity>
+<brief>some brief documentation</brief>
+</entity-index-item>
+</namespace-documentation>
+<entity-index-item id="z">
+<entity><documentation-link unresolved-destination-id="z"><code>z</code></documentation-link></entity>
+</entity-index-item>
+</entity-index>
+)";
+        REQUIRE(markup::as_xml(*index.generate(entity_index::order::namespace_external)) == xml);
+    }
 }
 
 TEST_CASE("file_index")

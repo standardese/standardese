@@ -49,6 +49,11 @@ generation_config::flags generation_config::default_flags() noexcept
     return generation_config::inline_doc;
 }
 
+entity_index::order generation_config::default_order() noexcept
+{
+    return entity_index::namespace_inline_sorted;
+}
+
 namespace
 {
     // tag object to mark an excluded entity
@@ -84,16 +89,29 @@ namespace
                && static_cast<const doc_cpp_entity*>(e)->in_member_group();
     }
 
-    std::string get_entity_name(const cppast::cpp_entity& entity)
+    std::string get_entity_name(bool include_scope, const cppast::cpp_entity& entity)
     {
         if (entity.kind() == cppast::cpp_friend::kind())
         {
             auto& friend_ = static_cast<const cppast::cpp_friend&>(entity);
             if (friend_.entity())
-                return friend_.entity().value().name();
+                return get_entity_name(include_scope, friend_.entity().value());
         }
 
-        return entity.name();
+        if (include_scope && entity.parent()
+            && entity.parent().value().kind() == cppast::cpp_namespace::kind())
+        {
+            // add all namespace names
+            std::string scope;
+            for (auto cur = entity.parent();
+                 cur && cur.value().kind() == cppast::cpp_namespace::kind();
+                 cur = cur.value().parent())
+                scope = cur.value().scope_name().value().name() + "::" + scope;
+
+            return scope + entity.name();
+        }
+        else
+            return entity.name();
     }
 
     cppast::code_generator::generation_options get_exclude_mode(
@@ -330,9 +348,10 @@ private:
     {
         update_indent();
 
-        auto cur_e      = entities_.top();
-        auto doc_e      = get_doc_entity(*cur_e);
-        auto needs_link = !is_main_entity(*cur_e) && identifier.c_str() == get_entity_name(*cur_e);
+        auto cur_e = entities_.top();
+        auto doc_e = get_doc_entity(*cur_e);
+        auto needs_link =
+            !is_main_entity(*cur_e) && identifier.c_str() == get_entity_name(false, *cur_e);
 
         if (needs_link && doc_e)
             write_link(*doc_e, identifier);
@@ -675,7 +694,7 @@ namespace
     {
         if (comment && comment.value().brief_section())
         {
-            auto term = markup::term::build(markup::code::build(get_entity_name(e)));
+            auto term = markup::term::build(markup::code::build(get_entity_name(false, e)));
 
             markup::description::builder description;
             for (auto& phrasing : comment.value().brief_section().value())
@@ -732,7 +751,7 @@ std::unique_ptr<markup::documentation_entity> doc_cpp_entity::do_generate_docume
     {
         markup::entity_documentation::builder builder(entity_, get_documentation_id(),
                                                       get_header(*entity_, comment(),
-                                                                 get_entity_name(*entity_)),
+                                                                 get_entity_name(true, *entity_)),
                                                       std::move(synopsis));
         if (comment())
             comment::set_sections(builder, comment().value());
@@ -839,7 +858,8 @@ markup::namespace_documentation::builder doc_cpp_namespace::get_builder() const
 {
     markup::namespace_documentation::builder builder(entity_, get_documentation_id(),
                                                      get_header(namespace_(), comment(),
-                                                                namespace_().name()));
+                                                                get_entity_name(true,
+                                                                                namespace_())));
     if (comment())
         comment::set_sections(builder, comment().value());
     return builder;
