@@ -149,7 +149,7 @@ namespace
 
     void generate_output_section(const cppast::code_generator::output& code, bool is_main,
                                  bool show_group_section, const comment::metadata& metadata,
-                                 const std::string&, type_safe::optional<unsigned> group_member_no)
+                                 type_safe::optional<unsigned> group_member_no)
     {
         if (generate_output_section(code, is_main, metadata))
             return;
@@ -478,7 +478,7 @@ cppast::code_generator::generation_options doc_cpp_entity::do_get_generation_opt
     return options;
 }
 
-void doc_cpp_entity::do_generate_synopsis_prefix(const cppast::code_generator::output& code,
+void doc_cpp_entity::do_generate_synopsis_prefix(const cppast::code_generator::output& output,
                                                  const synopsis_config& config, bool is_main) const
 {
     auto metadata =
@@ -486,17 +486,48 @@ void doc_cpp_entity::do_generate_synopsis_prefix(const cppast::code_generator::o
 
     if (metadata)
     {
-        generate_output_section(code, is_main,
+        generate_output_section(output, is_main,
                                 config.is_flag_set(synopsis_config::show_group_output_section),
-                                metadata.value(), link_name(), group_member_no_);
+                                metadata.value(), group_member_no_);
         if (is_main)
-            generate_group_number(code, metadata.value(), group_member_no_);
+            generate_group_number(output, metadata.value(), group_member_no_);
 
-        generate_synopsis_override(code, metadata.value());
+        generate_synopsis_override(output, metadata.value());
     }
 }
 
 void doc_cpp_entity::do_generate_code(cppast::code_generator& generator) const
+{
+    cppast::generate_code(generator, entity());
+}
+
+cppast::code_generator::generation_options doc_metadata_entity::do_get_generation_options(
+    const synopsis_config&, bool is_main) const
+{
+    auto metadata = comment().value().metadata();
+
+    auto options = get_exclude_mode(type_safe::ref(metadata));
+    if (!is_main)
+        options |= cppast::code_generator::declaration;
+    if (metadata.synopsis())
+        options |= cppast::code_generator::custom;
+
+    return options;
+}
+
+void doc_metadata_entity::do_generate_synopsis_prefix(const cppast::code_generator::output& output,
+                                                      const synopsis_config&                config,
+                                                      bool is_main) const
+{
+    auto metadata = comment().value().metadata();
+
+    generate_output_section(output, is_main,
+                            config.is_flag_set(synopsis_config::show_group_output_section),
+                            metadata, type_safe::nullopt);
+    generate_synopsis_override(output, metadata);
+}
+
+void doc_metadata_entity::do_generate_code(cppast::code_generator& generator) const
 {
     cppast::generate_code(generator, entity());
 }
@@ -801,6 +832,13 @@ std::unique_ptr<markup::documentation_entity> doc_cpp_entity::do_generate_docume
     return nullptr;
 }
 
+std::unique_ptr<markup::documentation_entity> doc_metadata_entity::do_generate_documentation(
+    const generation_config&, const synopsis_config&, const cppast::cpp_entity_index&,
+    type_safe::optional_ref<detail::inline_entity_list>, std::unique_ptr<markup::code_block>) const
+{
+    return nullptr;
+}
+
 std::unique_ptr<markup::documentation_entity> doc_member_group_entity::do_generate_documentation(
     const generation_config& gen_config, const synopsis_config& syn_config,
     const cppast::cpp_entity_index&                     index,
@@ -901,6 +939,13 @@ doc_cpp_entity::builder::builder(std::string                                    
 {
     assert(entity->kind() != cppast::cpp_file::kind()
            && entity->kind() != cppast::cpp_namespace::kind());
+    peek().entity().set_user_data(&peek());
+}
+
+doc_metadata_entity::builder::builder(type_safe::object_ref<const cppast::cpp_entity>   entity,
+                                      type_safe::object_ref<const comment::doc_comment> comment)
+: basic_builder(std::unique_ptr<doc_metadata_entity>(new doc_metadata_entity(entity, comment)))
+{
     peek().entity().set_user_data(&peek());
 }
 
@@ -1084,6 +1129,23 @@ namespace
         return builder.finish();
     }
 
+    std::unique_ptr<doc_metadata_entity> build_metadata_entity(const comment_registry&   registry,
+                                                               const cppast::cpp_entity& e,
+                                                               const entity_blacklist&   blacklist)
+    {
+        auto comment = registry.get_comment(e);
+        if (!comment)
+            return nullptr;
+
+        doc_metadata_entity::builder builder(type_safe::ref(e), type_safe::ref(comment.value()));
+        detail::visit_children(e, [&](const cppast::cpp_entity&         entity,
+                                      cppast::cpp_access_specifier_kind access) {
+            if (auto child = build_entity(registry, entity, access, blacklist))
+                builder.add_child(std::move(child));
+        });
+        return builder.finish();
+    }
+
     std::unique_ptr<doc_member_group_entity> build_member_group(const comment_registry& registry,
                                                                 const std::string&      group_name,
                                                                 const cppast::cpp_entity& e,
@@ -1132,8 +1194,8 @@ namespace
             return nullptr;
         else if (is_ignored(e)
                  || (e.kind() == cppast::cpp_friend::kind() && !is_friend_func_def(e)))
-            // those can't be documented
-            return nullptr;
+            // those can only be documented as metadata
+            return build_metadata_entity(registry, e, blacklist);
         else if (e.kind() == cppast::cpp_namespace::kind())
             return build_namespace(registry, static_cast<const cppast::cpp_namespace&>(e),
                                    blacklist);

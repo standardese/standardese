@@ -192,6 +192,7 @@ namespace standardese
             excluded,      //< [standardese::doc_excluded_entity]()
             member_group,  //< [standardese::doc_member_group_entity]()
             cpp_entity,    //< [standardese::doc_cpp_entity]()
+            metadata,      //< [standardese::doc_metadata_entity]()
             cpp_namespace, //< [standardese::doc_cpp_namespace]()
             cpp_file,      //< [standardese::doc_cpp_file]()
         };
@@ -245,7 +246,6 @@ namespace standardese
                    type_safe::optional_ref<const comment::doc_comment> comment)
         : link_name_(std::move(link_name)), comment_(comment)
         {
-            assert(!link_name_.empty());
         }
 
         template <typename T>
@@ -330,6 +330,7 @@ namespace standardese
 
         friend class doc_excluded_entity;
         friend class doc_cpp_entity;
+        friend class doc_metadata_entity;
         friend class doc_member_group_entity;
         friend class doc_cpp_namespace;
         friend class doc_cpp_file;
@@ -446,7 +447,7 @@ namespace standardese
         cppast::code_generator::generation_options do_get_generation_options(
             const synopsis_config& config, bool is_main) const override;
 
-        void do_generate_synopsis_prefix(const cppast::code_generator::output& code,
+        void do_generate_synopsis_prefix(const cppast::code_generator::output& output,
                                          const synopsis_config&                config,
                                          bool is_main) const override;
 
@@ -456,6 +457,62 @@ namespace standardese
         type_safe::object_ref<const cppast::cpp_entity> entity_;
 
         friend class doc_member_group_entity;
+    };
+
+    /// A metadata only C++ entity.
+    ///
+    /// This will be the user data of all entities that can't be documented but still have metadata.
+    /// Examples would be include directives or using declarations.
+    class doc_metadata_entity final : public doc_entity
+    {
+    public:
+        /// Builds an entity.
+        class builder : public doc_entity::basic_builder<doc_metadata_entity>
+        {
+        public:
+            builder(type_safe::object_ref<const cppast::cpp_entity>   entity,
+                    type_safe::object_ref<const comment::doc_comment> comment);
+        };
+
+        /// \returns The corresponding entity.
+        const cppast::cpp_entity& entity() const noexcept
+        {
+            return *entity_;
+        }
+
+    private:
+        doc_metadata_entity(type_safe::object_ref<const cppast::cpp_entity>   entity,
+                            type_safe::object_ref<const comment::doc_comment> comment)
+        : doc_entity(entity->name(), comment), entity_(entity)
+        {
+        }
+
+        entity_kind do_get_kind() const noexcept override
+        {
+            return doc_entity::metadata;
+        }
+
+        markup::block_id do_get_id() const override
+        {
+            return parent().value().get_documentation_id();
+        }
+
+        std::unique_ptr<markup::documentation_entity> do_generate_documentation(
+            const generation_config& gen_config, const synopsis_config& syn_config,
+            const cppast::cpp_entity_index&                     index,
+            type_safe::optional_ref<detail::inline_entity_list> inlines,
+            std::unique_ptr<markup::code_block>                 synopsis) const override;
+
+        cppast::code_generator::generation_options do_get_generation_options(
+            const synopsis_config& config, bool is_main) const override;
+
+        void do_generate_synopsis_prefix(const cppast::code_generator::output& output,
+                                         const synopsis_config&                config,
+                                         bool is_main) const override;
+
+        void do_generate_code(cppast::code_generator& generator) const override;
+
+        type_safe::object_ref<const cppast::cpp_entity> entity_;
     };
 
     /// The documentation entity representing a member group.

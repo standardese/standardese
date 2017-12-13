@@ -25,6 +25,9 @@ std::string debug_string(const standardese::doc_entity& entity, unsigned level =
     case doc_entity::member_group:
         result += "group";
         break;
+    case doc_entity::metadata:
+        result += "metadata";
+        break;
     case doc_entity::cpp_entity:
         result += "entity";
         break;
@@ -36,7 +39,9 @@ std::string debug_string(const standardese::doc_entity& entity, unsigned level =
         break;
     }
 
-    result += " - " + entity.link_name() + '\n';
+    if (!entity.link_name().empty())
+        result += " - " + entity.link_name() + '\n';
+
     for (auto& child : entity)
         result += debug_string(child, level + 1u);
 
@@ -64,6 +69,11 @@ namespace ns
 
    type<int> func(b param);
 }
+
+/// foo
+using ns::func;
+
+using ns::func;
 )");
 
         REQUIRE(debug_string(*file) == R"(
@@ -77,7 +87,7 @@ file - doc_entity__basic
       entity - ns::type<T>::b
     entity - ns::func(b)
       entity - ns::func(b).param
-)");
+  metadata)");
     }
     SECTION("ignored")
     {
