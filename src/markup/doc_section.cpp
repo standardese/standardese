@@ -40,6 +40,12 @@ namespace
             return "error-conditions";
         case section_type::notes:
             return "notes";
+        case section_type::preconditions:
+            return "preconditions";
+        case section_type::constraints:
+            return "constraints";
+        case section_type::diagnostics:
+            return "diagnostics";
 
         case section_type::see:
             return "see";

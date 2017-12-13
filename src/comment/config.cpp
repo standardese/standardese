@@ -70,6 +70,14 @@ const char* config::default_command_name(section_type cmd) noexcept
     case section_type::notes:
         return "notes";
 
+    case section_type::preconditions:
+        return "preconditions";
+
+    case section_type::constraints:
+        return "constraints";
+    case section_type::diagnostics:
+        return "diagnostics";
+
     case section_type::see:
         return "see";
 
@@ -128,6 +136,14 @@ const char* config::default_inline_section_name(section_type section) noexcept
     case section_type::notes:
         return "Notes";
 
+    case section_type::preconditions:
+        return "Preconditions";
+
+    case section_type::constraints:
+        return "Constraints";
+    case section_type::diagnostics:
+        return "Diagnostics";
+
     case section_type::see:
         return "See";
 
@@ -166,6 +182,14 @@ const char* config::default_list_section_name(section_type section) noexcept
         return "Error conditions";
     case section_type::notes:
         return "Notes";
+
+    case section_type::preconditions:
+        return "Preconditions";
+
+    case section_type::constraints:
+        return "Constraints";
+    case section_type::diagnostics:
+        return "Diagnostics";
 
     case section_type::see:
         return "See also";

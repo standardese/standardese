@@ -32,6 +32,12 @@ namespace standardese
             error_conditions,
             notes,
 
+            preconditions, //< For consistency with postconditions.
+
+            // proposed by p0788, not including ensures and expects
+            constraints, //< Compile-time requirements.
+            diagnostics, //< Compile-time requirements that will yield error message (`static_assert()`).
+
             see,
 
             count,

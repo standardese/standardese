@@ -401,6 +401,9 @@ namespace
         case section_type::remarks:
         case section_type::error_conditions:
         case section_type::notes:
+        case section_type::preconditions:
+        case section_type::constraints:
+        case section_type::diagnostics:
         case section_type::see:
         {
             if (detail::get_section_key(node))
