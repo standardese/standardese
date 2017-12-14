@@ -241,6 +241,18 @@ namespace standardese
             return parent_;
         }
 
+        /// \returns Whether or not it was injected and is not actually a child of the parent.
+        bool is_injected() const noexcept
+        {
+            return injected_;
+        }
+
+        /// \effects Marks an entity as injected.
+        void mark_injected() noexcept
+        {
+            injected_ = true;
+        }
+
     private:
         doc_entity(std::string                                         link_name,
                    type_safe::optional_ref<const comment::doc_comment> comment)
@@ -318,6 +330,7 @@ namespace standardese
         std::vector<std::unique_ptr<doc_entity>>            children_;
         type_safe::optional_ref<const doc_entity>           parent_;
         type_safe::optional_ref<const comment::doc_comment> comment_;
+        bool                                                injected_ = false;
 
         friend class detail::markdown_code_generator;
         friend std::unique_ptr<markup::code_block> generate_synopsis(
@@ -735,8 +748,8 @@ namespace standardese
     /// \notes The file output name is merely a suggestion, may be overriden by comment of file.
     std::unique_ptr<doc_cpp_file> build_doc_entities(
         type_safe::object_ref<const comment_registry> registry,
-        std::unique_ptr<cppast::cpp_file> file, std::string output_name,
-        const entity_blacklist& blacklist);
+        const cppast::cpp_entity_index& index, std::unique_ptr<cppast::cpp_file> file,
+        std::string output_name, const entity_blacklist& blacklist);
 } // namespace standardese
 
 #endif // STANDARDESE_DOC_ENTITY_HPP_INCLUDED

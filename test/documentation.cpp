@@ -312,9 +312,9 @@ namespace ns
         parser.parse(type_safe::ref(*cpp_file_c));
         comments = parser.finish();
 
-        auto file_a = build_doc_entities(comments, std::move(cpp_file_a));
-        auto file_b = build_doc_entities(comments, std::move(cpp_file_b));
-        auto file_c = build_doc_entities(comments, std::move(cpp_file_c));
+        auto file_a = build_doc_entities(comments, index, std::move(cpp_file_a));
+        auto file_b = build_doc_entities(comments, index, std::move(cpp_file_b));
+        auto file_c = build_doc_entities(comments, index, std::move(cpp_file_c));
 
         entity_index eindex;
         register_index_entities(eindex, file_a->file());

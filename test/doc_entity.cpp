@@ -222,4 +222,38 @@ file - doc_entity__member_groups
     entity - bar()
 )");
     }
+    SECTION("base inline")
+    {
+        auto file = build_doc_entities(comments, {}, "doc_entity__base_inline", R"(
+/// \exclude
+struct base_base
+{
+    void a();
+};
+
+/// \exclude
+struct base : base_base
+{
+    void b();
+};
+
+/// \exclude
+struct hidden_base {};
+
+class foo
+: public base, private hidden_base
+{
+public:
+    void c();
+};
+)");
+
+        REQUIRE(debug_string(*file) == R"(
+file - doc_entity__base_inline
+  entity - foo
+    entity - base_base::a()
+    entity - base::b()
+    entity - foo::c()
+)");
+    }
 }

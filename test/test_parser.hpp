@@ -63,11 +63,11 @@ inline standardese::comment_registry parse_comments(const cppast::cpp_file& file
 }
 
 inline std::unique_ptr<standardese::doc_cpp_file> build_doc_entities(
-    const standardese::comment_registry& comments, std::unique_ptr<cppast::cpp_file> file,
-    const standardese::entity_blacklist& blacklist = {})
+    const standardese::comment_registry& comments, const cppast::cpp_entity_index& index,
+    std::unique_ptr<cppast::cpp_file> file, const standardese::entity_blacklist& blacklist = {})
 {
     auto name = file->name();
-    return standardese::build_doc_entities(type_safe::ref(comments), std::move(file),
+    return standardese::build_doc_entities(type_safe::ref(comments), index, std::move(file),
                                            std::move(name), blacklist);
 }
 
@@ -77,7 +77,7 @@ inline std::unique_ptr<standardese::doc_cpp_file> build_doc_entities(
 {
     auto file = parse_file(index, name, source);
     comments.merge(parse_comments(*file));
-    return build_doc_entities(comments, std::move(file), blacklist);
+    return build_doc_entities(comments, index, std::move(file), blacklist);
 }
 
 #endif // STANDARDESE_TEST_PARSER_HPP_INCLUDED

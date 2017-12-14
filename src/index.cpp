@@ -211,7 +211,7 @@ void standardese::register_index_entities(const entity_index& index, const cppas
                                   },
                                   [&](const cppast::cpp_namespace& ns) {
                                       auto doc_e = static_cast<const doc_entity*>(ns.user_data());
-                                      if (!doc_e->is_excluded())
+                                      if (doc_e && !doc_e->is_excluded())
                                           // it's not an excluded entity, so register it
                                           index.register_namespace(ns,
                                                                    static_cast<

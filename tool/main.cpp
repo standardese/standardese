@@ -336,7 +336,7 @@ int main(int argc, char* argv[])
          "C++ namespace names (with all children) that are forbidden")
         ("input.force_blacklist",
          po::value<bool>()->implicit_value(true)->default_value(false),
-         "force the blacklist for explictly given files")
+         "force the blacklist for explicitly given files")
         ("input.require_comment",
          po::value<bool>()->implicit_value(true)->default_value(true),
          "only generates documentation for entities that have a documentation comment")
@@ -450,8 +450,9 @@ int main(int argc, char* argv[])
                 std::clog << "parsing documentation comments...\n";
                 auto comments =
                     standardese_tool::parse_comments(comment_config, parsed.value(), no_threads);
-                auto files = standardese_tool::build_files(comments, std::move(parsed.value()),
-                                                           blacklist, no_threads);
+                auto files =
+                    standardese_tool::build_files(comments, index, std::move(parsed.value()),
+                                                  blacklist, no_threads);
 
                 std::clog << "generating documentation...\n";
                 auto docs = standardese_tool::generate(generation_config, synopsis_config, comments,
