@@ -111,6 +111,8 @@ inline cppast::cpp_standard parse_standard(const std::string& str)
         return cpp_standard::cpp_11;
     else if (str == "c++14")
         return cpp_standard::cpp_14;
+    else if (str == "c++1z" || str == "c++17")
+        return cpp_standard::cpp_1z;
     else
         throw std::invalid_argument("invalid C++ standard '" + str + "'");
 }
