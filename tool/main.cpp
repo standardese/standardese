@@ -111,6 +111,8 @@ inline cppast::cpp_standard parse_standard(const std::string& str)
         return cpp_standard::cpp_11;
     else if (str == "c++14")
         return cpp_standard::cpp_14;
+    else if (str == "c++1z" || str == "c++17")
+        return cpp_standard::cpp_1z;
     else
         throw std::invalid_argument("invalid C++ standard '" + str + "'");
 }
@@ -347,7 +349,7 @@ int main(int argc, char* argv[])
         ("compilation.commands_dir", po::value<std::string>(),
          "the directory where a compile_commands.json is located, its options have lower priority than the other ones")
         ("compilation.standard", po::value<std::string>()->default_value("c++14"),
-         "the C++ standard to use for parsing, valid values are c++98/03/11/14")
+         "the C++ standard to use for parsing, valid values are c++98/03/11/14/1z/17")
         ("compilation.include_dir,I", po::value<std::vector<std::string>>(),
          "adds an additional include directory to use for parsing")
         ("compilation.macro_definition,D", po::value<std::vector<std::string>>(),
