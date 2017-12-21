@@ -145,6 +145,13 @@ namespace
         return c == ' ' || c == '\t' || c == '\n';
     }
 
+    bool is_special_char(char c)
+    {
+        // basically ispunct but allow [ and ] and _
+        static auto str = R"(!\"#$%&'()*+,-./:;<=>?@\^`{|}~)";
+        return std::strchr(str, c) != 0;
+    }
+
     void skip_whitespace(char*& cur)
     {
         while (*cur && is_whitespace(*cur))
@@ -153,11 +160,15 @@ namespace
 
     std::string parse_word(char*& cur)
     {
+        auto save = cur;
         skip_whitespace(cur);
 
         std::string word;
-        for (; *cur && !is_whitespace(*cur) && *cur != '-'; ++cur)
+        for (; *cur && !is_special_char(*cur) && !is_whitespace(*cur) && *cur != '-'; ++cur)
             word += *cur;
+
+        if (word.empty())
+            cur = save;
 
         return word;
     }
@@ -179,6 +190,9 @@ namespace
     {
         auto save       = cur;
         auto first_word = parse_word(cur);
+        if (first_word.empty())
+            return type_safe::nullopt;
+
         skip_whitespace(cur);
         if (*cur == '-')
         {
@@ -450,7 +464,8 @@ namespace
 
                     auto contents = next;
                     next          = split_section(contents, false);
-                    cmark_node_append_child(cur, contents);
+                    auto res      = cmark_node_append_child(cur, contents);
+                    assert(res);
                 }
             }
             else if (cmark_node_get_type(cur) == node_inline_tmp())

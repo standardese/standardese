@@ -415,6 +415,8 @@ It requires extra long description.
 \returns Default returns.
 \notes This terminates.
 
+\effects -> really weird
+
 \see [foo] - Optional description.
 \see [bar]-
 
@@ -435,6 +437,7 @@ It requires extra long description.</description>
 </list-item>
 </list-section>
 <inline-section name="Notes">This terminates.</inline-section>
+<inline-section name="Effects">-&gt; really weird</inline-section>
 <list-section name="See also">
 <term-description-item>
 <term><documentation-link unresolved-destination-id="foo">foo</documentation-link></term>
