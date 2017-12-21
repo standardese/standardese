@@ -411,11 +411,17 @@ namespace
             else
             {
                 auto paragraph = cmark_node_first_child(node);
-                return markup::inline_section::build(detail::get_section_type(node),
-                                                     c.inline_section_name(
-                                                         detail::get_section_type(node)),
-                                                     parse_paragraph(c, has_matching_entity,
-                                                                     paragraph));
+                if (paragraph)
+                    return markup::inline_section::build(detail::get_section_type(node),
+                                                         c.inline_section_name(
+                                                             detail::get_section_type(node)),
+                                                         parse_paragraph(c, has_matching_entity,
+                                                                         paragraph));
+                else
+                    return markup::inline_section::build(detail::get_section_type(node),
+                                                         c.inline_section_name(
+                                                             detail::get_section_type(node)),
+                                                         markup::paragraph::builder().finish());
             }
         }
 

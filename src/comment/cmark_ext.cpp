@@ -432,7 +432,8 @@ namespace
                 need_brief.reset(); // don't need implicit brief
                 cmark_node_set_type(cur, node_section());
 
-                if (cmark_node_get_start_line(next) == cmark_node_get_start_line(cur))
+                if (cmark_node_get_start_line(next) == cmark_node_get_start_line(cur)
+                    || cmark_node_get_start_line(next) == cmark_node_get_start_line(cur) + 1)
                 {
                     // next node can be contents of section, so add it
 

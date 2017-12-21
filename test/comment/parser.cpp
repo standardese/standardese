@@ -351,7 +351,10 @@ Still effects.
 
 Details again.
 
-\returns Explicit returns.
+\requires
+
+\returns
+Explicit returns.
 \returns Different returns.\
 Details again.
 \notes Explicit notes.
@@ -368,6 +371,7 @@ Still effects.</inline-section>
 <details-section>
 <paragraph>Details again.</paragraph>
 </details-section>
+<inline-section name="Requires"></inline-section>
 <inline-section name="Returns">Explicit returns.</inline-section>
 <inline-section name="Returns">Different returns.</inline-section>
 <details-section>
