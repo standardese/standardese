@@ -4,7 +4,7 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/1aw8ml5lawu4mtyv/branch/master?svg=true)](https://ci.appveyor.com/project/foonathan/standardese/branch/master)
 [![Join the chat at https://gitter.im/foonathan/standardese](https://badges.gitter.im/foonathan/standardese.svg)](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-***Note:** The development branch is currently getting a major overhaul, this README is partly out of data and some features are missing.*
+***Note:** The development branch is currently getting a major overhaul, this README is partly out of date and some features are missing.*
 
 Standardese aims to be a nextgen [Doxygen](http://doxygen.org).
 It consists of two parts: a library and a tool.
@@ -17,9 +17,14 @@ It supports a couple of output formats including Markdown and HTML as well as ex
 
 Read more in the introductory [blog post](http://foonathan.github.io/blog/2016/05/06/standardese-nextgen-doxygen.html).
 
+[![Patreon](https://c5.patreon.com/external/logo/become_a_patron_button.png)](https://patreon.com/foonathan)
+
+If you like this project, consider supporting me on Patreon.
+It would really help!
+
 ## Basic example
 
-Consider the following C++ header file:
+Consider the following C++ header file named `swap.hpp`:
 
 ```cpp
 #include <type_traits>
@@ -37,36 +42,34 @@ namespace std
 
 This will generate the following documentation:
 
-# Header file `swap.cpp`
-
-
-```cpp
-#include <type_traits>
-
-namespace std
-{
-    template <typename T>
-    void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
-    is_nothrow_move_assignable<T>::value);
-}
-```
-
-
-## Function template ``swap<T>``
-
-
-```cpp
-template <typename T>
-void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
-is_nothrow_move_assignable<T>::value);
-```
-
-
-*Effects:* Exchanges values stored in two locations.
-
-*Requires:* Type `T` shall be `MoveConstructible` and `MoveAssignable`.
-
----
+> # Header file `swap.hpp`
+>
+>
+> ```cpp
+> #include <type_traits>
+>
+> namespace std
+> {
+>     template <typename T>
+>     void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
+>     is_nothrow_move_assignable<T>::value);
+> }
+> ```
+>
+>
+> ## Function template ``swap<T>``
+>
+>
+> ```cpp
+> template <typename T>
+> void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
+> is_nothrow_move_assignable<T>::value);
+> ```
+>
+>
+> *Effects:* Exchanges values stored in two locations.
+>
+> *Requires:* Type `T` shall be `MoveConstructible` and `MoveAssignable`.
 
 The example makes it already clear:
 Standardese aims to provide a documentation in a similar way to the C++ standard - hence the name.
@@ -78,57 +81,10 @@ For a more complete example check out [my Meeting C++ Lightning Talk](https://ww
 
 ## Installation
 
-Standardese uses [CMake](https://cmake.org/) as build system.
-Simply clone the project and run `cmake -DSTANDARDESE_BUILD_TEST=OFF <source_dir>` followed by `cmake --build . --target install` to build the library and the tool and install it on your system.
-
-Both require libclang - only tested with version `3.7.1` and `3.8`.
-If it isn't found, set the CMake variable `LIBCLANG_INCLUDE_DIR` to the folder where `clang-c/Index.h` is located,
-`LIBCLANG_LIBRARY` to the library binary and `LIBCLANG_SYSTEM_INCLUDE_DIR` where the system include files are located,
-under a normal (Linux) installation it is `/usr/lib/clang/<version>/include`.
-
-It also requires a path to the `clang++` binary.
-If that isn't found while building, you need to specify it with the option `compilation.clang_binary`.
-
-The library requires Boost.Filesystem (at least 1.55) and the tool requires Boost.ProgramOptions.
-By default, Boost libraries are linked dynamically (except for Boost.ProgramOptions which is always linked statically),
-but if you wish to link them statically, just add `-DBoost_USE_STATIC_LIBS=ON` to the cmake command.
-
-Once built, simply run `standardese --help` for commandline usage.
-
-### Arch Linux
-
-Thanks to [@verri](https://github.com/verri) for maintaining the [AUR package standardese-git](https://aur.archlinux.org/packages/standardese-git/).
-Install it via [yaourt](https://archlinux.fr/yaourt-en) or [makepkg](https://wiki.archlinux.org/index.php/Arch_User_Repository#Build_and_install_the_package).
-
-### Windows
-
-There is a pre-built binary for Windows 64 Bit, found in the [release pages](https://github.com/foonathan/standardese/releases), built with Appveyor and MSVC 14.
-You need to install [libclang](http://llvm.org/releases/download.html) but should work out the box otherwise.
-
-### Travis CI
-
-There are pre-built binaries for Travis CI (both MacOS and Linux), useful for building documentation on your CI system.
-Under MacOs you are good to go, but Linux needs an update of libstdc++ and Boost 1.55:
-
-```
-addons:
-  apt:
-    sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-    packages: ['g++-5', 'libboost1.55-all-dev']
-```
-For convenience you can use the script `travis_get_standardese.sh`.
-It will download libclang and the `standardese` binary.
-You can use it like so:
-
-```
-wget https://raw.githubusercontent.com/foonathan/standardese/travis_get_standardese.sh
-STANDARDESE_TAG=tag-name . travis_get_standardese.sh
-./standardese/standardese --version
-```
+TODO, update for cppast
 
 ## Documentation
 
-> Disclaimer: Due to the lack of proper tooling there is currently no good documentation.
 > If you need help or encounter a problem please contact me [on gitter](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge), I'll usually answer within a day or faster.
 
 ### Basic commandline usage
@@ -247,10 +203,10 @@ Inside the comment you can use arbitrary\* Markdown\* in the documentation comme
 > Inline HTML that isn't a raw HTML block will be treated as literal text.
 > This allows writing `vector<T>` without markup or escaping in the comment, for example.
 
-* Note: CommonMark allows hard line breaks with a backslash at the end of the line.
+*Note: CommonMark allows hard line breaks with a backslash at the end of the line.
 But the C preprocessor uses a backslash to combine multiple lines into one.
 For that reason you cannot use a backslash there,
-instead you can use a forward slash. *
+instead you can use a forward slash.*
 
 #### Linking
 
@@ -489,7 +445,7 @@ Use `_` as argument for an empty key.
 Surround the argument in `[<arg>]` and it will create a link where `<arg>` is also the destination,
 i.e. like a regular entity link of the form `[<arg>]()`.
 
-* Note: Due to implementation reason you can't use a real CommonMark link as key. *
+*Note: Due to implementation reason you can't use a real CommonMark link as key.*
 
 The value consists of CommonnMark inline formatting until the reset of the section or a new key is encountered.
 For example:
@@ -524,15 +480,10 @@ because you cannot put a corresponding comment there.
 As such they are shorthands for the `\entity unique-name` command.
 They are followed by the name of entity they refer to.
 
-> Technically, `param` and `tparam` are alias, so it doesn't matter which one you use.
-> You must use `base` to refer to base classes, however,
-> because template parameters and base classes can have the same name.
-
 The *inline* and argument is stripped from the text.
 The rest of the line will be treated as `brief` documentation.
 Like a *section*, an *inline* ends when a new special command or hard line break is encountered or a paragraph ends.
-
-> Note: You cannot use *sections* in *inlines*.
+You can include sections in inlines, however.
 
 For example:
 
@@ -549,6 +500,8 @@ void func(int foo, int bar);
 ```
 
 ### Template syntax overview
+
+> *Note:* Not implemented on develop at the moment.
 
 If you pass a file that is not a source file, it will be treated as template file and processed.
 This allows advanced control over the output or writing additional documentation files.
@@ -632,7 +585,12 @@ The most basic template will just generate the output as standardese would do no
 
 ## Acknowledgements
 
-Thanks a lot to:
+This project is greatly supported by my [patrons](https://patreon.com/foonathan).
+In particular thanks to the individual supporters:
+
+* Sina
+
+Thanks a lot to the contributors as well:
 
 * Manu @Manu343726 Sánchez, as always
 
@@ -649,5 +607,7 @@ Thanks a lot to:
 * John @johnmcfarlane McFarlane, for issue reporting
 
 * Filipe @verri Verri, for maintaining the AUR package
+
+* @topisani, for issue reporting and bugfixes
 
 And everyone else who shares and uses this project!
