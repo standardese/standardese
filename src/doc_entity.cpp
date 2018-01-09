@@ -1143,9 +1143,20 @@ namespace
     {
         auto base_class = cppast::get_class(index, base);
         auto comment    = base_class ? registry.get_comment(base_class.value()) : nullptr;
-        if (base.access_specifier() != cppast::cpp_private && base_class
-            && is_excluded(base_class.value(), cppast::cpp_public, comment, index, blacklist))
+
+        if (!base_class)
+            return nullptr;
+
+        auto is_excluded =
+            ::is_excluded(base_class.value(), cppast::cpp_public, comment, index, blacklist);
+        if (base.access_specifier() != cppast::cpp_private && base_class && is_excluded)
             return base_class;
+        else if (is_excluded)
+        {
+            // exclude base class declaration
+            base.set_user_data(&excluded_entity);
+            return nullptr;
+        }
         else
             return nullptr;
     }
@@ -1261,6 +1272,13 @@ namespace
         return builder.finish();
     }
 
+    void exclude_children(const cppast::cpp_entity& e)
+    {
+        cppast::visit(e, [&](const cppast::cpp_entity& child, const cppast::visitor_info&) {
+            child.set_user_data(&excluded_entity);
+        });
+    }
+
     std::unique_ptr<doc_entity> build_entity(const comment_registry&           registry,
                                              const cppast::cpp_entity_index&   index,
                                              const cppast::cpp_entity&         e,
@@ -1271,6 +1289,7 @@ namespace
         if (is_excluded(e, access, comment, index, blacklist))
         {
             e.set_user_data(&excluded_entity);
+            exclude_children(e);
             return nullptr;
         }
         else if (cppast::is_templated(e) || cppast::is_friended(e))
