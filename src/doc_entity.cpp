@@ -4,6 +4,7 @@
 
 #include <standardese/doc_entity.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <cctype>
 #include <stack>
@@ -1141,6 +1142,20 @@ namespace
             }
             else
                 return false;
+        }
+        else if (e.kind() == cppast::cpp_using_declaration::kind())
+        {
+            auto target = static_cast<const cppast::cpp_using_declaration&>(e).target().get(index);
+            // excluded if any of the targets are excluded
+            return std::all_of(target.begin(), target.end(),
+                               [&](const type_safe::object_ref<const cppast::cpp_entity>& entity) {
+                                   if (entity->user_data()
+                                       && entity->user_data() == &excluded_entity)
+                                       return true;
+                                   else
+                                       return is_excluded(*entity, cppast::cpp_public, comment,
+                                                          index, blacklist);
+                               });
         }
         else
             return false;
