@@ -344,7 +344,7 @@ private:
                        || !entity.comment().value().sections().empty());
     }
 
-    void write_link(const doc_entity& entity, cppast::string_view name)
+    bool write_link(const doc_entity& entity, cppast::string_view name)
     {
         if (is_documented(entity))
         {
@@ -354,9 +354,14 @@ private:
             builder_.add_child(link.finish());
         }
         else if (entity.is_excluded())
+        {
             write_excluded();
+            return false;
+        }
         else
             write_identifier(name);
+
+        return true;
     }
 
     void do_write_identifier(cppast::string_view identifier) override
@@ -374,7 +379,7 @@ private:
             write_identifier(identifier);
     }
 
-    void do_write_reference(type_safe::array_ref<const cppast::cpp_entity_id> id,
+    bool do_write_reference(type_safe::array_ref<const cppast::cpp_entity_id> id,
                             cppast::string_view                               name) override
     {
         update_indent();
@@ -388,9 +393,11 @@ private:
         }
 
         if (entity && get_doc_entity(entity.value()))
-            write_link(*get_doc_entity(entity.value()), name);
+            return write_link(*get_doc_entity(entity.value()), name);
         else
             write_identifier(name);
+
+        return true;
     }
 
     void do_write_punctuation(cppast::string_view punct) override
