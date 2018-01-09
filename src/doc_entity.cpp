@@ -336,7 +336,9 @@ private:
 
     bool is_documented(const doc_entity& entity) const
     {
-        if (entity.parent() && entity.parent().value().kind() == doc_entity::member_group)
+        if (entity.kind() == doc_entity::cpp_file)
+            return true;
+        else if (entity.parent() && entity.parent().value().kind() == doc_entity::member_group)
             return is_documented(entity.parent().value());
         else
             return entity.comment()
@@ -1078,6 +1080,16 @@ namespace
         }
     }
 
+    bool is_include_file_parsed(const cppast::cpp_entity_index&      index,
+                                const cppast::cpp_include_directive& include)
+    {
+        auto target = include.target().get(index);
+        if (target.empty())
+            return false;
+        else
+            return true;
+    }
+
     bool is_class(const cppast::cpp_entity& e)
     {
         return e.kind() == cppast::cpp_entity_kind::class_t
@@ -1102,6 +1114,12 @@ namespace
             return true;
         else if (e.kind() == cppast::cpp_macro_definition::kind()
                  && is_include_guard_macro(static_cast<const cppast::cpp_macro_definition&>(e)))
+            // exclude include guards
+            return true;
+        else if (e.kind() == cppast::cpp_include_directive::kind()
+                 && !is_include_file_parsed(index,
+                                            static_cast<const cppast::cpp_include_directive&>(e)))
+            // exclude includes to external files
             return true;
         else if (comment && comment.value().metadata().exclude() == comment::exclude_mode::entity)
             return true;
