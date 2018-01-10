@@ -125,7 +125,6 @@ private:
     SECTION("explicit exclude")
     {
         auto file = build_doc_entities(comments, index, "synopsis__explicit_exclude.cpp", R"(
-// these entities are ignored, should be kept
 #include <cstddef>
 using namespace std;
 
@@ -152,9 +151,7 @@ auto exclude_return2() -> const int&;
         auto synopsis = generate_synopsis({}, index, *file);
         REQUIRE(
             markup::as_xml(*synopsis)
-            == R"(<code-block language="cpp"><code-block-preprocessor>#include</code-block-preprocessor> <code-block-preprocessor>&lt;</code-block-preprocessor><code-block-identifier>cstddef</code-block-identifier><code-block-preprocessor>&gt;</code-block-preprocessor><soft-break></soft-break>
-<soft-break></soft-break>
-<code-block-keyword>using</code-block-keyword> <code-block-keyword>namespace</code-block-keyword> <code-block-identifier>std</code-block-identifier><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+            == R"(<code-block language="cpp"><code-block-keyword>using</code-block-keyword> <code-block-keyword>namespace</code-block-keyword> <code-block-identifier>std</code-block-identifier><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <soft-break></soft-break>
 <code-block-keyword>using</code-block-keyword> <code-block-identifier>exclude_target1</code-block-identifier> <code-block-punctuation>=</code-block-punctuation> <code-block-identifier>&apos;hidden&apos;</code-block-identifier><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <soft-break></soft-break>
@@ -235,18 +232,24 @@ void e();
     {
         auto file = build_doc_entities(comments, index, "synopsis__mentioning_excluded.cpp", R"(
 /// \exclude
-struct excluded {};
+namespace foo
+{
+    template <typename T>
+    struct excluded {};
+}
+
+using foo::excluded;
 
 // return
-excluded a();
-const excluded& b();
+foo::excluded<int> a();
+const foo::excluded<int>& b();
 
 // parameter
-void c(excluded e);
-void d(excluded* e);
+void c(foo::excluded<int> e);
+void d(foo::excluded<int>* e);
 
 // target
-using e = excluded;
+using e = excluded<int>;
 )");
 
         auto synopsis = generate_synopsis({}, index, *file);

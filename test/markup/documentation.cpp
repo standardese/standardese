@@ -166,7 +166,7 @@ The details documentation.
 -----
 )";
 
-    cppast::cpp_namespace::builder entity("foo", false);
+    cppast::cpp_namespace::builder entity("foo", false, false);
 
     entity_documentation::builder a(type_safe::ref(entity.get()), block_id("a"),
                                     documentation_header(heading::build(block_id(), "Entity A"),

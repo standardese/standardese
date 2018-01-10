@@ -4,6 +4,7 @@
 
 #include <standardese/doc_entity.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <cctype>
 #include <stack>
@@ -336,7 +337,9 @@ private:
 
     bool is_documented(const doc_entity& entity) const
     {
-        if (entity.parent() && entity.parent().value().kind() == doc_entity::member_group)
+        if (entity.kind() == doc_entity::cpp_file)
+            return true;
+        else if (entity.parent() && entity.parent().value().kind() == doc_entity::member_group)
             return is_documented(entity.parent().value());
         else
             return entity.comment()
@@ -344,7 +347,7 @@ private:
                        || !entity.comment().value().sections().empty());
     }
 
-    void write_link(const doc_entity& entity, cppast::string_view name)
+    bool write_link(const doc_entity& entity, cppast::string_view name)
     {
         if (is_documented(entity))
         {
@@ -354,9 +357,14 @@ private:
             builder_.add_child(link.finish());
         }
         else if (entity.is_excluded())
+        {
             write_excluded();
+            return false;
+        }
         else
             write_identifier(name);
+
+        return true;
     }
 
     void do_write_identifier(cppast::string_view identifier) override
@@ -374,7 +382,7 @@ private:
             write_identifier(identifier);
     }
 
-    void do_write_reference(type_safe::array_ref<const cppast::cpp_entity_id> id,
+    bool do_write_reference(type_safe::array_ref<const cppast::cpp_entity_id> id,
                             cppast::string_view                               name) override
     {
         update_indent();
@@ -388,9 +396,11 @@ private:
         }
 
         if (entity && get_doc_entity(entity.value()))
-            write_link(*get_doc_entity(entity.value()), name);
+            return write_link(*get_doc_entity(entity.value()), name);
         else
             write_identifier(name);
+
+        return true;
     }
 
     void do_write_punctuation(cppast::string_view punct) override
@@ -1071,6 +1081,16 @@ namespace
         }
     }
 
+    bool is_include_file_parsed(const cppast::cpp_entity_index&      index,
+                                const cppast::cpp_include_directive& include)
+    {
+        auto target = include.target().get(index);
+        if (target.empty())
+            return false;
+        else
+            return true;
+    }
+
     bool is_class(const cppast::cpp_entity& e)
     {
         return e.kind() == cppast::cpp_entity_kind::class_t
@@ -1095,6 +1115,12 @@ namespace
             return true;
         else if (e.kind() == cppast::cpp_macro_definition::kind()
                  && is_include_guard_macro(static_cast<const cppast::cpp_macro_definition&>(e)))
+            // exclude include guards
+            return true;
+        else if (e.kind() == cppast::cpp_include_directive::kind()
+                 && !is_include_file_parsed(index,
+                                            static_cast<const cppast::cpp_include_directive&>(e)))
+            // exclude includes to external files
             return true;
         else if (comment && comment.value().metadata().exclude() == comment::exclude_mode::entity)
             return true;
@@ -1116,6 +1142,20 @@ namespace
             }
             else
                 return false;
+        }
+        else if (e.kind() == cppast::cpp_using_declaration::kind())
+        {
+            auto target = static_cast<const cppast::cpp_using_declaration&>(e).target().get(index);
+            // excluded if any of the targets are excluded
+            return std::all_of(target.begin(), target.end(),
+                               [&](const type_safe::object_ref<const cppast::cpp_entity>& entity) {
+                                   if (entity->user_data()
+                                       && entity->user_data() == &excluded_entity)
+                                       return true;
+                                   else
+                                       return is_excluded(*entity, cppast::cpp_public, comment,
+                                                          index, blacklist);
+                               });
         }
         else
             return false;
@@ -1143,9 +1183,20 @@ namespace
     {
         auto base_class = cppast::get_class(index, base);
         auto comment    = base_class ? registry.get_comment(base_class.value()) : nullptr;
-        if (base.access_specifier() != cppast::cpp_private && base_class
-            && is_excluded(base_class.value(), cppast::cpp_public, comment, index, blacklist))
+
+        if (!base_class)
+            return nullptr;
+
+        auto is_excluded =
+            ::is_excluded(base_class.value(), cppast::cpp_public, comment, index, blacklist);
+        if (base.access_specifier() != cppast::cpp_private && base_class && is_excluded)
             return base_class;
+        else if (is_excluded)
+        {
+            // exclude base class declaration
+            base.set_user_data(&excluded_entity);
+            return nullptr;
+        }
         else
             return nullptr;
     }
@@ -1261,6 +1312,13 @@ namespace
         return builder.finish();
     }
 
+    void exclude_children(const cppast::cpp_entity& e)
+    {
+        cppast::visit(e, [&](const cppast::cpp_entity& child, const cppast::visitor_info&) {
+            child.set_user_data(&excluded_entity);
+        });
+    }
+
     std::unique_ptr<doc_entity> build_entity(const comment_registry&           registry,
                                              const cppast::cpp_entity_index&   index,
                                              const cppast::cpp_entity&         e,
@@ -1271,6 +1329,7 @@ namespace
         if (is_excluded(e, access, comment, index, blacklist))
         {
             e.set_user_data(&excluded_entity);
+            exclude_children(e);
             return nullptr;
         }
         else if (cppast::is_templated(e) || cppast::is_friended(e))
