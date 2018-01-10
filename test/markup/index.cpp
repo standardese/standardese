@@ -76,7 +76,7 @@ TEST_CASE("markup::file_index", "[markup]")
 
 TEST_CASE("markup::entity_index", "[markup]")
 {
-    cppast::cpp_namespace::builder ns("foo", false);
+    cppast::cpp_namespace::builder ns("foo", false, false);
 
     // note: no need to test entity_index_item, already done by file
     entity_index::builder b(heading::build(block_id(), "The entity index"));
