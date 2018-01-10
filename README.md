@@ -294,6 +294,9 @@ A text that begins with a *command* doesn't appear in the output documentation a
 
 There are the following *commands*:
 
+* `end` - This command ends the currently active section, see below.
+This can be used to extend a section to multiple paragraphs.
+
 * `exclude {arg}` - Manually excludes an entity or part of it from the documentation.
 If you don't specify an argument, it won't appear at all, not even in the synopsis.
 It is as if the entity never existed in the first place.

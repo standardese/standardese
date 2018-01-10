@@ -20,6 +20,8 @@ namespace standardese
         {
             invalid = unsigned(section_type::count),
 
+            end,
+
             exclude,
             unique_name,
             output_name,

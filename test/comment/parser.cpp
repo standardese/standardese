@@ -407,6 +407,38 @@ Prevent brief.</paragraph>
 </details-section>
 )";
     }
+    SECTION("end")
+    {
+        comment = R"(\effects A section.
+Going on.
+
+Still going on.
+
+\end
+
+Details.
+
+\param foo A parameter.
+Going on.
+
+* Still
+* going
+* on
+
+\end
+
+Still details.
+)";
+
+        xml = R"(<inline-section name="Effects">A section.<soft-break></soft-break>
+Going on.<soft-break></soft-break>
+Still going on.</inline-section>
+<details-section>
+<paragraph>Details.</paragraph>
+<paragraph>Still details.</paragraph>
+</details-section>
+)";
+    }
     SECTION("key-value sections")
     {
         comment = R"(\returns 0 - Value 0.

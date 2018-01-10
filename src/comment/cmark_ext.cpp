@@ -261,7 +261,7 @@ namespace
     bool accept_commands(cmark_node* parent_container)
     {
         auto type = cmark_node_get_type(parent_container);
-        if (type == CMARK_NODE_DOCUMENT || type == node_inline())
+        if (type == CMARK_NODE_DOCUMENT || type == CMARK_NODE_LIST || type == node_inline())
             return true;
         else if (type == CMARK_NODE_PARAGRAPH)
         {
@@ -381,6 +381,9 @@ namespace
     struct inline_predicate_lambda
     {
         type_safe::optional<int> last_line;
+        cmark_node*              end_node;
+
+        explicit inline_predicate_lambda(cmark_node* end_node) : end_node(end_node) {}
 
         bool operator()(cmark_node* node)
         {
@@ -392,6 +395,9 @@ namespace
             else if (cmark_node_get_type(node) == node_inline_tmp())
                 // inlines are not allowed
                 return false;
+            else if (end_node)
+                // only end on end node
+                return node != end_node;
             else if (cmark_node_get_start_line(node) == 0)
             {
                 // this node was created by splitting a parsed node
@@ -439,7 +445,63 @@ namespace
 
             if (cmark_node_get_type(cur) == node_command())
             {
-                // don't need to do anything
+                if (get_command_type(cur) == command_type::end)
+                {
+                    assert(cur != first);
+
+                    if (cmark_node_get_string_content(cur)[0] != '\0')
+                        cmark_node_set_string_content(cur, "illegal arguments for end command");
+
+                    // at this point all previous nodes are special nodes
+                    // so just skip all details
+                    auto section = cmark_node_previous(cur);
+                    while (section && cmark_node_get_type(section) == node_section()
+                           && get_section_type(section) == section_type::details)
+                        section = cmark_node_previous(section);
+
+                    // try to extend the current node
+                    if (cmark_node_get_type(section) == node_command())
+                    {
+                        // it is an error to end a command
+                        cmark_node_set_string_content(cur, "previous special node of end was a "
+                                                           "command itself, not a section");
+                    }
+                    else if (!section
+                             || (cmark_node_get_type(section) == node_section()
+                                 && get_section_type(section) == section_type::brief))
+                    {
+                        // no previous section
+                        cmark_node_set_string_content(cur, "no previous section for end command");
+                    }
+                    else
+                    {
+                        // add all nodes to the last section
+                        for (auto in_between = cmark_node_next(section); in_between != cur;)
+                        {
+                            assert(get_section_type(in_between) == section_type::details);
+                            auto next_in_between = cmark_node_next(in_between);
+
+                            for (auto child = cmark_node_first_child(in_between); child;)
+                            {
+                                auto next_child = cmark_node_next(child);
+                                auto result     = cmark_node_append_child(section, child);
+                                if (!result)
+                                    cmark_node_set_string_content(cur, "addding illegal children "
+                                                                       "to a section");
+                                child = next_child;
+                            }
+
+                            cmark_node_free(in_between);
+                            in_between = next_in_between;
+                        }
+
+                        // now remove the command node
+                        if (cmark_node_get_string_content(cur)[0] == '\0')
+                            cmark_node_free(cur);
+                    }
+                }
+
+                // don't need to do anything for other commands
             }
             else if (cmark_node_get_type(cur) == node_section_tmp())
             {
@@ -471,7 +533,25 @@ namespace
             else if (cmark_node_get_type(cur) == node_inline_tmp())
             {
                 cmark_node_set_type(cur, node_inline());
-                next = postprocess_nodes(self, next, inline_predicate_lambda{});
+
+                // see if there is maybe an end node
+                auto end_node = cmark_node_next(cur);
+                for (; end_node; end_node = cmark_node_next(end_node))
+                {
+                    if (cmark_node_get_type(end_node) == node_command()
+                        && get_command_type(end_node) == command_type::end)
+                        break;
+                    else if (cmark_node_get_type(end_node) == node_section_tmp()
+                             || cmark_node_get_type(end_node) == node_inline_tmp()
+                             || cmark_node_get_type(end_node) == node_command())
+                    {
+                        // no need to look past those
+                        end_node = nullptr;
+                        break;
+                    }
+                }
+
+                next = postprocess_nodes(self, next, inline_predicate_lambda{end_node});
 
                 // insert all nodes in between in inline
                 for (auto child = cmark_node_next(cur); child != next;)
@@ -479,6 +559,14 @@ namespace
                     auto next_child = cmark_node_next(child);
                     cmark_node_append_child(cur, child);
                     child = next_child;
+                }
+
+                if (end_node)
+                {
+                    // don't need this one anymore
+                    assert(next == end_node);
+                    next = cmark_node_next(end_node);
+                    cmark_node_free(end_node);
                 }
             }
             else if (need_brief.try_reset() && cmark_node_get_type(cur) == CMARK_NODE_PARAGRAPH)

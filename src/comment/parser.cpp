@@ -410,18 +410,25 @@ namespace
                 return parse_list_section(c, has_matching_entity, node);
             else
             {
-                auto paragraph = cmark_node_first_child(node);
-                if (paragraph)
-                    return markup::inline_section::build(detail::get_section_type(node),
-                                                         c.inline_section_name(
-                                                             detail::get_section_type(node)),
-                                                         parse_paragraph(c, has_matching_entity,
-                                                                         paragraph));
-                else
-                    return markup::inline_section::build(detail::get_section_type(node),
-                                                         c.inline_section_name(
-                                                             detail::get_section_type(node)),
-                                                         markup::paragraph::builder().finish());
+                auto result = markup::inline_section::builder(detail::get_section_type(node),
+                                                              c.inline_section_name(
+                                                                  detail::get_section_type(node)));
+
+                auto first = true;
+                for (auto child = cmark_node_first_child(node); child;
+                     child      = cmark_node_next(child))
+                {
+                    if (first)
+                        first = false;
+                    else
+                        result.add_child(markup::soft_break::build());
+
+                    auto paragraph = parse_paragraph(c, has_matching_entity, child);
+                    for (auto& paragraph_child : *paragraph)
+                        result.add_child(markup::clone(paragraph_child));
+                }
+
+                return result.finish();
             }
         }
 
@@ -583,6 +590,9 @@ namespace
         case command_type::count:
         case command_type::invalid:
             error(node, std::string("unkown command ") + detail::get_command_arguments(node));
+
+        case command_type::end:
+            error(node, detail::get_command_arguments(node));
         }
     }
 
