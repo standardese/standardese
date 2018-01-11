@@ -194,7 +194,8 @@ public:
       builder_(markup::block_id(), "cpp"),
       level_(0u),
       need_indent_(false),
-      allow_group_(false)
+      allow_group_(false),
+      render_injected_(false)
     {
     }
 
@@ -207,7 +208,9 @@ private:
     bool is_main_entity(const cppast::cpp_entity& e) const noexcept
     {
         auto doc_e = get_doc_entity(e);
-        if (is_in_group(doc_e))
+        if (render_injected_ == true)
+            return false;
+        else if (is_in_group(doc_e))
             // it is main if the first member of group is main
             return &get_real_entity(
                        static_cast<const doc_cpp_entity&>(*doc_e->parent().value().begin())
@@ -298,6 +301,8 @@ private:
         if (!doc_e)
             return;
 
+        auto save = render_injected_;
+        render_injected_.set();
         for (auto& child : *doc_e)
             if (child.is_injected())
             {
@@ -305,6 +310,7 @@ private:
                 out << cppast::newl;
                 child.do_generate_code(*this);
             }
+        render_injected_ = save;
     }
 
     void do_indent() override
@@ -473,6 +479,7 @@ private:
     unsigned        level_;
     type_safe::flag need_indent_;
     type_safe::flag allow_group_;
+    type_safe::flag render_injected_;
 };
 
 std::unique_ptr<markup::code_block> standardese::generate_synopsis(
@@ -1215,8 +1222,8 @@ namespace
                                                      const cppast::cpp_entity_index& index,
                                                      const cppast::cpp_entity&       e)
     {
-        doc_cpp_entity::builder builder(lookup_unique_name(registry, e), type_safe::ref(e),
-                                        registry.get_comment(e));
+        auto                    link_name = lookup_unique_name(registry, e);
+        doc_cpp_entity::builder builder(link_name, type_safe::ref(e), registry.get_comment(e));
 
         auto visitor = [&](const cppast::cpp_entity& entity, bool injected) {
             if (auto child = build_entity(registry, index, entity))

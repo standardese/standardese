@@ -238,6 +238,16 @@ namespace
         });
     }
 
+    bool is_injected(const doc_entity& doc_e)
+    {
+        if (doc_e.is_injected())
+            return true;
+        else if (doc_e.parent() && doc_e.parent().value().kind() == doc_entity::member_group)
+            return is_injected(doc_e.parent().value());
+        else
+            return false;
+    }
+
     type_safe::optional_ref<const doc_entity> get_doc_entity(const cppast::cpp_entity& e)
     {
         auto user_data = e.user_data();
@@ -247,8 +257,39 @@ namespace
         auto& doc_e = *static_cast<const doc_entity*>(user_data);
         if (doc_e.is_excluded())
             return type_safe::nullopt;
+        else if (is_injected(doc_e))
+            // don't generate them here by default
+            return type_safe::nullopt;
         else
             return type_safe::ref(doc_e);
+    }
+
+    bool force_linking(const doc_entity& doc_e)
+    {
+        if (doc_e.kind() == doc_entity::cpp_entity)
+            return cppast::is_definition(static_cast<const doc_cpp_entity&>(doc_e).entity());
+        else
+            return doc_e.kind() != doc_entity::metadata;
+    }
+
+    void register_documentation(const cppast::diagnostic_logger& logger, const linker& l,
+                                const markup::document_entity& document, const doc_entity& doc_e)
+    {
+        auto result = l.register_documentation(doc_e.link_name(), document,
+                                               doc_e.get_documentation_id(), force_linking(doc_e));
+        if (!result)
+            logger.log("standardese linker",
+                       make_diagnostic(cppast::source_location::make_entity(
+                                           doc_e.get_documentation_id().as_str()),
+                                       "duplicate registration of link name '", doc_e.link_name(),
+                                       "'"));
+
+        for (auto& child : doc_e)
+            if ((doc_e.is_injected() && doc_e.kind() == doc_entity::member_group)
+                || child.is_injected())
+                // need to register documentation for all injected children,
+                // but also all children of injected member groups
+                register_documentation(logger, l, document, child);
     }
 }
 
@@ -257,17 +298,7 @@ void standardese::register_documentations(const cppast::diagnostic_logger& logge
 {
     auto register_doc = [&](const cppast::cpp_entity& e) {
         if (auto doc_e = get_doc_entity(e))
-        {
-            auto result = l.register_documentation(doc_e.value().link_name(), document,
-                                                   doc_e.value().get_documentation_id(),
-                                                   cppast::is_definition(e));
-            if (!result)
-                logger.log("standardese linker",
-                           make_diagnostic(cppast::source_location::make_entity(
-                                               doc_e.value().get_documentation_id().as_str()),
-                                           "duplicate registration of link name '",
-                                           doc_e.value().link_name(), "'"));
-        }
+            register_documentation(logger, l, document, doc_e.value());
     };
 
     visit_documentations(document,
