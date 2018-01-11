@@ -293,7 +293,7 @@ private:
 
     void on_container_end(const output& out, const cppast::cpp_entity& e) override
     {
-        auto doc_e = get_doc_entity(e);
+        auto doc_e = get_doc_entity(get_real_entity(e));
         if (!doc_e)
             return;
 
@@ -1182,13 +1182,16 @@ namespace
         const cppast::cpp_base_class& base, const entity_blacklist& blacklist)
     {
         auto base_class = cppast::get_class(index, base);
-        auto comment    = base_class ? registry.get_comment(base_class.value()) : nullptr;
+        auto entity     = base_class && cppast::is_templated(base_class.value()) ?
+                          base_class.value().parent() :
+                          base_class;
+        auto comment = base_class ? registry.get_comment(entity.value()) : nullptr;
 
         if (!base_class)
             return nullptr;
 
         auto is_excluded =
-            ::is_excluded(base_class.value(), cppast::cpp_public, comment, index, blacklist);
+            ::is_excluded(entity.value(), cppast::cpp_public, comment, index, blacklist);
         if (base.access_specifier() != cppast::cpp_private && base_class && is_excluded)
             return base_class;
         else if (is_excluded)
@@ -1315,7 +1318,8 @@ namespace
     void exclude_children(const cppast::cpp_entity& e)
     {
         cppast::visit(e, [&](const cppast::cpp_entity& child, const cppast::visitor_info&) {
-            child.set_user_data(&excluded_entity);
+            if (!child.user_data())
+                child.set_user_data(&excluded_entity);
         });
     }
 
