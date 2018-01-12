@@ -86,11 +86,17 @@ namespace
             detail::write_html_text(stream, doc.id().as_str().c_str());
             stream << "\"></a>";
 
+            if (doc.synopsis())
+            {
+                auto synopsis =
+                    render(html_generator(opt.prefix, opt.extension), doc.synopsis().value());
+                stream << synopsis;
+            }
+
             cmark_node_set_literal(html, stream.str().c_str());
             cmark_node_append_child(parent, html);
         }
-
-        if (doc.synopsis())
+        else if (doc.synopsis())
             build(parent, opt, doc.synopsis().value());
 
         if (auto brief = doc.brief_section())
