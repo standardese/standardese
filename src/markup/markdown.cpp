@@ -497,6 +497,14 @@ namespace
         handle_children(node, opt, c);
     }
 
+    void build(cmark_node* parent, const options&, const verbatim& v)
+    {
+        // build inline HTML and hope it works
+        auto node = cmark_node_new(CMARK_NODE_HTML_INLINE);
+        cmark_node_append_child(parent, node);
+        cmark_node_set_literal(node, v.content().c_str());
+    }
+
     void build(cmark_node* parent, const options&, const soft_break&)
     {
         if (cmark_node_get_type(parent) == CMARK_NODE_CODE_BLOCK)
@@ -621,6 +629,7 @@ namespace
             STANDARDESE_DETAIL_HANDLE(emphasis)
             STANDARDESE_DETAIL_HANDLE(strong_emphasis)
             STANDARDESE_DETAIL_HANDLE(code)
+            STANDARDESE_DETAIL_HANDLE(verbatim)
             STANDARDESE_DETAIL_HANDLE(soft_break)
             STANDARDESE_DETAIL_HANDLE(hard_break)
 

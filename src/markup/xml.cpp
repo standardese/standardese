@@ -423,6 +423,12 @@ namespace
         write_phrasing(s, "code", phrasing);
     }
 
+    void write(xml_stream& s, const verbatim& v)
+    {
+        auto tag = s.open_tag(xml_stream::inline_tag, "verbatim");
+        tag.write(v.content());
+    }
+
     void write(xml_stream& s, const soft_break&)
     {
         s.open_tag(xml_stream::line_tag, "soft-break");
@@ -539,6 +545,7 @@ namespace
             STANDARDESE_DETAIL_HANDLE(emphasis)
             STANDARDESE_DETAIL_HANDLE(strong_emphasis)
             STANDARDESE_DETAIL_HANDLE(code)
+            STANDARDESE_DETAIL_HANDLE(verbatim)
             STANDARDESE_DETAIL_HANDLE(soft_break)
             STANDARDESE_DETAIL_HANDLE(hard_break)
 

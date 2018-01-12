@@ -10,6 +10,8 @@ const char* config::default_command_name(command_type cmd) noexcept
 {
     switch (cmd)
     {
+    case command_type::verbatim:
+        return "verbatim";
     case command_type::end:
         return "end";
 

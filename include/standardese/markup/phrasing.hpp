@@ -148,6 +148,33 @@ namespace standardese
             code() noexcept = default;
         };
 
+        /// A fragment that should be excluded in the output as-is.
+        class verbatim final : public phrasing_entity
+        {
+        public:
+            /// \returns A new verbatim fragment containing the given string.
+            static std::unique_ptr<verbatim> build(std::string str)
+            {
+                return std::unique_ptr<verbatim>(new verbatim(std::move(str)));
+            }
+
+            const std::string& content() const noexcept
+            {
+                return str_;
+            }
+
+        private:
+            entity_kind do_get_kind() const noexcept override;
+
+            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
+            std::unique_ptr<entity> do_clone() const override;
+
+            explicit verbatim(std::string str) : str_(std::move(str)) {}
+
+            std::string str_;
+        };
+
         /// A soft line break.
         class soft_break final : public phrasing_entity
         {

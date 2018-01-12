@@ -80,6 +80,14 @@ TEST_CASE("code", "[markup]")
     test_phrasing<code>("code", "code", "`");
 }
 
+TEST_CASE("verbatim", "[markup]")
+{
+    auto v = verbatim::build("*Hello* <i>World</i>!");
+    REQUIRE(as_html(*v) == "*Hello* <i>World</i>!");
+    REQUIRE(as_xml(*v) == "<verbatim>*Hello* &lt;i&gt;World&lt;/i&gt;!</verbatim>");
+    REQUIRE(as_markdown(*v) == "*Hello* <i>World</i>!\n");
+}
+
 TEST_CASE("soft_break", "[markup]")
 {
     REQUIRE(as_html(*soft_break::build()) == "\n");

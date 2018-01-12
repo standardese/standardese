@@ -511,6 +511,34 @@ matching_entity parse_entity(const char* comment)
 
 TEST_CASE("commands", "[comment]")
 {
+    SECTION("verbatim")
+    {
+        auto comment = R"(
+\verbatim This is verbatim.\end
+And \verbatim this as well.
+
+\effects But this is a section.
+
+With \verbatim VERBATIM<> \end.
+
+\end
+)";
+        auto xml = R"(<brief-section><verbatim>This is verbatim.</verbatim><soft-break></soft-break>
+And <verbatim>this as well.</verbatim></brief-section>
+<inline-section name="Effects">But this is a section.<soft-break></soft-break>
+With <verbatim>VERBATIM&lt;&gt;</verbatim>.</inline-section>
+)";
+
+        parser p;
+        auto   parsed = parse(p, comment, true);
+
+        auto result = parsed.comment.value().brief_section() ?
+                          markup::as_xml(parsed.comment.value().brief_section().value()) :
+                          "";
+        for (auto& section : parsed.comment.value().sections())
+            result += markup::as_xml(section);
+        REQUIRE(result == xml);
+    }
     SECTION("exclude")
     {
         REQUIRE(parse_metadata("foo\nbar").exclude() == type_safe::nullopt);

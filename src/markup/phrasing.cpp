@@ -77,6 +77,18 @@ std::unique_ptr<entity> code::do_clone() const
     return b.finish();
 }
 
+entity_kind verbatim::do_get_kind() const noexcept
+{
+    return entity_kind::verbatim;
+}
+
+void verbatim::do_visit(detail::visitor_callback_t, void*) const {}
+
+std::unique_ptr<entity> verbatim::do_clone() const
+{
+    return build(str_);
+}
+
 entity_kind soft_break::do_get_kind() const noexcept
 {
     return entity_kind::soft_break;
