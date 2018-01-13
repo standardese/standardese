@@ -58,34 +58,34 @@ namespace standardese
         template <typename Func>
         void visit_children(const cppast::cpp_entity& entity, Func f)
         {
-            cppast::visit(entity, [&](const cppast::cpp_entity&   child,
-                                      const cppast::visitor_info& info) {
-                if (&entity == &child)
-                    // parent entity
-                    // if container: true means visit children (what we want)
-                    // else: true means continue visit (which will do nothing)
-                    return true;
-                else if (cppast::is_templated(child) || cppast::is_friended(child)
-                         || child.kind() == cppast::cpp_entity_kind::language_linkage_t)
-                    // continue with children of those entities
-                    return true;
-                else if (info.event == cppast::visitor_info::container_entity_exit)
-                    // already done, continue
-                    return true;
-                else if (info.event == cppast::visitor_info::container_entity_enter)
-                {
-                    f(child, info.access);
-                    return false; // don't visit children
-                }
-                else if (info.event == cppast::visitor_info::leaf_entity)
-                {
-                    f(child, info.access);
-                    return true; //continue
-                }
-                else
-                    assert(false);
-                return false;
-            });
+            cppast::visit(entity,
+                          [&](const cppast::cpp_entity&   child,
+                              const cppast::visitor_info& info) -> bool {
+                              if (&entity == &child)
+                                  // parent entity, just continue
+                                  return cppast::continue_visit;
+                              else if (cppast::is_templated(child) || cppast::is_friended(child)
+                                       || child.kind()
+                                              == cppast::cpp_entity_kind::language_linkage_t)
+                                  // continue with children of those entities
+                                  return cppast::continue_visit_children;
+                              else if (info.event == cppast::visitor_info::container_entity_exit)
+                                  // already done, continue
+                                  return cppast::continue_visit;
+                              else if (info.event == cppast::visitor_info::container_entity_enter)
+                              {
+                                  f(child);
+                                  return cppast::continue_visit_no_children; // don't visit children
+                              }
+                              else if (info.event == cppast::visitor_info::leaf_entity)
+                              {
+                                  f(child);
+                                  return cppast::continue_visit; //continue
+                              }
+                              else
+                                  assert(false);
+                              return cppast::abort_visit;
+                          });
         }
     } // namespace detail
 } // namespace standardese

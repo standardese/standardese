@@ -59,11 +59,12 @@ namespace
 {
     // tag object to mark an excluded entity
     doc_excluded_entity excluded_entity;
+    doc_excluded_entity parent_excluded_entity;
 }
 
 bool doc_entity::is_excluded() const noexcept
 {
-    auto result = this == &excluded_entity;
+    auto result = this == &excluded_entity || this == &parent_excluded_entity;
     assert(!result || kind() == excluded);
     return result;
 }
@@ -193,7 +194,8 @@ public:
       builder_(markup::block_id(), "cpp"),
       level_(0u),
       need_indent_(false),
-      allow_group_(false)
+      allow_group_(false),
+      render_injected_(false)
     {
     }
 
@@ -206,7 +208,9 @@ private:
     bool is_main_entity(const cppast::cpp_entity& e) const noexcept
     {
         auto doc_e = get_doc_entity(e);
-        if (is_in_group(doc_e))
+        if (render_injected_ == true)
+            return false;
+        else if (is_in_group(doc_e))
             // it is main if the first member of group is main
             return &get_real_entity(
                        static_cast<const doc_cpp_entity&>(*doc_e->parent().value().begin())
@@ -293,10 +297,12 @@ private:
 
     void on_container_end(const output& out, const cppast::cpp_entity& e) override
     {
-        auto doc_e = get_doc_entity(e);
+        auto doc_e = get_doc_entity(get_real_entity(e));
         if (!doc_e)
             return;
 
+        auto save = render_injected_;
+        render_injected_.set();
         for (auto& child : *doc_e)
             if (child.is_injected())
             {
@@ -304,6 +310,7 @@ private:
                 out << cppast::newl;
                 child.do_generate_code(*this);
             }
+        render_injected_ = save;
     }
 
     void do_indent() override
@@ -472,6 +479,7 @@ private:
     unsigned        level_;
     type_safe::flag need_indent_;
     type_safe::flag allow_group_;
+    type_safe::flag render_injected_;
 };
 
 std::unique_ptr<markup::code_block> standardese::generate_synopsis(
@@ -1143,20 +1151,6 @@ namespace
             else
                 return false;
         }
-        else if (e.kind() == cppast::cpp_using_declaration::kind())
-        {
-            auto target = static_cast<const cppast::cpp_using_declaration&>(e).target().get(index);
-            // excluded if any of the targets are excluded
-            return std::all_of(target.begin(), target.end(),
-                               [&](const type_safe::object_ref<const cppast::cpp_entity>& entity) {
-                                   if (entity->user_data()
-                                       && entity->user_data() == &excluded_entity)
-                                       return true;
-                                   else
-                                       return is_excluded(*entity, cppast::cpp_public, comment,
-                                                          index, blacklist);
-                               });
-        }
         else
             return false;
     }
@@ -1171,24 +1165,25 @@ namespace
                || e.kind() == cppast::cpp_language_linkage::kind();
     }
 
-    std::unique_ptr<doc_entity> build_entity(const comment_registry&           registry,
-                                             const cppast::cpp_entity_index&   index,
-                                             const cppast::cpp_entity&         e,
-                                             cppast::cpp_access_specifier_kind access,
-                                             const entity_blacklist&           blacklist);
+    std::unique_ptr<doc_entity> build_entity(const comment_registry&         registry,
+                                             const cppast::cpp_entity_index& index,
+                                             const cppast::cpp_entity&       e);
 
     type_safe::optional_ref<const cppast::cpp_class> is_excluded_base(
         const comment_registry& registry, const cppast::cpp_entity_index& index,
-        const cppast::cpp_base_class& base, const entity_blacklist& blacklist)
+        const cppast::cpp_base_class& base)
     {
         auto base_class = cppast::get_class(index, base);
-        auto comment    = base_class ? registry.get_comment(base_class.value()) : nullptr;
+        auto entity     = base_class && cppast::is_templated(base_class.value()) ?
+                          base_class.value().parent() :
+                          base_class;
+        auto comment = base_class ? registry.get_comment(entity.value()) : nullptr;
 
         if (!base_class)
             return nullptr;
 
-        auto is_excluded =
-            ::is_excluded(base_class.value(), cppast::cpp_public, comment, index, blacklist);
+        auto is_excluded = entity.value().user_data() == &excluded_entity
+                           || entity.value().user_data() == &parent_excluded_entity;
         if (base.access_specifier() != cppast::cpp_private && base_class && is_excluded)
             return base_class;
         else if (is_excluded)
@@ -1204,39 +1199,34 @@ namespace
     template <class Visitor>
     void handle_bases(const Visitor& visitor, const comment_registry& registry,
                       const cppast::cpp_entity_index& index, const cppast::cpp_class& c,
-                      const entity_blacklist& blacklist, bool recursive = false)
+                      bool recursive = false)
     {
         for (auto& base : c.bases())
         {
-            if (auto base_class = is_excluded_base(registry, index, base, blacklist))
+            if (auto base_class = is_excluded_base(registry, index, base))
             {
                 // we have an excluded but public base class
                 // treat its children like children of the derived class
                 base.set_user_data(&excluded_entity);
-                handle_bases(visitor, registry, index, base_class.value(), blacklist, true);
+                handle_bases(visitor, registry, index, base_class.value(), true);
                 detail::visit_children(base_class.value(),
-                                       [&](const cppast::cpp_entity&         e,
-                                           cppast::cpp_access_specifier_kind access) {
-                                           visitor(e, access, true);
-                                       });
+                                       [&](const cppast::cpp_entity& e) { visitor(e, true); });
             }
             else if (!recursive)
                 // add to top level class
-                visitor(base, base.access_specifier(), false);
+                visitor(base, false);
         }
     }
 
     std::unique_ptr<doc_cpp_entity> build_cpp_entity(const comment_registry&         registry,
                                                      const cppast::cpp_entity_index& index,
-                                                     const cppast::cpp_entity&       e,
-                                                     const entity_blacklist&         blacklist)
+                                                     const cppast::cpp_entity&       e)
     {
-        doc_cpp_entity::builder builder(lookup_unique_name(registry, e), type_safe::ref(e),
-                                        registry.get_comment(e));
+        auto                    link_name = lookup_unique_name(registry, e);
+        doc_cpp_entity::builder builder(link_name, type_safe::ref(e), registry.get_comment(e));
 
-        auto visitor = [&](const cppast::cpp_entity&         entity,
-                           cppast::cpp_access_specifier_kind access, bool injected) {
-            if (auto child = build_entity(registry, index, entity, access, blacklist))
+        auto visitor = [&](const cppast::cpp_entity& entity, bool injected) {
+            if (auto child = build_entity(registry, index, entity))
             {
                 if (injected)
                     child->mark_injected();
@@ -1247,33 +1237,29 @@ namespace
         // handle inline entities
         if (auto templ = detail::get_template(e))
             for (auto& param : templ.value().parameters())
-                visitor(param, cppast::cpp_public, false);
+                visitor(param, false);
         if (auto func = detail::get_function(e))
             for (auto& param : func.value().parameters())
-                visitor(param, cppast::cpp_public, false);
+                visitor(param, false);
         if (auto c = detail::get_class(e))
-            handle_bases(visitor, registry, index, c.value(), blacklist);
+            handle_bases(visitor, registry, index, c.value());
 
-        detail::visit_children(e, [&](const cppast::cpp_entity&         e,
-                                      cppast::cpp_access_specifier_kind access) {
-            visitor(e, access, false);
-        });
+        detail::visit_children(e, [&](const cppast::cpp_entity& e) { visitor(e, false); });
 
         return builder.finish();
     }
 
     std::unique_ptr<doc_metadata_entity> build_metadata_entity(
         const comment_registry& registry, const cppast::cpp_entity_index& index,
-        const cppast::cpp_entity& e, const entity_blacklist& blacklist)
+        const cppast::cpp_entity& e)
     {
         auto comment = registry.get_comment(e);
         if (!comment)
             return nullptr;
 
         doc_metadata_entity::builder builder(type_safe::ref(e), type_safe::ref(comment.value()));
-        detail::visit_children(e, [&](const cppast::cpp_entity&         entity,
-                                      cppast::cpp_access_specifier_kind access) {
-            if (auto child = build_entity(registry, index, entity, access, blacklist))
+        detail::visit_children(e, [&](const cppast::cpp_entity& entity) {
+            if (auto child = build_entity(registry, index, entity))
                 builder.add_child(std::move(child));
         });
         return builder.finish();
@@ -1281,8 +1267,7 @@ namespace
 
     std::unique_ptr<doc_member_group_entity> build_member_group(
         const comment_registry& registry, const cppast::cpp_entity_index& index,
-        const std::string& group_name, const cppast::cpp_entity& e,
-        const entity_blacklist& blacklist)
+        const std::string& group_name, const cppast::cpp_entity& e)
     {
         auto group = registry.lookup_group(group_name);
         assert(group.size() >= 1u);
@@ -1291,70 +1276,108 @@ namespace
 
         doc_member_group_entity::builder builder(group_name);
         for (auto& member : group)
-            builder.add_member(build_cpp_entity(registry, index, *member, blacklist));
+            builder.add_member(build_cpp_entity(registry, index, *member));
         return builder.finish();
     }
 
     std::unique_ptr<doc_cpp_namespace> build_namespace(const comment_registry&         registry,
                                                        const cppast::cpp_entity_index& index,
-                                                       const cppast::cpp_namespace&    ns,
-                                                       const entity_blacklist&         blacklist)
+                                                       const cppast::cpp_namespace&    ns)
     {
         doc_cpp_namespace::builder builder(lookup_unique_name(registry, ns), type_safe::ref(ns),
                                            registry.get_comment(ns));
 
-        detail::visit_children(ns, [&](const cppast::cpp_entity&         entity,
-                                       cppast::cpp_access_specifier_kind access) {
-            if (auto child = build_entity(registry, index, entity, access, blacklist))
+        detail::visit_children(ns, [&](const cppast::cpp_entity& entity) {
+            if (auto child = build_entity(registry, index, entity))
                 builder.add_child(std::move(child));
         });
 
         return builder.finish();
     }
 
-    void exclude_children(const cppast::cpp_entity& e)
+    bool build_is_excluded(const cppast::cpp_entity_index& index, const cppast::cpp_entity& e)
     {
-        cppast::visit(e, [&](const cppast::cpp_entity& child, const cppast::visitor_info&) {
-            child.set_user_data(&excluded_entity);
-        });
-    }
-
-    std::unique_ptr<doc_entity> build_entity(const comment_registry&           registry,
-                                             const cppast::cpp_entity_index&   index,
-                                             const cppast::cpp_entity&         e,
-                                             cppast::cpp_access_specifier_kind access,
-                                             const entity_blacklist&           blacklist)
-    {
-        auto comment = registry.get_comment(e);
-        if (is_excluded(e, access, comment, index, blacklist))
-        {
-            e.set_user_data(&excluded_entity);
-            exclude_children(e);
-            return nullptr;
-        }
+        if (e.user_data() == &excluded_entity)
+            // allow parent_excluded_entity here, will not be visited unless injected
+            return true;
         else if (cppast::is_templated(e) || cppast::is_friended(e))
             // parent entity is processed here
+            return true;
+        else if (e.kind() == cppast::cpp_using_declaration::kind())
+        {
+            auto target = static_cast<const cppast::cpp_using_declaration&>(e).target().get(index);
+            // excluded if all of the targets are excluded
+            auto targets_excluded =
+                std::all_of(target.begin(), target.end(),
+                            [&](const type_safe::object_ref<const cppast::cpp_entity>& entity) {
+                                return entity->user_data() == &excluded_entity
+                                       || entity->user_data() == &parent_excluded_entity;
+                            });
+            if (targets_excluded)
+                e.set_user_data(&excluded_entity);
+            return targets_excluded;
+        }
+        else
+            return false;
+    }
+
+    std::unique_ptr<doc_entity> build_entity(const comment_registry&         registry,
+                                             const cppast::cpp_entity_index& index,
+                                             const cppast::cpp_entity&       e)
+    {
+        auto comment = registry.get_comment(e);
+        if (build_is_excluded(index, e))
             return nullptr;
         else if (is_ignored(e)
                  || (e.kind() == cppast::cpp_friend::kind() && !is_friend_func_def(e)))
             // those can only be documented as metadata
-            return build_metadata_entity(registry, index, e, blacklist);
+            return build_metadata_entity(registry, index, e);
         else if (e.kind() == cppast::cpp_namespace::kind())
-            return build_namespace(registry, index, static_cast<const cppast::cpp_namespace&>(e),
-                                   blacklist);
+            return build_namespace(registry, index, static_cast<const cppast::cpp_namespace&>(e));
         else if (comment.has_value() && comment.value().metadata().group())
             return build_member_group(registry, index,
-                                      comment.value().metadata().group().value().name(), e,
-                                      blacklist);
+                                      comment.value().metadata().group().value().name(), e);
         else
-            return build_cpp_entity(registry, index, e, blacklist);
+            return build_cpp_entity(registry, index, e);
     }
+}
+
+void standardese::exclude_entities(const comment_registry&         registry,
+                                   const cppast::cpp_entity_index& index,
+                                   const entity_blacklist& blacklist, const cppast::cpp_file& file)
+{
+    auto exclude_if_necessary = [&](const cppast::cpp_entity&         entity,
+                                    cppast::cpp_access_specifier_kind access) {
+        auto comment = registry.get_comment(entity);
+        if (is_excluded(entity, access, comment, index, blacklist))
+            entity.set_user_data(&excluded_entity);
+        else if (entity.parent() && entity.parent().value().user_data())
+            // parent excluded, so exclude this as well
+            entity.set_user_data(&parent_excluded_entity);
+    };
+
+    cppast::visit(file, [&](const cppast::cpp_entity& entity, const cppast::visitor_info& info) {
+        if (info.is_old_entity())
+            return;
+
+        exclude_if_necessary(entity, info.access);
+
+        // handle inline entities
+        if (auto templ = detail::get_template(entity))
+            for (auto& param : templ.value().parameters())
+                exclude_if_necessary(param, cppast::cpp_public);
+        if (auto func = detail::get_function(entity))
+            for (auto& param : func.value().parameters())
+                exclude_if_necessary(param, cppast::cpp_public);
+        if (auto c = detail::get_class(entity))
+            for (auto& base : c.value().bases())
+                exclude_if_necessary(base, base.access_specifier());
+    });
 }
 
 std::unique_ptr<doc_cpp_file> standardese::build_doc_entities(
     type_safe::object_ref<const comment_registry> registry, const cppast::cpp_entity_index& index,
-    std::unique_ptr<cppast::cpp_file> file, std::string output_name,
-    const entity_blacklist& blacklist)
+    std::unique_ptr<cppast::cpp_file> file, std::string output_name)
 {
     auto& f = *file;
 
@@ -1365,9 +1388,8 @@ std::unique_ptr<doc_cpp_file> standardese::build_doc_entities(
     doc_cpp_file::builder builder(std::move(output_name), lookup_unique_name(*registry, f),
                                   std::move(file), comment);
 
-    detail::visit_children(f, [&](const cppast::cpp_entity&         entity,
-                                  cppast::cpp_access_specifier_kind access) {
-        if (auto child = build_entity(*registry, index, entity, access, blacklist))
+    detail::visit_children(f, [&](const cppast::cpp_entity& entity) {
+        if (auto child = build_entity(*registry, index, entity))
             builder.add_child(std::move(child));
     });
 

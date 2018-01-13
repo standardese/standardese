@@ -742,6 +742,11 @@ namespace standardese
         bool                            extract_private_;
     };
 
+    /// Excludes all entities that need excluding.
+    /// \notes This must be called before [standardese::build_doc_entities]() for all files.
+    void exclude_entities(const comment_registry& registry, const cppast::cpp_entity_index& index,
+                          const entity_blacklist& blacklist, const cppast::cpp_file& file);
+
     /// Creates the [standardese::doc_entity]() hierarchy.
     /// \effects Traverses over all entities in the file, builds matching doc entities and marks excluded entities.
     /// \returns The corresponding documentation file.
@@ -749,7 +754,7 @@ namespace standardese
     std::unique_ptr<doc_cpp_file> build_doc_entities(
         type_safe::object_ref<const comment_registry> registry,
         const cppast::cpp_entity_index& index, std::unique_ptr<cppast::cpp_file> file,
-        std::string output_name, const entity_blacklist& blacklist);
+        std::string output_name);
 } // namespace standardese
 
 #endif // STANDARDESE_DOC_ENTITY_HPP_INCLUDED

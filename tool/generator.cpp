@@ -33,8 +33,8 @@ type_safe::optional<std::vector<parsed_file>> standardese_tool::parse(
                     return cppast::find_config_for(db, file.path.generic_string());
                 });
 
-                auto parsed =
-                    parser.parse(index, file.path.generic_string(), db_config.value_or(config));
+                auto parsed = parser.parse(index, fs::canonical(file.path).generic_string(),
+                                           db_config.value_or(config));
 
                 std::lock_guard<std::mutex> lock(mutex);
                 if (parsed)
@@ -69,6 +69,13 @@ std::vector<std::unique_ptr<standardese::doc_cpp_file>> standardese_tool::build_
     std::vector<parsed_file>&& files, const standardese::entity_blacklist& blacklist,
     unsigned no_threads)
 {
+    {
+        thread_pool pool(no_threads);
+        for (auto& file : files)
+            add_job(pool,
+                    [&] { standardese::exclude_entities(registry, index, blacklist, *file.file); });
+    }
+
     std::vector<std::unique_ptr<standardese::doc_cpp_file>> result;
 
     {
@@ -76,10 +83,9 @@ std::vector<std::unique_ptr<standardese::doc_cpp_file>> standardese_tool::build_
         thread_pool pool(no_threads);
         for (auto& file : files)
             add_job(pool, [&] {
-                auto entity =
-                    standardese::build_doc_entities(type_safe::ref(registry), index,
-                                                    std::move(file.file),
-                                                    std::move(file.output_name), blacklist);
+                auto entity = standardese::build_doc_entities(type_safe::ref(registry), index,
+                                                              std::move(file.file),
+                                                              std::move(file.output_name));
 
                 std::lock_guard<std::mutex> lock(mutex);
                 result.push_back(std::move(entity));
