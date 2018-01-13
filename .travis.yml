@@ -3,24 +3,29 @@ language: cpp
 matrix:
   include:
     - os: linux
+      dist: trusty
+      sudo: false
       compiler: gcc
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-          packages: ['g++-5', 'libboost1.55-all-dev']
-      env: TOOLSET=g++-5 LLVM_DOWNLOAD_OS_NAME=x86_64-linux-gnu-ubuntu-14.04 LLVM_VERSION=4.0.0
+          sources: ['ubuntu-toolchain-r-test', 'boost-latest', 'llvm-toolchain-trusty-4.0']
+          packages: ['g++-5', 'libboost1.55-all-dev', 'llvm-4.0', 'clang-4.0', 'libclang-4.0-dev']
+      env: TOOLSET=g++-5 LLVM_CONFIG_BINARY=/usr/bin/llvm-config-4.0
 
     - os: linux
-      compiler: clang
+      dist: trusty
+      sudo: false
+      compiler: gcc
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.9', 'boost-latest']
-          packages: ['g++-4.9', 'g++-5', 'clang-3.9', 'libboost1.55-all-dev']
-      env: TOOLSET=clang++-3.9 LLVM_DOWNLOAD_OS_NAME=x86_64-linux-gnu-ubuntu-14.04 LLVM_VERSION=4.0.0
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-4.0', 'boost-latest']
+          packages: ['g++-4.9', 'g++-5', 'llvm-4.0', 'clang-4.0', 'libclang-4.0-dev', 'libboost1.55-all-dev']
+      env: TOOLSET=clang++-4.0 LLVM_CONFIG_BINARY=/usr/bin/llvm-config-4.0
 
     - os: osx
+      osx_image: xcode9.2
       compiler: clang
-      env: TOOLSET=clang++ LLVM_DOWNLOAD_OS_NAME=x86_64-apple-darwin LLVM_VERSION=4.0.0
+      env: TOOLSET=clang++ LLVM_CONFIG_BINARY=/usr/local/opt/llvm/bin/llvm-config
 
 install:
   - cd ../
@@ -32,6 +37,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate https://cmake.org/files/v3.3/cmake-3.3.0-Darwin-x86_64.tar.gz; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.3.0-Darwin-x86_64.tar.gz && ls && ls cmake-3.3.0-Darwin-x86_64; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.3.0-Darwin-x86_64/CMake.app/Contents/bin/cmake; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install --with-clang llvm; fi
 
   - export CXX=$TOOLSET
   - $CXX --version
@@ -41,7 +47,7 @@ install:
 
 script:
   - mkdir build && cd build
-  - $CMAKE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror -pedantic -Wall -Wextra -Wconversion -Wsign-conversion -Wno-parentheses" -DLLVM_DOWNLOAD_OS_NAME=$LLVM_DOWNLOAD_OS_NAME -DLLVM_PREFERRED_VERSION=$LLVM_VERSION ../
+  - $CMAKE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror -pedantic -Wall -Wextra -Wconversion -Wsign-conversion -Wno-parentheses" -DLLVM_CONFIG_BINARY=$LLVM_CONFIG_BINARY ../
   - $CMAKE --build .
   - ./tool/standardese --version
   - ./test/standardese_test
