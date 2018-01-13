@@ -606,7 +606,7 @@ namespace
             break;
 
         case command_type::verbatim:
-            assert(!"verbatim shouldn't be handled here");
+            assert(!static_cast<bool>("verbatim shouldn't be handled here"));
         }
     }
 
