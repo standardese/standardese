@@ -604,6 +604,11 @@ namespace
         write_children(code, c);
     }
 
+    void write(html_stream& s, const verbatim& v)
+    {
+        s.write_html(v.content().c_str());
+    }
+
     void write(html_stream& s, const soft_break&)
     {
         s.write("\n");
@@ -694,6 +699,7 @@ namespace
             STANDARDESE_DETAIL_HANDLE(emphasis)
             STANDARDESE_DETAIL_HANDLE(strong_emphasis)
             STANDARDESE_DETAIL_HANDLE(code)
+            STANDARDESE_DETAIL_HANDLE(verbatim)
             STANDARDESE_DETAIL_HANDLE(soft_break)
             STANDARDESE_DETAIL_HANDLE(hard_break)
 

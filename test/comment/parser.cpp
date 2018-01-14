@@ -407,6 +407,38 @@ Prevent brief.</paragraph>
 </details-section>
 )";
     }
+    SECTION("end")
+    {
+        comment = R"(\effects A section.
+Going on.
+
+Still going on.
+
+\end
+
+Details.
+
+\param foo A parameter.
+Going on.
+
+* Still
+* going
+* on
+
+\end
+
+Still details.
+)";
+
+        xml = R"(<inline-section name="Effects">A section.<soft-break></soft-break>
+Going on.<soft-break></soft-break>
+Still going on.</inline-section>
+<details-section>
+<paragraph>Details.</paragraph>
+<paragraph>Still details.</paragraph>
+</details-section>
+)";
+    }
     SECTION("key-value sections")
     {
         comment = R"(\returns 0 - Value 0.
@@ -479,6 +511,34 @@ matching_entity parse_entity(const char* comment)
 
 TEST_CASE("commands", "[comment]")
 {
+    SECTION("verbatim")
+    {
+        auto comment = R"(
+\verbatim This is verbatim.\end
+And \verbatim this as well.
+
+\effects But this is a section.
+
+With \verbatim VERBATIM<> \end.
+
+\end
+)";
+        auto xml = R"(<brief-section><verbatim>This is verbatim.</verbatim><soft-break></soft-break>
+And <verbatim>this as well.</verbatim></brief-section>
+<inline-section name="Effects">But this is a section.<soft-break></soft-break>
+With <verbatim>VERBATIM&lt;&gt;</verbatim>.</inline-section>
+)";
+
+        parser p;
+        auto   parsed = parse(p, comment, true);
+
+        auto result = parsed.comment.value().brief_section() ?
+                          markup::as_xml(parsed.comment.value().brief_section().value()) :
+                          "";
+        for (auto& section : parsed.comment.value().sections())
+            result += markup::as_xml(section);
+        REQUIRE(result == xml);
+    }
     SECTION("exclude")
     {
         REQUIRE(parse_metadata("foo\nbar").exclude() == type_safe::nullopt);

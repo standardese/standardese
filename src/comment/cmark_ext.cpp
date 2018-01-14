@@ -36,8 +36,8 @@ namespace
 
     // initialize node types globally
     // this avoids a race condition when the first parser is created
-    const auto init_nodes =
-        (node_command(), node_inline(), node_inline_tmp(), node_section(), node_section_tmp(), 0);
+    const auto init_nodes = (node_command(), node_inline(), node_inline_tmp(), node_section(),
+                             node_section_tmp(), node_verbatim(), 0);
 
     //=== node manipulation commands ===//
     void set_raw_command_type(cmark_node* node, unsigned cmd)
@@ -180,7 +180,11 @@ namespace
             ++cur;
 
             auto command = parse_word(cur);
-            return c.try_lookup(command.c_str());
+            if (command.empty())
+                // if command character was backslash, it was probably used to escape something
+                return type_safe::nullopt;
+            else
+                return c.try_lookup(command.c_str());
         }
         else
             return type_safe::nullopt;
@@ -228,8 +232,11 @@ namespace
 
         auto save    = cur;
         auto command = try_parse_command(cur, config);
-        if (!command)
+        if (!command || command.value() == unsigned(command_type::verbatim))
+        {
+            cur = save;
             return nullptr;
+        }
         else if (is_section(command.value()))
         {
             auto key = parse_section_key(cur);
@@ -261,7 +268,7 @@ namespace
     bool accept_commands(cmark_node* parent_container)
     {
         auto type = cmark_node_get_type(parent_container);
-        if (type == CMARK_NODE_DOCUMENT || type == node_inline())
+        if (type == CMARK_NODE_DOCUMENT || type == CMARK_NODE_LIST || type == node_inline())
             return true;
         else if (type == CMARK_NODE_PARAGRAPH)
         {
@@ -381,6 +388,9 @@ namespace
     struct inline_predicate_lambda
     {
         type_safe::optional<int> last_line;
+        cmark_node*              end_node;
+
+        explicit inline_predicate_lambda(cmark_node* end_node) : end_node(end_node) {}
 
         bool operator()(cmark_node* node)
         {
@@ -392,6 +402,9 @@ namespace
             else if (cmark_node_get_type(node) == node_inline_tmp())
                 // inlines are not allowed
                 return false;
+            else if (end_node)
+                // only end on end node
+                return node != end_node;
             else if (cmark_node_get_start_line(node) == 0)
             {
                 // this node was created by splitting a parsed node
@@ -439,7 +452,63 @@ namespace
 
             if (cmark_node_get_type(cur) == node_command())
             {
-                // don't need to do anything
+                if (get_command_type(cur) == command_type::end)
+                {
+                    assert(cur != first);
+
+                    if (cmark_node_get_string_content(cur)[0] != '\0')
+                        cmark_node_set_string_content(cur, "illegal arguments for end command");
+
+                    // at this point all previous nodes are special nodes
+                    // so just skip all details
+                    auto section = cmark_node_previous(cur);
+                    while (section && cmark_node_get_type(section) == node_section()
+                           && get_section_type(section) == section_type::details)
+                        section = cmark_node_previous(section);
+
+                    // try to extend the current node
+                    if (cmark_node_get_type(section) == node_command())
+                    {
+                        // it is an error to end a command
+                        cmark_node_set_string_content(cur, "previous special node of end was a "
+                                                           "command itself, not a section");
+                    }
+                    else if (!section
+                             || (cmark_node_get_type(section) == node_section()
+                                 && get_section_type(section) == section_type::brief))
+                    {
+                        // no previous section
+                        cmark_node_set_string_content(cur, "no previous section for end command");
+                    }
+                    else
+                    {
+                        // add all nodes to the last section
+                        for (auto in_between = cmark_node_next(section); in_between != cur;)
+                        {
+                            assert(get_section_type(in_between) == section_type::details);
+                            auto next_in_between = cmark_node_next(in_between);
+
+                            for (auto child = cmark_node_first_child(in_between); child;)
+                            {
+                                auto next_child = cmark_node_next(child);
+                                auto result     = cmark_node_append_child(section, child);
+                                if (!result)
+                                    cmark_node_set_string_content(cur, "addding illegal children "
+                                                                       "to a section");
+                                child = next_child;
+                            }
+
+                            cmark_node_free(in_between);
+                            in_between = next_in_between;
+                        }
+
+                        // now remove the command node
+                        if (cmark_node_get_string_content(cur)[0] == '\0')
+                            cmark_node_free(cur);
+                    }
+                }
+
+                // don't need to do anything for other commands
             }
             else if (cmark_node_get_type(cur) == node_section_tmp())
             {
@@ -471,7 +540,25 @@ namespace
             else if (cmark_node_get_type(cur) == node_inline_tmp())
             {
                 cmark_node_set_type(cur, node_inline());
-                next = postprocess_nodes(self, next, inline_predicate_lambda{});
+
+                // see if there is maybe an end node
+                auto end_node = cmark_node_next(cur);
+                for (; end_node; end_node = cmark_node_next(end_node))
+                {
+                    if (cmark_node_get_type(end_node) == node_command()
+                        && get_command_type(end_node) == command_type::end)
+                        break;
+                    else if (cmark_node_get_type(end_node) == node_section_tmp()
+                             || cmark_node_get_type(end_node) == node_inline_tmp()
+                             || cmark_node_get_type(end_node) == node_command())
+                    {
+                        // no need to look past those
+                        end_node = nullptr;
+                        break;
+                    }
+                }
+
+                next = postprocess_nodes(self, next, inline_predicate_lambda{end_node});
 
                 // insert all nodes in between in inline
                 for (auto child = cmark_node_next(cur); child != next;)
@@ -479,6 +566,14 @@ namespace
                     auto next_child = cmark_node_next(child);
                     cmark_node_append_child(cur, child);
                     child = next_child;
+                }
+
+                if (end_node)
+                {
+                    // don't need this one anymore
+                    assert(next == end_node);
+                    next = cmark_node_next(end_node);
+                    cmark_node_free(end_node);
                 }
             }
             else if (need_brief.try_reset() && cmark_node_get_type(cur) == CMARK_NODE_PARAGRAPH)
@@ -587,6 +682,115 @@ cmark_syntax_extension* standardese::comment::detail::create_command_extension(c
                                                                       });
                                                     return nullptr;
                                                 });
+
+    return ext;
+}
+
+namespace
+{
+    bool bump_if(cmark_inline_parser* parser, char cmd_char, const char* str)
+    {
+        auto offset = cmark_inline_parser_get_offset(parser);
+        if (offset == 0 || cmark_inline_parser_peek_at(parser, offset - 1) != cmd_char)
+            return false;
+
+        while (*str)
+        {
+            if (cmark_inline_parser_peek_at(parser, offset) != *str)
+                return false;
+            ++str;
+            ++offset;
+        }
+
+        cmark_inline_parser_set_offset(parser, offset);
+        assert(!cmark_inline_parser_is_eof(parser));
+        return true;
+    }
+
+    bool is_space(char c)
+    {
+        return c == ' ' || c == '\t';
+    }
+
+    void trim_spaces(std::string& str)
+    {
+        auto begin_offset = 0u;
+        while (begin_offset < str.size() && is_space(str[begin_offset]))
+            ++begin_offset;
+
+        str = str.substr(begin_offset);
+        while (!str.empty() && is_space(str.back()))
+            str.pop_back();
+    }
+
+    cmark_node* parse_verbatim(cmark_syntax_extension* self, cmark_parser*, cmark_node* parent,
+                               unsigned char, cmark_inline_parser* inline_parser)
+    {
+        const auto& config =
+            *static_cast<standardese::comment::config*>(cmark_syntax_extension_get_private(self));
+
+        if (bump_if(inline_parser, config.command_character(),
+                    config.command_name(command_type::verbatim)))
+        {
+            cmark_node_unput(parent, 1); // remove command character
+
+            std::string content;
+            while (!bump_if(inline_parser, config.command_character(),
+                            config.command_name(command_type::end)))
+            {
+                content += char(cmark_inline_parser_peek_char(inline_parser));
+                if (cmark_inline_parser_is_eof(inline_parser))
+                    break;
+                cmark_inline_parser_advance_offset(inline_parser);
+            }
+
+            if (!cmark_inline_parser_is_eof(inline_parser))
+            {
+                assert(!content.empty() && content.back() == config.command_character());
+                content.pop_back();
+            }
+
+            trim_spaces(content);
+
+            auto node = cmark_node_new(node_verbatim());
+            cmark_node_set_string_content(node, content.c_str());
+            cmark_node_set_syntax_extension(node, self);
+            return node;
+        }
+        else
+            return nullptr;
+    }
+}
+
+cmark_node_type standardese::comment::detail::node_verbatim()
+{
+    static const auto type = cmark_syntax_extension_add_node(1);
+    return type;
+}
+
+const char* standardese::comment::detail::get_verbatim_content(cmark_node* node)
+{
+    assert(cmark_node_get_type(node) == node_verbatim());
+    return cmark_node_get_string_content(node);
+}
+
+cmark_syntax_extension* standardese::comment::detail::create_verbatim_extension(config& c)
+{
+    auto ext = cmark_syntax_extension_new("standardese_verbatim");
+
+    cmark_syntax_extension_set_private(ext, &c, [](cmark_mem*, void*) {});
+    cmark_syntax_extension_set_get_type_string_func(ext, [](cmark_syntax_extension*,
+                                                            cmark_node* node) {
+        if (cmark_node_get_type(node) == node_verbatim())
+            return "standardese_verbatim";
+        else
+            return "<unknown>";
+    });
+
+    cmark_syntax_extension_set_special_inline_chars(
+        ext, cmark_llist_append(cmark_get_default_mem_allocator(), nullptr,
+                                reinterpret_cast<void*>('\\')));
+    cmark_syntax_extension_set_match_inline_func(ext, &parse_verbatim);
 
     return ext;
 }

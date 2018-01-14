@@ -63,6 +63,7 @@ namespace standardese
             emphasis,
             strong_emphasis,
             code,
+            verbatim,
 
             soft_break,
             hard_break,

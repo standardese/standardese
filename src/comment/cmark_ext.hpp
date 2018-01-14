@@ -47,6 +47,13 @@ namespace standardese
             // returns the inline entity name
             const char* get_inline_entity(cmark_node* node);
 
+            //=== verbatim extension ===//
+            cmark_node_type node_verbatim();
+
+            const char* get_verbatim_content(cmark_node* node);
+
+            cmark_syntax_extension* create_verbatim_extension(config& c);
+
             //=== no HTML extension ===//
             cmark_syntax_extension* create_no_html_extension();
         } // namespace detail

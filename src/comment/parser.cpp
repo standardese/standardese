@@ -37,6 +37,9 @@ parser::parser(comment::config c)
 
     auto html_ext = detail::create_no_html_extension();
     cmark_parser_attach_syntax_extension(parser_, html_ext);
+
+    auto verbatim_ext = detail::create_verbatim_extension(config_);
+    cmark_parser_attach_syntax_extension(parser_, verbatim_ext);
 }
 
 parser::~parser() noexcept
@@ -214,6 +217,12 @@ namespace
     {
         assert(cmark_node_get_type(node) == CMARK_NODE_CODE);
         return markup::code::build(cmark_node_get_literal(node));
+    }
+
+    std::unique_ptr<markup::verbatim> parse_verbatim(const config&, bool, cmark_node* node)
+    {
+        assert(cmark_node_get_type(node) == detail::node_verbatim());
+        return markup::verbatim::build(detail::get_verbatim_content(node));
     }
 
     std::unique_ptr<markup::emphasis> parse_emph(const config& c, bool has_matching_entity,
@@ -410,18 +419,25 @@ namespace
                 return parse_list_section(c, has_matching_entity, node);
             else
             {
-                auto paragraph = cmark_node_first_child(node);
-                if (paragraph)
-                    return markup::inline_section::build(detail::get_section_type(node),
-                                                         c.inline_section_name(
-                                                             detail::get_section_type(node)),
-                                                         parse_paragraph(c, has_matching_entity,
-                                                                         paragraph));
-                else
-                    return markup::inline_section::build(detail::get_section_type(node),
-                                                         c.inline_section_name(
-                                                             detail::get_section_type(node)),
-                                                         markup::paragraph::builder().finish());
+                auto result = markup::inline_section::builder(detail::get_section_type(node),
+                                                              c.inline_section_name(
+                                                                  detail::get_section_type(node)));
+
+                auto first = true;
+                for (auto child = cmark_node_first_child(node); child;
+                     child      = cmark_node_next(child))
+                {
+                    if (first)
+                        first = false;
+                    else
+                        result.add_child(markup::soft_break::build());
+
+                    auto paragraph = parse_paragraph(c, has_matching_entity, child);
+                    for (auto& paragraph_child : *paragraph)
+                        result.add_child(markup::clone(paragraph_child));
+                }
+
+                return result.finish();
             }
         }
 
@@ -583,6 +599,14 @@ namespace
         case command_type::count:
         case command_type::invalid:
             error(node, std::string("unkown command ") + detail::get_command_arguments(node));
+            break;
+
+        case command_type::end:
+            error(node, detail::get_command_arguments(node));
+            break;
+
+        case command_type::verbatim:
+            assert(!static_cast<bool>("verbatim shouldn't be handled here"));
         }
     }
 
@@ -709,6 +733,8 @@ namespace
                 parse_command(b, has_matching_entity, cur);
             else if (cmark_node_get_type(cur) == detail::node_inline())
                 parse_inline(c, b, has_matching_entity, cur);
+            else if (cmark_node_get_type(cur) == detail::node_verbatim())
+                add_child(0, b, parse_verbatim(c, has_matching_entity, cur));
             else
                 switch (cmark_node_get_type(cur))
                 {

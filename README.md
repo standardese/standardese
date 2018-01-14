@@ -283,7 +283,7 @@ By default the tool supports http://en.cppreference.com/w/ with a prefix of `std
 #### Special commands
 
 standardese adds its own sets of special commands.
-A command is introduced by the *command character* (a backslash by default) at the beginning of a CommonMark text node, i.e. at the beginning of each line in the comment.
+A command is introduced by the *command character* (a backslash by default) at the beginning of each line in the comment.
 
 There are three kinds of special commands: *commands*, *sections* and *inlines*.
 
@@ -293,6 +293,13 @@ A *command* is used to control the documentation generation in some way.
 A text that begins with a *command* doesn't appear in the output documentation at all.
 
 There are the following *commands*:
+
+* `verbatim` - This command isn't like the other commands.
+It can happen anywhere in a line — i.e. where CommonMark allows an inline entity like emphasis.
+The text following the command until an `end` command or the end of the line will be inserted as-is into the output.
+
+* `end` - This command ends the currently active section, see below.
+This can be used to extend a section to multiple paragraphs.
 
 * `exclude {arg}` - Manually excludes an entity or part of it from the documentation.
 If you don't specify an argument, it won't appear at all, not even in the synopsis.

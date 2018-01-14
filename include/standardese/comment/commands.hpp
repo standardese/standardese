@@ -20,6 +20,9 @@ namespace standardese
         {
             invalid = unsigned(section_type::count),
 
+            verbatim,
+            end,
+
             exclude,
             unique_name,
             output_name,
