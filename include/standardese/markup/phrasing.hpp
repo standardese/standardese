@@ -77,7 +77,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            emphasis() noexcept = default;
+            emphasis() = default;
         };
 
         /// A fragment that is strongly emphasized.
@@ -113,7 +113,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            strong_emphasis() noexcept = default;
+            strong_emphasis() = default;
         };
 
         /// A fragment that contains code.
@@ -145,7 +145,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            code() noexcept = default;
+            code() = default;
         };
 
         /// A fragment that should be excluded in the output as-is.

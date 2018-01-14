@@ -77,7 +77,7 @@ namespace standardese
 
             std::unique_ptr<entity> do_clone() const override;
 
-            term() noexcept = default;
+            term() = default;
         };
 
         /// The description of a [standardese::markup::term_description_list_item]().
