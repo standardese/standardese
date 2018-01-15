@@ -84,7 +84,7 @@ namespace
             std::ostringstream stream;
             stream << "<a id=\"standardese-";
             detail::write_html_text(stream, doc.id().as_str().c_str());
-            stream << "\"></a>";
+            stream << "\"></a>\n";
 
             if (doc.synopsis())
             {
