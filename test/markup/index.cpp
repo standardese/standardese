@@ -38,10 +38,10 @@ TEST_CASE("markup::file_index", "[markup]")
 
     auto xml  = R"(<file-index id="file-index">
 <heading>The file index</heading>
-<entity-index-item id="a.hpp">
+<entity-index-item id="a-hpp">
 <entity>a.hpp</entity>
 </entity-index-item>
-<entity-index-item id="b.hpp">
+<entity-index-item id="b-hpp">
 <entity>b.hpp</entity>
 <brief>with brief</brief>
 </entity-index-item>
@@ -49,12 +49,12 @@ TEST_CASE("markup::file_index", "[markup]")
 )";
     auto html = R"(<ul id="standardese-file-index" class="standardese-file-index">
 <h1>The file index</h1>
-<li id="standardese-a.hpp" class="standardese-entity-index-item">
+<li id="standardese-a-hpp" class="standardese-entity-index-item">
 <dl>
 <dt>a.hpp</dt>
 </dl>
 </li>
-<li id="standardese-b.hpp" class="standardese-entity-index-item">
+<li id="standardese-b-hpp" class="standardese-entity-index-item">
 <dl>
 <dt>b.hpp</dt>
 <dd>&mdash; with brief</dd>

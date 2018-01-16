@@ -182,14 +182,14 @@ TEST_CASE("file_index")
 
     auto xml = R"(<file-index id="file-index">
 <heading>Project files</heading>
-<entity-index-item id="a.cpp">
+<entity-index-item id="a-cpp">
 <entity><documentation-link unresolved-destination-id="a.cpp"><code>a.cpp</code></documentation-link></entity>
 </entity-index-item>
-<entity-index-item id="b.cpp">
+<entity-index-item id="b-cpp">
 <entity><documentation-link unresolved-destination-id="b.cpp"><code>b.cpp</code></documentation-link></entity>
 <brief>some brief documentation</brief>
 </entity-index-item>
-<entity-index-item id="c.cpp">
+<entity-index-item id="c-cpp">
 <entity><documentation-link unresolved-destination-id="c.cpp"><code>c.cpp</code></documentation-link></entity>
 </entity-index-item>
 </file-index>
