@@ -100,15 +100,27 @@ namespace
                 return get_entity_name(include_scope, friend_.entity().value());
         }
 
-        if (include_scope && entity.parent()
-            && entity.parent().value().kind() == cppast::cpp_namespace::kind())
+        if (include_scope && get_doc_entity(entity))
         {
-            // add all namespace names
+            // add all scopes
             std::string scope;
-            for (auto cur = entity.parent();
-                 cur && cur.value().kind() == cppast::cpp_namespace::kind();
-                 cur = cur.value().parent())
-                scope = cur.value().scope_name().value().name() + "::" + scope;
+
+            auto& doc_e = *get_doc_entity(entity);
+            for (auto cur = doc_e.parent(); cur; cur = cur.value().parent())
+            {
+                if (cur.value().kind() == doc_entity::cpp_entity)
+                {
+                    auto& cur_e = static_cast<const doc_cpp_entity&>(cur.value()).entity();
+                    if (cur_e.scope_name())
+                        scope = cur_e.scope_name().value().name() + "::" + scope;
+                }
+                else if (cur.value().kind() == doc_entity::cpp_namespace)
+                {
+                    auto& cur_e = static_cast<const doc_cpp_namespace&>(cur.value()).namespace_();
+                    if (cur_e.scope_name())
+                        scope = cur_e.scope_name().value().name() + "::" + scope;
+                }
+            }
 
             return scope + entity.name();
         }

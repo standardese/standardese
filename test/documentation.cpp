@@ -99,13 +99,13 @@ namespace ns
 </code-block>
 <brief-section id="ns::bar-brief">A class.</brief-section>
 <entity-documentation id="ns::bar::f1(int)">
-<heading>Function <code>f1</code></heading>
+<heading>Function <code>ns::bar::f1</code></heading>
 <code-block language="cpp"><code-block-keyword>virtual</code-block-keyword> <code-block-keyword>void</code-block-keyword> <code-block-identifier>f1</code-block-identifier><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <code-block-identifier>i</code-block-identifier><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 </code-block>
 <brief-section id="ns::bar::f1(int)-brief">A virtual function.</brief-section>
 </entity-documentation>
 <entity-documentation id="ns::bar::f2()const" module="module">
-<heading>Function <code>f2</code></heading>
+<heading>Function <code>ns::bar::f2</code></heading>
 <code-block language="cpp"><code-block-keyword>void</code-block-keyword> <code-block-identifier>f2</code-block-identifier><code-block-punctuation>(</code-block-punctuation><code-block-punctuation>)</code-block-punctuation> <code-block-keyword>const</code-block-keyword><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 </code-block>
 <brief-section id="ns::bar::f2()const-brief">A member function.</brief-section>
