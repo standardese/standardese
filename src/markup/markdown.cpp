@@ -84,19 +84,13 @@ namespace
             std::ostringstream stream;
             stream << "<a id=\"standardese-";
             detail::write_html_text(stream, doc.id().as_str().c_str());
-            stream << "\"></a>\n";
-
-            if (doc.synopsis())
-            {
-                auto synopsis =
-                    render(html_generator(opt.prefix, opt.extension), doc.synopsis().value());
-                stream << synopsis;
-            }
+            stream << "\" style=\"display: none\"></a>\n";
 
             cmark_node_set_literal(html, stream.str().c_str());
             cmark_node_append_child(parent, html);
         }
-        else if (doc.synopsis())
+
+        if (doc.synopsis())
             build(parent, opt, doc.synopsis().value());
 
         if (auto brief = doc.brief_section())

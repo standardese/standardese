@@ -164,13 +164,13 @@ TEST_CASE("markup::entity_index", "[markup]")
 
   - ## Namespace ns1
 
-    <a id="standardese-ns1"></a>
+    <a id="standardese-ns1" style="display: none"></a>
 
       - Entity a
 
   - ## Namespace ns2 \[module\]
 
-    <a id="standardese-ns2"></a>
+    <a id="standardese-ns2" style="display: none"></a>
 
     Brief documentation
 
@@ -178,7 +178,7 @@ TEST_CASE("markup::entity_index", "[markup]")
 
       - ### Namespace ns3
 
-        <a id="standardese-ns3"></a>
+        <a id="standardese-ns3" style="display: none"></a>
 
         Brief
 
@@ -264,13 +264,13 @@ TEST_CASE("markup::module_index", "[markup]")
 
   - ## Module 1
 
-    <a id="standardese-module1"></a>
+    <a id="standardese-module1" style="display: none"></a>
 
       - Entity a
 
   - ## Module 2
 
-    <a id="standardese-module2"></a>
+    <a id="standardese-module2" style="display: none"></a>
 
     Brief
 

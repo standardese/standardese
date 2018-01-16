@@ -67,7 +67,8 @@ TEST_CASE("file_documentation", "[markup]")
 )";
     auto md  = R"(# A file
 
-<a id="standardese-file-hpp"></a>
+<a id="standardese-file-hpp" style="display: none"></a>
+
 <pre><code class="standardese-language-cpp">the synopsis();</code></pre>
 
 The brief documentation.
@@ -146,12 +147,14 @@ TEST_CASE("entity_documentation", "[markup]")
 )";
     auto md   = R"(## Entity A \[module\_a\]
 
-<a id="standardese-a"></a>
+<a id="standardese-a" style="display: none"></a>
+
 <pre><code class="standardese-language-cpp">void a();</code></pre>
 
 ### Entity B \[module\_b\]
 
-<a id="standardese-b"></a>
+<a id="standardese-b" style="display: none"></a>
+
 <pre><code class="standardese-language-cpp">void b();</code></pre>
 
 The brief documentation.
