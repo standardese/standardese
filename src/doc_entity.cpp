@@ -1288,7 +1288,8 @@ namespace
 
         doc_member_group_entity::builder builder(group_name);
         for (auto& member : group)
-            builder.add_member(build_cpp_entity(registry, index, *member));
+            if (&member->parent().value() == &e.parent().value())
+                builder.add_member(build_cpp_entity(registry, index, *member));
         return builder.finish();
     }
 
