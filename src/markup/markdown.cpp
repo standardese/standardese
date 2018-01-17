@@ -82,9 +82,9 @@ namespace
             auto html = cmark_node_new(CMARK_NODE_HTML_BLOCK);
 
             std::ostringstream stream;
-            stream << "<a id=\"standardese-";
+            stream << "<span id=\"standardese-";
             detail::write_html_text(stream, doc.id().as_output_str().c_str());
-            stream << "\" style=\"display: none\"></a>\n";
+            stream << "\"></span>\n";
 
             cmark_node_set_literal(html, stream.str().c_str());
             cmark_node_append_child(parent, html);
