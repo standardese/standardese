@@ -294,7 +294,7 @@ namespace
     void write(xml_stream& s, const term_description_item& item)
     {
         auto tag = s.open_tag(xml_stream::block_tag, "term-description-item",
-                              std::make_pair("id", item.id().as_str()));
+                              std::make_pair("id", item.id().as_output_str()));
         write(tag, item.term());
         write(tag, item.description());
     }
@@ -302,7 +302,7 @@ namespace
     void write(xml_stream& s, const entity_index_item& item)
     {
         auto tag = s.open_tag(xml_stream::block_tag, "entity-index-item",
-                              std::make_pair("id", item.id().as_str()));
+                              std::make_pair("id", item.id().as_output_str()));
         write(tag, item.entity(), "entity");
         if (item.brief())
             write(tag, item.brief().value(), "brief");
@@ -325,9 +325,9 @@ namespace
 
     void write(xml_stream& s, const code_block& code)
     {
-        auto tag =
-            s.open_tag(xml_stream::line_tag, "code-block", std::make_pair("id", code.id().as_str()),
-                       std::make_pair("language", code.language()));
+        auto tag = s.open_tag(xml_stream::line_tag, "code-block",
+                              std::make_pair("id", code.id().as_output_str()),
+                              std::make_pair("language", code.language()));
         write_children(tag, code);
     }
 
@@ -451,17 +451,18 @@ namespace
     {
         if (link.internal_destination())
         {
-            auto tag =
-                s.open_tag(xml_stream::inline_tag, "documentation-link",
-                           std::make_pair("title", link.title()),
-                           std::make_pair("destination-document",
-                                          link.internal_destination()
-                                              .value()
-                                              .document()
-                                              .value_or(output_name::from_name(""))
-                                              .name()),
-                           std::make_pair("destination-id",
-                                          link.internal_destination().value().id().as_str()));
+            auto tag = s.open_tag(xml_stream::inline_tag, "documentation-link",
+                                  std::make_pair("title", link.title()),
+                                  std::make_pair("destination-document",
+                                                 link.internal_destination()
+                                                     .value()
+                                                     .document()
+                                                     .value_or(output_name::from_name(""))
+                                                     .name()),
+                                  std::make_pair("destination-id", link.internal_destination()
+                                                                       .value()
+                                                                       .id()
+                                                                       .as_output_str()));
             write_children(tag, link);
         }
         else if (link.external_destination())

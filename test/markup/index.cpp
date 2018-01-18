@@ -38,10 +38,10 @@ TEST_CASE("markup::file_index", "[markup]")
 
     auto xml  = R"(<file-index id="file-index">
 <heading>The file index</heading>
-<entity-index-item id="a.hpp">
+<entity-index-item id="a-hpp">
 <entity>a.hpp</entity>
 </entity-index-item>
-<entity-index-item id="b.hpp">
+<entity-index-item id="b-hpp">
 <entity>b.hpp</entity>
 <brief>with brief</brief>
 </entity-index-item>
@@ -49,12 +49,12 @@ TEST_CASE("markup::file_index", "[markup]")
 )";
     auto html = R"(<ul id="standardese-file-index" class="standardese-file-index">
 <h1>The file index</h1>
-<li id="standardese-a.hpp" class="standardese-entity-index-item">
+<li id="standardese-a-hpp" class="standardese-entity-index-item">
 <dl>
 <dt>a.hpp</dt>
 </dl>
 </li>
-<li id="standardese-b.hpp" class="standardese-entity-index-item">
+<li id="standardese-b-hpp" class="standardese-entity-index-item">
 <dl>
 <dt>b.hpp</dt>
 <dd>&mdash; with brief</dd>
@@ -164,13 +164,13 @@ TEST_CASE("markup::entity_index", "[markup]")
 
   - ## Namespace ns1
 
-    <a id="standardese-ns1" style="display: none"></a>
+    <span id="standardese-ns1"></span>
 
       - Entity a
 
   - ## Namespace ns2 \[module\]
 
-    <a id="standardese-ns2" style="display: none"></a>
+    <span id="standardese-ns2"></span>
 
     Brief documentation
 
@@ -178,7 +178,7 @@ TEST_CASE("markup::entity_index", "[markup]")
 
       - ### Namespace ns3
 
-        <a id="standardese-ns3" style="display: none"></a>
+        <span id="standardese-ns3"></span>
 
         Brief
 
@@ -264,13 +264,13 @@ TEST_CASE("markup::module_index", "[markup]")
 
   - ## Module 1
 
-    <a id="standardese-module1" style="display: none"></a>
+    <span id="standardese-module1"></span>
 
       - Entity a
 
   - ## Module 2
 
-    <a id="standardese-module2" style="display: none"></a>
+    <span id="standardese-module2"></span>
 
     Brief
 

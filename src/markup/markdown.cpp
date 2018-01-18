@@ -82,9 +82,9 @@ namespace
             auto html = cmark_node_new(CMARK_NODE_HTML_BLOCK);
 
             std::ostringstream stream;
-            stream << "<a id=\"standardese-";
-            detail::write_html_text(stream, doc.id().as_str().c_str());
-            stream << "\" style=\"display: none\"></a>\n";
+            stream << "<span id=\"standardese-";
+            detail::write_html_text(stream, doc.id().as_output_str().c_str());
+            stream << "\"></span>\n";
 
             cmark_node_set_literal(html, stream.str().c_str());
             cmark_node_append_child(parent, html);
@@ -556,7 +556,7 @@ namespace
                              .document()
                              .map(&output_name::file_name, opt.extension.c_str())
                              .value_or("");
-            url += "#standardese-" + link.internal_destination().value().id().as_str();
+            url += "#standardese-" + link.internal_destination().value().id().as_output_str();
 
             auto node = build_link(link.title().c_str(), url.c_str());
             cmark_node_append_child(parent, node);

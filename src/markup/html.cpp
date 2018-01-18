@@ -86,7 +86,7 @@ namespace
             if (!id.empty())
             {
                 *out_ << " id=\"standardese-";
-                write(id.as_str().c_str());
+                write(id.as_output_str().c_str());
                 *out_ << '"';
             }
             if (*classes)
@@ -634,7 +634,7 @@ namespace
                            .document()
                            .map(&output_name::file_name, s.extension().c_str())
                            .value_or("");
-            url += "#standardese-" + link.internal_destination().value().id().as_str();
+            url += "#standardese-" + link.internal_destination().value().id().as_output_str();
 
             auto a = s.open_link(link.title().c_str(), url.c_str(), true);
             write_children(a, link);

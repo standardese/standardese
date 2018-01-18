@@ -83,6 +83,9 @@ namespace standardese
                 return id_;
             }
 
+            /// \returns The escaped string representaton.
+            std::string as_output_str() const;
+
         private:
             std::string id_;
         };
