@@ -1281,15 +1281,28 @@ namespace
         const comment_registry& registry, const cppast::cpp_entity_index& index,
         const std::string& group_name, const cppast::cpp_entity& e)
     {
-        auto group = registry.lookup_group(group_name);
-        assert(group.size() >= 1u);
-        if (&*group[0u] != &e)
-            return nullptr;
+        // may contain entities from a different parent
+        auto global_group = registry.lookup_group(group_name);
 
-        doc_member_group_entity::builder builder(group_name);
-        for (auto& member : group)
-            builder.add_member(build_cpp_entity(registry, index, *member));
-        return builder.finish();
+        // get entities that have the same parent
+        std::vector<type_safe::object_ref<const cppast::cpp_entity>> group;
+        group.reserve(static_cast<std::size_t>(global_group.size()));
+        std::copy_if(global_group.begin(), global_group.end(), std::back_inserter(group),
+                     [&](const type_safe::object_ref<const cppast::cpp_entity>& member) {
+                         return &member->parent().value() == &e.parent().value();
+                     });
+
+        if (group.empty() || &*group.front() != &e)
+            // e is not the main entity of the group
+            return nullptr;
+        else
+        {
+            // e is the main entity, so build group
+            doc_member_group_entity::builder builder(group_name);
+            for (auto& member : group)
+                builder.add_member(build_cpp_entity(registry, index, *member));
+            return builder.finish();
+        }
     }
 
     std::unique_ptr<doc_cpp_namespace> build_namespace(const comment_registry&         registry,
