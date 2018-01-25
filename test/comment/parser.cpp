@@ -522,11 +522,28 @@ And \verbatim this as well.
 With \verbatim VERBATIM<> \end
 
 \end
+
+1. A list
+   - A child list
+     \verbatim #105\end
 )";
         auto xml = R"(<brief-section><verbatim>This is verbatim.</verbatim><soft-break></soft-break>
 And <verbatim>this as well.</verbatim></brief-section>
 <inline-section name="Effects">But this is a section.<soft-break></soft-break>
 With <verbatim>VERBATIM&lt;&gt;</verbatim></inline-section>
+<details-section>
+<ordered-list>
+<list-item>
+<paragraph>A list</paragraph>
+<unordered-list>
+<list-item>
+<paragraph>A child list<soft-break></soft-break>
+<verbatim>#105</verbatim></paragraph>
+</list-item>
+</unordered-list>
+</list-item>
+</ordered-list>
+</details-section>
 )";
 
         parser p;

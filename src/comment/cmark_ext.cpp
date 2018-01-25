@@ -663,12 +663,12 @@ cmark_syntax_extension* standardese::comment::detail::create_command_extension(c
                 return nullptr;
 
             assert(cmark_parser_get_offset(parser) <= len);
-            auto cur = reinterpret_cast<char*>(input) + cmark_parser_get_offset(parser);
+            auto real_input = reinterpret_cast<char*>(input) + cmark_parser_get_offset(parser);
 
+            auto cur  = real_input;
             auto node = parse_node(self, cur, parser, parent_container, indented);
             cmark_parser_advance_offset(parser, reinterpret_cast<char*>(input),
-                                        static_cast<int>(cur - reinterpret_cast<char*>(input)),
-                                        false);
+                                        static_cast<int>(cur - real_input), false);
             return node;
         });
 
