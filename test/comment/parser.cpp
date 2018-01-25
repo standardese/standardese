@@ -519,14 +519,14 @@ And \verbatim this as well.
 
 \effects But this is a section.
 
-With \verbatim VERBATIM<> \end.
+With \verbatim VERBATIM<> \end
 
 \end
 )";
         auto xml = R"(<brief-section><verbatim>This is verbatim.</verbatim><soft-break></soft-break>
 And <verbatim>this as well.</verbatim></brief-section>
 <inline-section name="Effects">But this is a section.<soft-break></soft-break>
-With <verbatim>VERBATIM&lt;&gt;</verbatim>.</inline-section>
+With <verbatim>VERBATIM&lt;&gt;</verbatim></inline-section>
 )";
 
         parser p;

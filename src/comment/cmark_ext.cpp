@@ -703,7 +703,6 @@ namespace
         }
 
         cmark_inline_parser_set_offset(parser, offset);
-        assert(!cmark_inline_parser_is_eof(parser));
         return true;
     }
 
@@ -735,16 +734,21 @@ namespace
             cmark_node_unput(parent, 1); // remove command character
 
             std::string content;
+
+            auto break_due_to_eof = false;
             while (!bump_if(inline_parser, config.command_character(),
                             config.command_name(command_type::end)))
             {
                 content += char(cmark_inline_parser_peek_char(inline_parser));
                 if (cmark_inline_parser_is_eof(inline_parser))
+                {
+                    break_due_to_eof = true;
                     break;
+                }
                 cmark_inline_parser_advance_offset(inline_parser);
             }
 
-            if (!cmark_inline_parser_is_eof(inline_parser))
+            if (!break_due_to_eof)
             {
                 assert(!content.empty() && content.back() == config.command_character());
                 content.pop_back();
