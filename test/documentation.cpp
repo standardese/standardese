@@ -141,6 +141,12 @@ enum class bar
     a, //< a
     b, //< b
 };
+
+/// Macro.
+/// \param a a
+/// \param b
+/// \exclude
+#define MACRO(a, b, ...)
 )");
 
         auto doc = generate_documentation({}, {}, index, *file);
@@ -152,6 +158,8 @@ enum class bar
 <code-block-keyword>void</code-block-keyword> <documentation-link unresolved-destination-id="func(int,int)"><code-block-identifier>func</code-block-identifier></documentation-link><code-block-punctuation>(</code-block-punctuation><code-block-keyword>int</code-block-keyword> <documentation-link unresolved-destination-id="func(int,int).a"><code-block-identifier>a</code-block-identifier></documentation-link><code-block-punctuation>,</code-block-punctuation> <code-block-keyword>int</code-block-keyword> <documentation-link unresolved-destination-id="func(int,int).b"><code-block-identifier>b</code-block-identifier></documentation-link><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <soft-break></soft-break>
 <code-block-keyword>enum</code-block-keyword> <code-block-keyword>class</code-block-keyword> <documentation-link unresolved-destination-id="bar"><code-block-identifier>bar</code-block-identifier></documentation-link><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+<soft-break></soft-break>
+<code-block-preprocessor>#define</code-block-preprocessor> <documentation-link unresolved-destination-id="MACRO"><code-block-identifier>MACRO</code-block-identifier></documentation-link><code-block-preprocessor>(</code-block-preprocessor><documentation-link unresolved-destination-id="a"><code-block-identifier>a</code-block-identifier></documentation-link><code-block-punctuation>,</code-block-punctuation> <code-block-preprocessor>...</code-block-preprocessor><code-block-preprocessor>)</code-block-preprocessor><soft-break></soft-break>
 </code-block>
 <entity-documentation id="foo&lt;A,B,C&gt;">
 <heading>Struct <code>foo</code></heading>
@@ -227,6 +235,18 @@ enum class bar
 <term-description-item id="bar__b">
 <term><code>b</code></term>
 <description>b</description>
+</term-description-item>
+</list-section>
+</entity-documentation>
+<entity-documentation id="MACRO">
+<heading>Macro <code>MACRO</code></heading>
+<code-block language="cpp"><code-block-preprocessor>#define</code-block-preprocessor> <code-block-identifier>MACRO</code-block-identifier><code-block-preprocessor>(</code-block-preprocessor><documentation-link unresolved-destination-id="a"><code-block-identifier>a</code-block-identifier></documentation-link><code-block-punctuation>,</code-block-punctuation> <code-block-preprocessor>...</code-block-preprocessor><code-block-preprocessor>)</code-block-preprocessor><soft-break></soft-break>
+</code-block>
+<brief-section id="MACRO-brief">Macro.</brief-section>
+<list-section name="Parameters">
+<term-description-item id="a">
+<term><code>a</code></term>
+<description>a</description>
 </term-description-item>
 </list-section>
 </entity-documentation>

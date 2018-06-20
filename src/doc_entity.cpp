@@ -60,7 +60,7 @@ namespace
     // tag object to mark an excluded entity
     doc_excluded_entity excluded_entity;
     doc_excluded_entity parent_excluded_entity;
-}
+} // namespace
 
 bool doc_entity::is_excluded() const noexcept
 {
@@ -194,7 +194,7 @@ namespace
         if (metadata.synopsis())
             code << cppast::token_seq(metadata.synopsis().value());
     }
-}
+} // namespace
 
 class standardese::detail::markdown_code_generator : public cppast::code_generator
 {
@@ -639,6 +639,8 @@ namespace
         case cppast::cpp_entity_kind::file_t:
             return "Header file";
 
+        case cppast::cpp_entity_kind::macro_parameter_t:
+            return "Macro Parameter";
         case cppast::cpp_entity_kind::macro_definition_t:
             return "Macro";
         case cppast::cpp_entity_kind::include_directive_t:
@@ -782,7 +784,7 @@ namespace
         else
             return nullptr;
     }
-}
+} // namespace
 
 std::unique_ptr<markup::documentation_entity> standardese::generate_documentation(
     const generation_config& gen_config, const synopsis_config& syn_config,
@@ -805,7 +807,9 @@ std::unique_ptr<markup::documentation_entity> doc_cpp_entity::do_generate_docume
         // not a main entity that needs documentation
         return nullptr;
     // various inline entities
-    else if (inline_doc && entity().kind() == cppast::cpp_function_parameter::kind())
+    else if (inline_doc
+             && (entity().kind() == cppast::cpp_function_parameter::kind()
+                 || entity().kind() == cppast::cpp_macro_parameter::kind()))
         inlines.value().params.add_item(
             get_inline_doc(get_documentation_id(), entity(), comment()));
     else if (inline_doc && cppast::is_parameter(entity().kind()))
@@ -1040,7 +1044,7 @@ namespace
         else
             return false;
     }
-}
+} // namespace
 
 bool entity_blacklist::is_blacklisted(const cppast::cpp_entity&         entity,
                                       cppast::cpp_access_specifier_kind access) const
@@ -1250,6 +1254,9 @@ namespace
         if (auto templ = detail::get_template(e))
             for (auto& param : templ.value().parameters())
                 visitor(param, false);
+        if (auto macro = detail::get_macro(e))
+            for (auto& param : macro.value().parameters())
+                visitor(param, false);
         if (auto func = detail::get_function(e))
             for (auto& param : func.value().parameters())
                 visitor(param, false);
@@ -1365,7 +1372,7 @@ namespace
         else
             return build_cpp_entity(registry, index, e);
     }
-}
+} // namespace
 
 void standardese::exclude_entities(const comment_registry&         registry,
                                    const cppast::cpp_entity_index& index,
@@ -1390,6 +1397,9 @@ void standardese::exclude_entities(const comment_registry&         registry,
         // handle inline entities
         if (auto templ = detail::get_template(entity))
             for (auto& param : templ.value().parameters())
+                exclude_if_necessary(param, cppast::cpp_public);
+        if (auto macro = detail::get_macro(entity))
+            for (auto& param : macro.value().parameters())
                 exclude_if_necessary(param, cppast::cpp_public);
         if (auto func = detail::get_function(entity))
             for (auto& param : func.value().parameters())

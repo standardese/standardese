@@ -141,6 +141,9 @@ namespace
                          const cppast::cpp_entity& entity, const MatchRegister& register_commented,
                          const UnmatchRegister& register_uncommented)
     {
+        if (auto macro = detail::get_macro(entity))
+            process_inlines<comment::inline_param>(comment, macro.value().parameters(),
+                                                   register_commented, register_uncommented);
         if (auto func = detail::get_function(entity))
             process_inlines<comment::inline_param>(comment, func.value().parameters(),
                                                    register_commented, register_uncommented);
@@ -170,7 +173,7 @@ namespace
                                make_semantic_diagnostic(entity, "unexpected inline comment"));
             }
     }
-}
+} // namespace
 
 void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> file) const
 {
@@ -202,18 +205,18 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
             catch (comment::parse_error& ex)
             {
                 logger_->log("standardese comment", make_parse_diagnostic(entity, ex));
-                comment = comment::
-                    parse_result{comment::
-                                     doc_comment(comment::metadata(),
-                                                 markup::brief_section::builder()
-                                                     .add_child(markup::text::build(
-                                                         std::string(
-                                                             "(error while parsing comment text: ")
-                                                         + ex.what() + ")"))
-                                                     .finish(),
-                                                 {}),
-                                 type_safe::nullvar,
-                                 {}};
+                comment =
+                    comment::parse_result{comment::doc_comment(comment::metadata(),
+                                                               markup::brief_section::builder()
+                                                                   .add_child(markup::text::build(
+                                                                       std::string(
+                                                                           "(error while parsing "
+                                                                           "comment text: ")
+                                                                       + ex.what() + ")"))
+                                                                   .finish(),
+                                                               {}),
+                                          type_safe::nullvar,
+                                          {}};
             }
 
             if (comment && comment.value().comment)
@@ -458,7 +461,7 @@ namespace
         return get_full_unique_name(lookup_parent_unique_name(get_comment, parent.value()),
                                     parent.value(), get_unique_name(parent.value()));
     }
-}
+} // namespace
 
 void file_comment_parser::register_uncommented(
     type_safe::object_ref<const cppast::cpp_entity> entity) const

@@ -8,12 +8,22 @@
 #include <cppast/cpp_class.hpp>
 #include <cppast/cpp_file.hpp>
 #include <cppast/cpp_function.hpp>
+#include <cppast/cpp_preprocessor.hpp>
 #include <cppast/cpp_template.hpp>
 
 namespace standardese
 {
     namespace detail
     {
+        inline type_safe::optional_ref<const cppast::cpp_macro_definition> get_macro(
+            const cppast::cpp_entity& e)
+        {
+            if (e.kind() == cppast::cpp_macro_definition::kind())
+                return type_safe::ref(static_cast<const cppast::cpp_macro_definition&>(e));
+            else
+                return type_safe::nullopt;
+        }
+
         inline type_safe::optional_ref<const cppast::cpp_function_base> get_function(
             const cppast::cpp_entity& e)
         {
@@ -46,7 +56,7 @@ namespace standardese
             else
                 return type_safe::nullopt;
         }
-    }
-} // namespace standardese::detail
+    } // namespace detail
+} // namespace standardese
 
 #endif // STANDARDESE_GET_SPECIAL_ENTITY_HPP_INCLUDED

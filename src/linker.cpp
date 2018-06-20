@@ -95,7 +95,7 @@ namespace
 
         return result;
     }
-}
+} // namespace
 
 bool linker::register_documentation(std::string link_name, const markup::document_entity& document,
                                     const markup::block_id& documentation, bool force) const
@@ -176,7 +176,7 @@ namespace
         }
         return result;
     }
-}
+} // namespace
 
 type_safe::variant<type_safe::nullvar_t, markup::block_reference, markup::url> linker::
     lookup_documentation(type_safe::optional_ref<const cppast::cpp_entity> context,
@@ -291,7 +291,7 @@ namespace
                 // but also all children of injected member groups
                 register_documentation(logger, l, document, child);
     }
-}
+} // namespace
 
 void standardese::register_documentations(const cppast::diagnostic_logger& logger, const linker& l,
                                           const markup::document_entity& document)
@@ -315,6 +315,9 @@ void standardese::register_documentations(const cppast::diagnostic_logger& logge
                                      // handle inline entities
                                      if (auto func = detail::get_function(e))
                                          for (auto& param : func.value().parameters())
+                                             register_doc(param);
+                                     if (auto macro = detail::get_macro(e))
+                                         for (auto& param : macro.value().parameters())
                                              register_doc(param);
                                      if (auto templ = detail::get_template(e))
                                          for (auto& param : templ.value().parameters())
@@ -356,7 +359,7 @@ namespace
 
         return result;
     }
-}
+} // namespace
 
 void standardese::resolve_links(const cppast::diagnostic_logger& logger, const linker& l,
                                 const markup::document_entity& document)
