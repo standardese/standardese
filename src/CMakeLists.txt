@@ -77,7 +77,9 @@ target_include_directories(standardese PUBLIC
 target_compile_definitions(standardese PUBLIC
                                 STANDARDESE=1
                                 STANDARDESE_VERSION_MAJOR=${STANDARDESE_VERSION_MAJOR}
-                                STANDARDESE_VERSION_MINOR=${STANDARDESE_VERSION_MINOR})
+                                STANDARDESE_VERSION_MINOR=${STANDARDESE_VERSION_MINOR}
+                                )
+set_target_properties(standardese PROPERTIES PUBLIC_HEADER "${header}")
 
 # add threading support
 find_package(Threads REQUIRED)
@@ -89,7 +91,15 @@ target_link_libraries(standardese PUBLIC cppast)
 # link cmark
 target_link_libraries(standardese PUBLIC libcmark-gfm_static)
 
-# install library: TODO
-#install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")
-#install(FILES ${header} DESTINATION "${include_dest}/standardese")
+#install library: TODO
+install(TARGETS standardese EXPORT standardese
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  PUBLIC_HEADER DESTINATION ${include_dest}/standardese
+  )
+
+#TODO install library: add export set for cmake discovery
+
+#TODO what are the detailed headers?
 #install(FILES ${detail_header} DESTINATION "${include_dest}/standardese/detail")
