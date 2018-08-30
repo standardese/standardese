@@ -4,8 +4,8 @@
 
 # add catch
 if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
-    file(DOWNLOAD https://raw.githubusercontent.com/philsquared/Catch/master/single_include/catch.hpp
-            ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
+    file(DOWNLOAD https://github.com/catchorg/Catch2/releases/download/v1.12.2/catch.hpp
+      ${CMAKE_CURRENT_BINARY_DIR}/catch.hpp)
 endif()
 
 set(tests
