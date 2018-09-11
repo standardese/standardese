@@ -21,4 +21,10 @@ target_include_directories(standardese_tool PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(standardese_tool PUBLIC ${Boost_LIBRARIES})
 
 # install tool
-#install(TARGETS standardese_tool EXPORT standardese DESTINATION "${tool_dest}")
+install(TARGETS standardese_tool EXPORT standardese
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  PUBLIC_HEADER DESTINATION ${include_dest}/standardese
+  )
+#TODO install library: add export set for cmake discovery
