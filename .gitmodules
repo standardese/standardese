@@ -6,7 +6,7 @@
     url = https://github.com/github/cmark.git
 [submodule "external/cppast"]
     path = external/cppast
-    url = https://github.com/foonathan/cppast
+    url = https://github.com/foonathan/cppast.git
 [submodule "external/tiny-process-library"]
 	path = external/tiny-process-library
-	url = https://gitlab.com/eidheim/tiny-process-library
+	url = https://gitlab.com/eidheim/tiny-process-library.git
