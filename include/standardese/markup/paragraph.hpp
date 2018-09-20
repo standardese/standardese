@@ -10,33 +10,32 @@
 
 namespace standardese
 {
-    namespace markup
+namespace markup
+{
+    /// A plain paragraph.
+    class paragraph final : public block_entity, public container_entity<phrasing_entity>
     {
-        /// A plain paragraph.
-        class paragraph final : public block_entity, public container_entity<phrasing_entity>
+    public:
+        /// Builds a paragraph.
+        class builder : public container_builder<paragraph>
         {
         public:
-            /// Builds a paragraph.
-            class builder : public container_builder<paragraph>
-            {
-            public:
-                /// \effects Creates it giving the id.
-                builder(block_id id = block_id())
-                : container_builder(std::unique_ptr<paragraph>(new paragraph(std::move(id))))
-                {
-                }
-            };
-
-        private:
-            entity_kind do_get_kind() const noexcept override;
-
-            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
-
-            std::unique_ptr<entity> do_clone() const override;
-
-            paragraph(block_id id) : block_entity(std::move(id)) {}
+            /// \effects Creates it giving the id.
+            builder(block_id id = block_id())
+            : container_builder(std::unique_ptr<paragraph>(new paragraph(std::move(id))))
+            {}
         };
-    }
-} // namespace standardese::markup
+
+    private:
+        entity_kind do_get_kind() const noexcept override;
+
+        void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
+        std::unique_ptr<entity> do_clone() const override;
+
+        paragraph(block_id id) : block_entity(std::move(id)) {}
+    };
+} // namespace markup
+} // namespace standardese
 
 #endif // STANDARDESE_MARKUP_PARAGRAPH_HPP_INCLUDED

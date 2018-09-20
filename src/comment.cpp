@@ -76,103 +76,102 @@ type_safe::optional_ref<const comment::doc_comment> comment_registry::get_commen
 
 namespace
 {
-    cppast::source_location make_location(const cppast::cpp_entity&   entity,
-                                          const comment::parse_error& ex)
-    {
-        return cppast::source_location::make_entity(
-            entity.name() + " - " + std::to_string(ex.line()) + ":" + std::to_string(ex.column()));
-    }
+cppast::source_location make_location(const cppast::cpp_entity&   entity,
+                                      const comment::parse_error& ex)
+{
+    return cppast::source_location::make_entity(entity.name() + " - " + std::to_string(ex.line())
+                                                + ":" + std::to_string(ex.column()));
+}
 
-    cppast::diagnostic make_parse_diagnostic(const cppast::cpp_entity&   entity,
-                                             const comment::parse_error& ex)
-    {
-        return {ex.what(), make_location(entity, ex), cppast::severity::error};
-    }
+cppast::diagnostic make_parse_diagnostic(const cppast::cpp_entity&   entity,
+                                         const comment::parse_error& ex)
+{
+    return {ex.what(), make_location(entity, ex), cppast::severity::error};
+}
 
-    template <typename... Args>
-    cppast::diagnostic make_semantic_diagnostic(const cppast::cpp_entity& entity, Args&&... args)
-    {
-        return make_diagnostic(cppast::source_location::make_entity(entity.name()),
-                               std::forward<Args>(args)...);
-    }
-    template <class Inline>
-    type_safe::optional<comment::unmatched_doc_comment> find_inline(comment::parse_result& result,
-                                                                    const Inline&          entity)
-    {
-        auto iter = std::find_if(result.inlines.begin(), result.inlines.end(),
-                                 [&](const comment::unmatched_doc_comment& comment) {
-                                     return comment.entity == entity;
-                                 });
-        if (iter == result.inlines.end())
-            return type_safe::nullopt;
+template <typename... Args>
+cppast::diagnostic make_semantic_diagnostic(const cppast::cpp_entity& entity, Args&&... args)
+{
+    return make_diagnostic(cppast::source_location::make_entity(entity.name()),
+                           std::forward<Args>(args)...);
+}
+template <class Inline>
+type_safe::optional<comment::unmatched_doc_comment> find_inline(comment::parse_result& result,
+                                                                const Inline&          entity)
+{
+    auto iter = std::find_if(result.inlines.begin(), result.inlines.end(),
+                             [&](const comment::unmatched_doc_comment& comment) {
+                                 return comment.entity == entity;
+                             });
+    if (iter == result.inlines.end())
+        return type_safe::nullopt;
 
-        auto comment = std::move(*iter);
-        result.inlines.erase(iter);
-        return std::move(comment);
-    }
+    auto comment = std::move(*iter);
+    result.inlines.erase(iter);
+    return std::move(comment);
+}
 
-    template <class Inline, class InlineContainer, typename MatchRegister, typename UnmatchRegister>
-    void process_inlines(type_safe::optional<comment::parse_result>& comment,
-                         const InlineContainer& container, const MatchRegister& register_commented,
-                         const UnmatchRegister& register_uncommented)
+template <class Inline, class InlineContainer, typename MatchRegister, typename UnmatchRegister>
+void process_inlines(type_safe::optional<comment::parse_result>& comment,
+                     const InlineContainer& container, const MatchRegister& register_commented,
+                     const UnmatchRegister& register_uncommented)
+{
+    auto cur = 0;
+    for (auto& child : container)
     {
-        auto cur = 0;
-        for (auto& child : container)
+        // create corresponding matching entity
+        Inline name(child.name().empty() ? std::to_string(cur) : child.name());
+        auto   inline_comment = comment.map(
+            [&](comment::parse_result& comment) { return find_inline(comment, name); });
+
+        // register
+        if (inline_comment)
+            register_commented(type_safe::ref(child), std::move(inline_comment.value().comment));
+        else
+            register_uncommented(type_safe::ref(child));
+
+        ++cur;
+    }
+}
+
+template <typename MatchRegister, typename UnmatchRegister>
+void process_inlines(const cppast::diagnostic_logger&            logger,
+                     type_safe::optional<comment::parse_result>& comment,
+                     const cppast::cpp_entity& entity, const MatchRegister& register_commented,
+                     const UnmatchRegister& register_uncommented)
+{
+    if (auto macro = detail::get_macro(entity))
+        process_inlines<comment::inline_param>(comment, macro.value().parameters(),
+                                               register_commented, register_uncommented);
+    if (auto func = detail::get_function(entity))
+        process_inlines<comment::inline_param>(comment, func.value().parameters(),
+                                               register_commented, register_uncommented);
+    if (auto templ = detail::get_template(entity))
+        process_inlines<comment::inline_param>(comment, templ.value().parameters(),
+                                               register_commented, register_uncommented);
+    if (auto c = detail::get_class(entity))
+        process_inlines<comment::inline_base>(comment, c.value().bases(), register_commented,
+                                              register_uncommented);
+
+    // error on remaining inlines
+    if (comment)
+        for (auto& inl : comment.value().inlines)
         {
-            // create corresponding matching entity
-            Inline name(child.name().empty() ? std::to_string(cur) : child.name());
-            auto   inline_comment = comment.map(
-                [&](comment::parse_result& comment) { return find_inline(comment, name); });
-
-            // register
-            if (inline_comment)
-                register_commented(type_safe::ref(child),
-                                   std::move(inline_comment.value().comment));
+            if (auto param = comment::get_inline_param(inl.entity))
+                logger.log("standardese comment",
+                           make_semantic_diagnostic(entity,
+                                                    "unable to find function or "
+                                                    "template parameter named '",
+                                                    param.value(), "'"));
+            else if (auto base = comment::get_inline_base(inl.entity))
+                logger.log("standardese comment",
+                           make_semantic_diagnostic(entity, "unable to find base named '",
+                                                    base.value(), "'"));
             else
-                register_uncommented(type_safe::ref(child));
-
-            ++cur;
+                logger.log("standardese comment",
+                           make_semantic_diagnostic(entity, "unexpected inline comment"));
         }
-    }
-
-    template <typename MatchRegister, typename UnmatchRegister>
-    void process_inlines(const cppast::diagnostic_logger&            logger,
-                         type_safe::optional<comment::parse_result>& comment,
-                         const cppast::cpp_entity& entity, const MatchRegister& register_commented,
-                         const UnmatchRegister& register_uncommented)
-    {
-        if (auto macro = detail::get_macro(entity))
-            process_inlines<comment::inline_param>(comment, macro.value().parameters(),
-                                                   register_commented, register_uncommented);
-        if (auto func = detail::get_function(entity))
-            process_inlines<comment::inline_param>(comment, func.value().parameters(),
-                                                   register_commented, register_uncommented);
-        if (auto templ = detail::get_template(entity))
-            process_inlines<comment::inline_param>(comment, templ.value().parameters(),
-                                                   register_commented, register_uncommented);
-        if (auto c = detail::get_class(entity))
-            process_inlines<comment::inline_base>(comment, c.value().bases(), register_commented,
-                                                  register_uncommented);
-
-        // error on remaining inlines
-        if (comment)
-            for (auto& inl : comment.value().inlines)
-            {
-                if (auto param = comment::get_inline_param(inl.entity))
-                    logger.log("standardese comment",
-                               make_semantic_diagnostic(entity,
-                                                        "unable to find function or "
-                                                        "template parameter named '",
-                                                        param.value(), "'"));
-                else if (auto base = comment::get_inline_base(inl.entity))
-                    logger.log("standardese comment",
-                               make_semantic_diagnostic(entity, "unable to find base named '",
-                                                        base.value(), "'"));
-                else
-                    logger.log("standardese comment",
-                               make_semantic_diagnostic(entity, "unexpected inline comment"));
-            }
-    }
+}
 } // namespace
 
 void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> file) const
@@ -205,18 +204,18 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
             catch (comment::parse_error& ex)
             {
                 logger_->log("standardese comment", make_parse_diagnostic(entity, ex));
-                comment =
-                    comment::parse_result{comment::doc_comment(comment::metadata(),
-                                                               markup::brief_section::builder()
-                                                                   .add_child(markup::text::build(
-                                                                       std::string(
-                                                                           "(error while parsing "
-                                                                           "comment text: ")
-                                                                       + ex.what() + ")"))
-                                                                   .finish(),
-                                                               {}),
-                                          type_safe::nullvar,
-                                          {}};
+                comment
+                    = comment::parse_result{comment::doc_comment(comment::metadata(),
+                                                                 markup::brief_section::builder()
+                                                                     .add_child(markup::text::build(
+                                                                         std::string(
+                                                                             "(error while parsing "
+                                                                             "comment text: ")
+                                                                         + ex.what() + ")"))
+                                                                     .finish(),
+                                                                 {}),
+                                            type_safe::nullvar,
+                                            {}};
             }
 
             if (comment && comment.value().comment)
@@ -246,8 +245,8 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
         else if (auto module = comment::get_module(comment.entity))
         {
             std::unique_lock<std::mutex> lock(mutex_);
-            auto                         result =
-                registry_.register_comment(module.value(), std::move(comment.comment.value()));
+            auto                         result
+                = registry_.register_comment(module.value(), std::move(comment.comment.value()));
             lock.unlock();
 
             if (!result)
@@ -319,155 +318,154 @@ bool file_comment_parser::register_commented(type_safe::object_ref<const cppast:
 
 namespace
 {
-    bool is_relative_unique_name(const std::string& unique_name)
+bool is_relative_unique_name(const std::string& unique_name)
+{
+    return unique_name.front() == '*' || unique_name.front() == '?';
+}
+
+std::string get_template_parameters(const cppast::cpp_entity& e)
+{
+    auto templ = detail::get_template(e);
+    if (!templ)
+        return "";
+
+    std::string result = "<";
+    for (auto& param : templ.value().parameters())
+        result += param.name() + ",";
+    result.back() = '>';
+
+    return result;
+}
+
+std::string get_signature(const cppast::cpp_entity& e)
+{
+    auto function = detail::get_function(e);
+    if (!function)
+        return "";
+    return function.value().signature();
+}
+
+// get unique name of entity only w/o parent
+std::string get_unique_name(const cppast::cpp_entity& e)
+{
+    if (e.kind() == cppast::cpp_file::kind())
     {
-        return unique_name.front() == '*' || unique_name.front() == '?';
+        auto index = e.name().find_last_of("/\\");
+        assert(index != e.name().size());
+        if (index != std::string::npos)
+            return e.name().substr(index + 1u);
+        else
+            return e.name();
     }
-
-    std::string get_template_parameters(const cppast::cpp_entity& e)
+    else if (e.kind() == cppast::cpp_friend::kind())
     {
-        auto templ = detail::get_template(e);
-        if (!templ)
+        auto& f = static_cast<const cppast::cpp_friend&>(e);
+        if (f.entity())
+            return get_unique_name(f.entity().value());
+        else
             return "";
+    }
+    else if (e.name().empty() && cppast::is_parameter(e.kind()))
+    {
+        auto& parent = e.parent().value();
 
-        std::string result = "<";
-        for (auto& param : templ.value().parameters())
-            result += param.name() + ",";
-        result.back() = '>';
+        // find index and use it as name
+        if (auto func = detail::get_function(parent))
+        {
+            auto count = 0u;
+            for (auto& param : func.value().parameters())
+            {
+                if (&param == &e)
+                    return std::to_string(count);
+                ++count;
+            }
+        }
 
+        if (auto templ = detail::get_template(parent))
+        {
+            auto count = 0u;
+            for (auto& param : templ.value().parameters())
+            {
+                if (&param == &e)
+                    return std::to_string(count);
+                ++count;
+            }
+        }
+
+        assert(false);
+        return "";
+    }
+    else
+    {
+        auto result = e.name();
+        result += get_template_parameters(e);
+        result += get_signature(e);
         return result;
     }
+}
 
-    std::string get_signature(const cppast::cpp_entity& e)
-    {
-        auto function = detail::get_function(e);
-        if (!function)
-            return "";
-        return function.value().signature();
-    }
+std::string get_separator(const cppast::cpp_entity& e)
+{
+    if (cppast::is_parameter(e.kind()))
+        return ".";
+    else
+        return "::";
+}
 
-    // get unique name of entity only w/o parent
-    std::string get_unique_name(const cppast::cpp_entity& e)
-    {
-        if (e.kind() == cppast::cpp_file::kind())
-        {
-            auto index = e.name().find_last_of("/\\");
-            assert(index != e.name().size());
-            if (index != std::string::npos)
-                return e.name().substr(index + 1u);
-            else
-                return e.name();
-        }
-        else if (e.kind() == cppast::cpp_friend::kind())
-        {
-            auto& f = static_cast<const cppast::cpp_friend&>(e);
-            if (f.entity())
-                return get_unique_name(f.entity().value());
-            else
-                return "";
-        }
-        else if (e.name().empty() && cppast::is_parameter(e.kind()))
-        {
-            auto& parent = e.parent().value();
-
-            // find index and use it as name
-            if (auto func = detail::get_function(parent))
-            {
-                auto count = 0u;
-                for (auto& param : func.value().parameters())
-                {
-                    if (&param == &e)
-                        return std::to_string(count);
-                    ++count;
-                }
-            }
-
-            if (auto templ = detail::get_template(parent))
-            {
-                auto count = 0u;
-                for (auto& param : templ.value().parameters())
-                {
-                    if (&param == &e)
-                        return std::to_string(count);
-                    ++count;
-                }
-            }
-
-            assert(false);
-            return "";
-        }
-        else
-        {
-            auto result = e.name();
-            result += get_template_parameters(e);
-            result += get_signature(e);
-            return result;
-        }
-    }
-
-    std::string get_separator(const cppast::cpp_entity& e)
-    {
-        if (cppast::is_parameter(e.kind()))
-            return ".";
-        else
-            return "::";
-    }
-
-    std::string get_full_unique_name(const std::string& parent, const cppast::cpp_entity& e,
-                                     const std::string& e_name)
-    {
-        std::string result = parent;
-        if (e_name.empty())
-            return result;
-        else if (!(parent.empty() || parent.back() == ':' || parent.back() == '.'
-                   || e_name.front() == ':' || e_name.front() == '.'))
-            result += get_separator(e);
-
-        for (auto c : e_name)
-            if (c != ' ')
-                result += c;
-
+std::string get_full_unique_name(const std::string& parent, const cppast::cpp_entity& e,
+                                 const std::string& e_name)
+{
+    std::string result = parent;
+    if (e_name.empty())
         return result;
-    }
+    else if (!(parent.empty() || parent.back() == ':' || parent.back() == '.'
+               || e_name.front() == ':' || e_name.front() == '.'))
+        result += get_separator(e);
 
-    template <class Lookup>
-    std::string lookup_parent_unique_name(const Lookup& get_comment, const cppast::cpp_entity& e)
-    {
-        auto parent = e.parent();
-        while (parent
-               && (cppast::is_templated(parent.value()) || cppast::is_friended(parent.value())))
-            parent = parent.value().parent();
-        if (!parent)
-            return "";
+    for (auto c : e_name)
+        if (c != ' ')
+            result += c;
 
-        // don't need unique name for parents that don't have a scope
-        // except for functions or templates, those are fine
-        auto need_name = parent.value().scope_name() || detail::get_function(parent.value())
-                         || detail::get_template(parent.value());
-        if (!need_name)
-            return "";
+    return result;
+}
 
-        auto result =
-            parent
-                .map([&](const cppast::cpp_entity& p) {
-                    return p.scope_name() || detail::get_function(p) ? get_comment(p) :
-                                                                       type_safe::nullopt;
-                })
-                .map([](const comment::doc_comment& c) { return c.metadata().unique_name(); });
-        if (result)
-            return result.value();
+template <class Lookup>
+std::string lookup_parent_unique_name(const Lookup& get_comment, const cppast::cpp_entity& e)
+{
+    auto parent = e.parent();
+    while (parent && (cppast::is_templated(parent.value()) || cppast::is_friended(parent.value())))
+        parent = parent.value().parent();
+    if (!parent)
+        return "";
 
-        // parent doesn't have a unique name
-        return get_full_unique_name(lookup_parent_unique_name(get_comment, parent.value()),
-                                    parent.value(), get_unique_name(parent.value()));
-    }
+    // don't need unique name for parents that don't have a scope
+    // except for functions or templates, those are fine
+    auto need_name = parent.value().scope_name() || detail::get_function(parent.value())
+                     || detail::get_template(parent.value());
+    if (!need_name)
+        return "";
+
+    auto result
+        = parent
+              .map([&](const cppast::cpp_entity& p) {
+                  return p.scope_name() || detail::get_function(p) ? get_comment(p)
+                                                                   : type_safe::nullopt;
+              })
+              .map([](const comment::doc_comment& c) { return c.metadata().unique_name(); });
+    if (result)
+        return result.value();
+
+    // parent doesn't have a unique name
+    return get_full_unique_name(lookup_parent_unique_name(get_comment, parent.value()),
+                                parent.value(), get_unique_name(parent.value()));
+}
 } // namespace
 
 void file_comment_parser::register_uncommented(
     type_safe::object_ref<const cppast::cpp_entity> entity) const
 {
-    auto unique_name =
-        get_full_unique_name(get_parent_unique_name(*entity), *entity, get_unique_name(*entity));
+    auto unique_name
+        = get_full_unique_name(get_parent_unique_name(*entity), *entity, get_unique_name(*entity));
 
     std::lock_guard<std::mutex> lock(mutex_);
     uncommented_.emplace(std::move(unique_name), &*entity);

@@ -32,29 +32,29 @@ doc_comment standardese::comment::merge(metadata data, doc_comment&& other)
 
 namespace
 {
-    template <class Builder>
-    void set_sections_impl(Builder& builder, const doc_comment& comment)
-    {
-        if (comment.brief_section())
-            builder.add_brief(markup::clone(comment.brief_section().value()));
+template <class Builder>
+void set_sections_impl(Builder& builder, const doc_comment& comment)
+{
+    if (comment.brief_section())
+        builder.add_brief(markup::clone(comment.brief_section().value()));
 
-        for (auto& sec : comment.sections())
-        {
-            auto ptr = sec.clone().release();
-            if (ptr->kind() == markup::entity_kind::details_section)
-                builder.add_details(std::unique_ptr<markup::details_section>(
-                    static_cast<markup::details_section*>(ptr)));
-            else if (ptr->kind() == markup::entity_kind::inline_section)
-                builder.add_section(std::unique_ptr<markup::inline_section>(
-                    static_cast<markup::inline_section*>(ptr)));
-            else if (ptr->kind() == markup::entity_kind::list_section)
-                builder.add_section(
-                    std::unique_ptr<markup::list_section>(static_cast<markup::list_section*>(ptr)));
-            else
-                assert(false);
-        }
+    for (auto& sec : comment.sections())
+    {
+        auto ptr = sec.clone().release();
+        if (ptr->kind() == markup::entity_kind::details_section)
+            builder.add_details(std::unique_ptr<markup::details_section>(
+                static_cast<markup::details_section*>(ptr)));
+        else if (ptr->kind() == markup::entity_kind::inline_section)
+            builder.add_section(
+                std::unique_ptr<markup::inline_section>(static_cast<markup::inline_section*>(ptr)));
+        else if (ptr->kind() == markup::entity_kind::list_section)
+            builder.add_section(
+                std::unique_ptr<markup::list_section>(static_cast<markup::list_section*>(ptr)));
+        else
+            assert(false);
     }
 }
+} // namespace
 
 void standardese::comment::set_sections(standardese::markup::entity_documentation::builder& builder,
                                         const doc_comment&                                  comment)

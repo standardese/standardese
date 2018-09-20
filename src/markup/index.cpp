@@ -25,8 +25,8 @@ void entity_index_item::do_visit(detail::visitor_callback_t cb, void* mem) const
 std::unique_ptr<entity> entity_index_item::do_clone() const
 {
     return build(id(), detail::unchecked_downcast<term>(entity().clone()),
-                 brief() ? detail::unchecked_downcast<description>(brief().value().clone()) :
-                           nullptr);
+                 brief() ? detail::unchecked_downcast<description>(brief().value().clone())
+                         : nullptr);
 }
 
 entity_kind file_index::do_get_kind() const noexcept

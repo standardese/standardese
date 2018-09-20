@@ -44,19 +44,18 @@ std::unique_ptr<entity> subdocument::do_clone() const
 
 namespace
 {
-    output_name get_output_name(std::string file_name)
-    {
-        auto pos = file_name.find('.');
-        if (pos == std::string::npos)
-            return output_name::from_name(std::move(file_name));
-        return output_name::from_file_name(std::move(file_name));
-    }
+output_name get_output_name(std::string file_name)
+{
+    auto pos = file_name.find('.');
+    if (pos == std::string::npos)
+        return output_name::from_name(std::move(file_name));
+    return output_name::from_file_name(std::move(file_name));
 }
+} // namespace
 
 template_document::template_document(std::string title, std::string file_name)
 : document_entity(std::move(title), get_output_name(std::move(file_name)))
-{
-}
+{}
 
 entity_kind template_document::do_get_kind() const noexcept
 {

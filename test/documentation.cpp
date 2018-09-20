@@ -6,10 +6,10 @@
 
 #include <catch.hpp>
 
-#include <standardese/markup/document.hpp>
-#include <standardese/markup/generator.hpp>
 #include <standardese/index.hpp>
 #include <standardese/linker.hpp>
+#include <standardese/markup/document.hpp>
+#include <standardese/markup/generator.hpp>
 
 #include "test_parser.hpp"
 
@@ -426,8 +426,8 @@ void foo(int);
     }
     SECTION("linking")
     {
-        auto target_file =
-            build_doc_entities(comments, index, "documentation__linking_target.cpp", R"(
+        auto target_file
+            = build_doc_entities(comments, index, "documentation__linking_target.cpp", R"(
 /// A function.
 void func(int a);
 

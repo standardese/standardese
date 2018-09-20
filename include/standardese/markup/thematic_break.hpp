@@ -9,28 +9,28 @@
 
 namespace standardese
 {
-    namespace markup
+namespace markup
+{
+    /// A thematic break.
+    class thematic_break final : public block_entity
     {
-        /// A thematic break.
-        class thematic_break final : public block_entity
+    public:
+        /// \returns A new thematic break.
+        static std::unique_ptr<thematic_break> build()
         {
-        public:
-            /// \returns A new thematic break.
-            static std::unique_ptr<thematic_break> build()
-            {
-                return std::unique_ptr<thematic_break>(new thematic_break());
-            }
+            return std::unique_ptr<thematic_break>(new thematic_break());
+        }
 
-        private:
-            entity_kind do_get_kind() const noexcept override;
+    private:
+        entity_kind do_get_kind() const noexcept override;
 
-            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+        void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
-            std::unique_ptr<entity> do_clone() const override;
+        std::unique_ptr<entity> do_clone() const override;
 
-            thematic_break() : block_entity(block_id()) {}
-        };
-    }
-} // namespace standardese::markup
+        thematic_break() : block_entity(block_id()) {}
+    };
+} // namespace markup
+} // namespace standardese
 
 #endif // STANDARDESE_MARKUP_THEMATIC_BREAK_HPP

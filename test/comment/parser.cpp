@@ -489,9 +489,9 @@ It requires extra long description.</description>
     parser p;
     auto   parsed = parse(p, comment, true);
 
-    auto result = parsed.comment.value().brief_section() ?
-                      markup::as_xml(parsed.comment.value().brief_section().value()) :
-                      "";
+    auto result = parsed.comment.value().brief_section()
+                      ? markup::as_xml(parsed.comment.value().brief_section().value())
+                      : "";
     for (auto& section : parsed.comment.value().sections())
         result += markup::as_xml(section);
     REQUIRE(result == xml);
@@ -549,9 +549,9 @@ With <verbatim>VERBATIM&lt;&gt;</verbatim></inline-section>
         parser p;
         auto   parsed = parse(p, comment, true);
 
-        auto result = parsed.comment.value().brief_section() ?
-                          markup::as_xml(parsed.comment.value().brief_section().value()) :
-                          "";
+        auto result = parsed.comment.value().brief_section()
+                          ? markup::as_xml(parsed.comment.value().brief_section().value())
+                          : "";
         for (auto& section : parsed.comment.value().sections())
             result += markup::as_xml(section);
         REQUIRE(result == xml);
@@ -728,9 +728,9 @@ This is unrelated.
 </details-section>
 )";
         {
-            auto str = result.comment.value().brief_section() ?
-                           markup::as_xml(result.comment.value().brief_section().value()) :
-                           "";
+            auto str = result.comment.value().brief_section()
+                           ? markup::as_xml(result.comment.value().brief_section().value())
+                           : "";
             for (auto& sec : result.comment.value().sections())
                 str += markup::as_xml(sec);
             REQUIRE(str == xml);

@@ -11,27 +11,27 @@
 
 namespace standardese
 {
-    namespace detail
-    {
-        template <typename... Args>
-        std::string format(Args&&... args)
-        {
-            std::ostringstream stream;
-            int                dummy[] = {(stream << std::forward<Args>(args), 0)...};
-            (void)dummy;
-            return stream.str();
-        }
-    } // namespace detail
-
-    /// Creates a diagnostic.
-    /// \returns A diagnostic whose message are the arguments converted to a string for the specified location
-    /// with severity warning.
+namespace detail
+{
     template <typename... Args>
-    cppast::diagnostic make_diagnostic(cppast::source_location location, Args&&... args)
+    std::string format(Args&&... args)
     {
-        return {detail::format(std::forward<Args>(args)...), std::move(location),
-                cppast::severity::warning};
+        std::ostringstream stream;
+        int                dummy[] = {(stream << std::forward<Args>(args), 0)...};
+        (void)dummy;
+        return stream.str();
     }
+} // namespace detail
+
+/// Creates a diagnostic.
+/// \returns A diagnostic whose message are the arguments converted to a string for the specified
+/// location with severity warning.
+template <typename... Args>
+cppast::diagnostic make_diagnostic(cppast::source_location location, Args&&... args)
+{
+    return {detail::format(std::forward<Args>(args)...), std::move(location),
+            cppast::severity::warning};
+}
 } // namespace standardese
 
 #endif // STANDARDESE_LOGGER_HPP_INCLUDED

@@ -7,34 +7,34 @@
 
 namespace standardese
 {
-    namespace markup
+namespace markup
+{
+    class entity;
+
+    namespace detail
     {
-        class entity;
+        using visitor_callback_t = void (*)(void* mem, const entity&);
 
-        namespace detail
-        {
-            using visitor_callback_t = void (*)(void* mem, const entity&);
+        void call_visit(const entity& e, visitor_callback_t cb, void* mem);
 
-            void call_visit(const entity& e, visitor_callback_t cb, void* mem);
-
-            template <typename Func>
-            void visitor_callback(void* mem, const entity& e)
-            {
-                auto& func = *static_cast<Func*>(mem);
-                func(e);
-                call_visit(e, &visitor_callback<Func>, mem);
-            }
-        } // namespace detail
-
-        /// Visits an entity.
-        /// \effects Invokes the function passing it the current entity, followed by all its children,
-        /// recursively.
         template <typename Func>
-        void visit(const entity& e, Func f)
+        void visitor_callback(void* mem, const entity& e)
         {
-            detail::visitor_callback<Func>(&f, e);
+            auto& func = *static_cast<Func*>(mem);
+            func(e);
+            call_visit(e, &visitor_callback<Func>, mem);
         }
+    } // namespace detail
+
+    /// Visits an entity.
+    /// \effects Invokes the function passing it the current entity, followed by all its children,
+    /// recursively.
+    template <typename Func>
+    void visit(const entity& e, Func f)
+    {
+        detail::visitor_callback<Func>(&f, e);
     }
-} // namespace standardese::markup
+} // namespace markup
+} // namespace standardese
 
 #endif // STANDARDESE_MARKUP_VISITOR_HPP_INCLUDED

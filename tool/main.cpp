@@ -2,8 +2,8 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 #include <boost/program_options.hpp>
 
@@ -146,8 +146,8 @@ cppast::libclang_compile_config get_compile_config(const po::variables_map& opti
                 config.define_macro(macro.substr(0, pos), macro.substr(pos + 1));
         }
 
-    if (auto macros =
-            get_option<std::vector<std::string>>(options, "compilation.macro_undefinition"))
+    if (auto macros
+        = get_option<std::vector<std::string>>(options, "compilation.macro_undefinition"))
         for (auto& macro : macros.value())
             config.undefine_macro(macro);
 
@@ -166,12 +166,12 @@ type_safe::optional<cppast::libclang_compilation_database> get_compilation_datab
 std::vector<standardese_tool::input_file> get_input(const po::variables_map& options)
 {
     auto source_ext = get_option<std::vector<std::string>>(options, "input.source_ext").value();
-    auto blacklist_ext =
-        get_option<std::vector<std::string>>(options, "input.blacklist_ext").value();
-    auto blacklist_files =
-        get_option<std::vector<std::string>>(options, "input.blacklist_file").value();
-    auto blacklist_dirs =
-        get_option<std::vector<std::string>>(options, "input.blacklist_dir").value();
+    auto blacklist_ext
+        = get_option<std::vector<std::string>>(options, "input.blacklist_ext").value();
+    auto blacklist_files
+        = get_option<std::vector<std::string>>(options, "input.blacklist_file").value();
+    auto blacklist_dirs
+        = get_option<std::vector<std::string>>(options, "input.blacklist_dir").value();
     auto blacklist_dotfiles = get_option<bool>(options, "input.blacklist_dotfiles").value();
     auto force_blacklist    = get_option<bool>(options, "input.force_blacklist").value();
 
@@ -277,8 +277,8 @@ standardese::entity_blacklist get_blacklist(const po::variables_map& options)
     standardese::entity_blacklist blacklist(
         get_option<bool>(options, "input.extract_private").value());
 
-    auto blacklist_ns =
-        get_option<std::vector<std::string>>(options, "input.blacklist_namespace").value();
+    auto blacklist_ns
+        = get_option<std::vector<std::string>>(options, "input.blacklist_namespace").value();
     for (auto& ns : blacklist_ns)
         blacklist.blacklist_namespace(ns);
 
@@ -444,17 +444,17 @@ int main(int argc, char* argv[])
                 cppast::cpp_entity_index index;
 
                 std::clog << "parsing C++ files...\n";
-                auto parsed =
-                    standardese_tool::parse(compile_config, database, input, index, no_threads);
+                auto parsed
+                    = standardese_tool::parse(compile_config, database, input, index, no_threads);
                 if (!parsed)
                     return 1;
 
                 std::clog << "parsing documentation comments...\n";
-                auto comments =
-                    standardese_tool::parse_comments(comment_config, parsed.value(), no_threads);
-                auto files =
-                    standardese_tool::build_files(comments, index, std::move(parsed.value()),
-                                                  blacklist, no_threads);
+                auto comments
+                    = standardese_tool::parse_comments(comment_config, parsed.value(), no_threads);
+                auto files
+                    = standardese_tool::build_files(comments, index, std::move(parsed.value()),
+                                                    blacklist, no_threads);
 
                 std::clog << "generating documentation...\n";
                 auto docs = standardese_tool::generate(generation_config, synopsis_config, comments,
@@ -464,8 +464,8 @@ int main(int argc, char* argv[])
                 {
                     std::clog << "writing files in format '" << format.second << "'...\n";
 
-                    auto format_prefix =
-                        formats.size() > 1u ? std::string(format.second) + '/' + prefix : prefix;
+                    auto format_prefix
+                        = formats.size() > 1u ? std::string(format.second) + '/' + prefix : prefix;
                     if (!format_prefix.empty())
                         fs::create_directories(fs::path(format_prefix).parent_path());
                     standardese_tool::write_files(docs, format.first, std::move(format_prefix),

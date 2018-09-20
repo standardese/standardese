@@ -5,72 +5,73 @@
 #ifndef STANDARDESE_MARKUP_ESCAPE_HPP_INCLUDED
 #define STANDARDESE_MARKUP_ESCAPE_HPP_INCLUDED
 
-#include <cstring>
 #include <cstdio>
+#include <cstring>
 #include <ostream>
 
 namespace standardese
 {
-    namespace markup
+namespace markup
+{
+    namespace detail
     {
-        namespace detail
+        inline void write_html_text(std::ostream& out, const char* str)
         {
-            inline void write_html_text(std::ostream& out, const char* str)
+            // implements rule 1 here:
+            // https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet
+            for (auto ptr = str; *ptr; ++ptr)
             {
-                // implements rule 1 here: https://www.owasp.org/index.php/XSS_(Cross_Site_Scripting)_Prevention_Cheat_Sheet
-                for (auto ptr = str; *ptr; ++ptr)
-                {
-                    auto c = *ptr;
-                    if (c == '&')
-                        out << "&amp;";
-                    else if (c == '<')
-                        out << "&lt;";
-                    else if (c == '>')
-                        out << "&gt;";
-                    else if (c == '"')
-                        out << "&quot;";
-                    else if (c == '\'')
-                        out << "&#x27;";
-                    else if (c == '/')
-                        out << "&#x2F;";
-                    else
-                        out << c;
-                }
+                auto c = *ptr;
+                if (c == '&')
+                    out << "&amp;";
+                else if (c == '<')
+                    out << "&lt;";
+                else if (c == '>')
+                    out << "&gt;";
+                else if (c == '"')
+                    out << "&quot;";
+                else if (c == '\'')
+                    out << "&#x27;";
+                else if (c == '/')
+                    out << "&#x2F;";
+                else
+                    out << c;
             }
+        }
 
-            inline bool needs_url_escaping(char c)
-            {
-                // don't escape reserved URL characters
-                // don't escape safe URL characters
-                char safe[] = "-_.+!*(),%#@?=;:/,+$"
-                              "0123456789"
-                              "abcdefghijklmnopqrstuvwxyz"
-                              "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-                return std::strchr(safe, c) == nullptr;
-            }
+        inline bool needs_url_escaping(char c)
+        {
+            // don't escape reserved URL characters
+            // don't escape safe URL characters
+            char safe[] = "-_.+!*(),%#@?=;:/,+$"
+                          "0123456789"
+                          "abcdefghijklmnopqrstuvwxyz"
+                          "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            return std::strchr(safe, c) == nullptr;
+        }
 
-            inline void write_html_url(std::ostream& out, const char* url)
+        inline void write_html_url(std::ostream& out, const char* url)
+        {
+            for (auto ptr = url; *ptr; ++ptr)
             {
-                for (auto ptr = url; *ptr; ++ptr)
+                auto c = *ptr;
+                if (c == '&')
+                    out << "&amp;";
+                else if (c == '\'')
+                    out << "&#x27";
+                else if (needs_url_escaping(c))
                 {
-                    auto c = *ptr;
-                    if (c == '&')
-                        out << "&amp;";
-                    else if (c == '\'')
-                        out << "&#x27";
-                    else if (needs_url_escaping(c))
-                    {
-                        char buf[3];
-                        std::snprintf(buf, 3, "%02X", unsigned(c));
-                        out << "%";
-                        out << buf;
-                    }
-                    else
-                        out << c;
+                    char buf[3];
+                    std::snprintf(buf, 3, "%02X", unsigned(c));
+                    out << "%";
+                    out << buf;
                 }
+                else
+                    out << c;
             }
-        } // namespace detail
-    }
-} // namespace standardese::markup
+        }
+    } // namespace detail
+} // namespace markup
+} // namespace standardese
 
 #endif // STANDARDESE_MARKUP_ESCAPE_HPP_INCLUDED

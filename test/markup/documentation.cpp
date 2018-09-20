@@ -6,14 +6,14 @@
 
 #include <catch.hpp>
 
+#include <cppast/cpp_file.hpp>
+#include <cppast/cpp_namespace.hpp>
 #include <standardese/markup/code_block.hpp>
 #include <standardese/markup/document.hpp>
 #include <standardese/markup/generator.hpp>
 #include <standardese/markup/heading.hpp>
-#include <standardese/markup/paragraph.hpp>
 #include <standardese/markup/list.hpp>
-#include <cppast/cpp_file.hpp>
-#include <cppast/cpp_namespace.hpp>
+#include <standardese/markup/paragraph.hpp>
 
 using namespace standardese::markup;
 

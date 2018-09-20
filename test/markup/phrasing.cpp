@@ -36,9 +36,8 @@ void test_phrasing(const std::string& html, const std::string& xml, const std::s
         return "<" + tag + ">" + content + "</" + tag + ">";
     };
 
-    auto markdownify_str = [](const std::string& tag, const char* content) {
-        return tag + content + tag + "\n";
-    };
+    auto markdownify_str
+        = [](const std::string& tag, const char* content) { return tag + content + tag + "\n"; };
 
     auto a = T::build("foo")->clone();
     REQUIRE(as_html(*a) == tag_str(html, "foo"));

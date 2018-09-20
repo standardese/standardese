@@ -97,15 +97,14 @@ std::vector<std::unique_ptr<standardese::doc_cpp_file>> standardese_tool::build_
 
 namespace
 {
-    std::unique_ptr<standardese::markup::document_entity> get_index_document(
-        std::unique_ptr<standardese::markup::index_entity> index, const char* title,
-        const char* name)
-    {
-        standardese::markup::subdocument::builder document(title, name);
-        document.add_child(std::move(index));
-        return document.finish();
-    }
+std::unique_ptr<standardese::markup::document_entity> get_index_document(
+    std::unique_ptr<standardese::markup::index_entity> index, const char* title, const char* name)
+{
+    standardese::markup::subdocument::builder document(title, name);
+    document.add_child(std::move(index));
+    return document.finish();
 }
+} // namespace
 
 documents standardese_tool::generate(
     const standardese::generation_config& gen_config,
@@ -139,8 +138,8 @@ documents standardese_tool::generate(
                 standardese::register_index_entities(eindex, file->file());
                 standardese::register_module_entities(mindex, comments, file->file());
                 findex.register_file(file->link_name(), file->output_name(),
-                                     file->comment() ? file->comment().value().brief_section() :
-                                                       nullptr);
+                                     file->comment() ? file->comment().value().brief_section()
+                                                     : nullptr);
 
                 std::lock_guard<std::mutex> lock(result_mutex);
                 result.push_back(std::move(finished_doc));
@@ -150,8 +149,8 @@ documents standardese_tool::generate(
             future.get(); // to retrieve exceptions
     }
 
-    auto eindex_doc =
-        get_index_document(eindex.generate(gen_config.order()), "Entities", "standardese_entities");
+    auto eindex_doc = get_index_document(eindex.generate(gen_config.order()), "Entities",
+                                         "standardese_entities");
     standardese::register_documentations(*cppast::default_logger(), linker, *eindex_doc);
     result.push_back(std::move(eindex_doc));
 

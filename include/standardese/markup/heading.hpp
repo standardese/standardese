@@ -10,75 +10,73 @@
 
 namespace standardese
 {
-    namespace markup
+namespace markup
+{
+    /// A heading.
+    ///
+    /// By default, this corresponds to LaTeX `\paragraph` or HTML level 4,
+    /// but this can change, depending on the context it is in.
+    class heading final : public block_entity, public container_entity<phrasing_entity>
     {
-        /// A heading.
-        ///
-        /// By default, this corresponds to LaTeX `\paragraph` or HTML level 4,
-        /// but this can change, depending on the context it is in.
-        class heading final : public block_entity, public container_entity<phrasing_entity>
+    public:
+        /// Builds a heading.
+        class builder : public container_builder<heading>
         {
         public:
-            /// Builds a heading.
-            class builder : public container_builder<heading>
-            {
-            public:
-                /// \effects Creates an empty heading given its id.
-                builder(block_id id)
-                : container_builder(std::unique_ptr<heading>(new heading(std::move(id))))
-                {
-                }
-            };
-
-            /// Builds a heading containing the given string as text.
-            static std::unique_ptr<heading> build(block_id id, std::string text)
-            {
-                return builder(id).add_child(text::build(std::move(text))).finish();
-            }
-
-        private:
-            entity_kind do_get_kind() const noexcept override;
-
-            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
-
-            std::unique_ptr<entity> do_clone() const override;
-
-            heading(block_id id) : block_entity(std::move(id)) {}
+            /// \effects Creates an empty heading given its id.
+            builder(block_id id)
+            : container_builder(std::unique_ptr<heading>(new heading(std::move(id))))
+            {}
         };
 
-        /// A subheading.
-        ///
-        /// This corresponds to LaTeX `\subparagraph` or HTML level 5.
-        class subheading final : public block_entity, public container_entity<phrasing_entity>
+        /// Builds a heading containing the given string as text.
+        static std::unique_ptr<heading> build(block_id id, std::string text)
+        {
+            return builder(id).add_child(text::build(std::move(text))).finish();
+        }
+
+    private:
+        entity_kind do_get_kind() const noexcept override;
+
+        void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
+        std::unique_ptr<entity> do_clone() const override;
+
+        heading(block_id id) : block_entity(std::move(id)) {}
+    };
+
+    /// A subheading.
+    ///
+    /// This corresponds to LaTeX `\subparagraph` or HTML level 5.
+    class subheading final : public block_entity, public container_entity<phrasing_entity>
+    {
+    public:
+        /// Builds a heading.
+        class builder : public container_builder<subheading>
         {
         public:
-            /// Builds a heading.
-            class builder : public container_builder<subheading>
-            {
-            public:
-                /// \effects Creates an empty heading given its id.
-                builder(block_id id)
-                : container_builder(std::unique_ptr<subheading>(new subheading(std::move(id))))
-                {
-                }
-            };
-
-            /// Builds a subheading containing the given string as text.
-            static std::unique_ptr<subheading> build(block_id id, std::string text)
-            {
-                return builder(id).add_child(text::build(std::move(text))).finish();
-            }
-
-        private:
-            entity_kind do_get_kind() const noexcept override;
-
-            void do_visit(detail::visitor_callback_t cb, void* mem) const override;
-
-            std::unique_ptr<entity> do_clone() const override;
-
-            subheading(block_id id) : block_entity(std::move(id)) {}
+            /// \effects Creates an empty heading given its id.
+            builder(block_id id)
+            : container_builder(std::unique_ptr<subheading>(new subheading(std::move(id))))
+            {}
         };
-    }
-} // namespace standardese::markup
+
+        /// Builds a subheading containing the given string as text.
+        static std::unique_ptr<subheading> build(block_id id, std::string text)
+        {
+            return builder(id).add_child(text::build(std::move(text))).finish();
+        }
+
+    private:
+        entity_kind do_get_kind() const noexcept override;
+
+        void do_visit(detail::visitor_callback_t cb, void* mem) const override;
+
+        std::unique_ptr<entity> do_clone() const override;
+
+        subheading(block_id id) : block_entity(std::move(id)) {}
+    };
+} // namespace markup
+} // namespace standardese
 
 #endif // STANDARDESE_MARKUP_HEADING_HPP_INCLUDED

@@ -168,7 +168,6 @@ struct c : foo<int> {};
             INFO(e.name());
             REQUIRE(comment);
             REQUIRE(e.name() == comment.value().metadata().module());
-
         };
 
         cppast::visit(*file, [&](const cppast::cpp_entity& e, const cppast::visitor_info&) {

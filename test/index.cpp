@@ -213,8 +213,8 @@ TEST_CASE("module_index")
     index.register_module(std::move(module_b));
     index.register_module(std::move(module_a));
 
-    auto brief_doc =
-        markup::brief_section::builder().add_child(markup::text::build("brief")).finish();
+    auto brief_doc
+        = markup::brief_section::builder().add_child(markup::text::build("brief")).finish();
 
     REQUIRE(
         index.register_entity("module-a", "foo",

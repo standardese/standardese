@@ -6,8 +6,8 @@
 
 #include <catch.hpp>
 
-#include <standardese/markup/generator.hpp>
 #include <cppast/cpp_namespace.hpp>
+#include <standardese/markup/generator.hpp>
 
 using namespace standardese::markup;
 

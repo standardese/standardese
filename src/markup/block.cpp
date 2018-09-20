@@ -8,28 +8,28 @@ using namespace standardese::markup;
 
 namespace
 {
-    constexpr bool is_alpha(char c)
-    {
-        // assuming ASCII
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-    }
-
-    constexpr bool is_digit(char c)
-    {
-        return c >= '0' && c <= '9';
-    }
-
-    void escape_char(std::string& str, char c)
-    {
-        if (is_alpha(c) || is_digit(c) || c == '_' || c == '-')
-            str += c;
-        // distinction is somewhat arbitrary
-        else if (c == ':')
-            str += '_';
-        else
-            str += '-';
-    }
+constexpr bool is_alpha(char c)
+{
+    // assuming ASCII
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
 }
+
+constexpr bool is_digit(char c)
+{
+    return c >= '0' && c <= '9';
+}
+
+void escape_char(std::string& str, char c)
+{
+    if (is_alpha(c) || is_digit(c) || c == '_' || c == '-')
+        str += c;
+    // distinction is somewhat arbitrary
+    else if (c == ':')
+        str += '_';
+    else
+        str += '-';
+}
+} // namespace
 
 std::string block_id::as_output_str() const
 {

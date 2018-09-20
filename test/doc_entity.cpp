@@ -189,7 +189,8 @@ namespace outer
          struct b {};
     }
 }
-)", blacklist);
+)",
+                                       blacklist);
 
         REQUIRE(debug_string(*file) == R"(
 file - doc_entity__blacklisted.cpp
