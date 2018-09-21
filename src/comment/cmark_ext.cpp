@@ -12,7 +12,7 @@
 #include <type_safe/flag.hpp>
 #include <type_safe/optional.hpp>
 
-#include <cmark_extension_api.h>
+#include <cmark-gfm-extension_api.h>
 
 using namespace standardese::comment;
 using namespace standardese::comment::detail;

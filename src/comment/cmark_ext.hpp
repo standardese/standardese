@@ -5,7 +5,7 @@
 #ifndef STANDARDESE_COMMENT_CMARK_EXT_HPP_INCLUDED
 #define STANDARDESE_COMMENT_CMARK_EXT_HPP_INCLUDED
 
-#include <cmark.h>
+#include <cmark-gfm.h>
 
 #include <standardese/comment/config.hpp>
 

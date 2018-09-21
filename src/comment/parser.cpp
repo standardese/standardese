@@ -8,12 +8,8 @@
 #include <cstring>
 #include <type_traits>
 
-#include <cmark.h>
-#include <cmark_extension_api.h>
-
-#if !defined(CMARK_NODE_TYPE_PRESENT)
-#    error "requires GFM cmark"
-#endif
+#include <cmark-gfm-extension_api.h>
+#include <cmark-gfm.h>
 
 #include <standardese/markup/code_block.hpp>
 #include <standardese/markup/entity_kind.hpp>

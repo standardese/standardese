@@ -5,7 +5,7 @@
 #include <standardese/markup/generator.hpp>
 
 #include <cassert>
-#include <cmark.h>
+#include <cmark-gfm.h>
 #include <ostream>
 #include <sstream>
 
