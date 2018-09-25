@@ -41,7 +41,7 @@ if((NOT CMARK_LIBRARY) OR (NOT CMARK_INCLUDE_DIR))
     target_include_directories(libcmark-gfm_static SYSTEM PUBLIC
                                $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/cmark/src>
                                $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/external/cmark/src>)
-    target_compile_definitions(libcmark-gfm_static PUBLIC CMARK_STATIC_DEFINE)
+    target_compile_definitions(libcmark-gfm_static PUBLIC CMARK_GFM_STATIC_DEFINE)
 
     # disable some warnings under MSVC, they're very noisy
     if(MSVC)
