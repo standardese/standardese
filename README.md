@@ -81,7 +81,44 @@ For a more complete example check out [my Meeting C++ Lightning Talk](https://ww
 
 ## Installation
 
-TODO, update for cppast
+### Very Easy: Pre-compiled Binaries
+
+TODO
+
+### Easy: Docker
+
+The easiest way to build standardese is to download the docker image `foonathan/standardese_dev` and run it like so:
+
+```
+docker pull foonathan/standardese_dev
+docker run -v "/path/to/standardese/source:/root/standardese" -v "$(pwd):/root/output" foonathan/standardese_dev
+```
+
+It will compile `standardese` as a fully statically linked binary and copy it to the current working directory.
+The binary is compatible with any Linux distribution.
+
+### Harder: Building From Source
+
+The build system takes care of all dependencies automatically, except for two: Boost and libclang.
+
+It needs to have Boost.ProgramOptions and Boost.Filesystem as statically linked binaries.
+If they're installed, they should be found automatically.
+
+It also needs libclang.
+If you are under a Linux system, it should find the `llvm-config` binary automatically and everything works,
+otherwise things are a bit harder.
+Read the [cppast build instructions](https://github.com/foonathan/cppast#installation) for more information, they also apply here.
+
+Once they're installed, compiling is a simple:
+
+```
+cmake /path/to/standardese/source
+cmake --build . --target standardese_tool
+```
+
+The result is the executable `tool/standardese`.
+
+TODO: cmake installation
 
 ## Documentation
 
