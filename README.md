@@ -632,6 +632,7 @@ The most basic template will just generate the output as standardese would do no
 This project is greatly supported by my [patrons](https://patreon.com/foonathan).
 In particular thanks to the individual supporters:
 
+* Reiner Eiteljoerge
 * Sina
 
 Thanks a lot to the contributors as well:
