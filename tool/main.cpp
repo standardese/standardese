@@ -151,6 +151,10 @@ cppast::libclang_compile_config get_compile_config(const po::variables_map& opti
         for (auto& macro : macros.value())
             config.undefine_macro(macro);
 
+    if (auto features = get_option<std::vector<std::string>>(options, "compilation.feature"))
+        for (auto& feature : features.value())
+            config.enable_feature(feature);
+
     return config;
 }
 
@@ -356,6 +360,8 @@ int main(int argc, char* argv[])
          "adds an implicit #define before parsing")
         ("compilation.macro_undefinition,U", po::value<std::vector<std::string>>(),
          "adds an implicit #undef before parsing")
+         ("compilation.feature,f", po::value<std::vector<std::string>>(),
+         "enable a custom feature (-fXX flag)")
         ("compilation.gnu_extensions",
          po::value<bool>()->implicit_value(true)->default_value(false),
          "enable/disable GNU extension support (-std=gnu++XX vs -std=c++XX)")
