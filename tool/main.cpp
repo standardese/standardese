@@ -29,7 +29,7 @@ void print_version(const char* exe_name)
 {
     std::clog << exe_name << " version " << STANDARDESE_VERSION_MAJOR << '.'
               << STANDARDESE_VERSION_MINOR << '\n';
-    std::clog << "Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>\n";
+    std::clog << "Copyright (C) 2016-2019 Jonathan Müller <jonathanmueller.dev@gmail.com>\n";
     std::clog << '\n';
 }
 
