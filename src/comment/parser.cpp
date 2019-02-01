@@ -1,4 +1,4 @@
-// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2019 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -95,7 +95,8 @@ ast_root read_ast(const parser& p, const std::string& comment)
 template <class Builder>
 void add_children(const config& c, Builder& b, bool has_matching_entity, cmark_node* parent);
 
-[[noreturn]] void error(cmark_node* node, std::string msg) {
+[[noreturn]] void error(cmark_node* node, std::string msg)
+{
     throw parse_error(unsigned(cmark_node_get_start_line(node)),
                       unsigned(cmark_node_get_start_column(node)), std::move(msg));
 }
