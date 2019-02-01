@@ -1,4 +1,4 @@
-// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2019 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -29,7 +29,7 @@ void print_version(const char* exe_name)
 {
     std::clog << exe_name << " version " << STANDARDESE_VERSION_MAJOR << '.'
               << STANDARDESE_VERSION_MINOR << '\n';
-    std::clog << "Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>\n";
+    std::clog << "Copyright (C) 2016-2019 Jonathan Müller <jonathanmueller.dev@gmail.com>\n";
     std::clog << '\n';
 }
 
