@@ -509,7 +509,7 @@ This is also how the `see` section is intended:
 
 ```cpp
 /// Some documentation...
-/// \see [this_type] - Put a describition here (optional)
+/// \see [this_type] - Put a description here (optional)
 /// [this_func()] -
 /// [std::vector<T>] -
 ```
