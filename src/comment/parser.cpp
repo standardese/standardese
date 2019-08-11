@@ -279,6 +279,17 @@ std::unique_ptr<markup::link_base> parse_link(const config& c, bool has_matching
         add_children(c, builder, has_matching_entity, node);
         return builder.finish();
     }
+    else if (std::strncmp(url, "c++://", std::strlen("c++://")) == 0)
+    {
+        // c++:// URL; note that c++ is a valid URL scheme
+        auto unique_name = std::string(url + std::strlen("c++://"));
+        if (!unique_name.empty() && unique_name.back() == '/')
+            unique_name.pop_back();
+
+        markup::documentation_link::builder builder(title, unique_name);
+        add_children(c, builder, has_matching_entity, node);
+        return builder.finish();
+    }
     else if (std::strncmp(url, "standardese://", std::strlen("standardese://")) == 0)
     {
         // standardese:// URL
