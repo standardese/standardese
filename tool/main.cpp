@@ -217,6 +217,8 @@ standardese::synopsis_config get_synopsis_config(const po::variables_map& option
                     get_option<bool>(options, "output.show_macro_replacement").value());
     config.set_flag(standardese::synopsis_config::show_group_output_section,
                     get_option<bool>(options, "output.show_group_output_section").value());
+    config.set_flag(standardese::synopsis_config::separate_members,
+                    get_option<bool>(options, "output.separate_members").value());
 
     return config;
 }
@@ -411,6 +413,8 @@ int main(int argc, char* argv[])
          "whether or not some entity documentation (parameters etc.) will be shown inline")
         ("output.show_complex_noexcept", po::value<bool>()->default_value(true)->implicit_value(true),
          "whether or not complex noexcept expressions will be shown in the synopsis or replaced by \"see below\"")
+        ("output.separate_members", po::value<bool>()->default_value(true)->implicit_value(true),
+         "whether or not to separate all class members with an empty line")
         ("output.show_macro_replacement", po::value<bool>()->default_value(false)->implicit_value(true),
          "whether or not the replacement of macros will be shown")
         ("output.show_group_output_section", po::value<bool>()->default_value(true)->implicit_value(true),

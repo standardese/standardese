@@ -30,6 +30,8 @@ public:
         show_macro_replacement,    //< If set, replacement text of a macro will be shown.
         show_group_output_section, //< If set, the name of the group will be shown as output
                                    // section.
+        separate_members,          //< If set, a newline is added between
+                                   // members of a class or struct.
         _flag_set_size,            //< \exclude
     };
 
@@ -312,7 +314,7 @@ private:
 
     /// \exclude
     virtual void do_generate_synopsis_prefix(const cppast::code_generator::output& output,
-                                             const synopsis_config& config, bool is_main) const
+                                             const synopsis_config& config, bool is_main, type_safe::flag& needs_newline) const
     {
         (void)output;
         (void)config;
@@ -456,7 +458,7 @@ private:
         const synopsis_config& config, bool is_main) const override;
 
     void do_generate_synopsis_prefix(const cppast::code_generator::output& output,
-                                     const synopsis_config& config, bool is_main) const override;
+                                     const synopsis_config& config, bool is_main, type_safe::flag& needs_newline) const override;
 
     void do_generate_code(cppast::code_generator& generator) const override;
 
@@ -513,7 +515,7 @@ private:
         const synopsis_config& config, bool is_main) const override;
 
     void do_generate_synopsis_prefix(const cppast::code_generator::output& output,
-                                     const synopsis_config& config, bool is_main) const override;
+                                     const synopsis_config& config, bool is_main, type_safe::flag& needs_newline) const override;
 
     void do_generate_code(cppast::code_generator& generator) const override;
 
@@ -574,7 +576,7 @@ private:
         const synopsis_config& config, bool is_main) const override;
 
     void do_generate_synopsis_prefix(const cppast::code_generator::output& output,
-                                     const synopsis_config& config, bool is_main) const override;
+                                     const synopsis_config& config, bool is_main, type_safe::flag& needs_newline) const override;
 
     void do_generate_code(cppast::code_generator& generator) const override;
 };
@@ -629,7 +631,7 @@ private:
         const synopsis_config& config, bool is_main) const override;
 
     void do_generate_synopsis_prefix(const cppast::code_generator::output& code,
-                                     const synopsis_config& config, bool is_main) const override;
+                                     const synopsis_config& config, bool is_main, type_safe::flag& needs_newline) const override;
 
     void do_generate_code(cppast::code_generator& generator) const override;
 

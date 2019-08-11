@@ -185,11 +185,13 @@ cppast::code_generator::generation_options get_exclude_mode(
     return {};
 }
 
-bool generate_output_section(const cppast::code_generator::output& code, bool is_main,
+bool generate_output_section(const cppast::code_generator::output& code, bool is_main, type_safe::flag& needs_newline,
                              const comment::metadata& metadata)
 {
     if (!is_main && metadata.output_section())
     {
+        if (needs_newline.try_reset())
+            code << cppast::newl;
         code << cppast::comment("//=== ") << cppast::comment(metadata.output_section().value())
              << cppast::comment(" ===//") << cppast::newl;
         return true;
@@ -198,17 +200,21 @@ bool generate_output_section(const cppast::code_generator::output& code, bool is
         return false;
 }
 
-void generate_output_section(const cppast::code_generator::output& code, bool is_main,
+void generate_output_section(const cppast::code_generator::output& code, bool is_main, type_safe::flag& needs_newline,
                              bool show_group_section, const comment::metadata& metadata,
                              type_safe::optional<unsigned> group_member_no)
 {
-    if (generate_output_section(code, is_main, metadata))
+    if (generate_output_section(code, is_main, needs_newline, metadata))
         return;
     else if (!is_main && metadata.group() && show_group_section
              && metadata.group().value().output_section() && group_member_no == 1u)
+    {
+        if (needs_newline.try_reset())
+            code << cppast::newl;
         code << cppast::comment("//=== ")
              << cppast::comment(metadata.group().value().output_section().value())
              << cppast::comment(" ===//") << cppast::newl;
+    }
 }
 
 void generate_group_number(const cppast::code_generator::output& code,
@@ -239,7 +245,7 @@ public:
     markdown_code_generator(type_safe::object_ref<const synopsis_config>          config,
                             type_safe::object_ref<const cppast::cpp_entity_index> index)
     : config_(config), index_(index), builder_(markup::block_id(), "cpp"), level_(0u),
-      need_indent_(false), allow_group_(false), render_injected_(false)
+      need_indent_(false), allow_group_(false), render_injected_(false), after_member_(false)
     {}
 
     std::unique_ptr<markup::code_block> finish()
@@ -305,41 +311,70 @@ private:
         if (out && !cppast::is_templated(e) && !cppast::is_friended(e))
             entities_.push(type_safe::ref(e));
 
+        type_safe::flag needs_newline = false;
+
         if (auto entity = get_doc_entity(e))
-            entity->do_generate_synopsis_prefix(out, *config_, is_main_entity(e));
+            entity->do_generate_synopsis_prefix(out, *config_, is_main_entity(e),
+                config_->is_flag_set(synopsis_config::separate_members) ? needs_newline : after_member_);
+
+        after_member_.reset();
     }
 
-    void on_end(const output&, const cppast::cpp_entity& e) override
+    void on_end(const output& out, const cppast::cpp_entity& e) override
     {
+        auto doc_e = get_doc_entity(e);
+
         if (!cppast::is_templated(e) && !cppast::is_friended(e))
         {
             assert(entities_.top() == e);
             entities_.pop();
-
-            auto doc_e = get_doc_entity(e);
-            if (doc_e && doc_e->kind() == doc_entity::member_group)
-            {
-                // render remaining entities of group
-                allow_group_.set();
-
-                auto first = true;
-                for (auto& child : static_cast<const doc_member_group_entity&>(*doc_e))
+            if (doc_e) {
+                if (doc_e->kind() == doc_entity::member_group)
                 {
-                    assert(child.kind() == doc_entity::cpp_entity);
-                    auto& child_e = static_cast<const doc_cpp_entity&>(child);
-                    if (first)
-                        first = false;
-                    else
-                        generate_code(child_e.entity());
-                }
+                    // render remaining entities of group
+                    allow_group_.set();
 
-                allow_group_.reset();
+                    auto first = true;
+                    for (auto& child : static_cast<const doc_member_group_entity&>(*doc_e))
+                    {
+                        assert(child.kind() == doc_entity::cpp_entity);
+                        auto& child_e = static_cast<const doc_cpp_entity&>(child);
+                        if (first)
+                            first = false;
+                        else
+                            generate_code(child_e.entity());
+                    }
+
+                    allow_group_.reset();
+                }
             }
+        }
+
+        if (doc_e) {
+            if (doc_e->kind() == doc_entity::member_group)
+            {
+                after_member_.reset();
+            }
+            else if (doc_e->kind() == doc_entity::cpp_entity)
+            {
+                auto& cpp_e = static_cast<const doc_cpp_entity&>(*doc_e);
+                if (is_member(cpp_e.entity())) {
+                    after_member_.set();
+                } else {
+                    after_member_.reset();
+                }
+            }
+        }
+        else
+        {
+            after_member_.reset();
         }
     }
 
     void on_container_end(const output& out, const cppast::cpp_entity& e) override
     {
+        after_member_.reset();
+
         auto doc_e = get_doc_entity(get_real_entity(e));
         if (!doc_e)
             return;
@@ -484,8 +519,12 @@ private:
 
     void do_write_newline() override
     {
-        builder_.add_child(markup::soft_break::build());
-        need_indent_.set();
+        if (!config_->is_flag_set(synopsis_config::separate_members) && after_member_ == true) {
+          // omit newlines after members for a more compact synopsis
+        } else {
+          builder_.add_child(markup::soft_break::build());
+          need_indent_.set();
+        }
     }
 
     void do_write_whitespace() override
@@ -511,6 +550,7 @@ private:
     type_safe::flag need_indent_;
     type_safe::flag allow_group_;
     type_safe::flag render_injected_;
+    type_safe::flag after_member_;
 };
 
 std::unique_ptr<markup::code_block> standardese::generate_synopsis(
@@ -543,14 +583,14 @@ cppast::code_generator::generation_options doc_cpp_entity::do_get_generation_opt
 }
 
 void doc_cpp_entity::do_generate_synopsis_prefix(const cppast::code_generator::output& output,
-                                                 const synopsis_config& config, bool is_main) const
+                                                 const synopsis_config& config, bool is_main, type_safe::flag& needs_newline) const
 {
     auto metadata
         = comment().map([](const comment::doc_comment& c) { return type_safe::ref(c.metadata()); });
 
     if (metadata)
     {
-        generate_output_section(output, is_main,
+        generate_output_section(output, is_main, needs_newline,
                                 config.is_flag_set(synopsis_config::show_group_output_section),
                                 metadata.value(), group_member_no_);
         if (is_main)
@@ -581,11 +621,11 @@ cppast::code_generator::generation_options doc_metadata_entity::do_get_generatio
 
 void doc_metadata_entity::do_generate_synopsis_prefix(const cppast::code_generator::output& output,
                                                       const synopsis_config&                config,
-                                                      bool is_main) const
+                                                      bool is_main, type_safe::flag& needs_newline) const
 {
     auto metadata = comment().value().metadata();
 
-    generate_output_section(output, is_main,
+    generate_output_section(output, is_main, needs_newline,
                             config.is_flag_set(synopsis_config::show_group_output_section),
                             metadata, type_safe::nullopt);
     generate_synopsis_override(output, metadata);
@@ -603,9 +643,9 @@ cppast::code_generator::generation_options doc_member_group_entity::do_get_gener
 }
 
 void doc_member_group_entity::do_generate_synopsis_prefix(
-    const cppast::code_generator::output& output, const synopsis_config& config, bool is_main) const
+    const cppast::code_generator::output& output, const synopsis_config& config, bool is_main, type_safe::flag& needs_newline) const
 {
-    begin()->do_generate_synopsis_prefix(output, config, is_main);
+    begin()->do_generate_synopsis_prefix(output, config, is_main, needs_newline);
 }
 
 void doc_member_group_entity::do_generate_code(cppast::code_generator& generator) const
@@ -621,14 +661,14 @@ cppast::code_generator::generation_options doc_cpp_namespace::do_get_generation_
 }
 
 void doc_cpp_namespace::do_generate_synopsis_prefix(const cppast::code_generator::output& code,
-                                                    const synopsis_config&, bool is_main) const
+                                                    const synopsis_config&, bool is_main, type_safe::flag& needs_newline) const
 {
     auto metadata
         = comment().map([](const comment::doc_comment& c) { return type_safe::ref(c.metadata()); });
 
     if (metadata)
         // only support output section
-        generate_output_section(code, is_main, metadata.value());
+        generate_output_section(code, is_main, needs_newline, metadata.value());
 }
 
 void doc_cpp_namespace::do_generate_code(cppast::code_generator& generator) const
