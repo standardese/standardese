@@ -102,6 +102,8 @@ public:
 
         inline_doc, //< Show documentation of entities like parameters inline in the parent
                     // documentation.
+        show_output_section, //< If set, each output section will be
+                             //  shown as a headline in the detailed descriptions; not only the group section.
 
         _flag_set_size, //< \exclude
     };

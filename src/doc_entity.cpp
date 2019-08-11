@@ -732,13 +732,19 @@ markup::documentation_header get_header(const cppast::cpp_entity&               
 {
     markup::heading::builder builder{markup::block_id()};
 
-    auto heading
+    auto group_heading
         = comment.map([](const comment::doc_comment& c) { return type_safe::ref(c.metadata()); })
               .map([](const comment::metadata& metadata) { return metadata.group(); })
               .map([](const comment::member_group& group) { return group.heading(); });
 
-    if (heading)
-        builder.add_child(markup::text::build(heading.value()));
+    auto section_heading
+        = comment.map([](const comment::doc_comment& c) { return type_safe::ref(c.metadata()); })
+              .map([](const comment::metadata& metadata) { return metadata.output_section(); });
+
+    if (group_heading)
+        builder.add_child(markup::text::build(group_heading.value()));
+    else if (section_heading)
+        builder.add_child(markup::text::build(section_heading.value()));
     else
     {
         auto spelling = get_entity_kind_spelling(e);
