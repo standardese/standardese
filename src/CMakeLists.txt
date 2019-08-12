@@ -91,6 +91,7 @@ target_link_libraries(standardese PUBLIC libcmark-gfm_static)
 
 # link yaml-cpp
 target_link_libraries(standardese PUBLIC -lyaml-cpp)
+target_link_libraries(standardese PUBLIC -lboost_filesystem)
 
 # install library: TODO
 #install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")

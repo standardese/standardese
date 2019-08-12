@@ -5,6 +5,8 @@
 #ifndef STANDARDESE_MARKUP_GENERATOR_HPP_INCLUDED
 #define STANDARDESE_MARKUP_GENERATOR_HPP_INCLUDED
 
+#include <boost/filesystem.hpp>
+
 #include <functional>
 #include <iosfwd>
 #include <string>
@@ -44,14 +46,14 @@ namespace markup
     /// If `use_html` is `true`, it will use HTML for complex parts that cannot be described using
     /// CommonMark.
     generator markdown_generator(bool use_html, const std::string& link_prefix,
-                                 const std::string& extension) noexcept;
+                                 const std::string& extension, const boost::filesystem::path& root = boost::filesystem::current_path()) noexcept;
 
     /// Renders an entity as CommonMark.
     ///
     /// \returns `render(commonmark_generator(), e)`.
     inline std::string as_markdown(const entity& e)
     {
-        return render(markdown_generator(true, "", "md"), e);
+        return render(markdown_generator(true, "", "md", boost::filesystem::current_path()), e);
     }
 
     /// A plain text generator.

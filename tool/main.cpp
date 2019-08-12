@@ -260,8 +260,8 @@ std::vector<std::pair<standardese::markup::generator, const char*>> get_formats(
             formats.emplace_back(standardese::markup::xml_generator(), "xml");
         else if (format == "commonmark")
             formats.emplace_back(standardese::markup::markdown_generator(false, link_prefix,
-                                                                         link_extension.value_or(
-                                                                             "md")),
+                                                                         link_extension.value_or("md"),
+                                                                         boost::filesystem::path(get_option<std::string>(options, "output.root").value())),
                                  "md");
         else if (format == "commonmark_html")
             formats.emplace_back(standardese::markup::markdown_generator(true, link_prefix,
@@ -393,6 +393,8 @@ int main(int argc, char* argv[])
         ("output.prefix",
          po::value<std::string>()->default_value(""),
          "a prefix that will be added to all output files")
+        ("output.root",
+         po::value<std::string>()->default_value(boost::filesystem::current_path().generic_string()))
         ("output.format",
          po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"html"}, "{html}"),
          "the output format used (html, commonmark, commonmark_html, xml, text)")

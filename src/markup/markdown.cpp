@@ -4,6 +4,7 @@
 
 #include <standardese/markup/generator.hpp>
 #include <yaml-cpp/yaml.h>
+#include <boost/filesystem.hpp>
 
 #include <cassert>
 #include <cmark-gfm.h>
@@ -36,8 +37,9 @@ namespace
 {
 struct options
 {
-    std::string prefix, extension;
-    bool        use_html;
+    std::string             prefix, extension;
+    bool                    use_html;
+    boost::filesystem::path root;
 };
 
 void build_entity(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const entity& e);
@@ -181,7 +183,7 @@ void build_doc_header(cmark_node* parent, YAML::Node* frontmatter, const options
 
 void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const file_documentation& doc)
 {
-    (*frontmatter)["file"] = doc.file().name();
+    (*frontmatter)["path"] = boost::filesystem::relative(boost::filesystem::path(doc.file().name()), opt.root).generic_string();
     build_doc_header(parent, frontmatter, opt, doc, 1);
     build_documentation(parent, frontmatter, opt, doc);
     handle_children(parent, frontmatter, opt, doc);
@@ -674,9 +676,9 @@ cmark_node* build_entity(YAML::Node* frontmatter, const options& opt, const enti
 } // namespace
 
 generator standardese::markup::markdown_generator(bool use_html, const std::string& prefix,
-                                                  const std::string& extension) noexcept
+                                                  const std::string& extension, const boost::filesystem::path& root) noexcept
 {
-    options opt{prefix, extension, use_html};
+    options opt{prefix, extension, use_html, root};
     return [opt](std::ostream& out, const entity& e) {
 
         YAML::Node frontmatter;
@@ -697,7 +699,7 @@ generator standardese::markup::markdown_generator(bool use_html, const std::stri
 
 generator standardese::markup::text_generator() noexcept
 {
-    options opt{"", "txt", false};
+    options opt{"", "txt", false, boost::filesystem::current_path()};
     return [opt](std::ostream& out, const entity& e) {
         YAML::Node ignored;
         auto doc = build_entity(&ignored, opt, e);
