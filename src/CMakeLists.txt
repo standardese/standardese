@@ -89,6 +89,9 @@ target_link_libraries(standardese PUBLIC cppast)
 # link cmark
 target_link_libraries(standardese PUBLIC libcmark-gfm_static)
 
+# link yaml-cpp
+target_link_libraries(standardese PUBLIC -lyaml-cpp)
+
 # install library: TODO
 #install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")
 #install(FILES ${header} DESTINATION "${include_dest}/standardese")

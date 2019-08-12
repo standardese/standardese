@@ -3,11 +3,14 @@
 // found in the top-level directory of this distribution.
 
 #include <standardese/markup/generator.hpp>
+#include <yaml-cpp/yaml.h>
 
 #include <cassert>
 #include <cmark-gfm.h>
 #include <ostream>
 #include <sstream>
+
+#include <cppast/cpp_file.hpp>
 
 #include <standardese/markup/block.hpp>
 #include <standardese/markup/code_block.hpp>
@@ -37,13 +40,13 @@ struct options
     bool        use_html;
 };
 
-void build_entity(cmark_node* parent, const options& opt, const entity& e);
+void build_entity(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const entity& e);
 
 template <typename T>
-void handle_children(cmark_node* node, const options& opt, const T& container)
+void handle_children(cmark_node* node, YAML::Node* frontmatter, const options& opt, const T& container)
 {
     for (auto& child : container)
-        build_entity(node, opt, child);
+        build_entity(node, frontmatter, opt, child);
 }
 
 cmark_node* build_emph(const char* str)
@@ -70,11 +73,11 @@ cmark_node* build_heading(unsigned level, const char* str)
     return heading;
 }
 
-void build(cmark_node* parent, const options& opt, const code_block& cb);
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const code_block& cb);
 
-void build_list_item(cmark_node* list, const options& opt, const list_item_base& item);
+void build_list_item(cmark_node* list, YAML::Node* frontmatter, const options& opt, const list_item_base& item);
 
-void build_documentation(cmark_node* parent, const options& opt, const documentation_entity& doc)
+void build_documentation(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const documentation_entity& doc)
 {
     if (opt.use_html)
     {
@@ -90,12 +93,12 @@ void build_documentation(cmark_node* parent, const options& opt, const documenta
     }
 
     if (doc.synopsis())
-        build(parent, opt, doc.synopsis().value());
+        build(parent, frontmatter, opt, doc.synopsis().value());
 
     if (auto brief = doc.brief_section())
     {
         auto paragraph = cmark_node_new(CMARK_NODE_PARAGRAPH);
-        handle_children(paragraph, opt, brief.value());
+        handle_children(paragraph, frontmatter, opt, brief.value());
         cmark_node_append_child(parent, paragraph);
     }
 
@@ -119,13 +122,13 @@ void build_documentation(cmark_node* parent, const options& opt, const documenta
                 cmark_node_append_child(paragraph, sep);
 
                 // build section content
-                handle_children(paragraph, opt, sec);
+                handle_children(paragraph, frontmatter, opt, sec);
             }
     }
 
     // write details section
     if (auto details = doc.details_section())
-        handle_children(parent, opt, details.value());
+        handle_children(parent, frontmatter, opt, details.value());
 
     // write list sections
     for (auto& section : doc.doc_sections())
@@ -146,7 +149,7 @@ void build_documentation(cmark_node* parent, const options& opt, const documenta
             cmark_node_append_child(parent, ul);
 
             for (auto& item : list)
-                build_list_item(ul, opt, item);
+                build_list_item(ul, frontmatter, opt, item);
         }
 }
 
@@ -157,30 +160,31 @@ void append_module(cmark_node* heading, const std::string& module)
     cmark_node_append_child(heading, text);
 }
 
-void build_doc_header(cmark_node* parent, const options& opt, const documentation_header& header,
+void build_doc_header(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const documentation_header& header,
                       unsigned level)
 {
     auto heading = build_heading(level, nullptr);
     cmark_node_append_child(parent, heading);
 
-    handle_children(heading, opt, header.heading());
+    handle_children(heading, frontmatter, opt, header.heading());
 
     if (header.module())
         append_module(heading, header.module().value());
 }
 
-void build_doc_header(cmark_node* parent, const options& opt, const documentation_entity& doc,
+void build_doc_header(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const documentation_entity& doc,
                       unsigned level)
 {
     if (doc.header())
-        build_doc_header(parent, opt, doc.header().value(), level);
+        build_doc_header(parent, frontmatter, opt, doc.header().value(), level);
 }
 
-void build(cmark_node* parent, const options& opt, const file_documentation& doc)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const file_documentation& doc)
 {
-    build_doc_header(parent, opt, doc, 1);
-    build_documentation(parent, opt, doc);
-    handle_children(parent, opt, doc);
+    (*frontmatter)["file"] = doc.file().name();
+    build_doc_header(parent, frontmatter, opt, doc, 1);
+    build_documentation(parent, frontmatter, opt, doc);
+    handle_children(parent, frontmatter, opt, doc);
 }
 
 unsigned get_documentation_heading_level(const documentation_entity& doc)
@@ -194,128 +198,128 @@ unsigned get_documentation_heading_level(const documentation_entity& doc)
     return 2;
 }
 
-void build(cmark_node* parent, const options& opt, const entity_documentation& doc)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const entity_documentation& doc)
 {
-    build_doc_header(parent, opt, doc, get_documentation_heading_level(doc));
-    build_documentation(parent, opt, doc);
-    handle_children(parent, opt, doc);
+    build_doc_header(parent, frontmatter, opt, doc, get_documentation_heading_level(doc));
+    build_documentation(parent, frontmatter, opt, doc);
+    handle_children(parent, frontmatter, opt, doc);
 
     if (doc.header())
         cmark_node_append_child(parent, cmark_node_new(CMARK_NODE_THEMATIC_BREAK));
 }
 
-void build(cmark_node* parent, const options& opt, const entity_index_item& item);
-void build(cmark_node* parent, const options& opt, const namespace_documentation& doc);
-void build(cmark_node* parent, const options& opt, const module_documentation& doc);
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const entity_index_item& item);
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const namespace_documentation& doc);
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const module_documentation& doc);
 
-void build_index_child(cmark_node* parent, const options& opt, const block_entity& child)
+void build_index_child(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const block_entity& child)
 {
     if (child.kind() == entity_kind::entity_index_item)
-        build(parent, opt, static_cast<const entity_index_item&>(child));
+        build(parent, frontmatter, opt, static_cast<const entity_index_item&>(child));
     else if (child.kind() == entity_kind::namespace_documentation)
-        build(parent, opt, static_cast<const namespace_documentation&>(child));
+        build(parent, frontmatter, opt, static_cast<const namespace_documentation&>(child));
     else if (child.kind() == entity_kind::module_documentation)
-        build(parent, opt, static_cast<const module_documentation&>(child));
+        build(parent, frontmatter, opt, static_cast<const module_documentation&>(child));
     else
         assert(false);
 }
 
 template <class T>
-void build_module_ns(cmark_node* parent, const options& opt, const T& doc)
+void build_module_ns(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const T& doc)
 {
     auto item = cmark_node_new(CMARK_NODE_ITEM);
     cmark_node_append_child(parent, item);
 
-    build_doc_header(item, opt, doc, get_documentation_heading_level(doc));
-    build_documentation(item, opt, doc);
+    build_doc_header(item, frontmatter, opt, doc, get_documentation_heading_level(doc));
+    build_documentation(item, frontmatter, opt, doc);
 
     auto list = cmark_node_new(CMARK_NODE_LIST);
     cmark_node_set_list_type(list, CMARK_BULLET_LIST);
     cmark_node_append_child(item, list);
 
     for (auto& child : doc)
-        build_index_child(list, opt, child);
+        build_index_child(list, frontmatter, opt, child);
 }
 
-void build(cmark_node* parent, const options& opt, const namespace_documentation& doc)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const namespace_documentation& doc)
 {
-    build_module_ns(parent, opt, doc);
+    build_module_ns(parent, frontmatter, opt, doc);
 }
 
-void build(cmark_node* parent, const options& opt, const module_documentation& doc)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const module_documentation& doc)
 {
-    build_module_ns(parent, opt, doc);
+    build_module_ns(parent, frontmatter, opt, doc);
 }
 
-void build_term_description(cmark_node* parent, const options& opt, const term& t,
+void build_term_description(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const term& t,
                             const description* desc);
 
-void build(cmark_node* parent, const options& opt, const entity_index_item& item)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const entity_index_item& item)
 {
     auto node = cmark_node_new(CMARK_NODE_ITEM);
     cmark_node_append_child(parent, node);
-    build_term_description(node, opt, item.entity(),
+    build_term_description(node, frontmatter, opt, item.entity(),
                            item.brief() ? &item.brief().value() : nullptr);
 }
 
 template <class Index>
-void build_index(cmark_node* parent, const options& opt, const Index& index)
+void build_index(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const Index& index)
 {
     auto heading = build_heading(1, nullptr);
     cmark_node_append_child(parent, heading);
-    handle_children(heading, opt, index.heading());
+    handle_children(heading, frontmatter, opt, index.heading());
 
     auto list = cmark_node_new(CMARK_NODE_LIST);
     cmark_node_set_list_type(list, CMARK_BULLET_LIST);
     cmark_node_append_child(parent, list);
 
     for (auto& child : index)
-        build_index_child(list, opt, child);
+        build_index_child(list, frontmatter, opt, child);
 }
 
-void build(cmark_node* parent, const options& opt, const file_index& index)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const file_index& index)
 {
-    build_index(parent, opt, index);
+    build_index(parent, frontmatter, opt, index);
 }
 
-void build(cmark_node* parent, const options& opt, const entity_index& index)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const entity_index& index)
 {
-    build_index(parent, opt, index);
+    build_index(parent, frontmatter, opt, index);
 }
 
-void build(cmark_node* parent, const options& opt, const module_index& index)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const module_index& index)
 {
-    build_index(parent, opt, index);
+    build_index(parent, frontmatter,opt, index);
 }
 
-void build(cmark_node* parent, const options& opt, const heading& h)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const heading& h)
 {
     auto heading = build_heading(4, nullptr);
     cmark_node_append_child(parent, heading);
-    handle_children(heading, opt, h);
+    handle_children(heading, frontmatter, opt, h);
 }
 
-void build(cmark_node* parent, const options& opt, const subheading& h)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const subheading& h)
 {
     auto heading = build_heading(5, nullptr);
     cmark_node_append_child(parent, heading);
-    handle_children(heading, opt, h);
+    handle_children(heading, frontmatter, opt, h);
 }
 
-void build(cmark_node* parent, const options& opt, const paragraph& par)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const paragraph& par)
 {
     auto node = cmark_node_new(CMARK_NODE_PARAGRAPH);
     cmark_node_append_child(parent, node);
-    handle_children(node, opt, par);
+    handle_children(node, frontmatter, opt, par);
 }
 
-void build_term_description(cmark_node* parent, const options& opt, const term& t,
+void build_term_description(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const term& t,
                             const description* desc)
 {
     auto paragraph = cmark_node_new(CMARK_NODE_PARAGRAPH);
     cmark_node_append_child(parent, paragraph);
 
-    handle_children(paragraph, opt, t);
+    handle_children(paragraph, frontmatter, opt, t);
 
     if (desc)
     {
@@ -332,38 +336,38 @@ void build_term_description(cmark_node* parent, const options& opt, const term& 
             cmark_node_append_child(paragraph, text);
         }
 
-        handle_children(paragraph, opt, *desc);
+        handle_children(paragraph, frontmatter, opt, *desc);
     }
 }
 
-void build_list_item(cmark_node* parent, const options& opt, const list_item_base& item)
+void build_list_item(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const list_item_base& item)
 {
     auto li = cmark_node_new(CMARK_NODE_ITEM);
     cmark_node_append_child(parent, li);
 
     if (item.kind() == entity_kind::list_item)
-        handle_children(li, opt, static_cast<const list_item&>(item));
+        handle_children(li, frontmatter, opt, static_cast<const list_item&>(item));
     else if (item.kind() == entity_kind::term_description_item)
     {
         auto& term        = static_cast<const term_description_item&>(item).term();
         auto& description = static_cast<const term_description_item&>(item).description();
-        build_term_description(li, opt, term, &description);
+        build_term_description(li, frontmatter, opt, term, &description);
     }
     else
         assert(false);
 }
 
-void build(cmark_node* parent, const options& opt, const unordered_list& list)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const unordered_list& list)
 {
     auto ul = cmark_node_new(CMARK_NODE_LIST);
     cmark_node_set_list_type(ul, CMARK_BULLET_LIST);
     cmark_node_append_child(parent, ul);
 
     for (auto& item : list)
-        build_list_item(ul, opt, item);
+        build_list_item(ul, frontmatter, opt, item);
 }
 
-void build(cmark_node* parent, const options& opt, const ordered_list& list)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const ordered_list& list)
 {
     auto ul = cmark_node_new(CMARK_NODE_LIST);
     cmark_node_set_list_type(ul, CMARK_ORDERED_LIST);
@@ -371,18 +375,18 @@ void build(cmark_node* parent, const options& opt, const ordered_list& list)
     cmark_node_append_child(parent, ul);
 
     for (auto& item : list)
-        build_list_item(ul, opt, item);
+        build_list_item(ul, frontmatter, opt, item);
 }
 
-void build(cmark_node* parent, const options& opt, const block_quote& quote)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const block_quote& quote)
 {
     auto node = cmark_node_new(CMARK_NODE_BLOCK_QUOTE);
     cmark_node_append_child(parent, node);
 
-    handle_children(node, opt, quote);
+    handle_children(node, frontmatter, opt, quote);
 }
 
-void build(cmark_node* parent, const options& opt, const code_block& cb)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const code_block& cb)
 {
     if (opt.use_html)
     {
@@ -400,7 +404,7 @@ void build(cmark_node* parent, const options& opt, const code_block& cb)
         if (!cb.language().empty())
             cmark_node_set_fence_info(node, cb.language().c_str());
 
-        handle_children(node, opt, cb);
+        handle_children(node, frontmatter, opt, cb);
     }
 }
 
@@ -413,48 +417,48 @@ void append_code_block_text(cmark_node* cb, const std::string& text)
         cmark_node_set_literal(cb, text.c_str());
 }
 
-void build(cmark_node* parent, const options&, const code_block::keyword& text)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options&, const code_block::keyword& text)
 {
     append_code_block_text(parent, text.string());
 }
 
-void build(cmark_node* parent, const options&, const code_block::identifier& text)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options&, const code_block::identifier& text)
 {
     append_code_block_text(parent, text.string());
 }
 
-void build(cmark_node* parent, const options&, const code_block::string_literal& text)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options&, const code_block::string_literal& text)
 {
     append_code_block_text(parent, text.string());
 }
 
-void build(cmark_node* parent, const options&, const code_block::int_literal& text)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options&, const code_block::int_literal& text)
 {
     append_code_block_text(parent, text.string());
 }
 
-void build(cmark_node* parent, const options&, const code_block::float_literal& text)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options&, const code_block::float_literal& text)
 {
     append_code_block_text(parent, text.string());
 }
 
-void build(cmark_node* parent, const options&, const code_block::punctuation& text)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options&, const code_block::punctuation& text)
 {
     append_code_block_text(parent, text.string());
 }
 
-void build(cmark_node* parent, const options&, const code_block::preprocessor& text)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options&, const code_block::preprocessor& text)
 {
     append_code_block_text(parent, text.string());
 }
 
-void build(cmark_node* parent, const options&, const thematic_break&)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options&, const thematic_break&)
 {
     auto node = cmark_node_new(CMARK_NODE_THEMATIC_BREAK);
     cmark_node_append_child(parent, node);
 }
 
-void build(cmark_node* parent, const options&, const text& t)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options&, const text& t)
 {
     if (cmark_node_get_type(parent) == CMARK_NODE_CODE_BLOCK
         || cmark_node_get_type(parent) == CMARK_NODE_CODE)
@@ -467,30 +471,30 @@ void build(cmark_node* parent, const options&, const text& t)
     }
 }
 
-void build(cmark_node* parent, const options& opt, const emphasis& emph)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const emphasis& emph)
 {
     auto node = cmark_node_new(CMARK_NODE_EMPH);
     cmark_node_append_child(parent, node);
 
-    handle_children(node, opt, emph);
+    handle_children(node, frontmatter, opt, emph);
 }
 
-void build(cmark_node* parent, const options& opt, const strong_emphasis& emph)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const strong_emphasis& emph)
 {
     auto node = cmark_node_new(CMARK_NODE_STRONG);
     cmark_node_append_child(parent, node);
 
-    handle_children(node, opt, emph);
+    handle_children(node, frontmatter, opt, emph);
 }
 
-void build(cmark_node* parent, const options& opt, const code& c)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const code& c)
 {
     auto node = cmark_node_new(CMARK_NODE_CODE);
     cmark_node_append_child(parent, node);
-    handle_children(node, opt, c);
+    handle_children(node, frontmatter, opt, c);
 }
 
-void build(cmark_node* parent, const options&, const verbatim& v)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options&, const verbatim& v)
 {
     // build inline HTML and hope it works
     auto node = cmark_node_new(CMARK_NODE_HTML_INLINE);
@@ -498,7 +502,7 @@ void build(cmark_node* parent, const options&, const verbatim& v)
     cmark_node_set_literal(node, v.content().c_str());
 }
 
-void build(cmark_node* parent, const options&, const soft_break&)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options&, const soft_break&)
 {
     if (cmark_node_get_type(parent) == CMARK_NODE_CODE_BLOCK)
         append_code_block_text(parent, "\n");
@@ -509,7 +513,7 @@ void build(cmark_node* parent, const options&, const soft_break&)
     }
 }
 
-void build(cmark_node* parent, const options&, const hard_break&)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options&, const hard_break&)
 {
     if (cmark_node_get_type(parent) == CMARK_NODE_CODE_BLOCK)
         append_code_block_text(parent, "\n");
@@ -530,23 +534,23 @@ cmark_node* build_link(const char* title, const char* url)
     return node;
 }
 
-void build(cmark_node* parent, const options& opt, const external_link& link)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const external_link& link)
 {
     if (cmark_node_get_type(parent) == CMARK_NODE_CODE_BLOCK)
-        handle_children(parent, opt, link);
+        handle_children(parent, frontmatter, opt, link);
     else
     {
         auto node = build_link(link.title().c_str(), link.url().as_str().c_str());
         cmark_node_append_child(parent, node);
 
-        handle_children(node, opt, link);
+        handle_children(node, frontmatter, opt, link);
     }
 }
 
-void build(cmark_node* parent, const options& opt, const documentation_link& link)
+void build(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const documentation_link& link)
 {
     if (cmark_node_get_type(parent) == CMARK_NODE_CODE_BLOCK)
-        handle_children(parent, opt, link);
+        handle_children(parent, frontmatter, opt, link);
     else if (link.internal_destination())
     {
         auto url = opt.prefix
@@ -560,7 +564,7 @@ void build(cmark_node* parent, const options& opt, const documentation_link& lin
         auto node = build_link(link.title().c_str(), url.c_str());
         cmark_node_append_child(parent, node);
 
-        handle_children(node, opt, link);
+        handle_children(node, frontmatter, opt, link);
     }
     else if (link.external_destination())
     {
@@ -569,24 +573,24 @@ void build(cmark_node* parent, const options& opt, const documentation_link& lin
         auto node = build_link(link.title().c_str(), url.c_str());
         cmark_node_append_child(parent, node);
 
-        handle_children(node, opt, link);
+        handle_children(node, frontmatter, opt, link);
     }
     else
         // only write link content
-        handle_children(parent, opt, link);
+        handle_children(parent, frontmatter, opt, link);
 }
 
-void build_entity(cmark_node* parent, const options& opt, const entity& e)
+void build_entity(cmark_node* parent, YAML::Node* frontmatter, const options& opt, const entity& e)
 {
     switch (e.kind())
     {
 #define STANDARDESE_DETAIL_HANDLE(Kind)                                                            \
     case entity_kind::Kind:                                                                        \
-        build(parent, opt, static_cast<const Kind&>(e));                                           \
+        build(parent, frontmatter, opt, static_cast<const Kind&>(e));                                           \
         break;
 #define STANDARDESE_DETAIL_HANDLE_CODE_BLOCK(Kind)                                                 \
     case entity_kind::code_block_##Kind:                                                           \
-        build(parent, opt, static_cast<const code_block::Kind&>(e));                               \
+        build(parent, frontmatter, opt, static_cast<const code_block::Kind&>(e));                               \
         break;
 
         STANDARDESE_DETAIL_HANDLE(file_documentation)
@@ -650,19 +654,23 @@ void build_entity(cmark_node* parent, const options& opt, const entity& e)
     }
 }
 
-cmark_node* build_entity(const options& opt, const entity& e)
+cmark_node* build_entity(YAML::Node* frontmatter, const options& opt, const entity& e)
 {
     auto doc = is_phrasing(e.kind()) ? cmark_node_new(CMARK_NODE_PARAGRAPH)
                                      : cmark_node_new(CMARK_NODE_DOCUMENT);
 
     if (e.kind() == entity_kind::main_document || e.kind() == entity_kind::subdocument
         || e.kind() == entity_kind::template_document)
-        handle_children(doc, opt, static_cast<const document_entity&>(e));
+        handle_children(doc, frontmatter, opt, static_cast<const document_entity&>(e));
     else
-        build_entity(doc, opt, e);
+        build_entity(doc, frontmatter, opt, e);
+
+    // TODO: doc should contain some methods to add frontmatter content. In the
+    // end, something needs to pick this up and write it out.
 
     return doc;
 }
+
 } // namespace
 
 generator standardese::markup::markdown_generator(bool use_html, const std::string& prefix,
@@ -670,9 +678,16 @@ generator standardese::markup::markdown_generator(bool use_html, const std::stri
 {
     options opt{prefix, extension, use_html};
     return [opt](std::ostream& out, const entity& e) {
-        auto doc = build_entity(opt, e);
 
+        YAML::Node frontmatter;
+        auto doc = build_entity(&frontmatter, opt, e);
         auto str = cmark_render_commonmark(doc, CMARK_OPT_NOBREAKS, 0);
+
+        YAML::Emitter frontmatter_out;
+        frontmatter_out << frontmatter;
+        out << "---" << std::endl;
+        out << frontmatter_out.c_str() << std::endl;
+        out << "---" << std::endl;
         out << str;
         std::free(str);
 
@@ -684,7 +699,8 @@ generator standardese::markup::text_generator() noexcept
 {
     options opt{"", "txt", false};
     return [opt](std::ostream& out, const entity& e) {
-        auto doc = build_entity(opt, e);
+        YAML::Node ignored;
+        auto doc = build_entity(&ignored, opt, e);
 
         auto str = cmark_render_plaintext(doc, CMARK_OPT_NOBREAKS, 0);
         out << str;
