@@ -60,6 +60,43 @@ namespace
 // tag object to mark an excluded entity
 doc_excluded_entity excluded_entity;
 doc_excluded_entity parent_excluded_entity;
+
+bool is_documented(const type_safe::optional_ref<const comment::doc_comment>& comment) {
+    return comment
+           && (comment.value().brief_section()
+               || !comment.value().sections().empty());
+}
+
+bool is_documented(const doc_entity& entity)
+{
+    if (entity.kind() == doc_entity::cpp_file)
+        return true;
+    else if (entity.parent() && entity.parent().value().kind() == doc_entity::member_group)
+        return is_documented(entity.parent().value());
+    else
+        return is_documented(entity.comment());
+}
+
+bool is_member(const cppast::cpp_entity& e) {
+    switch(e.kind())
+    {
+        case cppast::cpp_entity_kind::member_variable_t:
+        case cppast::cpp_entity_kind::member_function_t:
+        case cppast::cpp_entity_kind::variable_t:
+        case cppast::cpp_entity_kind::function_t:
+        case cppast::cpp_entity_kind::variable_template_t:
+        case cppast::cpp_entity_kind::function_template_t:
+        case cppast::cpp_entity_kind::conversion_op_t:
+        case cppast::cpp_entity_kind::friend_t:
+        case cppast::cpp_entity_kind::constructor_t:
+        case cppast::cpp_entity_kind::destructor_t:
+        case cppast::cpp_entity_kind::type_alias_t:
+            return true;
+            break;
+    }
+    return false;
+}
+
 } // namespace
 
 bool doc_entity::is_excluded() const noexcept
@@ -346,18 +383,6 @@ private:
     {
         if (identifier.length() > 0u)
             builder_.add_child(markup::code_block::identifier::build(identifier.c_str()));
-    }
-
-    bool is_documented(const doc_entity& entity) const
-    {
-        if (entity.kind() == doc_entity::cpp_file)
-            return true;
-        else if (entity.parent() && entity.parent().value().kind() == doc_entity::member_group)
-            return is_documented(entity.parent().value());
-        else
-            return entity.comment()
-                   && (entity.comment().value().brief_section()
-                       || !entity.comment().value().sections().empty());
     }
 
     bool write_link(const doc_entity& entity, cppast::string_view name)
