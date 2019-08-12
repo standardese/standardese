@@ -67,7 +67,7 @@ inline std::unique_ptr<standardese::doc_cpp_file> build_doc_entities(
     std::unique_ptr<cppast::cpp_file> file, const standardese::entity_blacklist& blacklist = {})
 {
     auto name = file->name();
-    standardese::exclude_entities(comments, index, blacklist, *file);
+    standardese::exclude_entities(comments, index, blacklist, false, *file);
     return standardese::build_doc_entities(type_safe::ref(comments), index, std::move(file),
                                            std::move(name));
 }
