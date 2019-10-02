@@ -491,7 +491,7 @@ i.e. like a regular entity link of the form `[<arg>]()`.
 
 *Note: Due to implementation reason you can't use a real CommonMark link as key.*
 
-The value consists of CommonnMark inline formatting until the reset of the section or a new key is encountered.
+The value consists of CommonMark inline formatting until the reset of the section or a new key is encountered.
 For example:
 
 ```cpp
@@ -509,7 +509,7 @@ This is also how the `see` section is intended:
 
 ```cpp
 /// Some documentation...
-/// \see [this_type] - Put a describition here (optional)
+/// \see [this_type] - Put a description here (optional)
 /// [this_func()] -
 /// [std::vector<T>] -
 ```
