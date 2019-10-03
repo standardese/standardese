@@ -655,4 +655,6 @@ Thanks a lot to the contributors as well:
 
 * @topisani, for issue reporting and bugfixes
 
+* Trim @bresilla Bresilla, for our logo
+
 And everyone else who shares and uses this project!
