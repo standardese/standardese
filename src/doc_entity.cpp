@@ -1,1427 +1,1425 @@
-// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
 #include <standardese/doc_entity.hpp>
 
-#include <standardese/detail/synopsis_utils.hpp>
-#include <standardese/cpp_class.hpp>
-#include <standardese/cpp_enum.hpp>
-#include <standardese/cpp_function.hpp>
-#include <standardese/cpp_namespace.hpp>
-#include <standardese/cpp_template.hpp>
-#include <standardese/cpp_variable.hpp>
-#include <standardese/index.hpp>
-#include <standardese/md_blocks.hpp>
-#include <standardese/md_custom.hpp>
-#include <standardese/md_inlines.hpp>
-#include <standardese/output.hpp>
-#include <standardese/parser.hpp>
+#include <algorithm>
+#include <cassert>
+#include <cctype>
+#include <stack>
+
+#include <cppast/cpp_entity_kind.hpp>
+#include <cppast/cpp_enum.hpp>
+#include <cppast/cpp_friend.hpp>
+#include <cppast/cpp_language_linkage.hpp>
+#include <cppast/cpp_member_function.hpp>
+#include <cppast/cpp_member_variable.hpp>
+#include <cppast/cpp_namespace.hpp>
+#include <cppast/cpp_preprocessor.hpp>
+#include <cppast/cpp_static_assert.hpp>
+#include <cppast/visitor.hpp>
+
+#include <standardese/comment.hpp>
+#include <standardese/markup/entity_kind.hpp>
+#include <standardese/markup/heading.hpp>
+#include <standardese/markup/link.hpp>
+
+#include "entity_visitor.hpp"
+#include "get_special_entity.hpp"
 
 using namespace standardese;
 
-void detail::generation_access::do_generate_synopsis(const doc_entity& e, const parser& p,
-                                                     code_block_writer& out, bool top_level)
+const char* synopsis_config::default_hidden_name() noexcept
 {
-    e.do_generate_synopsis(p, out, top_level);
+    return "'hidden'";
 }
 
-void detail::generation_access::do_generate_documentation_inline(const doc_entity& e,
-                                                                 const parser& p, const index& i,
-                                                                 md_inline_documentation& doc)
+unsigned synopsis_config::default_tab_width() noexcept
 {
-    e.do_generate_documentation_inline(p, i, doc);
+    return 4u;
 }
 
-bool doc_entity::in_module() const STANDARDESE_NOEXCEPT
+synopsis_config::flags synopsis_config::default_flags() noexcept
 {
-    return !get_module().empty();
+    return synopsis_config::show_group_output_section;
 }
 
-const std::string& doc_entity::get_module() const STANDARDESE_NOEXCEPT
+generation_config::flags generation_config::default_flags() noexcept
 {
-    static std::string empty;
-    if (has_comment() && get_comment().in_module())
-        return get_comment().get_module();
-    return has_parent() ? get_parent().get_module() : empty;
+    return generation_config::inline_doc;
 }
 
-cpp_name doc_entity::get_unique_name() const
+entity_index::order generation_config::default_order() noexcept
 {
-    return detail::get_unique_name(has_parent() ? &get_parent() : nullptr, do_get_unique_name(),
-                                   comment_);
-}
-
-doc_entity::doc_entity(doc_entity::type t, const doc_entity* parent,
-                       const comment* c) STANDARDESE_NOEXCEPT : parent_(parent),
-                                                                comment_(c),
-                                                                t_(t)
-{
-    if (comment_)
-        comment_->get_content().set_entity(*this);
+    return entity_index::namespace_inline_sorted;
 }
 
 namespace
 {
-    const char* get_entity_type_spelling(const cpp_entity& e)
-    {
-        switch (e.get_entity_type())
-        {
-        case cpp_entity::file_t:
-            return "header file";
+// tag object to mark an excluded entity
+doc_excluded_entity excluded_entity;
+doc_excluded_entity parent_excluded_entity;
+} // namespace
 
-        case cpp_entity::inclusion_directive_t:
-            return "inclusion directive";
-        case cpp_entity::macro_definition_t:
-            return "macro";
-
-        case cpp_entity::language_linkage_t:
-            return "language linkage";
-        case cpp_entity::namespace_t:
-            return "namespace";
-        case cpp_entity::namespace_alias_t:
-            return "namespace alias";
-        case cpp_entity::using_directive_t:
-            return "using directive";
-        case cpp_entity::using_declaration_t:
-            return "using declaration";
-
-        case cpp_entity::type_alias_t:
-            return "type alias";
-        case cpp_entity::alias_template_t:
-            return "alias template";
-
-        case cpp_entity::enum_t:
-            return "enumeration";
-        case cpp_entity::signed_enum_value_t:
-        case cpp_entity::unsigned_enum_value_t:
-        case cpp_entity::expression_enum_value_t:
-            return "enumeration constant";
-
-        case cpp_entity::variable_t:
-        case cpp_entity::member_variable_t:
-        case cpp_entity::bitfield_t:
-            return "variable";
-
-        case cpp_entity::function_parameter_t:
-            return "parameter";
-        case cpp_entity::function_t:
-        case cpp_entity::member_function_t:
-        case cpp_entity::function_template_t:
-        case cpp_entity::function_template_specialization_t:
-        {
-            auto& func = *get_function(e);
-            switch (func.get_operator_kind())
-            {
-            case cpp_operator_none:
-                break;
-            case cpp_operator:
-                return "operator";
-
-            case cpp_assignment_operator:
-                return "assignment operator";
-            case cpp_copy_assignment_operator:
-                return "copy assignment operator";
-            case cpp_move_assignment_operator:
-                return "move assignment operator";
-
-            case cpp_comparison_operator:
-                return "comparison operator";
-            case cpp_subscript_operator:
-                return "array subscript operator";
-            case cpp_function_call_operator:
-                return "function call operator";
-            case cpp_user_defined_literal:
-                return "user defined literal";
-
-            case cpp_output_operator:
-                return "output operator";
-            case cpp_input_operator:
-                return "input operator";
-            }
-            if (func.is_templated())
-                return "function template";
-            return "function";
-        }
-        case cpp_entity::conversion_op_t:
-            return "conversion operator";
-        case cpp_entity::constructor_t:
-        {
-            auto& ctor = static_cast<const cpp_constructor&>(e);
-            switch (ctor.get_ctor_type())
-            {
-            case cpp_default_ctor:
-                return "default constructor";
-            case cpp_copy_ctor:
-                return "copy constructor";
-            case cpp_move_ctor:
-                return "move constructor";
-            case cpp_other_ctor:
-                break;
-            }
-            return "constructor";
-        }
-        case cpp_entity::destructor_t:
-            return "destructor";
-
-        case cpp_entity::template_type_parameter_t:
-        case cpp_entity::non_type_template_parameter_t:
-        case cpp_entity::template_template_parameter_t:
-            return "template parameter";
-
-        case cpp_entity::class_t:
-        {
-            switch (static_cast<const cpp_class&>(e).get_class_type())
-            {
-            case cpp_class_t:
-                return "class";
-            case cpp_struct_t:
-                return "struct";
-            case cpp_union_t:
-                return "union";
-            }
-            assert(false);
-            return "weird class type - should not get here";
-        }
-        case cpp_entity::class_template_t:
-        case cpp_entity::class_template_full_specialization_t:
-        case cpp_entity::class_template_partial_specialization_t:
-            return "class template";
-
-        case cpp_entity::base_class_t:
-            return "base class";
-        case cpp_entity::access_specifier_t:
-            return "access specifier";
-
-        case cpp_entity::invalid_t:
-            break;
-        }
-
-        assert(false);
-        return "should never get here";
-    }
-
-    using standardese::index;
-
-    md_ptr<md_heading> make_heading(const index& i, const doc_cpp_entity& e,
-                                    const md_entity& parent, unsigned level, bool show_module)
-    {
-        auto heading = md_heading::make(parent, level);
-
-        auto type     = get_entity_type_spelling(e.get_cpp_entity());
-        auto text_str = fmt::format("{}{} ", char(std::toupper(type[0])), &type[1]);
-        auto text     = md_text::make(*heading, text_str.c_str());
-        heading->add_entity(std::move(text));
-
-        auto code = md_code::make(*heading, e.get_index_name(true, false).c_str());
-        heading->add_entity(std::move(code));
-
-        if (show_module && e.has_comment() && e.get_comment().in_module())
-            heading->add_entity(
-                md_text::make(*heading,
-                              fmt::format(" [{}]", e.get_comment().get_module()).c_str()));
-
-        heading->add_entity(i.get_linker().get_anchor(e, *heading));
-
-        return heading;
-    }
-
-    bool has_comment_impl(const doc_entity& e)
-    {
-        auto c = e.has_comment() ? &e.get_comment() : nullptr;
-        return c && (!c->empty() || c->in_member_group());
-    }
-
-    bool requires_comment_for_doc(const doc_entity& e)
-    {
-        return e.get_cpp_entity_type() != cpp_entity::file_t;
-    }
-}
-
-bool doc_cpp_entity::do_generate_documentation_base(const parser& p, const index& i,
-                                                    md_document& doc, unsigned level) const
+bool doc_entity::is_excluded() const noexcept
 {
-    if ((requires_comment_for_doc(*this) && !has_comment_impl(*this))
-        || p.get_output_config().get_blacklist().is_blacklisted(entity_blacklist::documentation,
-                                                                get_cpp_entity()))
-        return false;
-
-    doc.add_entity(make_heading(i, *this, doc, level,
-                                p.get_output_config().is_set(output_flag::show_modules)));
-
-    code_block_writer out(doc, p.get_output_config().is_set(output_flag::use_advanced_code_block));
-    do_generate_synopsis(p, out, true);
-    doc.add_entity(out.get_code_block());
-
-    if (has_comment())
-        doc.add_entity(get_comment().get_content().clone(doc));
-
-    return true;
-}
-
-cpp_name doc_cpp_entity::do_get_unique_name() const
-{
-    return entity_->get_unique_name(true);
-}
-
-cpp_name doc_cpp_entity::do_get_index_name(bool full_name, bool signature) const
-{
-    if (get_cpp_entity_type() == cpp_entity::namespace_t)
-        return entity_->get_full_name();
-    auto result =
-        std::string(full_name ? entity_->get_full_name().c_str() : entity_->get_name().c_str());
-    if (!signature)
-        return result;
-    else if (auto func = get_function(*entity_))
-        result += func->get_signature().c_str();
+    auto result = this == &excluded_entity || this == &parent_excluded_entity;
+    assert(!result || kind() == excluded);
     return result;
 }
 
-bool standardese::is_inline_cpp_entity(cpp_entity::type t) STANDARDESE_NOEXCEPT
-{
-    return t == cpp_entity::base_class_t || is_parameter(t) || is_member_variable(t)
-           || is_enum_value(t);
-}
-
-void doc_inline_cpp_entity::do_generate_documentation(const parser& p, const index& i,
-                                                      md_document& doc, unsigned level) const
-{
-    assert(!p.get_output_config().is_set(output_flag::inline_documentation));
-
-    do_generate_documentation_base(p, i, doc, level);
-}
-
-void doc_inline_cpp_entity::do_generate_documentation_inline(const parser& p, const index& i,
-                                                             md_inline_documentation& doc) const
-{
-    assert(p.get_output_config().is_set(output_flag::inline_documentation));
-    if (has_comment())
-        doc.add_item(get_name().c_str(), i.get_linker().get_anchor_id(*this).c_str(),
-                     get_comment().get_content());
-}
-
+//=== synopsis generation ===//
 namespace
 {
-    template <class EnumValue>
-    void do_write_synopsis_enum_value(code_block_writer& out, bool top_level,
-                                      const doc_cpp_entity& e, const EnumValue& val)
+const cppast::cpp_entity& get_real_entity(const cppast::cpp_entity& entity)
+{
+    if (cppast::is_templated(entity) || cppast::is_friended(entity))
+        return entity.parent().value();
+    else
+        return entity;
+}
+
+const doc_entity* get_doc_entity(const cppast::cpp_entity& entity)
+{
+    return static_cast<const doc_entity*>(entity.user_data());
+}
+
+bool is_in_group(const doc_entity* e)
+{
+    return e && e->kind() == doc_entity::cpp_entity
+           && static_cast<const doc_cpp_entity*>(e)->in_member_group();
+}
+
+std::string get_entity_name(bool include_scope, const cppast::cpp_entity& entity)
+{
+    if (entity.kind() == cppast::cpp_friend::kind())
     {
-        out.write_link(top_level, val.get_name(), e.get_unique_name());
-        if (val.is_explicitly_given())
-            out << " = " << val.get_value();
+        auto& friend_ = static_cast<const cppast::cpp_friend&>(entity);
+        if (friend_.entity())
+            return get_entity_name(include_scope, friend_.entity().value());
     }
 
-    void do_write_synopsis_member_variable(const parser& p, code_block_writer& out, bool top_level,
-                                           const cpp_member_variable_base& v)
+    if (include_scope && get_doc_entity(entity))
     {
-        if (v.is_mutable())
-            out << "mutable ";
+        // add all scopes
+        std::string scope;
 
-        detail::write_type_value_default(p, out, top_level, v.get_type(), v.get_name(),
-                                         v.get_unique_name());
-
-        if (v.get_entity_type() == cpp_entity::bitfield_t)
-            out << " : "
-                << static_cast<unsigned long long>(static_cast<const cpp_bitfield&>(v).no_bits());
-
-        if (!v.get_initializer().empty())
-            out << " = " << v.get_initializer();
-
-        out << ';';
-    }
-
-    void do_write_synopsis_template_param(const parser& p, code_block_writer& out,
-                                          const cpp_template_type_parameter& param)
-    {
-        if (param.get_keyword() == cpp_template_parameter::cpp_typename)
-            out << "typename";
-        else if (param.get_keyword() == cpp_template_parameter::cpp_class)
-            out << "class";
-        else
-            assert(false);
-
-        if (param.is_variadic())
-            out << " ...";
-
-        if (!param.get_name().empty())
-            out << ' ' << param.get_name();
-
-        if (param.has_default_type())
+        auto& doc_e = *get_doc_entity(entity);
+        for (auto cur = doc_e.parent(); cur; cur = cur.value().parent())
         {
-            auto def_name = detail::get_ref_name(p, param.get_default_type());
-            out << " = ";
-            detail::write_type_ref_name(p, out, def_name);
-        }
-    }
-
-    void do_write_synopsis_template_param(const parser& p, code_block_writer& out,
-                                          const cpp_non_type_template_parameter& param)
-    {
-        detail::write_type_value_default(p, out, false, param.get_type(), param.get_name(), "",
-                                         param.get_default_value(), param.is_variadic());
-    }
-
-    void do_write_synopsis_template_param(const parser& p, code_block_writer& out,
-                                          const cpp_template_parameter& param);
-
-    void do_write_synopsis_template_param(const parser& p, code_block_writer& out,
-                                          const cpp_template_template_parameter& param)
-    {
-        out << "template <";
-
-        auto first = true;
-        for (auto& child : param)
-        {
-            if (first)
-                first = false;
-            else
-                out << ", ";
-
-            do_write_synopsis_template_param(p, out, child);
-        }
-
-        out << "> ";
-
-        if (param.get_keyword() == cpp_template_parameter::cpp_typename)
-            out << "typename";
-        else if (param.get_keyword() == cpp_template_parameter::cpp_class)
-            out << "class";
-        else
-            assert(false);
-
-        if (param.is_variadic())
-            out << " ...";
-        if (!param.get_name().empty())
-            out << ' ' << param.get_name();
-        if (param.has_default_template())
-        {
-            auto def = detail::get_ref_name(p, param.get_default_template());
-            out << " = ";
-            detail::write_entity_ref_name(p, out, def);
-        }
-    }
-
-    void do_write_synopsis_template_param(const parser& p, code_block_writer& out,
-                                          const cpp_template_parameter& param)
-    {
-        if (param.get_entity_type() == cpp_entity::template_type_parameter_t)
-            do_write_synopsis_template_param(p, out,
-                                             static_cast<const cpp_template_type_parameter&>(
-                                                 param));
-        else if (param.get_entity_type() == cpp_entity::non_type_template_parameter_t)
-            do_write_synopsis_template_param(p, out,
-                                             static_cast<const cpp_non_type_template_parameter&>(
-                                                 param));
-        else if (param.get_entity_type() == cpp_entity::template_template_parameter_t)
-            do_write_synopsis_template_param(p, out,
-                                             static_cast<const cpp_template_template_parameter&>(
-                                                 param));
-        else
-            assert(false);
-    }
-}
-
-void doc_inline_cpp_entity::do_generate_synopsis(const parser& p, code_block_writer& out,
-                                                 bool top_level) const
-{
-    if (has_comment() && get_comment().has_synopsis_override())
-    {
-        out << get_comment().get_synopsis_override();
-        return;
-    }
-
-    switch (get_cpp_entity_type())
-    {
-    case cpp_entity::signed_enum_value_t:
-        do_write_synopsis_enum_value(out, top_level, *this,
-                                     static_cast<const cpp_signed_enum_value&>(get_cpp_entity()));
-        break;
-    case cpp_entity::unsigned_enum_value_t:
-        do_write_synopsis_enum_value(out, top_level, *this,
-                                     static_cast<const cpp_unsigned_enum_value&>(get_cpp_entity()));
-        break;
-    case cpp_entity::expression_enum_value_t:
-        do_write_synopsis_enum_value(out, top_level, *this,
-                                     static_cast<const cpp_expression_enum_value&>(
-                                         get_cpp_entity()));
-        break;
-
-    case cpp_entity::function_parameter_t:
-    {
-        auto& param = static_cast<const cpp_function_parameter&>(get_cpp_entity());
-        detail::write_type_value_default(p, out, top_level, param.get_type(), param.get_name(),
-                                         param.get_default_value());
-        break;
-    }
-
-    case cpp_entity::member_variable_t:
-    case cpp_entity::bitfield_t:
-        do_write_synopsis_member_variable(p, out, top_level,
-                                          static_cast<const cpp_member_variable_base&>(
-                                              get_cpp_entity()));
-        break;
-
-    case cpp_entity::template_type_parameter_t:
-    case cpp_entity::non_type_template_parameter_t:
-    case cpp_entity::template_template_parameter_t:
-        do_write_synopsis_template_param(p, out, static_cast<const cpp_template_parameter&>(
-                                                     get_cpp_entity()));
-        break;
-
-    case cpp_entity::base_class_t:
-    {
-        auto& base      = static_cast<const cpp_base_class&>(get_cpp_entity());
-        auto  base_name = detail::get_ref_name(p, base.get_type());
-        out << to_string(base.get_access()) << ' ';
-        detail::write_entity_ref_name(p, out, base_name);
-    }
-
-    case cpp_entity::file_t:
-    case cpp_entity::inclusion_directive_t:
-    case cpp_entity::macro_definition_t:
-    case cpp_entity::language_linkage_t:
-    case cpp_entity::namespace_t:
-    case cpp_entity::namespace_alias_t:
-    case cpp_entity::using_directive_t:
-    case cpp_entity::using_declaration_t:
-    case cpp_entity::type_alias_t:
-    case cpp_entity::alias_template_t:
-    case cpp_entity::enum_t:
-    case cpp_entity::variable_t:
-    case cpp_entity::function_t:
-    case cpp_entity::member_function_t:
-    case cpp_entity::conversion_op_t:
-    case cpp_entity::constructor_t:
-    case cpp_entity::destructor_t:
-    case cpp_entity::function_template_t:
-    case cpp_entity::function_template_specialization_t:
-    case cpp_entity::class_t:
-    case cpp_entity::class_template_t:
-    case cpp_entity::class_template_partial_specialization_t:
-    case cpp_entity::class_template_full_specialization_t:
-    case cpp_entity::access_specifier_t:
-    case cpp_entity::invalid_t:
-        assert(false);
-        break;
-    }
-}
-
-doc_inline_cpp_entity::doc_inline_cpp_entity(const doc_entity* parent, const cpp_entity& e,
-                                             const comment* c)
-: doc_cpp_entity(parent, e, c)
-{
-    assert(is_inline_cpp_entity(e.get_entity_type()));
-}
-
-void doc_cpp_access_entity::do_generate_synopsis(const parser& p, code_block_writer& out,
-                                                 bool) const
-{
-    out.unindent(p.get_output_config().get_tab_width());
-    out << to_string(static_cast<const cpp_access_specifier&>(get_cpp_entity()).get_access())
-        << ':';
-    out.indent(p.get_output_config().get_tab_width());
-}
-
-doc_cpp_access_entity::doc_cpp_access_entity(const doc_entity* parent, const cpp_entity& e,
-                                             const comment* c)
-: doc_cpp_entity(parent, e, c)
-{
-}
-
-void doc_leave_cpp_entity::do_generate_documentation(const parser& p, const index& i,
-                                                     md_document& doc, unsigned level) const
-{
-    do_generate_documentation_base(p, i, doc, level);
-}
-
-namespace
-{
-    void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
-                           const cpp_namespace_alias& ns, const comment* c)
-    {
-        (out << "namespace ").write_link(top_level, ns.get_name(), ns.get_unique_name()) << " = ";
-        if (c && c->get_excluded() == exclude_mode::target)
-            out << par.get_output_config().get_hidden_name();
-        else
-        {
-            auto target = detail::get_ref_name(par, ns.get_target());
-            detail::write_entity_ref_name(par, out, target);
-        }
-        out << ';';
-    }
-
-    void do_write_synopsis(const parser& par, code_block_writer& out, const cpp_using_directive& u)
-    {
-        auto target = detail::get_ref_name(par, u.get_target());
-        out << "using namespace ";
-        detail::write_entity_ref_name(par, out, target);
-        out << ';';
-    }
-
-    void do_write_synopsis(const parser& par, code_block_writer& out,
-                           const cpp_using_declaration& u)
-    {
-        auto target = detail::get_ref_name(par, u.get_target());
-        out << "using ";
-        detail::write_entity_ref_name(par, out, target);
-        out << ";";
-    }
-
-    void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
-                           const doc_cpp_entity& e, const cpp_type_alias& a)
-    {
-        (out << "using ").write_link(top_level, a.get_name(), e.get_unique_name()) << " = ";
-        if (e.has_comment() && e.get_comment().get_excluded() == exclude_mode::target)
-            out << par.get_output_config().get_hidden_name() << ';';
-        else
-        {
-            auto target = detail::get_ref_name(par, a.get_target());
-            detail::write_type_ref_name(par, out, target);
-            out << ';';
-        }
-    }
-
-    void do_write_synopsis(const parser& par, code_block_writer& out, bool top_level,
-                           const doc_cpp_entity& e, const cpp_variable& v)
-    {
-        if (v.get_ast_parent().get_entity_type() == cpp_entity::class_t)
-            out << "static ";
-
-        if (v.is_thread_local())
-            out << "thread_local ";
-
-        detail::write_type_value_default(par, out, top_level, v.get_type(), v.get_name(),
-                                         e.get_unique_name(), v.get_initializer());
-        out << ';';
-    }
-
-    void do_write_synopsis(const parser&, code_block_writer& out, const cpp_inclusion_directive& i)
-    {
-        out << "#include ";
-        out << (i.get_kind() == cpp_inclusion_directive::system ? '<' : '"');
-        out << i.get_file_name();
-        out << (i.get_kind() == cpp_inclusion_directive::system ? '>' : '"');
-    }
-
-    void do_write_synopsis(const parser&, code_block_writer& out, bool top_level,
-                           const doc_cpp_entity& e, const cpp_macro_definition& m,
-                           bool show_replacement)
-    {
-        (out << "#define ").write_link(top_level, m.get_name(), e.get_unique_name())
-            << m.get_parameter_string();
-        if (show_replacement)
-            out << ' ' << m.get_replacement();
-    }
-}
-
-void doc_leave_cpp_entity::do_generate_synopsis(const parser& p, code_block_writer& out,
-                                                bool top_level) const
-{
-    if (has_comment() && get_comment().has_synopsis_override())
-    {
-        out << get_comment().get_synopsis_override();
-        return;
-    }
-
-    switch (get_cpp_entity_type())
-    {
-    case cpp_entity::macro_definition_t:
-        do_write_synopsis(p, out, top_level, *this,
-                          static_cast<const cpp_macro_definition&>(get_cpp_entity()),
-                          p.get_output_config().is_set(output_flag::show_macro_replacement));
-        break;
-    case cpp_entity::inclusion_directive_t:
-        do_write_synopsis(p, out, static_cast<const cpp_inclusion_directive&>(get_cpp_entity()));
-        break;
-
-    case cpp_entity::namespace_alias_t:
-        do_write_synopsis(p, out, top_level,
-                          static_cast<const cpp_namespace_alias&>(get_cpp_entity()),
-                          has_comment() ? &get_comment() : nullptr);
-        break;
-    case cpp_entity::using_directive_t:
-        do_write_synopsis(p, out, static_cast<const cpp_using_directive&>(get_cpp_entity()));
-        break;
-    case cpp_entity::using_declaration_t:
-        do_write_synopsis(p, out, static_cast<const cpp_using_declaration&>(get_cpp_entity()));
-        break;
-
-    case cpp_entity::type_alias_t:
-        do_write_synopsis(p, out, top_level, *this,
-                          static_cast<const cpp_type_alias&>(get_cpp_entity()));
-        break;
-
-    case cpp_entity::variable_t:
-        do_write_synopsis(p, out, top_level, *this,
-                          static_cast<const cpp_variable&>(get_cpp_entity()));
-        break;
-
-    case cpp_entity::file_t:
-    case cpp_entity::language_linkage_t:
-    case cpp_entity::namespace_t:
-    case cpp_entity::alias_template_t:
-    case cpp_entity::enum_t:
-    case cpp_entity::signed_enum_value_t:
-    case cpp_entity::unsigned_enum_value_t:
-    case cpp_entity::expression_enum_value_t:
-    case cpp_entity::member_variable_t:
-    case cpp_entity::bitfield_t:
-    case cpp_entity::function_parameter_t:
-    case cpp_entity::function_t:
-    case cpp_entity::member_function_t:
-    case cpp_entity::conversion_op_t:
-    case cpp_entity::constructor_t:
-    case cpp_entity::destructor_t:
-    case cpp_entity::template_type_parameter_t:
-    case cpp_entity::non_type_template_parameter_t:
-    case cpp_entity::template_template_parameter_t:
-    case cpp_entity::function_template_t:
-    case cpp_entity::function_template_specialization_t:
-    case cpp_entity::class_t:
-    case cpp_entity::class_template_t:
-    case cpp_entity::class_template_partial_specialization_t:
-    case cpp_entity::class_template_full_specialization_t:
-    case cpp_entity::base_class_t:
-    case cpp_entity::access_specifier_t:
-    case cpp_entity::invalid_t:
-        assert(false);
-        break;
-    }
-}
-
-namespace
-{
-    bool is_leave_entity(const cpp_entity& e)
-    {
-        return e.get_entity_type() == cpp_entity::namespace_alias_t
-               || e.get_entity_type() == cpp_entity::using_declaration_t
-               || e.get_entity_type() == cpp_entity::using_directive_t
-               || e.get_entity_type() == cpp_entity::type_alias_t
-               || e.get_entity_type() == cpp_entity::variable_t
-               || is_preprocessor(e.get_entity_type());
-    }
-}
-
-doc_leave_cpp_entity::doc_leave_cpp_entity(const doc_entity* parent, const cpp_entity& e,
-                                           const comment* c)
-: doc_cpp_entity(parent, e, c)
-{
-    assert(is_leave_entity(e));
-}
-
-namespace
-{
-    struct inline_container
-    {
-        md_ptr<md_inline_documentation> parameters, bases, members, enum_values;
-
-        inline_container(md_document& doc)
-        : parameters(md_inline_documentation::make(doc, "Parameters")),
-          bases(md_inline_documentation::make(doc, "Bases")),
-          members(md_inline_documentation::make(doc, "Members")),
-          enum_values(md_inline_documentation::make(doc, "Enum values"))
-        {
-        }
-
-        void add_inlines(const parser& p, const index& i, const doc_entity& container)
-        {
-            for (auto& child : container)
+            if (cur.value().kind() == doc_entity::cpp_entity)
             {
-                if (is_parameter(child.get_cpp_entity_type()))
-                    detail::generation_access::do_generate_documentation_inline(child, p, i,
-                                                                                *parameters);
-                else if (child.get_cpp_entity_type() == cpp_entity::base_class_t)
-                    detail::generation_access::do_generate_documentation_inline(child, p, i,
-                                                                                *bases);
-                else if (is_member_variable(child.get_cpp_entity_type()))
-                    detail::generation_access::do_generate_documentation_inline(child, p, i,
-                                                                                *members);
-                else if (is_enum_value(child.get_cpp_entity_type()))
-                    detail::generation_access::do_generate_documentation_inline(child, p, i,
-                                                                                *enum_values);
-                else
-                    assert(!is_inline_cpp_entity(child.get_cpp_entity_type()));
+                auto& cur_e = static_cast<const doc_cpp_entity&>(cur.value()).entity();
+                if (cur_e.scope_name())
+                    scope = cur_e.scope_name().value().name() + "::" + scope;
+            }
+            else if (cur.value().kind() == doc_entity::cpp_namespace)
+            {
+                auto& cur_e = static_cast<const doc_cpp_namespace&>(cur.value()).namespace_();
+                if (cur_e.scope_name())
+                    scope = cur_e.scope_name().value().name() + "::" + scope;
             }
         }
 
-        void finish(md_document& doc)
-        {
-            if (!parameters->empty())
-                doc.add_entity(std::move(parameters));
-            if (!bases->empty())
-                doc.add_entity(std::move(bases));
-            if (!members->empty())
-                doc.add_entity(std::move(members));
-            if (!enum_values->empty())
-                doc.add_entity(std::move(enum_values));
-        }
-    };
+        return scope + entity.name();
+    }
+    else
+        return entity.name();
+}
 
-    bool requires_comment(const doc_entity& e)
+cppast::code_generator::generation_options get_exclude_mode(
+    type_safe::optional_ref<const comment::metadata> metadata)
+{
+    if (!metadata || !metadata.value().exclude())
+        return {};
+
+    switch (metadata.value().exclude().value())
     {
-        return requires_comment_for_doc(e) && e.get_cpp_entity_type() != cpp_entity::namespace_t
-               && e.get_cpp_entity_type() != cpp_entity::language_linkage_t;
+    case comment::exclude_mode::entity:
+        assert(false);
+    case comment::exclude_mode::return_type:
+        return cppast::code_generator::exclude_return;
+    case comment::exclude_mode::target:
+        return cppast::code_generator::exclude_target;
+    }
+
+    assert(false);
+    return {};
+}
+
+bool generate_output_section(const cppast::code_generator::output& code, bool is_main,
+                             const comment::metadata& metadata)
+{
+    if (!is_main && metadata.output_section())
+    {
+        code << cppast::comment("//=== ") << cppast::comment(metadata.output_section().value())
+             << cppast::comment(" ===//") << cppast::newl;
+        return true;
+    }
+    else
+        return false;
+}
+
+void generate_output_section(const cppast::code_generator::output& code, bool is_main,
+                             bool show_group_section, const comment::metadata& metadata,
+                             type_safe::optional<unsigned> group_member_no)
+{
+    if (generate_output_section(code, is_main, metadata))
+        return;
+    else if (!is_main && metadata.group() && show_group_section
+             && metadata.group().value().output_section() && group_member_no == 1u)
+        code << cppast::comment("//=== ")
+             << cppast::comment(metadata.group().value().output_section().value())
+             << cppast::comment(" ===//") << cppast::newl;
+}
+
+void generate_group_number(const cppast::code_generator::output& code,
+                           const comment::metadata&              metadata,
+                           type_safe::optional<unsigned>         group_member_no)
+{
+    assert(metadata.group().has_value() == group_member_no.has_value());
+
+    if (metadata.group())
+    {
+        if (group_member_no.value() != 1u)
+            code << cppast::newl;
+        code << cppast::comment("(" + std::to_string(group_member_no.value()) + ") ");
     }
 }
 
-void doc_container_cpp_entity::do_generate_documentation(const parser& p, const index& i,
-                                                         md_document& doc, unsigned level) const
+void generate_synopsis_override(const cppast::code_generator::output& code,
+                                const comment::metadata&              metadata)
 {
-    auto generate_doc = do_generate_documentation_base(p, i, doc, level);
-    if (generate_doc)
-    {
-        // add inline entity comments
-        if (p.get_output_config().is_set(output_flag::inline_documentation))
-        {
-            inline_container inlines(doc);
-            inlines.add_inlines(p, i, *this);
-            inlines.finish(doc);
-        }
-    }
-
-    // add documentation for other children
-    auto any_child = false;
-    for (auto& child : *this)
-    {
-        if (p.get_output_config().is_set(output_flag::inline_documentation)
-            && is_inline_cpp_entity(child.get_cpp_entity_type()))
-            continue;
-        else if (!requires_comment(child) || has_comment_impl(child))
-        {
-            child.do_generate_documentation(p, i, doc, generate_doc ? level + 1 : level);
-            any_child = true;
-        }
-    }
-
-    if (any_child && get_cpp_entity_type() != cpp_entity::file_t)
-        doc.add_entity(md_thematic_break::make(doc));
+    if (metadata.synopsis())
+        code << cppast::token_seq(metadata.synopsis().value());
 }
+} // namespace
 
-namespace
+class standardese::detail::markdown_code_generator : public cppast::code_generator
 {
-    bool show_full_synopsis(const parser& p, const doc_container_cpp_entity& e, bool top_level)
+public:
+    markdown_code_generator(type_safe::object_ref<const synopsis_config>          config,
+                            type_safe::object_ref<const cppast::cpp_entity_index> index)
+    : config_(config), index_(index), builder_(markup::block_id(), "cpp"), level_(0u),
+      need_indent_(false), allow_group_(false), render_injected_(false)
+    {}
+
+    std::unique_ptr<markup::code_block> finish()
     {
-        if (top_level)
-            // top level, always show synopsis
-            return true;
-        else if (e.get_name().empty())
-            // empty name, can't show declaration only
-            return true;
-        else if (e.has_comment())
-            // it has a comment, so will be top_level sometime
+        return builder_.finish();
+    }
+
+private:
+    bool is_main_entity(const cppast::cpp_entity& e) const noexcept
+    {
+        auto doc_e = get_doc_entity(e);
+        if (render_injected_ == true)
             return false;
-        // it does not have a comment, show full synopsis if flag is set
-        return !p.get_output_config().is_set(output_flag::require_comment_full_synopsis);
+        else if (is_in_group(doc_e))
+            // it is main if the first member of group is main
+            return &get_real_entity(
+                       static_cast<const doc_cpp_entity&>(*doc_e->parent().value().begin())
+                           .entity())
+                   == &main_entity();
+        else
+            return &get_real_entity(e) == &main_entity();
     }
 
-    void do_write_synopsis(const parser& p, code_block_writer& out, bool top_level,
-                           const doc_container_cpp_entity& e, const cpp_class& c)
+    cppast::formatting do_get_formatting() const override
     {
-        if (e.get_cpp_entity_type() == cpp_entity::class_template_full_specialization_t
-            || e.get_cpp_entity_type() == cpp_entity::class_template_partial_specialization_t)
-            detail::write_class_name(out, top_level, e.get_cpp_entity().get_name(),
-                                     e.get_unique_name(), c.get_class_type());
-        else if (e.get_cpp_entity_type() == cpp_entity::class_template_t)
-            detail::write_class_name(out, top_level, e.get_cpp_entity().get_name(),
-                                     e.get_unique_name(), c.get_class_type());
+        return cppast::formatting_flags::brace_nl | cppast::formatting_flags::comma_ws
+               | cppast::formatting_flags::operator_ws;
+    }
+
+    cppast::code_generator::generation_options do_get_options(
+        const cppast::cpp_entity& e_, cppast::cpp_access_specifier_kind) override
+    {
+        auto& e = get_real_entity(e_);
+
+        cppast::code_generator::generation_options result;
+        if (!config_->is_flag_set(synopsis_config::show_complex_noexcept))
+            result |= generation_flags::exclude_noexcept_condition;
+        else if (e.kind() == cppast::cpp_macro_definition::kind()
+                 && !config_->is_flag_set(synopsis_config::show_macro_replacement))
+            result |= generation_flags::declaration;
+
+        auto entity = get_doc_entity(e);
+        if (allow_group_ == false && entity && entity->kind() == doc_entity::cpp_entity
+            && static_cast<const doc_cpp_entity*>(entity)->is_group_main() == false)
+            // non main group entity not allowed
+            result |= generation_flags::exclude;
+        else if (entity && !entity->is_excluded())
+            result
+                |= type_safe::combo(entity->do_get_generation_options(*config_, is_main_entity(e)));
+        else if (entity && entity->is_excluded())
+            result |= generation_flags::exclude;
         else
-            detail::write_class_name(out, top_level, c.get_name(), e.get_unique_name(),
-                                     c.get_class_type());
+            result |= generation_flags::declaration;
 
-        if (show_full_synopsis(p, e, top_level))
+        return result;
+    }
+
+    void on_begin(const output& out, const cppast::cpp_entity& e) override
+    {
+        // on_end() will only be called if the entity is actually printed
+        // so check whether or not it will be printed before pushing
+        // also don't push templated/friended entities
+        if (out && !cppast::is_templated(e) && !cppast::is_friended(e))
+            entities_.push(type_safe::ref(e));
+
+        if (auto entity = get_doc_entity(e))
+            entity->do_generate_synopsis_prefix(out, *config_, is_main_entity(e));
+    }
+
+    void on_end(const output&, const cppast::cpp_entity& e) override
+    {
+        if (!cppast::is_templated(e) && !cppast::is_friended(e))
         {
-            if (c.is_final())
-                out << " final";
+            assert(entities_.top() == e);
+            entities_.pop();
 
-            out << newl;
-            detail::write_bases(p, out, e, c);
-            out << '{' << newl;
-            out.indent(p.get_output_config().get_tab_width());
-
-            auto first = true;
-            auto last_access =
-                c.get_class_type() == cpp_class_t ? cpp_private : cpp_public; // last written access
-            auto cur_access  = last_access; // access of current entity
-            auto need_access = false;       // need change in access modifier
-            for (auto& child : e)
+            auto doc_e = get_doc_entity(e);
+            if (doc_e && doc_e->kind() == doc_entity::member_group)
             {
-                if (child.get_cpp_entity_type() == cpp_entity::base_class_t
-                    || is_template_parameter(child.get_cpp_entity_type()))
-                    continue;
-                else if (detail::is_blacklisted(p, child))
-                    continue;
+                // render remaining entities of group
+                allow_group_.set();
 
-                if (child.get_cpp_entity_type() == cpp_entity::access_specifier_t)
+                auto first = true;
+                for (auto& child : static_cast<const doc_member_group_entity&>(*doc_e))
                 {
-                    cur_access = static_cast<const cpp_access_specifier&>(
-                                     static_cast<const doc_cpp_entity&>(child).get_cpp_entity())
-                                     .get_access();
-
-                    if (cur_access != last_access)
-                        // change in access
-                        need_access = true;
-                    else if (need_access)
-                        // no change but change still requested
-                        // because a previous entity changed it but it wasn't written after all
-                        need_access = false;
-                }
-                else
-                {
+                    assert(child.kind() == doc_entity::cpp_entity);
+                    auto& child_e = static_cast<const doc_cpp_entity&>(child);
                     if (first)
                         first = false;
                     else
-                        out << blankl;
-
-                    if (need_access)
-                    {
-                        out.unindent(p.get_output_config().get_tab_width());
-                        out << to_string(cur_access) << ':' << newl;
-                        out.indent(p.get_output_config().get_tab_width());
-
-                        need_access = false;
-                        last_access = cur_access;
-                    }
-
-                    detail::generation_access::do_generate_synopsis(child, p, out, false);
+                        generate_code(child_e.entity());
                 }
+
+                allow_group_.reset();
             }
-            out.remove_trailing_line();
-            out.unindent(p.get_output_config().get_tab_width());
-            out << newl << '}';
         }
-        out << ';';
     }
 
-    void do_write_synopsis(const parser& p, code_block_writer& out, bool top_level,
-                           const doc_container_cpp_entity& e, const cpp_function_base& f,
-                           const comment* c)
+    void on_container_end(const output& out, const cppast::cpp_entity& e) override
     {
-        detail::write_prefix(out, detail::get_virtual(f), f.is_constexpr());
+        auto doc_e = get_doc_entity(get_real_entity(e));
+        if (!doc_e)
+            return;
 
-        if (c && c->has_return_type_override())
-            out << c->get_synopsis_override() << ' ';
-        else if (c && c->get_excluded() == exclude_mode::return_type)
-            out << p.get_output_config().get_hidden_name() << ' ';
-        else if (f.get_entity_type() == cpp_entity::function_t)
-        {
-            auto ret_name =
-                detail::get_ref_name(p, static_cast<const cpp_function&>(f).get_return_type());
-            detail::write_type_ref_name(p, out, ret_name);
-            out << ' ';
-        }
-        else if (f.get_entity_type() == cpp_entity::member_function_t)
-        {
-            auto ret_name =
-                detail::get_ref_name(p,
-                                     static_cast<const cpp_member_function&>(f).get_return_type());
-            detail::write_type_ref_name(p, out, ret_name);
-            out << ' ';
-        }
-
-        detail::write_parameters(p, out, top_level, e, f);
-
-        detail::write_cv_ref(out, detail::get_cv(f), detail::get_ref_qualifier(f));
-        detail::write_noexcept(p.get_output_config().is_set(output_flag::show_complex_noexcept) ?
-                                   nullptr :
-                                   p.get_output_config().get_hidden_name().c_str(),
-                               out, f);
-
-        detail::write_override_final(out, detail::get_virtual(f));
-
-        detail::write_definition(out, f);
-    }
-
-    template <typename Seperator>
-    void do_write_synopsis_container(const parser& p, code_block_writer& out,
-                                     const doc_container_cpp_entity& e, Seperator sep)
-    {
-        out << '{' << newl;
-        out.indent(p.get_output_config().get_tab_width());
-        auto first = true;
-        for (auto& child : e)
-        {
-            if (detail::is_blacklisted(p, child))
-                continue;
-
-            if (first)
-                first = false;
-            else
-                out << sep;
-
-            detail::generation_access::do_generate_synopsis(child, p, out, false);
-        }
-        out.remove_trailing_line();
-        out.unindent(p.get_output_config().get_tab_width());
-        out << newl << '}';
-    }
-
-    void do_write_synopsis(const parser& p, code_block_writer& out, bool top_level,
-                           const doc_container_cpp_entity& entity, const cpp_enum& e)
-    {
-        out << "enum ";
-        if (e.is_scoped())
-            out << "class ";
-        out.write_link(top_level, entity.get_cpp_entity().get_name(), entity.get_unique_name());
-        if (show_full_synopsis(p, entity, top_level))
-        {
-            if (!e.get_underlying_type().get_name().empty())
+        auto save = render_injected_;
+        render_injected_.set();
+        for (auto& child : *doc_e)
+            if (child.is_injected())
             {
-                out << newl << ": ";
-                if (entity.has_comment()
-                    && entity.get_comment().get_excluded() == exclude_mode::target)
-                    out << p.get_output_config().get_hidden_name();
-                else
-                {
-                    auto type_name = detail::get_ref_name(p, e.get_underlying_type());
-                    out.write_link(false, type_name.name, type_name.unique_name);
-                }
+                // it was injected, so render it now
+                out << cppast::newl;
+                child.do_generate_code(*this);
             }
-
-            out << newl;
-            do_write_synopsis_container(p, out, entity, ",\n");
-        }
-        out << ';';
+        render_injected_ = save;
     }
 
-    void do_write_synopsis(const parser& p, code_block_writer& out, bool top_level,
-                           const doc_container_cpp_entity& entity, const cpp_namespace& ns)
+    void do_indent() override
     {
-        if (ns.is_inline())
-            out << "inline ";
-        (out << "namespace ").write_link(top_level, ns.get_name(), entity.get_unique_name())
-            << newl;
-        do_write_synopsis_container(p, out, entity, blankl);
+        level_ += config_->tab_width();
     }
 
-    void do_write_synopsis(const parser& p, code_block_writer& out,
-                           const doc_container_cpp_entity& entity, const cpp_language_linkage& lang)
+    void do_unindent() override
     {
-        out << "extern \"" << lang.get_name() << '"' << newl;
-        do_write_synopsis_container(p, out, entity, blankl);
-    }
-}
-
-void doc_container_cpp_entity::do_generate_synopsis(const parser& p, code_block_writer& out,
-                                                    bool top_level) const
-{
-    if (has_comment() && get_comment().has_synopsis_override())
-    {
-        out << get_comment().get_synopsis_override();
-        return;
+        if (level_ >= config_->tab_width())
+            level_ -= config_->tab_width();
     }
 
-    // write template parameters, if there are any
-    if (is_template(get_cpp_entity_type()))
-        detail::write_template_parameters(p, out, *this);
-
-    if (auto c = get_class(get_cpp_entity()))
-        do_write_synopsis(p, out, top_level, *this, *c);
-    else if (auto func = get_function(get_cpp_entity()))
-        do_write_synopsis(p, out, top_level, *this, *func,
-                          has_comment() ? &get_comment() : nullptr);
-    else if (get_cpp_entity_type() == cpp_entity::enum_t)
-        do_write_synopsis(p, out, top_level, *this, static_cast<const cpp_enum&>(get_cpp_entity()));
-    else if (get_cpp_entity_type() == cpp_entity::alias_template_t)
-        do_write_synopsis(p, out, top_level, *this,
-                          static_cast<const cpp_alias_template&>(get_cpp_entity()).get_type());
-    else if (get_cpp_entity_type() == cpp_entity::namespace_t)
-        do_write_synopsis(p, out, top_level, *this,
-                          static_cast<const cpp_namespace&>(get_cpp_entity()));
-    else if (get_cpp_entity_type() == cpp_entity::language_linkage_t)
-        do_write_synopsis(p, out, *this,
-                          static_cast<const cpp_language_linkage&>(get_cpp_entity()));
-    else if (get_cpp_entity_type() == cpp_entity::file_t)
+    void do_write_token_seq(cppast::string_view tokens) override
     {
-        auto first = true;
-        for (auto& child : *this)
-        {
-            if (detail::is_blacklisted(p, child))
-                continue;
-
-            if (first)
-                first = false;
-            else
-                out << blankl;
-
-            detail::generation_access::do_generate_synopsis(child, p, out, false);
-        }
-        out.remove_trailing_line();
-    }
-    else
-        assert(false);
-}
-
-namespace
-{
-    bool is_container_entity(const cpp_entity& e)
-    {
-        return e.get_entity_type() == cpp_entity::namespace_t
-               || e.get_entity_type() == cpp_entity::language_linkage_t
-               || e.get_entity_type() == cpp_entity::enum_t
-               || e.get_entity_type() == cpp_entity::class_t
-               || e.get_entity_type() == cpp_entity::file_t || is_function_like(e.get_entity_type())
-               || is_template(e.get_entity_type());
-    }
-}
-
-doc_container_cpp_entity::doc_container_cpp_entity(const doc_entity* parent, const cpp_entity& e,
-                                                   const comment* c)
-: doc_cpp_entity(parent, e, c)
-{
-    assert(is_container_entity(e));
-}
-
-doc_ptr<doc_member_group> doc_member_group::make(const doc_entity& parent, const comment& c)
-{
-    return detail::make_doc_ptr<doc_member_group>(&parent, c);
-}
-
-std::size_t doc_member_group::group_id() const STANDARDESE_NOEXCEPT
-{
-    return get_comment().member_group_id();
-}
-
-void doc_member_group::do_generate_documentation(const parser& p, const index& i, md_document& doc,
-                                                 unsigned level) const
-{
-    assert(!empty());
-
-    if (get_comment().in_unique_member_group())
-        begin()->do_generate_documentation(p, i, doc, level);
-    else
-    {
-        if (get_comment().has_group_name())
-        {
-            auto heading = md_heading::make(doc, level);
-            heading->add_entity(md_text::make(*heading, get_comment().get_group_name()));
-            heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
-            if (p.get_output_config().is_set(output_flag::show_modules)
-                && get_comment().in_module())
-                heading->add_entity(
-                    md_text::make(*heading,
-                                  fmt::format(" [{}]", get_comment().get_module()).c_str()));
-            doc.add_entity(std::move(heading));
-        }
-        else if (begin()->get_entity_type() == doc_entity::cpp_entity_t)
-        {
-            auto& cpp_e = static_cast<const doc_cpp_entity&>(*doc_entity_container::begin());
-            doc.add_entity(make_heading(i, cpp_e, doc, level,
-                                        p.get_output_config().is_set(output_flag::show_modules)));
-        }
-        else
-        {
-            auto heading = md_heading::make(doc, level);
-            heading->add_entity(md_text::make(*heading, "Member group"));
-            heading->add_entity(i.get_linker().get_anchor(*begin(), *heading));
-            doc.add_entity(std::move(heading));
-        }
-
-        code_block_writer out(doc,
-                              p.get_output_config().is_set(output_flag::use_advanced_code_block));
-        do_generate_synopsis(p, out, true);
-        doc.add_entity(out.get_code_block());
-
-        doc.add_entity(get_comment().get_content().clone(doc));
-
-        if (p.get_output_config().is_set(output_flag::inline_documentation))
-        {
-            inline_container inlines(doc);
-            for (auto& member : *this)
-                inlines.add_inlines(p, i, member);
-            inlines.finish(doc);
-        }
-    }
-}
-
-void doc_member_group::do_generate_synopsis(const parser& p, code_block_writer& out,
-                                            bool top_level) const
-{
-    if (!top_level && (get_comment().in_unique_member_group()
-                       || p.get_output_config().is_set(output_flag::show_group_output_section))
-        && get_comment().show_group_section())
-    {
-        out << "//=== ";
-        out.write_link(top_level, get_comment().get_group_name(), begin()->get_unique_name());
-        out << " ===//" << newl;
+        update_indent();
+        builder_.add_child(markup::text::build(tokens.c_str()));
     }
 
-    auto show_numbers = top_level && !get_comment().in_unique_member_group()
-                        && p.get_output_config().is_set(output_flag::show_group_member_id);
-    auto first = true;
-    auto i     = 0u;
-    for (auto& child : static_cast<const doc_entity_container&>(*this))
+    void do_write_keyword(cppast::string_view keyword) override
     {
-        if (first)
-            first = false;
-        else if (top_level)
-            out << blankl;
-        else
-            out << newl;
-
-        ++i;
-        if (show_numbers)
-        {
-            out << '(' << i << ')';
-            out.fill_ws(p.get_output_config().get_tab_width() / 2);
-            out.indent(p.get_output_config().get_tab_width() / 2 + 3);
-        }
-
-        detail::generation_access::do_generate_synopsis(child, p, out, top_level);
-
-        if (show_numbers)
-            out.unindent(p.get_output_config().get_tab_width() / 2 + 3);
+        update_indent();
+        builder_.add_child(markup::code_block::keyword::build(keyword.c_str()));
     }
-}
 
-namespace
-{
-    bool is_blacklisted(const entity_blacklist& blacklist, const cpp_entity& e, const comment* c)
+    void write_identifier(cppast::string_view identifier)
     {
-        if (blacklist.is_blacklisted(entity_blacklist::synopsis, e))
-            // only ignore synopsis blacklisted entities
-            // documentation blacklists should still be included
+        if (identifier.length() > 0u)
+            builder_.add_child(markup::code_block::identifier::build(identifier.c_str()));
+    }
+
+    bool is_documented(const doc_entity& entity) const
+    {
+        if (entity.kind() == doc_entity::cpp_file)
             return true;
-        else if (c && c->is_excluded())
-            return true;
-
-        return false;
-    }
-
-    using standardese::index;
-
-    void handle_children(const parser& p, const index& i, std::string output_file,
-                         doc_container_cpp_entity& cont);
-
-    doc_entity_ptr handle_child_impl(const parser& p, const index& i, const doc_entity& parent,
-                                     const cpp_entity& e, cpp_access_specifier_t cur_access,
-                                     const std::string& output_file)
-    {
-        auto& blacklist       = p.get_output_config().get_blacklist();
-        auto  extract_private = blacklist.is_set(entity_blacklist::extract_private);
-        if (!extract_private && cur_access == cpp_private
-            && detail::get_virtual(e) == cpp_virtual_none)
-            // entity is private and not virtual, and private entities are excluded
-            return nullptr;
-
-        auto comment = p.get_comment_registry().lookup_comment(e, &parent);
-        if (is_blacklisted(blacklist, e, comment))
-            // entity is blacklisted
-            return nullptr;
-
-        if (is_inline_cpp_entity(e.get_entity_type()))
-            return detail::make_doc_ptr<doc_inline_cpp_entity>(&parent, e, comment);
-        else if (is_leave_entity(e))
-            return detail::make_doc_ptr<doc_leave_cpp_entity>(&parent, e, comment);
-        else if (is_container_entity(e))
-        {
-            auto container = detail::make_doc_ptr<doc_container_cpp_entity>(&parent, e, comment);
-            handle_children(p, i, output_file, *container);
-            return std::move(container);
-        }
+        else if (entity.parent() && entity.parent().value().kind() == doc_entity::member_group)
+            return is_documented(entity.parent().value());
         else
-            assert(e.get_entity_type() == cpp_entity::invalid_t
-                   || e.get_entity_type() == cpp_entity::access_specifier_t);
-
-        return nullptr;
+            return entity.comment()
+                   && (entity.comment().value().brief_section()
+                       || !entity.comment().value().sections().empty());
     }
 
-    void handle_group(const parser& p, doc_container_cpp_entity& parent, doc_entity_ptr entity)
+    bool write_link(const doc_entity& entity, cppast::string_view name)
     {
-        doc_member_group* group = nullptr;
-        if (!entity->get_comment().in_unique_member_group())
+        if (is_documented(entity))
         {
-            for (auto& child : parent)
-            {
-                if (child.get_entity_type() == doc_entity::member_group_t)
-                {
-                    auto& g = static_cast<doc_member_group&>(child);
-                    if (g.group_id() == entity->get_comment().member_group_id())
-                    {
-                        group = &g;
-                        break;
-                    }
-                }
-            }
+            // only generate link if the entity has actual documentation
+            markup::documentation_link::builder link(entity.link_name());
+            link.add_child(markup::code_block::identifier::build(name.c_str()));
+            builder_.add_child(link.finish());
         }
-
-        if (group)
+        else if (entity.is_excluded())
         {
-            if (entity->has_comment() && !entity->get_comment().empty())
-                p.get_logger()->warn("Comment for entity '{}' has documentation text that is "
-                                     "ignored because it is in a group.",
-                                     entity->get_unique_name().c_str());
-            group->add_entity(std::move(entity));
-        }
-        else
-        {
-            // need a new group
-            auto group = doc_member_group::make(parent, entity->get_comment());
-            group->add_entity(std::move(entity));
-            parent.add_entity(std::move(group));
-        }
-    }
-
-    bool handle_child(const parser& p, const index& i, doc_container_cpp_entity& parent,
-                      const cpp_entity& e, cpp_access_specifier_t cur_access,
-                      const std::string& output_file)
-    {
-        auto entity = handle_child_impl(p, i, parent, e, cur_access, output_file);
-        if (!entity)
+            write_excluded();
             return false;
-
-        auto e_ptr = entity.get();
-        if (entity->has_comment() && entity->get_comment().in_member_group())
-            handle_group(p, parent, std::move(entity));
+        }
         else
-            parent.add_entity(std::move(entity));
-        i.register_entity(p, *e_ptr, output_file);
+            write_identifier(name);
+
         return true;
     }
 
-    void handle_children(const parser& p, const index& i, std::string output_file,
-                         doc_container_cpp_entity& cont)
+    void do_write_identifier(cppast::string_view identifier) override
     {
-        auto& entity = cont.get_cpp_entity();
-        switch (entity.get_entity_type())
-        {
-        case cpp_entity::language_linkage_t:
-            for (auto& child : static_cast<const cpp_language_linkage&>(entity))
-                handle_child(p, i, cont, child, cpp_public, std::move(output_file));
-            break;
-        case cpp_entity::namespace_t:
-            for (auto& child : static_cast<const cpp_namespace&>(entity))
-                handle_child(p, i, cont, child, cpp_public, std::move(output_file));
-            break;
+        update_indent();
 
-        case cpp_entity::enum_t:
-            for (auto& child : static_cast<const cpp_enum&>(entity))
-                handle_child(p, i, cont, child, cpp_public, output_file);
-            break;
+        auto cur_e = entities_.top();
+        auto doc_e = get_doc_entity(*cur_e);
+        auto needs_link
+            = !is_main_entity(*cur_e) && identifier.c_str() == get_entity_name(false, *cur_e);
 
-        case cpp_entity::function_template_t:
-        {
-            auto any_added = false;
-            for (auto& child :
-                 static_cast<const cpp_function_template&>(entity).get_template_parameters())
-            {
-                if (handle_child(p, i, cont, child, cpp_public, output_file))
-                    any_added = true;
-            }
-            if (!any_added)
-                cont.set_cpp_entity(*get_function(entity));
-        }
-        // fallthrough
-        case cpp_entity::function_t:
-        case cpp_entity::member_function_t:
-        case cpp_entity::conversion_op_t:
-        case cpp_entity::constructor_t:
-        case cpp_entity::function_template_specialization_t:
-            for (auto& child : get_function(entity)->get_parameters())
-                handle_child(p, i, cont, child, cpp_public, output_file);
-            break;
-
-        case cpp_entity::class_template_t:
-        case cpp_entity::class_template_partial_specialization_t:
-            if (entity.get_entity_type() == cpp_entity::class_template_t)
-            {
-                auto any_added = false;
-                for (auto& child :
-                     static_cast<const cpp_class_template&>(entity).get_template_parameters())
-                {
-                    if (handle_child(p, i, cont, child, cpp_public, output_file))
-                        any_added = true;
-                }
-                if (!any_added)
-                    cont.set_cpp_entity(*get_class(entity));
-            }
-            else
-            {
-                auto any_added = false;
-                for (auto& child :
-                     static_cast<const cpp_class_template_partial_specialization&>(entity)
-                         .get_template_parameters())
-                {
-                    if (handle_child(p, i, cont, child, cpp_public, output_file))
-                        any_added = true;
-                }
-                if (!any_added)
-                    cont.set_cpp_entity(*get_class(entity));
-            }
-        // fallthrough
-        case cpp_entity::class_template_full_specialization_t:
-        case cpp_entity::class_t:
-        {
-            auto& c = *get_class(entity);
-            for (auto& child : c.get_bases())
-                handle_child(p, i, cont, child, child.get_access(), output_file);
-
-            auto cur_access = c.get_class_type() == cpp_class_t ? cpp_private : cpp_public;
-            for (auto& child : c)
-            {
-                if (child.get_entity_type() == cpp_entity::access_specifier_t)
-                {
-                    cur_access = static_cast<const cpp_access_specifier&>(child).get_access();
-                    cont.add_entity(
-                        detail::make_doc_ptr<doc_cpp_access_entity>(&cont, child, nullptr));
-                }
-                else
-                    handle_child(p, i, cont, child, cur_access, output_file);
-            }
-            break;
-        }
-
-        case cpp_entity::alias_template_t:
-            for (auto& child :
-                 static_cast<const cpp_alias_template&>(entity).get_template_parameters())
-                handle_child(p, i, cont, child, cpp_public, output_file);
-            break;
-
-        case cpp_entity::destructor_t:
-            break;
-
-        default:
-            assert(false);
-            break;
-        }
-    }
-}
-
-doc_ptr<doc_file> doc_file::parse(const parser& p, const index& i, std::string output_name,
-                                  const cpp_file& f)
-{
-    auto file_ptr =
-        detail::make_doc_ptr<doc_container_cpp_entity>(nullptr, f, p.get_comment_registry()
-                                                                       .lookup_comment(f, nullptr));
-    if (file_ptr->has_comment() && file_ptr->get_comment().has_unique_name_override())
-        output_name = file_ptr->get_comment().get_unique_name_override();
-
-    auto res = detail::make_doc_ptr<doc_file>(output_name, std::move(file_ptr));
-    res->file_->set_parent(res.get());
-
-    for (auto& child : f)
-    {
-        auto entity = handle_child_impl(p, i, *res, child, cpp_public, output_name);
-        if (!entity)
-            continue;
-        auto e_ptr = entity.get();
-        if (entity->has_comment() && entity->get_comment().in_member_group())
-            handle_group(p, *res->file_, std::move(entity));
+        if (needs_link && doc_e)
+            write_link(*doc_e, identifier);
         else
-            res->file_->add_entity(std::move(entity));
-        i.register_entity(p, *e_ptr, output_name);
+            write_identifier(identifier);
     }
-    i.register_entity(p, *res->file_, std::move(output_name));
 
-    return res;
+    bool do_write_reference(type_safe::array_ref<const cppast::cpp_entity_id> id,
+                            cppast::string_view                               name) override
+    {
+        update_indent();
+
+        auto entity = index_->lookup(id[0u]); // pick first if overloaded
+        if (!entity)
+        {
+            auto ns = index_->lookup_namespace(id[0u]);
+            if (ns.size() > 0u)
+                entity = ns[0u];
+        }
+
+        if (entity && get_doc_entity(entity.value()))
+            return write_link(*get_doc_entity(entity.value()), name);
+        else
+            write_identifier(name);
+
+        return true;
+    }
+
+    void do_write_punctuation(cppast::string_view punct) override
+    {
+        update_indent();
+        builder_.add_child(markup::code_block::punctuation::build(punct.c_str()));
+    }
+
+    void do_write_str_literal(cppast::string_view str) override
+    {
+        update_indent();
+        builder_.add_child(markup::code_block::string_literal::build(str.c_str()));
+    }
+
+    void do_write_int_literal(cppast::string_view str) override
+    {
+        update_indent();
+        builder_.add_child(markup::code_block::int_literal::build(str.c_str()));
+    }
+
+    void do_write_float_literal(cppast::string_view str) override
+    {
+        update_indent();
+        builder_.add_child(markup::code_block::float_literal::build(str.c_str()));
+    }
+
+    void do_write_preprocessor(cppast::string_view punct) override
+    {
+        update_indent();
+        builder_.add_child(markup::code_block::preprocessor::build(punct.c_str()));
+    }
+
+    void write_excluded()
+    {
+        update_indent();
+        builder_.add_child(markup::code_block::identifier::build(config_->hidden_name()));
+    }
+
+    void do_write_excluded(const cppast::cpp_entity&) override
+    {
+        write_excluded();
+    }
+
+    void do_write_newline() override
+    {
+        builder_.add_child(markup::soft_break::build());
+        need_indent_.set();
+    }
+
+    void do_write_whitespace() override
+    {
+        update_indent();
+        builder_.add_child(markup::text::build(" "));
+    }
+
+    void update_indent()
+    {
+        if (need_indent_.try_reset())
+            builder_.add_child(markup::text::build(std::string(level_, ' ')));
+    }
+
+    type_safe::object_ref<const synopsis_config>          config_;
+    type_safe::object_ref<const cppast::cpp_entity_index> index_;
+
+    markup::code_block::builder builder_;
+
+    std::stack<type_safe::object_ref<const cppast::cpp_entity>> entities_;
+
+    unsigned        level_;
+    type_safe::flag need_indent_;
+    type_safe::flag allow_group_;
+    type_safe::flag render_injected_;
+};
+
+std::unique_ptr<markup::code_block> standardese::generate_synopsis(
+    const synopsis_config& config, const cppast::cpp_entity_index& index, const doc_entity& entity)
+{
+    if (entity.kind() == doc_entity::cpp_entity
+        && static_cast<const doc_cpp_entity&>(entity).in_member_group())
+        return generate_synopsis(config, index, entity.parent().value());
+    else
+    {
+        detail::markdown_code_generator generator(type_safe::ref(config), type_safe::ref(index));
+        entity.do_generate_code(generator);
+        return generator.finish();
+    }
 }
 
-void doc_file::do_generate_documentation(const parser& p, const index& i, md_document& doc,
-                                         unsigned level) const
+cppast::code_generator::generation_options doc_cpp_entity::do_get_generation_options(
+    const synopsis_config&, bool is_main) const
 {
-    file_->do_generate_documentation(p, i, doc, level);
+    auto metadata
+        = comment().map([](const comment::doc_comment& c) { return type_safe::ref(c.metadata()); });
+
+    auto options = get_exclude_mode(metadata);
+    if (!is_main)
+        options |= cppast::code_generator::declaration;
+    if (metadata && metadata.value().synopsis())
+        options |= cppast::code_generator::custom;
+
+    return options;
 }
 
-void doc_file::do_generate_synopsis(const parser& p, code_block_writer& out, bool top_level) const
+void doc_cpp_entity::do_generate_synopsis_prefix(const cppast::code_generator::output& output,
+                                                 const synopsis_config& config, bool is_main) const
 {
-    file_->do_generate_synopsis(p, out, top_level);
+    auto metadata
+        = comment().map([](const comment::doc_comment& c) { return type_safe::ref(c.metadata()); });
+
+    if (metadata)
+    {
+        generate_output_section(output, is_main,
+                                config.is_flag_set(synopsis_config::show_group_output_section),
+                                metadata.value(), group_member_no_);
+        if (is_main)
+            generate_group_number(output, metadata.value(), group_member_no_);
+
+        generate_synopsis_override(output, metadata.value());
+    }
+}
+
+void doc_cpp_entity::do_generate_code(cppast::code_generator& generator) const
+{
+    cppast::generate_code(generator, entity());
+}
+
+cppast::code_generator::generation_options doc_metadata_entity::do_get_generation_options(
+    const synopsis_config&, bool is_main) const
+{
+    auto metadata = comment().value().metadata();
+
+    auto options = get_exclude_mode(type_safe::ref(metadata));
+    if (!is_main)
+        options |= cppast::code_generator::declaration;
+    if (metadata.synopsis())
+        options |= cppast::code_generator::custom;
+
+    return options;
+}
+
+void doc_metadata_entity::do_generate_synopsis_prefix(const cppast::code_generator::output& output,
+                                                      const synopsis_config&                config,
+                                                      bool is_main) const
+{
+    auto metadata = comment().value().metadata();
+
+    generate_output_section(output, is_main,
+                            config.is_flag_set(synopsis_config::show_group_output_section),
+                            metadata, type_safe::nullopt);
+    generate_synopsis_override(output, metadata);
+}
+
+void doc_metadata_entity::do_generate_code(cppast::code_generator& generator) const
+{
+    cppast::generate_code(generator, entity());
+}
+
+cppast::code_generator::generation_options doc_member_group_entity::do_get_generation_options(
+    const synopsis_config& config, bool is_main) const
+{
+    return begin()->do_get_generation_options(config, is_main);
+}
+
+void doc_member_group_entity::do_generate_synopsis_prefix(
+    const cppast::code_generator::output& output, const synopsis_config& config, bool is_main) const
+{
+    begin()->do_generate_synopsis_prefix(output, config, is_main);
+}
+
+void doc_member_group_entity::do_generate_code(cppast::code_generator& generator) const
+{
+    begin()->do_generate_code(generator);
+}
+
+cppast::code_generator::generation_options doc_cpp_namespace::do_get_generation_options(
+    const synopsis_config&, bool) const
+{
+    // always generate everything of a namespace
+    return {};
+}
+
+void doc_cpp_namespace::do_generate_synopsis_prefix(const cppast::code_generator::output& code,
+                                                    const synopsis_config&, bool is_main) const
+{
+    auto metadata
+        = comment().map([](const comment::doc_comment& c) { return type_safe::ref(c.metadata()); });
+
+    if (metadata)
+        // only support output section
+        generate_output_section(code, is_main, metadata.value());
+}
+
+void doc_cpp_namespace::do_generate_code(cppast::code_generator& generator) const
+{
+    cppast::generate_code(generator, namespace_());
+}
+
+cppast::code_generator::generation_options doc_cpp_file::do_get_generation_options(
+    const synopsis_config&, bool is_main) const
+{
+    assert(is_main);
+    return {};
+}
+
+void doc_cpp_file::do_generate_code(cppast::code_generator& generator) const
+{
+    cppast::generate_code(generator, file());
+}
+
+//=== documentation builder ===//
+namespace
+{
+const char* get_entity_kind_spelling(const cppast::cpp_entity& e)
+{
+    switch (e.kind())
+    {
+    case cppast::cpp_entity_kind::file_t:
+        return "Header file";
+
+    case cppast::cpp_entity_kind::macro_parameter_t:
+        return "Macro Parameter";
+    case cppast::cpp_entity_kind::macro_definition_t:
+        return "Macro";
+    case cppast::cpp_entity_kind::include_directive_t:
+        return "Inclusion directive";
+
+    case cppast::cpp_entity_kind::language_linkage_t:
+        return "Language linkage";
+    case cppast::cpp_entity_kind::namespace_t:
+        return "Namespace";
+    case cppast::cpp_entity_kind::namespace_alias_t:
+        return "Namespace alias";
+    case cppast::cpp_entity_kind::using_directive_t:
+        return "Using directive";
+    case cppast::cpp_entity_kind::using_declaration_t:
+        return "Using declaration";
+
+    case cppast::cpp_entity_kind::type_alias_t:
+        return "Type alias";
+
+    case cppast::cpp_entity_kind::enum_t:
+        return "Enumeration";
+    case cppast::cpp_entity_kind::enum_value_t:
+        return "Enumeration constant";
+
+    case cppast::cpp_entity_kind::class_t:
+        switch (static_cast<const cppast::cpp_class&>(e).class_kind())
+        {
+        case cppast::cpp_class_kind::class_t:
+            return "Class";
+        case cppast::cpp_class_kind::struct_t:
+            return "Struct";
+        case cppast::cpp_class_kind::union_t:
+            return "Union";
+        }
+        break;
+    case cppast::cpp_entity_kind::access_specifier_t:
+        return "Access specifier";
+    case cppast::cpp_entity_kind::base_class_t:
+        return "Base class";
+
+    case cppast::cpp_entity_kind::variable_t:
+    case cppast::cpp_entity_kind::member_variable_t:
+    case cppast::cpp_entity_kind::bitfield_t:
+        return "Variable";
+
+    case cppast::cpp_entity_kind::function_parameter_t:
+        return "Parameter";
+    case cppast::cpp_entity_kind::function_t:
+    case cppast::cpp_entity_kind::member_function_t:
+        // TODO: recognize (special) operators
+        return "Function";
+    case cppast::cpp_entity_kind::conversion_op_t:
+        return "Conversion operator";
+    case cppast::cpp_entity_kind::constructor_t:
+        // TODO: recognize special constructors
+        return "Constructor";
+    case cppast::cpp_entity_kind::destructor_t:
+        return "Destructor";
+    case cppast::cpp_entity_kind::friend_t:
+        return "Friend function";
+
+    case cppast::cpp_entity_kind::template_type_parameter_t:
+    case cppast::cpp_entity_kind::non_type_template_parameter_t:
+    case cppast::cpp_entity_kind::template_template_parameter_t:
+        return "Template parameter";
+
+    case cppast::cpp_entity_kind::alias_template_t:
+        return "Alias template";
+    case cppast::cpp_entity_kind::variable_template_t:
+        return "Variable template";
+
+    case cppast::cpp_entity_kind::function_template_t:
+    case cppast::cpp_entity_kind::function_template_specialization_t:
+    case cppast::cpp_entity_kind::class_template_t:
+    case cppast::cpp_entity_kind::class_template_specialization_t:
+        return get_entity_kind_spelling(*static_cast<const cppast::cpp_template&>(e).begin());
+
+    case cppast::cpp_entity_kind::static_assert_t:
+        return "Static assertion";
+
+    case cppast::cpp_entity_kind::unexposed_t:
+        return "Unexposed entity";
+
+    case cppast::cpp_entity_kind::count:
+        break;
+    }
+
+    assert(false);
+    return "should never get here";
+}
+
+markup::documentation_header get_header(const cppast::cpp_entity&                           e,
+                                        type_safe::optional_ref<const comment::doc_comment> comment,
+                                        std::string                                         name)
+{
+    markup::heading::builder builder{markup::block_id()};
+
+    auto heading
+        = comment.map([](const comment::doc_comment& c) { return type_safe::ref(c.metadata()); })
+              .map([](const comment::metadata& metadata) { return metadata.group(); })
+              .map([](const comment::member_group& group) { return group.heading(); });
+
+    if (heading)
+        builder.add_child(markup::text::build(heading.value()));
+    else
+    {
+        auto spelling = get_entity_kind_spelling(e);
+        builder.add_child(markup::text::build(spelling));
+        builder.add_child(markup::text::build(" "));
+        builder.add_child(markup::code::build(std::move(name)));
+    }
+
+    return markup::documentation_header(builder.finish(), comment
+                                                              ? comment.value().metadata().module()
+                                                              : type_safe::nullopt);
+}
+
+bool empty_sections(type_safe::optional_ref<const comment::doc_comment> comment)
+{
+    if (comment)
+        return comment.value().sections().empty();
+    else
+        return true;
+}
+
+std::unique_ptr<markup::term_description_item> get_inline_doc(
+    markup::block_id id, const cppast::cpp_entity& e,
+    type_safe::optional_ref<const comment::doc_comment> comment)
+{
+    if (comment && comment.value().brief_section())
+    {
+        auto term = markup::term::build(markup::code::build(get_entity_name(false, e)));
+
+        markup::description::builder description;
+        for (auto& phrasing : comment.value().brief_section().value())
+            description.add_child(markup::clone(phrasing));
+
+        return markup::term_description_item::build(std::move(id), std::move(term),
+                                                    description.finish());
+    }
+    else
+        return nullptr;
+}
+} // namespace
+
+std::unique_ptr<markup::documentation_entity> standardese::generate_documentation(
+    const generation_config& gen_config, const synopsis_config& syn_config,
+    const cppast::cpp_entity_index& index, const doc_entity& entity)
+{
+    return entity.do_generate_documentation(gen_config, syn_config, index, nullptr,
+                                            generate_synopsis(syn_config, index, entity));
+}
+
+std::unique_ptr<markup::documentation_entity> doc_cpp_entity::do_generate_documentation(
+    const generation_config& gen_config, const synopsis_config& syn_config,
+    const cppast::cpp_entity_index&                     index,
+    type_safe::optional_ref<detail::inline_entity_list> inlines,
+    std::unique_ptr<markup::code_block>                 synopsis) const
+{
+    auto inline_doc
+        = gen_config.is_flag_set(generation_config::inline_doc) && empty_sections(comment());
+
+    if (group_member_no_.value_or(1u) != 1u || get_documentation_id().as_str() != link_name())
+        // not a main entity that needs documentation
+        return nullptr;
+    // various inline entities
+    else if (inline_doc
+             && (entity().kind() == cppast::cpp_function_parameter::kind()
+                 || entity().kind() == cppast::cpp_macro_parameter::kind()))
+        inlines.value().params.add_item(
+            get_inline_doc(get_documentation_id(), entity(), comment()));
+    else if (inline_doc && cppast::is_parameter(entity().kind()))
+        // not a function parameter at this point
+        inlines.value().tparams.add_item(
+            get_inline_doc(get_documentation_id(), entity(), comment()));
+    else if (inline_doc && entity().kind() == cppast::cpp_base_class::kind())
+        inlines.value().bases.add_item(get_inline_doc(get_documentation_id(), entity(), comment()));
+    else if (inline_doc && entity().kind() == cppast::cpp_enum_value::kind())
+        inlines.value().enumerators.add_item(
+            get_inline_doc(get_documentation_id(), entity(), comment()));
+    else if (inline_doc
+             && (entity().kind() == cppast::cpp_member_variable::kind()
+                 || entity().kind() == cppast::cpp_bitfield::kind()))
+        inlines.value().members.add_item(
+            get_inline_doc(get_documentation_id(), entity(), comment()));
+    // non-inline entity
+    else
+    {
+        markup::entity_documentation::builder builder(entity_, get_documentation_id(),
+                                                      get_header(*entity_, comment(),
+                                                                 get_entity_name(true, *entity_)),
+                                                      std::move(synopsis));
+        if (comment())
+            comment::set_sections(builder, comment().value());
+
+        detail::inline_entity_list my_inlines(link_name());
+        for (auto& child : *this)
+        {
+            auto child_doc
+                = child.do_generate_documentation(gen_config, syn_config, index,
+                                                  type_safe::ref(my_inlines),
+                                                  generate_synopsis(syn_config, index, child));
+            if (child_doc)
+            {
+                assert(child_doc->kind() == markup::entity_kind::entity_documentation);
+                builder.add_child(std::unique_ptr<markup::entity_documentation>(
+                    static_cast<markup::entity_documentation*>(child_doc.release())));
+            }
+        }
+
+        // add inlines
+        if (!my_inlines.tparams.empty())
+            builder.add_section(markup::list_section::build(markup::section_type::invalid,
+                                                            "Template parameters",
+                                                            my_inlines.tparams.finish()));
+        if (!my_inlines.params.empty())
+            builder.add_section(markup::list_section::build(markup::section_type::invalid,
+                                                            "Parameters",
+                                                            my_inlines.params.finish()));
+        if (!my_inlines.bases.empty())
+            builder.add_section(markup::list_section::build(markup::section_type::invalid,
+                                                            "Base classes",
+                                                            my_inlines.bases.finish()));
+        if (!my_inlines.enumerators.empty())
+            builder.add_section(markup::list_section::build(markup::section_type::invalid,
+                                                            "Enumerators",
+                                                            my_inlines.enumerators.finish()));
+        if (!my_inlines.members.empty())
+            builder.add_section(markup::list_section::build(markup::section_type::invalid,
+                                                            "Member variables",
+                                                            my_inlines.members.finish()));
+
+        if (comment() || (!builder.empty() && !builder.has_documentation())
+            || gen_config.is_flag_set(generation_config::document_uncommented))
+            return builder.finish();
+    }
+
+    return nullptr;
+}
+
+std::unique_ptr<markup::documentation_entity> doc_metadata_entity::do_generate_documentation(
+    const generation_config&, const synopsis_config&, const cppast::cpp_entity_index&,
+    type_safe::optional_ref<detail::inline_entity_list>, std::unique_ptr<markup::code_block>) const
+{
+    return nullptr;
+}
+
+std::unique_ptr<markup::documentation_entity> doc_member_group_entity::do_generate_documentation(
+    const generation_config& gen_config, const synopsis_config& syn_config,
+    const cppast::cpp_entity_index&                     index,
+    type_safe::optional_ref<detail::inline_entity_list> inlines,
+    std::unique_ptr<markup::code_block>                 synopsis) const
+{
+    return begin()->do_generate_documentation(gen_config, syn_config, index, inlines,
+                                              std::move(synopsis));
+}
+
+std::unique_ptr<markup::documentation_entity> doc_cpp_namespace::do_generate_documentation(
+    const generation_config& gen_config, const synopsis_config& syn_config,
+    const cppast::cpp_entity_index&     index, type_safe::optional_ref<detail::inline_entity_list>,
+    std::unique_ptr<markup::code_block> synopsis) const
+{
+    // generate child documentation
+    std::vector<std::unique_ptr<markup::entity_documentation>> child_docs;
+    for (auto& child : *this)
+    {
+        auto child_doc
+            = child.do_generate_documentation(gen_config, syn_config, index, nullptr,
+                                              generate_synopsis(syn_config, index, child));
+        if (child_doc)
+        {
+            assert(child_doc->kind() == markup::entity_kind::entity_documentation);
+            child_docs.push_back(std::unique_ptr<markup::entity_documentation>(
+                static_cast<markup::entity_documentation*>(child_doc.release())));
+        }
+    }
+
+    if (child_docs.empty() && comment())
+    {
+        // generate documentation of namespace, if there is any
+        markup::entity_documentation::builder builder(entity_, get_documentation_id(),
+                                                      get_header(namespace_(), comment(),
+                                                                 namespace_().name()),
+                                                      std::move(synopsis));
+        comment::set_sections(builder, comment().value());
+
+        return builder.finish();
+    }
+    else
+    {
+        // generate empty namespace documentation
+        markup::entity_documentation::builder builder(entity_, get_documentation_id(),
+                                                      type_safe::nullopt, nullptr);
+        for (auto& doc : child_docs)
+            builder.add_child(std::move(doc));
+
+        return builder.finish();
+    }
+}
+
+markup::namespace_documentation::builder doc_cpp_namespace::get_builder() const
+{
+    markup::namespace_documentation::builder builder(entity_, get_documentation_id(),
+                                                     get_header(namespace_(), comment(),
+                                                                get_entity_name(true,
+                                                                                namespace_())));
+    if (comment())
+        comment::set_sections(builder, comment().value());
+    return builder;
+}
+
+std::unique_ptr<markup::documentation_entity> doc_cpp_file::do_generate_documentation(
+    const generation_config& gen_config, const synopsis_config& syn_config,
+    const cppast::cpp_entity_index&     index, type_safe::optional_ref<detail::inline_entity_list>,
+    std::unique_ptr<markup::code_block> synopsis) const
+{
+    markup::file_documentation::builder builder(type_safe::ref(*file_), get_documentation_id(),
+                                                get_header(*file_, comment(), output_name()),
+                                                std::move(synopsis));
+    if (comment())
+        comment::set_sections(builder, comment().value());
+
+    for (auto& child : *this)
+    {
+        auto child_doc
+            = child.do_generate_documentation(gen_config, syn_config, index, nullptr,
+                                              generate_synopsis(syn_config, index, child));
+        if (child_doc)
+        {
+            assert(child_doc->kind() == markup::entity_kind::entity_documentation);
+            builder.add_child(std::unique_ptr<markup::entity_documentation>(
+                static_cast<markup::entity_documentation*>(child_doc.release())));
+        }
+    }
+
+    return builder.finish();
+}
+
+//=== entity builder ===//
+doc_cpp_entity::builder::builder(std::string                                         link_name,
+                                 type_safe::object_ref<const cppast::cpp_entity>     entity,
+                                 type_safe::optional_ref<const comment::doc_comment> comment)
+: basic_builder(std::unique_ptr<doc_cpp_entity>(
+      new doc_cpp_entity(std::move(link_name), entity, std::move(comment))))
+{
+    assert(entity->kind() != cppast::cpp_file::kind()
+           && entity->kind() != cppast::cpp_namespace::kind());
+    peek().entity().set_user_data(&peek());
+}
+
+doc_metadata_entity::builder::builder(type_safe::object_ref<const cppast::cpp_entity>   entity,
+                                      type_safe::object_ref<const comment::doc_comment> comment)
+: basic_builder(std::unique_ptr<doc_metadata_entity>(new doc_metadata_entity(entity, comment)))
+{
+    peek().entity().set_user_data(&peek());
+}
+
+doc_cpp_namespace::builder::builder(std::string                                         link_name,
+                                    type_safe::object_ref<const cppast::cpp_namespace>  entity,
+                                    type_safe::optional_ref<const comment::doc_comment> comment)
+: basic_builder(std::unique_ptr<doc_cpp_namespace>(
+      new doc_cpp_namespace(std::move(link_name), entity, std::move(comment))))
+{
+    peek().namespace_().set_user_data(&peek());
+}
+
+doc_cpp_file::builder::builder(std::string output_name, std::string link_name,
+                               std::unique_ptr<cppast::cpp_file>                   file,
+                               type_safe::optional_ref<const comment::doc_comment> comment)
+: basic_builder(
+      std::unique_ptr<doc_cpp_file>(new doc_cpp_file(std::move(output_name), std::move(link_name),
+                                                     std::move(file), std::move(comment))))
+{
+    peek().file().set_user_data(&peek());
+}
+
+namespace
+{
+bool is_virtual(const cppast::cpp_entity& e)
+{
+    if (auto func = detail::get_function(e))
+    {
+        if (func.value().kind() == cppast::cpp_member_function::kind()
+            || func.value().kind() == cppast::cpp_conversion_op::kind())
+            return static_cast<const cppast::cpp_member_function_base&>(func.value()).is_virtual();
+        else if (func.value().kind() == cppast::cpp_destructor::kind())
+            return static_cast<const cppast::cpp_destructor&>(func.value()).is_virtual();
+    }
+
+    return false;
+}
+
+bool is_friend_func_def(const cppast::cpp_entity& e)
+{
+    if (e.kind() == cppast::cpp_friend::kind())
+    {
+        auto& friend_ = static_cast<const cppast::cpp_friend&>(e);
+        return friend_.entity() && cppast::is_definition(friend_.entity().value());
+    }
+    else
+        return false;
+}
+} // namespace
+
+bool entity_blacklist::is_blacklisted(const cppast::cpp_entity&         entity,
+                                      cppast::cpp_access_specifier_kind access) const
+{
+    if (!extract_private_ && access == cppast::cpp_private && !is_virtual(entity)
+        && !is_friend_func_def(entity))
+        return true;
+    else if (entity.kind() == cppast::cpp_namespace::kind())
+    {
+        auto name = entity.name();
+        if (ns_blacklist_.count(name))
+            return true;
+
+        for (auto cur = entity.parent(); cur; cur = cur.value().parent())
+        {
+            auto scope = cur.value().scope_name();
+            if (scope)
+            {
+                name = scope.value().name() + "::" + name;
+                if (ns_blacklist_.count(name))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+    else
+        return false;
+}
+
+namespace
+{
+// an include guard macro is a non function like macro with no replacement containing the file name
+bool is_include_guard_macro(const cppast::cpp_macro_definition& macro)
+{
+    if (macro.is_function_like() || !macro.replacement().empty())
+        return false;
+    else
+    {
+        assert(macro.parent().value().kind() == cppast::cpp_file::kind());
+        auto file_name = macro.parent().value().name();
+
+        auto separator = file_name.find_last_of(R"(/\:)");
+        if (separator != std::string::npos)
+            file_name = file_name.substr(separator + 1u);
+
+        for (auto& c : file_name)
+        {
+            if (c == '.')
+                // convert . to underscore
+                c = '_';
+            else
+                // convert all to uppercase
+                c = char(std::toupper(c));
+        }
+
+        return macro.name().find(file_name) != std::string::npos;
+    }
+}
+
+bool is_include_file_parsed(const cppast::cpp_entity_index&      index,
+                            const cppast::cpp_include_directive& include)
+{
+    auto target = include.target().get(index);
+    if (target.empty())
+        return false;
+    else
+        return true;
+}
+
+bool is_class(const cppast::cpp_entity& e)
+{
+    return e.kind() == cppast::cpp_entity_kind::class_t
+           || e.kind() == cppast::cpp_entity_kind::class_template_t
+           || e.kind() == cppast::cpp_entity_kind::class_template_specialization_t
+           || e.kind() == cppast::cpp_entity_kind::class_template_specialization_t;
+}
+
+bool is_excluded(const cppast::cpp_entity& e, cppast::cpp_access_specifier_kind access,
+                 type_safe::optional_ref<const comment::doc_comment> comment,
+                 const cppast::cpp_entity_index& index, const entity_blacklist& blacklist)
+{
+    if (blacklist.is_blacklisted(e, access))
+        return true;
+    else if (!comment && (is_class(e) || e.kind() == cppast::cpp_entity_kind::enum_t)
+             && !cppast::is_definition(e))
+        // remove uncommented type forward declarations
+        return true;
+    else if (e.parent() && !is_class(e.parent().value())
+             && e.kind() == cppast::cpp_static_assert::kind())
+        // remove static asserts that are not at class scope
+        return true;
+    else if (e.kind() == cppast::cpp_macro_definition::kind()
+             && is_include_guard_macro(static_cast<const cppast::cpp_macro_definition&>(e)))
+        // exclude include guards
+        return true;
+    else if (e.kind() == cppast::cpp_include_directive::kind()
+             && !is_include_file_parsed(index,
+                                        static_cast<const cppast::cpp_include_directive&>(e)))
+        // exclude includes to external files
+        return true;
+    else if (comment && comment.value().metadata().exclude() == comment::exclude_mode::entity)
+        return true;
+    else if (e.kind() == cppast::cpp_base_class::kind())
+    {
+        auto& base = static_cast<const cppast::cpp_base_class&>(e);
+        if (auto entity = cppast::get_class_or_typedef(index, base))
+        {
+            auto cur = entity;
+            while (cur)
+            {
+                auto excluded = is_excluded(cur.value(), access, comment, index, blacklist);
+                if (excluded)
+                    return true;
+                cur = cur.value().parent();
+            }
+
+            return false;
+        }
+        else
+            return false;
+    }
+    else
+        return false;
+}
+
+bool is_ignored(const cppast::cpp_entity& e)
+{
+    return e.kind() == cppast::cpp_include_directive::kind()
+           || e.kind() == cppast::cpp_using_declaration::kind()
+           || e.kind() == cppast::cpp_using_directive::kind()
+           || e.kind() == cppast::cpp_static_assert::kind()
+           || e.kind() == cppast::cpp_access_specifier::kind()
+           || e.kind() == cppast::cpp_language_linkage::kind();
+}
+
+std::unique_ptr<doc_entity> build_entity(const comment_registry&         registry,
+                                         const cppast::cpp_entity_index& index,
+                                         const cppast::cpp_entity&       e);
+
+type_safe::optional_ref<const cppast::cpp_class> is_excluded_base(
+    const comment_registry& registry, const cppast::cpp_entity_index& index,
+    const cppast::cpp_base_class& base)
+{
+    auto base_class = cppast::get_class(index, base);
+    auto entity     = base_class && cppast::is_templated(base_class.value())
+                      ? base_class.value().parent()
+                      : base_class;
+    auto comment = base_class ? registry.get_comment(entity.value()) : nullptr;
+
+    if (!base_class)
+        return nullptr;
+
+    auto is_excluded = entity.value().user_data() == &excluded_entity
+                       || entity.value().user_data() == &parent_excluded_entity;
+    if (base.access_specifier() != cppast::cpp_private && base_class && is_excluded)
+        return base_class;
+    else if (is_excluded)
+    {
+        // exclude base class declaration
+        base.set_user_data(&excluded_entity);
+        return nullptr;
+    }
+    else
+        return nullptr;
+}
+
+template <class Visitor>
+void handle_bases(const Visitor& visitor, const comment_registry& registry,
+                  const cppast::cpp_entity_index& index, const cppast::cpp_class& c,
+                  bool recursive = false)
+{
+    for (auto& base : c.bases())
+    {
+        if (auto base_class = is_excluded_base(registry, index, base))
+        {
+            // we have an excluded but public base class
+            // treat its children like children of the derived class
+            base.set_user_data(&excluded_entity);
+            handle_bases(visitor, registry, index, base_class.value(), true);
+            detail::visit_children(base_class.value(),
+                                   [&](const cppast::cpp_entity& e) { visitor(e, true); });
+        }
+        else if (!recursive)
+            // add to top level class
+            visitor(base, false);
+    }
+}
+
+std::unique_ptr<doc_cpp_entity> build_cpp_entity(const comment_registry&         registry,
+                                                 const cppast::cpp_entity_index& index,
+                                                 const cppast::cpp_entity&       e)
+{
+    auto                    link_name = lookup_unique_name(registry, e);
+    doc_cpp_entity::builder builder(link_name, type_safe::ref(e), registry.get_comment(e));
+
+    auto visitor = [&](const cppast::cpp_entity& entity, bool injected) {
+        if (auto child = build_entity(registry, index, entity))
+        {
+            if (injected)
+                child->mark_injected();
+            builder.add_child(std::move(child));
+        }
+    };
+
+    // handle inline entities
+    if (auto templ = detail::get_template(e))
+        for (auto& param : templ.value().parameters())
+            visitor(param, false);
+    if (auto macro = detail::get_macro(e))
+        for (auto& param : macro.value().parameters())
+            visitor(param, false);
+    if (auto func = detail::get_function(e))
+        for (auto& param : func.value().parameters())
+            visitor(param, false);
+    if (auto c = detail::get_class(e))
+        handle_bases(visitor, registry, index, c.value());
+
+    detail::visit_children(e, [&](const cppast::cpp_entity& e) { visitor(e, false); });
+
+    return builder.finish();
+}
+
+std::unique_ptr<doc_metadata_entity> build_metadata_entity(const comment_registry&         registry,
+                                                           const cppast::cpp_entity_index& index,
+                                                           const cppast::cpp_entity&       e)
+{
+    auto comment = registry.get_comment(e);
+    if (!comment)
+        return nullptr;
+
+    doc_metadata_entity::builder builder(type_safe::ref(e), type_safe::ref(comment.value()));
+    detail::visit_children(e, [&](const cppast::cpp_entity& entity) {
+        if (auto child = build_entity(registry, index, entity))
+            builder.add_child(std::move(child));
+    });
+    return builder.finish();
+}
+
+std::unique_ptr<doc_member_group_entity> build_member_group(const comment_registry& registry,
+                                                            const cppast::cpp_entity_index& index,
+                                                            const std::string&        group_name,
+                                                            const cppast::cpp_entity& e)
+{
+    // may contain entities from a different parent
+    auto global_group = registry.lookup_group(group_name);
+
+    // get entities that have the same parent
+    std::vector<type_safe::object_ref<const cppast::cpp_entity>> group;
+    group.reserve(static_cast<std::size_t>(global_group.size()));
+    std::copy_if(global_group.begin(), global_group.end(), std::back_inserter(group),
+                 [&](const type_safe::object_ref<const cppast::cpp_entity>& member) {
+                     return &member->parent().value() == &e.parent().value();
+                 });
+
+    if (group.empty() || &*group.front() != &e)
+        // e is not the main entity of the group
+        return nullptr;
+    else
+    {
+        // e is the main entity, so build group
+        doc_member_group_entity::builder builder(group_name);
+        for (auto& member : group)
+            builder.add_member(build_cpp_entity(registry, index, *member));
+        return builder.finish();
+    }
+}
+
+std::unique_ptr<doc_cpp_namespace> build_namespace(const comment_registry&         registry,
+                                                   const cppast::cpp_entity_index& index,
+                                                   const cppast::cpp_namespace&    ns)
+{
+    doc_cpp_namespace::builder builder(lookup_unique_name(registry, ns), type_safe::ref(ns),
+                                       registry.get_comment(ns));
+
+    detail::visit_children(ns, [&](const cppast::cpp_entity& entity) {
+        if (auto child = build_entity(registry, index, entity))
+            builder.add_child(std::move(child));
+    });
+
+    return builder.finish();
+}
+
+bool build_is_excluded(const cppast::cpp_entity_index& index, const cppast::cpp_entity& e)
+{
+    if (e.user_data() == &excluded_entity)
+        // allow parent_excluded_entity here, will not be visited unless injected
+        return true;
+    else if (cppast::is_templated(e) || cppast::is_friended(e))
+        // parent entity is processed here
+        return true;
+    else if (e.kind() == cppast::cpp_using_declaration::kind())
+    {
+        auto target = static_cast<const cppast::cpp_using_declaration&>(e).target().get(index);
+        // excluded if all of the targets are excluded
+        auto targets_excluded
+            = std::all_of(target.begin(), target.end(),
+                          [&](const type_safe::object_ref<const cppast::cpp_entity>& entity) {
+                              return entity->user_data() == &excluded_entity
+                                     || entity->user_data() == &parent_excluded_entity;
+                          });
+        if (targets_excluded)
+            e.set_user_data(&excluded_entity);
+        return targets_excluded;
+    }
+    else
+        return false;
+}
+
+std::unique_ptr<doc_entity> build_entity(const comment_registry&         registry,
+                                         const cppast::cpp_entity_index& index,
+                                         const cppast::cpp_entity&       e)
+{
+    auto comment = registry.get_comment(e);
+    if (build_is_excluded(index, e))
+        return nullptr;
+    else if (is_ignored(e) || (e.kind() == cppast::cpp_friend::kind() && !is_friend_func_def(e)))
+        // those can only be documented as metadata
+        return build_metadata_entity(registry, index, e);
+    else if (e.kind() == cppast::cpp_namespace::kind())
+        return build_namespace(registry, index, static_cast<const cppast::cpp_namespace&>(e));
+    else if (comment.has_value() && comment.value().metadata().group())
+        return build_member_group(registry, index,
+                                  comment.value().metadata().group().value().name(), e);
+    else
+        return build_cpp_entity(registry, index, e);
+}
+} // namespace
+
+void standardese::exclude_entities(const comment_registry&         registry,
+                                   const cppast::cpp_entity_index& index,
+                                   const entity_blacklist& blacklist, const cppast::cpp_file& file)
+{
+    auto exclude_if_necessary
+        = [&](const cppast::cpp_entity& entity, cppast::cpp_access_specifier_kind access) {
+              auto comment = registry.get_comment(entity);
+              if (is_excluded(entity, access, comment, index, blacklist))
+                  entity.set_user_data(&excluded_entity);
+              else if (entity.parent() && entity.parent().value().user_data())
+                  // parent excluded, so exclude this as well
+                  entity.set_user_data(&parent_excluded_entity);
+          };
+
+    cppast::visit(file, [&](const cppast::cpp_entity& entity, const cppast::visitor_info& info) {
+        if (info.is_old_entity())
+            return;
+
+        exclude_if_necessary(entity, info.access);
+
+        // handle inline entities
+        if (auto templ = detail::get_template(entity))
+            for (auto& param : templ.value().parameters())
+                exclude_if_necessary(param, cppast::cpp_public);
+        if (auto macro = detail::get_macro(entity))
+            for (auto& param : macro.value().parameters())
+                exclude_if_necessary(param, cppast::cpp_public);
+        if (auto func = detail::get_function(entity))
+            for (auto& param : func.value().parameters())
+                exclude_if_necessary(param, cppast::cpp_public);
+        if (auto c = detail::get_class(entity))
+            for (auto& base : c.value().bases())
+                exclude_if_necessary(base, base.access_specifier());
+    });
+}
+
+std::unique_ptr<doc_cpp_file> standardese::build_doc_entities(
+    type_safe::object_ref<const comment_registry> registry, const cppast::cpp_entity_index& index,
+    std::unique_ptr<cppast::cpp_file> file, std::string output_name)
+{
+    auto& f = *file;
+
+    auto comment = registry->get_comment(f);
+    if (comment && comment.value().metadata().output_name())
+        output_name = comment.value().metadata().output_name().value();
+
+    doc_cpp_file::builder builder(std::move(output_name), lookup_unique_name(*registry, f),
+                                  std::move(file), comment);
+
+    detail::visit_children(f, [&](const cppast::cpp_entity& entity) {
+        if (auto child = build_entity(*registry, index, entity))
+            builder.add_child(std::move(child));
+    });
+
+    return builder.finish();
 }

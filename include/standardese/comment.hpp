@@ -1,366 +1,124 @@
-// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2019 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
 #ifndef STANDARDESE_COMMENT_HPP_INCLUDED
 #define STANDARDESE_COMMENT_HPP_INCLUDED
 
-#include <map>
 #include <mutex>
+#include <unordered_map>
 
-#include <standardese/md_entity.hpp>
-#include <standardese/md_blocks.hpp>
+#include "index.hpp"
+#include <standardese/comment/config.hpp>
+#include <standardese/comment/doc_comment.hpp>
+#include <standardese/comment/parser.hpp>
+#include <standardese/logger.hpp>
+
+namespace cppast
+{
+class cpp_entity;
+class cpp_file;
+} // namespace cppast
 
 namespace standardese
 {
-    class doc_entity;
+/// The registry of the comments for all entities.
+///
+/// It also stores all member groups.
+class comment_registry
+{
+public:
+    /// \effects Registers everything from the other comment registry.
+    void merge(comment_registry&& other);
 
-    class md_comment final : public md_container
+    /// \effects Registers the comment for the given entity.
+    /// \returns Whether or not a comment was registered already.
+    /// \notes It will merge multiple comments where appropriate.
+    bool register_comment(type_safe::object_ref<const cppast::cpp_entity> entity,
+                          comment::doc_comment                            comment);
+
+    /// \effects Registers the comment for the given module.
+    /// \returns Whether or not a comment was registered already.
+    /// \notes It will not merge multiple comments.
+    bool register_comment(std::string module_name, comment::doc_comment comment);
+
+    /// \returns The comment of an entity, if there is any.
+    type_safe::optional_ref<const comment::doc_comment> get_comment(
+        const cppast::cpp_entity& e) const;
+
+    /// \returns The comment of a module, if there is any.
+    type_safe::optional_ref<const comment::doc_comment> get_comment(
+        const std::string& module_name) const;
+
+    /// \effects Adds an entity to the group of the given name.
+    void add_to_group(std::string name, type_safe::object_ref<const cppast::cpp_entity> entity)
     {
-    public:
-        static md_entity::type get_entity_type() STANDARDESE_NOEXCEPT
-        {
-            return md_entity::comment_t;
-        }
-
-        static md_ptr<md_comment> make();
-
-        md_entity& add_entity(md_entity_ptr ptr) override;
-
-        md_paragraph& get_brief() STANDARDESE_NOEXCEPT
-        {
-            assert(begin()->get_entity_type() == md_entity::paragraph_t);
-            auto& brief = static_cast<md_paragraph&>(*begin());
-            assert(brief.get_section_type() == section_type::brief);
-            return brief;
-        }
-
-        const md_paragraph& get_brief() const STANDARDESE_NOEXCEPT
-        {
-            assert(begin()->get_entity_type() == md_entity::paragraph_t);
-            auto& brief = static_cast<const md_paragraph&>(*begin());
-            assert(brief.get_section_type() == section_type::brief);
-            return brief;
-        }
-
-        md_ptr<md_comment> clone() const
-        {
-            auto entity = do_clone(nullptr);
-            return md_ptr<md_comment>(static_cast<md_comment*>(entity.release()));
-        }
-
-        md_ptr<md_comment> clone(const md_entity& parent) const
-        {
-            auto entity = do_clone(&parent);
-            return md_ptr<md_comment>(static_cast<md_comment*>(entity.release()));
-        }
-
-        void set_entity(const doc_entity& entity) const STANDARDESE_NOEXCEPT
-        {
-            entity_ = &entity;
-        }
-
-        bool has_entity() const STANDARDESE_NOEXCEPT
-        {
-            return entity_ != nullptr;
-        }
-
-        const doc_entity& get_entity() const STANDARDESE_NOEXCEPT
-        {
-            return *entity_;
-        }
-
-    protected:
-        md_entity_ptr do_clone(const md_entity* parent) const override;
-
-    private:
-        md_comment();
-
-        mutable const doc_entity* entity_;
-
-        friend detail::md_ptr_access;
-    };
-
-    class comment_id;
-
-    namespace detail
-    {
-        struct comment_compare
-        {
-            bool operator()(const comment_id& id_a,
-                            const comment_id& id_b) const STANDARDESE_NOEXCEPT;
-        };
-    } // namespace detail
-
-    /// The identifier of a comment.
-    /// Used to specify the entity it refers to.
-    class comment_id
-    {
-    public:
-        comment_id(const string& file_name, unsigned line)
-        : file_name_or_name_(get_file_name(file_name.c_str())), line_(line)
-        {
-            assert(line != 0u);
-        }
-
-        comment_id(const string& file_name, unsigned line, const string& entity_name)
-        : file_name_or_name_('$' + get_file_name(file_name.c_str()) + '$' + entity_name.c_str()),
-          line_(line)
-        {
-            assert(line != 0u);
-        }
-
-        explicit comment_id(string name) : file_name_or_name_(std::move(name)), line_(0u)
-        {
-        }
-
-        bool is_name() const STANDARDESE_NOEXCEPT
-        {
-            return line_ == 0u;
-        }
-
-        bool is_location() const STANDARDESE_NOEXCEPT
-        {
-            return !is_name() && file_name_or_name_.c_str()[0] != '$';
-        }
-
-        bool is_inline_location() const STANDARDESE_NOEXCEPT
-        {
-            return !is_name() && !is_location();
-        }
-
-        string file_name() const STANDARDESE_NOEXCEPT
-        {
-            assert(!is_name());
-            if (is_location())
-                return file_name_or_name_;
-
-            assert(is_inline_location());
-            std::string result;
-            for (auto ptr = file_name_or_name_.c_str() + 1; *ptr != '$'; ++ptr)
-                result += *ptr;
-
-            return result;
-        }
-
-        unsigned line() const STANDARDESE_NOEXCEPT
-        {
-            assert(is_location() || is_inline_location());
-            return line_;
-        }
-
-        string inline_entity_name() const STANDARDESE_NOEXCEPT
-        {
-            assert(is_inline_location());
-            auto ptr = file_name_or_name_.c_str() + 1;
-            while (*ptr != '$')
-                ++ptr;
-            ++ptr;
-            return ptr;
-        }
-
-        const string& unique_name() const STANDARDESE_NOEXCEPT
-        {
-            assert(is_name());
-            return file_name_or_name_;
-        }
-
-    private:
-        std::string get_file_name(const std::string& path)
-        {
-            return path.substr(path.find_last_of("/\\:") + 1);
-        }
-
-        string   file_name_or_name_;
-        unsigned line_;
-
-        friend detail::comment_compare;
-    };
-
-    enum class exclude_mode
-    {
-        no,
-        entity,
-        return_type,
-        target
-    };
-
-    class comment
-    {
-    public:
-        comment() : content_(md_comment::make()), group_id_(0u), excluded_(exclude_mode::no)
-        {
-            assert(content_);
-        }
-
-        bool empty() const STANDARDESE_NOEXCEPT;
-
-        const md_comment& get_content() const STANDARDESE_NOEXCEPT
-        {
-            return *content_;
-        }
-
-        md_comment& get_content() STANDARDESE_NOEXCEPT
-        {
-            return *content_;
-        }
-
-        void set_content(md_ptr<md_comment> content) STANDARDESE_NOEXCEPT
-        {
-            content_ = std::move(content);
-        }
-
-        bool has_unique_name_override() const STANDARDESE_NOEXCEPT
-        {
-            return !get_unique_name_override().empty();
-        }
-
-        const std::string& get_unique_name_override() const STANDARDESE_NOEXCEPT
-        {
-            return unique_name_override_;
-        }
-
-        void set_unique_name_override(std::string name)
-        {
-            unique_name_override_ = std::move(name);
-        }
-
-        bool has_synopsis_override() const STANDARDESE_NOEXCEPT
-        {
-            return !synopsis_override_.empty() && synopsis_override_[0] != '\r';
-        }
-
-        bool has_return_type_override() const STANDARDESE_NOEXCEPT
-        {
-            return !synopsis_override_.empty() && synopsis_override_[0] == '\r';
-        }
-
-        const char* get_synopsis_override() const STANDARDESE_NOEXCEPT
-        {
-            return synopsis_override_[0] == '\r' ? synopsis_override_.c_str() + 1 :
-                                                   synopsis_override_.c_str();
-        }
-
-        void set_synopsis_override(const std::string& synopsis, unsigned tab_width);
-
-        void set_return_type_override(const std::string& return_type, unsigned tab_width);
-
-        bool in_module() const STANDARDESE_NOEXCEPT
-        {
-            return !module_.empty();
-        }
-
-        const std::string& get_module() const STANDARDESE_NOEXCEPT
-        {
-            return module_;
-        }
-
-        void set_module(std::string module)
-        {
-            module_ = std::move(module);
-        }
-
-        bool in_member_group() const STANDARDESE_NOEXCEPT
-        {
-            return group_id_ != 0u;
-        }
-
-        bool in_unique_member_group() const STANDARDESE_NOEXCEPT
-        {
-            return group_id_ == std::size_t(-1);
-        }
-
-        std::size_t member_group_id() const STANDARDESE_NOEXCEPT
-        {
-            return group_id_;
-        }
-
-        void add_to_member_group(std::size_t group_id) STANDARDESE_NOEXCEPT
-        {
-            group_id_ = group_id;
-        }
-
-        void add_to_unique_member_group() STANDARDESE_NOEXCEPT
-        {
-            group_id_ = std::size_t(-1);
-        }
-
-        bool has_group_name() const STANDARDESE_NOEXCEPT
-        {
-            return !group_name_.empty();
-        }
-
-        bool show_group_section() const STANDARDESE_NOEXCEPT
-        {
-            return has_group_name() && group_name_[0] != '-';
-        }
-
-        const char* get_group_name() const STANDARDESE_NOEXCEPT
-        {
-            return show_group_section() ? group_name_.c_str() : group_name_.c_str() + 1;
-        }
-
-        void set_group_name(std::string name)
-        {
-            group_name_ = std::move(name);
-        }
-
-        bool is_excluded() const STANDARDESE_NOEXCEPT
-        {
-            return excluded_ == exclude_mode::entity;
-        }
-
-        exclude_mode get_excluded() const STANDARDESE_NOEXCEPT
-        {
-            return excluded_;
-        }
-
-        void set_excluded(exclude_mode m) STANDARDESE_NOEXCEPT
-        {
-            excluded_ = m;
-        }
-
-    private:
-        std::string        unique_name_override_;
-        std::string        synopsis_override_;
-        std::string        module_;
-        std::string        group_name_;
-        md_ptr<md_comment> content_;
-        std::size_t        group_id_;
-        exclude_mode       excluded_;
-    };
-
-    class cpp_entity;
-    class cpp_entity_registry;
-    class doc_entity;
-    class parser;
-
-    namespace detail
-    {
-        string get_unique_name(const parser& p, const cpp_entity* parent, const string& unique_name,
-                               const comment* c);
-
-        string get_unique_name(const doc_entity* parent, const string& unique_name,
-                               const comment* c);
+        groups_[std::move(name)].push_back(entity);
     }
 
-    class comment_registry
+    /// \returns All the entities belonging to the given group.
+    auto lookup_group(const std::string& name) const
+        -> type_safe::array_ref<const type_safe::object_ref<const cppast::cpp_entity>>
     {
-    public:
-        bool register_comment(comment_id id, comment c) const;
+        auto iter = groups_.find(name);
+        if (iter == groups_.end())
+            return nullptr;
+        return type_safe::ref(iter->second.data(), iter->second.size());
+    }
 
-        const comment* lookup_comment(const cpp_entity& e, const doc_entity* parent) const;
+private:
+    std::unordered_map<const cppast::cpp_entity*, comment::doc_comment> map_;
+    std::unordered_map<std::string, std::vector<type_safe::object_ref<const cppast::cpp_entity>>>
+                                                          groups_;
+    std::unordered_map<std::string, comment::doc_comment> modules_;
+};
 
-        const comment* lookup_comment(const std::string& module) const;
+/// \returns The unique name of the given entity.
+std::string lookup_unique_name(const comment_registry& registry, const cppast::cpp_entity& e);
 
-    private:
-        mutable std::mutex mutex_;
-        mutable std::map<comment_id, comment, detail::comment_compare> comments_;
-    };
+/// Parses the comments in a file.
+class file_comment_parser
+{
+public:
+    /// \effects Gives it the logger and comment configuration.
+    explicit file_comment_parser(type_safe::object_ref<const cppast::diagnostic_logger> logger,
+                                 comment::config config = comment::config())
+    : config_(std::move(config)), logger_(logger)
+    {}
 
-    class parser;
+    /// \effects Parses all comments in the given file.
+    /// \notes This function is thread safe.
+    void parse(type_safe::object_ref<const cppast::cpp_file> file) const;
 
-    void parse_comments(const parser& p, const char* file_name, const std::string& source);
+    /// \effects Finishes parsing of the comments.
+    /// \returns The registry containing all registered comments.
+    /// \requires This function must only be called once,
+    /// and you must not call `parse()` afterwards.
+    comment_registry finish();
+
+private:
+    bool register_commented(type_safe::object_ref<const cppast::cpp_entity> entity,
+                            comment::doc_comment comment, bool allow_cmd = true) const;
+
+    void register_uncommented(type_safe::object_ref<const cppast::cpp_entity> entity) const;
+
+    type_safe::optional_ref<const comment::doc_comment> get_comment(
+        const cppast::cpp_entity& e) const
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return registry_.get_comment(e);
+    }
+
+    std::string get_parent_unique_name(const cppast::cpp_entity& e) const;
+
+    mutable std::mutex                                                      mutex_;
+    mutable std::unordered_multimap<std::string, const cppast::cpp_entity*> uncommented_;
+    mutable comment_registry                                                registry_;
+    mutable std::vector<comment::parse_result>                              free_comments_;
+
+    comment::config                                        config_;
+    type_safe::object_ref<const cppast::diagnostic_logger> logger_;
+};
 } // namespace standardese
 
 #endif // STANDARDESE_COMMENT_HPP_INCLUDED

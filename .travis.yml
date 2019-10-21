@@ -1,57 +1,46 @@
 language: cpp
 
-# adapted from https://github.com/foonathan/standardese/blob/e172f41cea648d45ea921249fb04c09041324683/.travis.yml
 matrix:
   include:
     - os: linux
+      dist: trusty
+      sudo: false
       compiler: gcc
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-          packages: ['g++-4.8', 'libboost1.55-all-dev']
-      env: TOOLSET=g++-4.8 BUILD_TOOL=false
+          sources: ['ubuntu-toolchain-r-test', 'boost-latest', 'llvm-toolchain-trusty-4.0']
+          packages: ['g++-5', 'libboost1.55-all-dev', 'llvm-4.0', 'clang-4.0', 'libclang-4.0-dev']
+      env: TOOLSET=g++-5 LLVM_CONFIG_BINARY=/usr/bin/llvm-config-4.0
 
     - os: linux
+      dist: trusty
+      sudo: false
       compiler: gcc
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-          packages: ['g++-4.9', 'libboost1.55-all-dev']
-      env: TOOLSET=g++-4.9 BUILD_TOOL=false
-
-    - os: linux
-      compiler: gcc
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-          packages: ['g++-5', 'libboost1.55-all-dev']
-      env: TOOLSET=g++-5 BUILD_TOOL=false
-
-    - os: linux
-      compiler: clang
-      addons:
-        apt:
-          sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-          packages: ['g++-5', 'libboost1.55-all-dev']
-      env: BUILD_TOOL=true OUTPUT_NAME=standardese-ubuntu-12.04.tar.gz
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-4.0', 'boost-latest']
+          packages: ['g++-4.9', 'g++-5', 'llvm-4.0', 'clang-4.0', 'libclang-4.0-dev', 'libboost1.55-all-dev']
+      env: TOOLSET=clang++-4.0 LLVM_CONFIG_BINARY=/usr/bin/llvm-config-4.0
 
     - os: osx
+      osx_image: xcode9.2
       compiler: clang
-      env: TOOLSET=clang++ BUILD_TOOL=true OUTPUT_NAME=standardese-osx.tar.gz
+      env: TOOLSET=clang++
 
 install:
   - cd ../
 
-  - . standardese/travis_install_libclang.sh
-  - if [ -z $TOOLSET ]; then export TOOLSET=$LLVM_DIR/bin/clang++; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget --no-check-certificate https://github.com/Kitware/CMake/releases/download/v3.13.2/cmake-3.13.2-Linux-x86_64.tar.gz; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tar -xzf cmake-3.13.2-Linux-x86_64.tar.gz; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.2-Linux-x86_64/bin/cmake; fi
 
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then wget --no-check-certificate https://www.cmake.org/files/v3.3/cmake-3.3.1-Linux-x86_64.tar.gz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then tar -xzf cmake-3.3.1-Linux-x86_64.tar.gz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.3.1-Linux-x86_64/bin/cmake; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate https://github.com/Kitware/CMake/releases/download/v3.13.2/cmake-3.13.2-Darwin-x86_64.tar.gz; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.13.2-Darwin-x86_64.tar.gz; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.13.2-Darwin-x86_64/CMake.app/Contents/bin/cmake; fi
 
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate https://cmake.org/files/v3.3/cmake-3.3.0-Darwin-x86_64.tar.gz; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf cmake-3.3.0-Darwin-x86_64.tar.gz && ls && ls cmake-3.3.0-Darwin-x86_64; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export CMAKE=$TRAVIS_BUILD_DIR/../cmake-3.3.0-Darwin-x86_64/CMake.app/Contents/bin/cmake; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then wget --no-check-certificate http://releases.llvm.org/4.0.1/clang+llvm-4.0.1-x86_64-apple-darwin.tar.xz; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tar -xzf clang+llvm-4.0.1-x86_64-apple-darwin.tar.xz; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export LLVM_CONFIG_BINARY="$TRAVIS_BUILD_DIR/../clang+llvm-4.0.1-x86_64-apple-macosx10.9.0/bin/llvm-config"; fi
 
   - export CXX=$TOOLSET
   - $CXX --version
@@ -61,26 +50,7 @@ install:
 
 script:
   - mkdir build && cd build
-  - $CMAKE -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-UNDEBUG -Wall -Wextra -pedantic -Wno-parentheses" -DLIBCLANG_LIBRARY=$LIBCLANG_LIBRARY -DLIBCLANG_INCLUDE_DIR=$LIBCLANG_INCLUDE_DIR -DLIBCLANG_SYSTEM_INCLUDE_DIR=$LIBCLANG_SYSTEM_INCLUDE_DIR -DCLANG_BINARY=$CLANG_BINARY -DSTANDARDESE_BUILD_TOOL=$BUILD_TOOL ../
+  - $CMAKE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror -pedantic -Wall -Wextra -Wconversion -Wsign-conversion -Wno-parentheses" -DLLVM_CONFIG_BINARY=$LLVM_CONFIG_BINARY ../
   - $CMAKE --build .
-  - if [[ $BUILD_TOOL = true ]]; then ./tool/standardese --version; fi
+  - ./tool/standardese --version
   - ./test/standardese_test
-
-before_deploy:
-  - if [[ $BUILD_TOOL = false ]]; then exit 0; fi
-  - mkdir standardese
-  - mv tool/standardese standardese
-  - mv $TRAVIS_BUILD_DIR/standardese-config.cmake standardese
-  - mv $TRAVIS_BUILD_DIR/*.md standardese
-  - mv $TRAVIS_BUILD_DIR/LICENSE standardese
-  - tar -czf "$OUTPUT_NAME" standardese/
-
-deploy:
-  provider: releases
-  api_key:
-    secure: NjlqzeFZ1oAgByrkSvVKyNN7r3tgX7Qm64PNRp7BkS33Jg95LbzXC5A9+KkdVAM9rL9qDqipmuvTdyopmw4t43XUW2bkyGmTwB4ZUn0D3DR5eGF7UcLpH5kNjNzQCcIPScezyUIFQOLrbd1sT/77uP0TipEVaM67LgPl7+bnfImXPOsdalV2YHDGYAT94PGG0o31YE+LboP7QZTYGbTMesdzSkomHwKJOwO60qiqFpbhW54DJ0v+5AeT1s1payiuSVPpUP9j4HoMGTEnaVaslJ3e09XnA6Gnr+lqtCe7kfIhYT2mSN5NhJzXEXH1fCipvdF9LHkEgQIYVARD3aGZWKJu5mO1sWa8lSxRnDOVxbbhv0J/3ALDeqSYuS5j/BAXFY1EYtbJTZ66Ylz9yi64saIRPlD8Pl/kW4TMg7XXLyyM5c/YM1ttF7u+q9AyJ4TXHneHb9/faE1XXTtyhahaaZiQrb6+PCYgUIoOeWPlwbDuzTW/pBTZUhEGaDPAT9Xa1TU+lp9WuNsfO8Y9nyXV3ReK94IgMN2Us7I0L13UWRLmiDpzQdUsUgIW2DHcPPRRM0XI8Fkel5bJ65L9kwiLA2oYl+CVO3rANCVZRx9seonilK6M+wnbK0mHJBM49P/htKvyfgPBEy+HOs0tFE20xEP9gMJMSnVR3rT8b7dxwZY=
-  file: "$OUTPUT_NAME"
-  skip_cleanup: true
-  on:
-    tags: true
-    condition: $BUILD_TOOL

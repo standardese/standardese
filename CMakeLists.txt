@@ -3,7 +3,7 @@
 # found in the top-level directory of this distribution.
 
 cmake_minimum_required(VERSION 3.1)
-project(STANDARDESE VERSION 0.3)
+project(STANDARDESE VERSION 0.4.0)
 
 option(STANDARDESE_BUILD_TOOL "whether or not to build the tool" ON)
 option(STANDARDESE_BUILD_TEST "whether or not to build the test" ON)
@@ -21,6 +21,7 @@ if (MSVC)
         -D_CRT_SECURE_NO_WARNINGS
         -D_SCL_SECURE_NO_WARNINGS
         /wd4503 # decorated name length exceeded, name was truncated
+        /MP # Multi-processor compilation
         )
 endif()
 
@@ -36,5 +37,5 @@ if (STANDARDESE_BUILD_TEST)
 endif()
 
 # install configuration
-install(EXPORT standardese DESTINATION "${lib_dest}")
-install(FILES standardese-config.cmake LICENSE DESTINATION "${lib_dest}")
+#install(EXPORT standardese DESTINATION "${lib_dest}")
+#install(FILES standardese-config.cmake LICENSE DESTINATION "${lib_dest}")

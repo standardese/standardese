@@ -1,80 +1,75 @@
-// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2019 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
 #ifndef STANDARDESE_LINKER_HPP_INCLUDED
 #define STANDARDESE_LINKER_HPP_INCLUDED
 
+#include <map>
 #include <mutex>
+#include <stdexcept>
 #include <unordered_map>
 
-#include <standardese/md_inlines.hpp>
+#include <type_safe/variant.hpp>
+
+#include <standardese/markup/link.hpp>
+
+namespace cppast
+{
+class cpp_entity;
+class diagnostic_logger;
+} // namespace cppast
 
 namespace standardese
 {
-    class doc_entity;
-    class index;
+namespace markup
+{
+    class document_entity;
+} // namespace markup
 
-    class external_linker
-    {
-    public:
-        /// \effects Registers an external URL.
-        /// All unresolved `unique-name`s starting with `prefix` will be resolved to `url`.
-        /// If `url` contains two dollar signs (`$$`), this will be replaced by the (url-encoded) `unique-name`.
-        void register_external(std::string prefix, std::string url);
+/// Stores the information about the location of the entity documentation in the output.
+///
+/// This is used to resolve documentation links.
+class linker
+{
+public:
+    void register_external(std::string namespace_name, std::string url);
 
-        std::string lookup(const std::string& unique_name) const;
+    /// \effects Registers the given documentation under a certain name.
+    /// All unresolved links with that name will resolve to the given documentation.
+    /// If `force` is `true`, it will replace a previous registered documentation.
+    /// \returns `false` if the link name was used twice.
+    /// \notes This function is thread safe.
+    bool register_documentation(std::string link_name, const markup::document_entity& document,
+                                const markup::block_id& documentation, bool force = false) const;
 
-    private:
-        std::unordered_map<std::string, std::string> external_;
-    };
+    /// \returns A reference to the documentation for the given linke name, if there is any.
+    /// \notes This function is thread safe.
+    type_safe::variant<type_safe::nullvar_t, markup::block_reference, markup::url>
+        lookup_documentation(type_safe::optional_ref<const cppast::cpp_entity> context,
+                             std::string                                       link_name) const;
 
-    class linker
-    {
-    public:
-        void register_entity(const doc_entity& e, std::string output_file) const;
+private:
+    mutable std::mutex                                               mutex_;
+    mutable std::unordered_map<std::string, markup::block_reference> map_;
 
-        std::string register_anchor(const std::string& unique_name, std::string output_file) const;
+    std::map<std::string, std::string> external_doc_;
+};
 
-        void change_output_file(const doc_entity& e, std::string output_file) const;
+/// Registers all documentations in a document.
+/// \effects Registers every [standardese::markup::documentation_entity]() using its link name.
+/// Registers every [cppast::cpp_entity]() that is not documented but would have been documented in
+/// that file, using a documented parent's unique name. \notes This function is thread safe.
+void register_documentations(const cppast::diagnostic_logger& logger, const linker& l,
+                             const markup::document_entity& document);
 
-        std::string get_url(const index& idx, const external_linker& external,
-                            const doc_entity* context, const std::string& unique_name,
-                            const char* extension) const;
-
-        std::string get_url(const doc_entity& e, const char* extension) const;
-
-        std::string get_anchor_id(const doc_entity& e) const;
-
-        md_ptr<md_anchor> get_anchor(const doc_entity& e, const md_entity& parent) const;
-
-    private:
-        class location
-        {
-        public:
-            location(const doc_entity& e, std::string output_file);
-
-            location(const char* unique_name, std::string output_file);
-
-            std::string format(const char* extension) const;
-
-            void set_output_file(std::string output_file);
-
-            const std::string& get_id() const STANDARDESE_NOEXCEPT
-            {
-                return id_;
-            }
-
-        private:
-            std::string file_name_;
-            std::string id_;
-            bool        with_extension_;
-        };
-
-        mutable std::mutex mutex_;
-        mutable std::unordered_map<const doc_entity*, location> locations_;
-        mutable std::unordered_map<std::string, location>       anchors_;
-    };
+/// Resolves all unresolved links in a document.
+/// \effects For all [standardese::markup::documentation_link]() entities that are not yet resolved,
+/// uses the linker to resolve them.
+/// \notes This function is *not* thread safe and must be called after the linker is entirely
+/// populated.
+void resolve_links(const cppast::diagnostic_logger& logger, const linker& l,
+                   const markup::document_entity& document);
 } // namespace standardese
 
 #endif // STANDARDESE_LINKER_HPP_INCLUDED

@@ -1,0 +1,8 @@
+# Caused by a Cmake bug on Windows
+Win32/
+
+# For putting the build artifacts in-tree
+bin/
+
+# Rever
+rever/

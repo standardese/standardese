@@ -1,8 +1,21 @@
-# standardese
+<p align="center">
+    <img alt="logo" src="logo.svg" width="300px">
+</p>
 
-[![Build Status](https://travis-ci.org/foonathan/standardese.svg?branch=master)](https://travis-ci.org/foonathan/standardese)
-[![Build status](https://ci.appveyor.com/api/projects/status/1aw8ml5lawu4mtyv/branch/master?svg=true)](https://ci.appveyor.com/project/foonathan/standardese/branch/master)
-[![Join the chat at https://gitter.im/foonathan/standardese](https://badges.gitter.im/foonathan/standardese.svg)](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+<h1><p align="center">standardese</p></h1>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT">
+  <a href="https://travis-ci.org/foonathan/standardese"><img src="https://travis-ci.org/foonathan/standardese.svg?branch=master" alt="Travis CI"></a>
+  <a href="https://ci.appveyor.com/project/foonathan/standardese/branch/master"><img src="https://ci.appveyor.com/api/projects/status/1aw8ml5lawu4mtyv/branch/master?svg=true" alt="Appveyor"></a>
+  <a href="https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"><img src="https://badges.gitter.im/foonathan/standardese.svg" alt="Gitter"></a>
+</p>
+
+<p align="center">The nextgen <a href="https://doxygen.org">Doxygen</a> for C++</p>
+<hr>
+
+
+***Note:** The development branch is currently getting a major overhaul, this README is partly out of date and some features are missing.*
 
 Standardese aims to be a nextgen [Doxygen](http://doxygen.org).
 It consists of two parts: a library and a tool.
@@ -15,9 +28,14 @@ It supports a couple of output formats including Markdown and HTML as well as ex
 
 Read more in the introductory [blog post](http://foonathan.github.io/blog/2016/05/06/standardese-nextgen-doxygen.html).
 
+[![Patreon](https://c5.patreon.com/external/logo/become_a_patron_button.png)](https://patreon.com/foonathan)
+
+If you like this project, consider supporting me on Patreon.
+It would really help!
+
 ## Basic example
 
-Consider the following C++ header file:
+Consider the following C++ header file named `swap.hpp`:
 
 ```cpp
 #include <type_traits>
@@ -35,36 +53,34 @@ namespace std
 
 This will generate the following documentation:
 
-# Header file `swap.cpp`
-
-
-```cpp
-#include <type_traits>
-
-namespace std
-{
-    template <typename T>
-    void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
-    is_nothrow_move_assignable<T>::value);
-}
-```
-
-
-## Function template ``swap<T>``
-
-
-```cpp
-template <typename T>
-void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
-is_nothrow_move_assignable<T>::value);
-```
-
-
-*Effects:* Exchanges values stored in two locations.
-
-*Requires:* Type `T` shall be `MoveConstructible` and `MoveAssignable`.
-
----
+> # Header file `swap.hpp`
+>
+>
+> ```cpp
+> #include <type_traits>
+>
+> namespace std
+> {
+>     template <typename T>
+>     void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
+>     is_nothrow_move_assignable<T>::value);
+> }
+> ```
+>
+>
+> ## Function template ``swap<T>``
+>
+>
+> ```cpp
+> template <typename T>
+> void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
+> is_nothrow_move_assignable<T>::value);
+> ```
+>
+>
+> *Effects:* Exchanges values stored in two locations.
+>
+> *Requires:* Type `T` shall be `MoveConstructible` and `MoveAssignable`.
 
 The example makes it already clear:
 Standardese aims to provide a documentation in a similar way to the C++ standard - hence the name.
@@ -76,57 +92,47 @@ For a more complete example check out [my Meeting C++ Lightning Talk](https://ww
 
 ## Installation
 
-Standardese uses [CMake](https://cmake.org/) as build system.
-Simply clone the project and run `cmake -DSTANDARDESE_BUILD_TEST=OFF <source_dir>` followed by `cmake --build . --target install` to build the library and the tool and install it on your system.
+### Very Easy: Pre-compiled Binaries
 
-Both require libclang - only tested with version `3.7.1` and `3.8`.
-If it isn't found, set the CMake variable `LIBCLANG_INCLUDE_DIR` to the folder where `clang-c/Index.h` is located,
-`LIBCLANG_LIBRARY` to the library binary and `LIBCLANG_SYSTEM_INCLUDE_DIR` where the system include files are located,
-under a normal (Linux) installation it is `/usr/lib/clang/<version>/include`.
+TODO
 
-It also requires a path to the `clang++` binary.
-If that isn't found while building, you need to specify it with the option `compilation.clang_binary`.
+### Easy: Docker
 
-The library requires Boost.Filesystem (at least 1.55) and the tool requires Boost.ProgramOptions.
-By default, Boost libraries are linked dynamically (except for Boost.ProgramOptions which is always linked statically),
-but if you wish to link them statically, just add `-DBoost_USE_STATIC_LIBS=ON` to the cmake command.
-
-Once built, simply run `standardese --help` for commandline usage.
-
-### Arch Linux
-
-Thanks to [@verri](https://github.com/verri) for maintaining the [AUR package standardese-git](https://aur.archlinux.org/packages/standardese-git/).
-Install it via [yaourt](https://archlinux.fr/yaourt-en) or [makepkg](https://wiki.archlinux.org/index.php/Arch_User_Repository#Build_and_install_the_package).
-
-### Windows
-
-There is a pre-built binary for Windows 64 Bit, found in the [release pages](https://github.com/foonathan/standardese/releases), built with Appveyor and MSVC 14.
-You need to install [libclang](http://llvm.org/releases/download.html) but should work out the box otherwise.
-
-### Travis CI
-
-There are pre-built binaries for Travis CI (both MacOS and Linux), useful for building documentation on your CI system.
-Under MacOs you are good to go, but Linux needs an update of libstdc++ and Boost 1.55:
+The easiest way to build standardese is to download the docker image `foonathan/standardese_dev` and run it like so:
 
 ```
-addons:
-  apt:
-    sources: ['ubuntu-toolchain-r-test', 'boost-latest']
-    packages: ['g++-5', 'libboost1.55-all-dev']
+docker pull foonathan/standardese_dev
+docker run -v "/path/to/standardese/source:/root/standardese" -v "$(pwd):/root/output" foonathan/standardese_dev
 ```
-For convenience you can use the script `travis_get_standardese.sh`.
-It will download libclang and the `standardese` binary.
-You can use it like so:
+
+It will compile `standardese` as a fully statically linked binary and copy it to the current working directory.
+The binary is compatible with any Linux distribution.
+
+### Harder: Building From Source
+
+The build system takes care of all dependencies automatically, except for two: Boost and libclang.
+
+It needs to have Boost.ProgramOptions and Boost.Filesystem as statically linked binaries.
+If they're installed, they should be found automatically.
+
+It also needs libclang.
+If you are under a Linux system, it should find the `llvm-config` binary automatically and everything works,
+otherwise things are a bit harder.
+Read the [cppast build instructions](https://github.com/foonathan/cppast#installation) for more information, they also apply here.
+
+Once they're installed, compiling is a simple:
 
 ```
-wget https://raw.githubusercontent.com/foonathan/standardese/travis_get_standardese.sh
-STANDARDESE_TAG=tag-name . travis_get_standardese.sh
-./standardese/standardese --version
+cmake /path/to/standardese/source
+cmake --build . --target standardese_tool
 ```
+
+The result is the executable `tool/standardese`.
+
+TODO: cmake installation
 
 ## Documentation
 
-> Disclaimer: Due to the lack of proper tooling there is currently no good documentation.
 > If you need help or encounter a problem please contact me [on gitter](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge), I'll usually answer within a day or faster.
 
 ### Basic commandline usage
@@ -235,6 +241,9 @@ int y; //< But this is a different end-of-line comment.
 ```
 
 A comment corresponds to the entity on the line directly below or on the same line.
+You can document all entities that way except files (use `file` command), namespaces (use `entity` command),
+and inline entities such as parameters or base classes (use `param/tparam/base` command or `entity` command).
+
 Inside the comment you can use arbitrary\* Markdown\* in the documentation comments and it will be rendered appropriately.
 
 > The Markdown flavor used is [CommonMark](https://commonmark.org).
@@ -242,10 +251,10 @@ Inside the comment you can use arbitrary\* Markdown\* in the documentation comme
 > Inline HTML that isn't a raw HTML block will be treated as literal text.
 > This allows writing `vector<T>` without markup or escaping in the comment, for example.
 
-* Note: CommonMark allows hard line breaks with a backslash at the end of the line.
+*Note: CommonMark allows hard line breaks with a backslash at the end of the line.
 But the C preprocessor uses a backslash to combine multiple lines into one.
 For that reason you cannot use a backslash there,
-instead you can use a forward slash. *
+instead you can use a forward slash.*
 
 #### Linking
 
@@ -292,18 +301,18 @@ namespace ns
 {
     /// ns::a.
     struct a {};
-    
+
     /// [This will link to ::a, no lookup here](standardese://a/).
     /// [This will link to ns::a](standardese://*a/).
     void foo();
-    
+
     /// b
     template <typename T>
     struct b
     {
-        /// c.      
+        /// c.
         void c();
-        
+
         /// [This will link to ns::b<T>::c()](standardese://*c/).
         void foo();
     };
@@ -322,7 +331,7 @@ By default the tool supports http://en.cppreference.com/w/ with a prefix of `std
 #### Special commands
 
 standardese adds its own sets of special commands.
-A command is introduced by the *command character* (a backslash by default) at the beginning of a CommonMark text node, i.e. at the beginning of each line in the comment.
+A command is introduced by the *command character* (a backslash by default) at the beginning of each line in the comment.
 
 There are three kinds of special commands: *commands*, *sections* and *inlines*.
 
@@ -333,23 +342,34 @@ A text that begins with a *command* doesn't appear in the output documentation a
 
 There are the following *commands*:
 
+* `verbatim` - This command isn't like the other commands.
+It can happen anywhere in a line — i.e. where CommonMark allows an inline entity like emphasis.
+The text following the command until an `end` command or the end of the line will be inserted as-is into the output.
+
+* `end` - This command ends the currently active section, see below.
+This can be used to extend a section to multiple paragraphs.
+
 * `exclude {arg}` - Manually excludes an entity or part of it from the documentation.
 If you don't specify an argument, it won't appear at all, not even in the synopsis.
 It is as if the entity never existed in the first place.
 If you specify `return` as argument, the return type of the function will be hidden in the synopsis.
 If you specify `target` as argument, the target of the namespace/type alias or underlying type of the enum will be hidden in the synopsis.
 
-* `unique_name {name}` - Overrides the unique name of an entity (e.g. for linking):
-```cpp
-/// Some documentation.
-/// I can now link to `bar()` by writing [foo]().
-///
-/// \unique_name foo
-void bar(int a, int c);
-```
-Note that if you override the unique name of a parent entity, this will also affect the unique names of child entities.
-If the unique name starts with '*' or '?', it will be a *relative* unique name,
-i.e. the unique name of the parent entity will be prepended to it (with seperator '::' if needed).
+*   `unique_name {name}` - Overrides the unique name of an entity (e.g. for linking):
+    ```cpp
+    /// Some documentation.
+    /// I can now link to `bar()` by writing [foo]().
+    ///
+    /// \unique_name foo
+    void bar(int a, int c);
+    ```
+    Note that if you override the unique name of a parent entity, this will also affect the unique names of child entities.
+    If the unique name starts with '*' or '?', it will be a *relative* unique name,
+    i.e. the unique name of the parent entity will be prepended to it (with seperator '::' if needed).
+
+* `output_name {name}` - Overrides the output name of a file.
+This will only change the base name, the `doc_` prefix and extension are still handled separately.
+Useful if there are multiple files with the same base name in a project, e.g a `.hpp` and `.h` header.
 
 * `synopsis {string}` - Overrides the synopsis in the output.
 You can pass any string that will be rendered instead of the actual synopsis.
@@ -357,93 +377,93 @@ Use `\n` to render a newline and use `\t` to render a tab.
 
 * `synopsis_return {string}` - Like `synopsis`, but only overrides the return type of the function.
 
-* `group <name> [heading]` - Add the entity to a member group.
-A member group consists of multiple entities that are direct members of the same entity (i.e. class, file, namespace,...) which will be grouped together in the output.
-For example:
-```cpp
-/// \group foo A heading
-/// This is in the group `foo`.
-/// Because this is the first entity in the group, it will be the "master".
-/// the group comment will be this comment, the group unique name will be this unique name, ...
-/// The optional heading (everything after the first whitespace) will be shown as heading in the output.
-void func();
+*   `group <name> [heading]` - Add the entity to a member group.
+    A member group consists of multiple entities that are direct members of the same entity (i.e. class, file, namespace,...) which will be grouped together in the output.
+    For example:
+    ```cpp
+    /// \group foo A heading
+    /// This is in the group `foo`.
+    /// Because this is the first entity in the group, it will be the "master".
+    /// the group comment will be this comment, the group unique name will be this unique name, ...
+    /// The optional heading (everything after the first whitespace) will be shown as heading in the output.
+    void func();
 
-/// \group foo
-/// This entity will be added to the same group.
-/// As it is not the first occurence of the group,
-/// this comment here will be ignored.
-/// But you can still use commands to modify this entity.
-void func(int);
+    /// \group foo
+    /// This entity will be added to the same group.
+    /// As it is not the first occurence of the group,
+    /// this comment here will be ignored.
+    /// But you can still use commands to modify this entity.
+    void func(int);
 
-/// This entity is not part of the group.
-void func(char);
+    /// This entity is not part of the group.
+    void func(char);
 
-/// \group foo
-/// But this one is (again, comment ignored).
-void func(short);
-```
-This will write the synopsis of all group members together and use the documentation text of the first entity.
-The group name only needs to be unique for one given scope.
-*Note: It will only show inline documentation for children, so don't use it on containers.*
+    /// \group foo
+    /// But this one is (again, comment ignored).
+    void func(short);
+    ```
+    This will write the synopsis of all group members together and use the documentation text of the first entity.
+    The group name only needs to be unique for one given scope.
+    *Note: It will only show inline documentation for children, so don't use it on containers.*
 
-* `module {name}` - Add the entity to a module.
-A module is just a way to group entities together,
-it will be inherited by all children.
-There is no need to define a module, but if you do,
-simply use the command in first place of a module and you can add documentation for it:
-```cpp
-/// This is an entity in the module 'bar'.
-/// \module bar
-void foo();
+*   `module {name}` - Add the entity to a module.
+    A module is just a way to group entities together,
+    it will be inherited by all children.
+    There is no need to define a module, but if you do,
+    simply use the command in first place of a module and you can add documentation for it:
+    ```cpp
+    /// This is an entity in the module 'bar'.
+    /// \module bar
+    void foo();
 
-/// \module bar
-/// This is the documentation for the module 'bar',
-/// because the command was the first one.
-```
+    /// \module bar
+    /// This is the documentation for the module 'bar',
+    /// because the command was the first one.
+    ```
 
-* `output_section {name}` - Generates a little section comment in the synopsis above the entity.
-This is implictly used for member groups with the group name as output section name,
-if the option `output.show_group_output_section` is `true` (the default).
-If a member group name starts with '-', it will never be used (the minus won't be shown).
-Given the following input:
-```cpp
-/// Some int getter.
-/// \output_section Getter functions
-int get_i();
+*   `output_section {name}` - Generates a little section comment in the synopsis above the entity.
+    This is implictly used for member groups with the group name as output section name,
+    if the option `output.show_group_output_section` is `true` (the default).
+    If a member group name starts with '-', it will never be used (the minus won't be shown).
+    Given the following input:
+    ```cpp
+    /// Some int getter.
+    /// \output_section Getter functions
+    int get_i();
 
-/// Some float getter.
-float get_f();
+    /// Some float getter.
+    float get_f();
 
-/// Some int setter.
-/// \output_section Setter functions
-void set_i(int val);
+    /// Some int setter.
+    /// \output_section Setter functions
+    void set_i(int val);
 
-/// Some float setter.
-void set_f(float f);
-```
-It will generate a synopsis like this:
-```cpp
-//=== Getter functions ===//
-int get_i();
+    /// Some float setter.
+    void set_f(float f);
+    ```
+    It will generate a synopsis like this:
+    ```cpp
+    //=== Getter functions ===//
+    int get_i();
 
-float get_f();
+    float get_f();
 
-//=== Setter functions ===//
-void set_i(int val);
+    //=== Setter functions ===//
+    void set_i(int val);
 
-void set_f(float f);
-```
+    void set_f(float f);
+    ```
 
-* `entity {unique-name}` - If put in the first place of a comment, names the entity to document,
-this allows "remote" comments:
-```cpp
-void foo();
+*   `entity {unique-name}` - If put in the first place of a comment, names the entity to document,
+    this allows "remote" comments:
+    ```cpp
+    void foo();
 
-/// \entity foo
-/// This comment has no corresponding entity.
-/// But the command specifies the entity it will belong to.
-```
-It also mixes with `unique_name` as you might expect.
+    /// \entity foo
+    /// This comment has no corresponding entity.
+    /// But the command specifies the entity it will belong to.
+    ```
+    It also mixes with `unique_name` as you might expect.
 
 * `file` - A shorthand for `\entity current-file-name`.
 
@@ -480,9 +500,9 @@ Use `_` as argument for an empty key.
 Surround the argument in `[<arg>]` and it will create a link where `<arg>` is also the destination,
 i.e. like a regular entity link of the form `[<arg>]()`.
 
-* Note: Due to implementation reason you can't use a real CommonMark link as key. *
+*Note: Due to implementation reason you can't use a real CommonMark link as key.*
 
-The value consists of CommonnMark inline formatting until the reset of the section or a new key is encountered.
+The value consists of CommonMark inline formatting until the reset of the section or a new key is encountered.
 For example:
 
 ```cpp
@@ -500,7 +520,7 @@ This is also how the `see` section is intended:
 
 ```cpp
 /// Some documentation...
-/// \see [this_type] - Put a describition here (optional)
+/// \see [this_type] - Put a description here (optional)
 /// [this_func()] -
 /// [std::vector<T>] -
 ```
@@ -515,15 +535,10 @@ because you cannot put a corresponding comment there.
 As such they are shorthands for the `\entity unique-name` command.
 They are followed by the name of entity they refer to.
 
-> Technically, `param` and `tparam` are alias, so it doesn't matter which one you use.
-> You must use `base` to refer to base classes, however,
-> because template parameters and base classes can have the same name.
-
 The *inline* and argument is stripped from the text.
 The rest of the line will be treated as `brief` documentation.
 Like a *section*, an *inline* ends when a new special command or hard line break is encountered or a paragraph ends.
-
-> Note: You cannot use *sections* in *inlines*.
+You can include sections in inlines, however.
 
 For example:
 
@@ -540,6 +555,8 @@ void func(int foo, int bar);
 ```
 
 ### Template syntax overview
+
+> *Note:* Not implemented on develop at the moment.
 
 If you pass a file that is not a source file, it will be treated as template file and processed.
 This allows advanced control over the output or writing additional documentation files.
@@ -623,7 +640,13 @@ The most basic template will just generate the output as standardese would do no
 
 ## Acknowledgements
 
-Thanks a lot to:
+This project is greatly supported by my [patrons](https://patreon.com/foonathan).
+In particular thanks to the individual supporters:
+
+* Reiner Eiteljoerge
+* Sina
+
+Thanks a lot to the contributors as well:
 
 * Manu @Manu343726 Sánchez, as always
 
@@ -640,5 +663,9 @@ Thanks a lot to:
 * John @johnmcfarlane McFarlane, for issue reporting
 
 * Filipe @verri Verri, for maintaining the AUR package
+
+* @topisani, for issue reporting and bugfixes
+
+* Trim @bresilla Bresilla, for our logo
 
 And everyone else who shares and uses this project!

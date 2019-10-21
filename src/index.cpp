@@ -1,191 +1,342 @@
-// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
 #include <standardese/index.hpp>
 
 #include <algorithm>
-#include <cctype>
-#include <spdlog/fmt/fmt.h>
+#include <cassert>
+#include <cppast/cpp_file.hpp>
+#include <cppast/cpp_namespace.hpp>
+#include <cppast/cpp_preprocessor.hpp>
+#include <type_safe/downcast.hpp>
 
 #include <standardese/comment.hpp>
-#include <standardese/cpp_namespace.hpp>
-#include <standardese/parser.hpp>
+#include <standardese/doc_entity.hpp>
+#include <standardese/markup/code_block.hpp>
+#include <standardese/markup/document.hpp>
+#include <standardese/markup/entity_kind.hpp>
+#include <standardese/markup/link.hpp>
+
+#include "entity_visitor.hpp"
 
 using namespace standardese;
 
-std::string detail::get_id(const std::string& unique_name)
+void entity_index::insert(entity e) const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto                        range
+        = std::equal_range(entities_.begin(), entities_.end(), e,
+                           [](const entity_index::entity& lhs, const entity_index::entity& rhs) {
+                               return lhs.scope + lhs.name < rhs.scope + rhs.name;
+                           });
+    if (range.first == range.second)
+        entities_.insert(range.first, std::move(e));
+    else
+    {
+        assert(std::next(range.first) == range.second);
+        auto& inserted = *range.first;
+        if (auto builder = inserted.doc.optional_value(
+                type_safe::variant_type<markup::namespace_documentation::builder>{}))
+        {
+            auto& e_builder
+                = e.doc.value(type_safe::variant_type<markup::namespace_documentation::builder>{});
+            if (!builder.value().has_documentation() && e_builder.has_documentation())
+                inserted.doc = std::move(e.doc);
+        }
+    }
+}
+
+namespace
+{
+std::unique_ptr<markup::entity_index_item> get_entity_entry(
+    const std::string& name, std::string link_name,
+    type_safe::optional_ref<const markup::brief_section> brief)
+{
+    auto link = markup::documentation_link::builder(link_name)
+                    .add_child(markup::code::build(name))
+                    .finish();
+    auto term = markup::term::build(std::move(link));
+
+    if (brief)
+    {
+        markup::description::builder description;
+        for (auto& child : brief.value())
+            description.add_child(markup::clone(child));
+
+        return markup::entity_index_item::build(markup::block_id(std::move(link_name)),
+                                                std::move(term), description.finish());
+    }
+    else
+        return markup::entity_index_item::build(markup::block_id(std::move(link_name)),
+                                                std::move(term));
+}
+
+std::string get_scope(const cppast::cpp_entity& e)
 {
     std::string result;
-    for (auto c : unique_name)
-        if (std::isspace(c))
-            continue;
+    for (auto parent = e.parent(); parent; parent = parent.value().parent())
+        if (parent.value().kind() == cppast::cpp_namespace::kind())
+            result = parent.value().name() + "::" + result;
+    return result;
+}
+} // namespace
+
+void entity_index::register_entity(std::string link_name, const cppast::cpp_entity& e,
+                                   type_safe::optional_ref<const markup::brief_section> brief) const
+{
+    assert(e.kind() != cppast::cpp_file::kind() && e.kind() != cppast::cpp_namespace::kind());
+    if (e.kind() != cppast::cpp_include_directive::kind()) // don't insert includes
+        insert(entity(get_entity_entry(e.name(), std::move(link_name), brief), e.name(),
+                      get_scope(e)));
+}
+
+void entity_index::register_namespace(const cppast::cpp_namespace&             ns,
+                                      markup::namespace_documentation::builder doc) const
+{
+    insert(entity(std::move(doc), ns.name(), get_scope(ns)));
+}
+
+namespace
+{
+struct nested_list_builder
+{
+    std::string scope;
+    type_safe::variant<type_safe::object_ref<markup::entity_index::builder>,
+                       markup::namespace_documentation::builder>
+        builder;
+
+    // adds *this, which must be a namespace, to the previous list
+    void pop(nested_list_builder& previous)
+    {
+        struct lambda
+        {
+            void operator()(type_safe::object_ref<markup::entity_index::builder> builder,
+                            std::unique_ptr<markup::namespace_documentation>     doc)
+            {
+                builder->add_child(std::move(doc));
+            }
+
+            void operator()(markup::namespace_documentation::builder&        builder,
+                            std::unique_ptr<markup::namespace_documentation> doc)
+            {
+                builder.add_child(std::move(doc));
+            }
+        };
+        type_safe::with(previous.builder, lambda{},
+                        builder
+                            .value(
+                                type_safe::variant_type<markup::namespace_documentation::builder>{})
+                            .finish());
+    }
+
+    // adds an item to the current list
+    void add_item(std::unique_ptr<markup::entity_index_item> item)
+    {
+        struct lambda
+        {
+            void operator()(type_safe::object_ref<markup::entity_index::builder> builder,
+                            std::unique_ptr<markup::entity_index_item>           item)
+            {
+                builder->add_child(std::move(item));
+            }
+
+            void operator()(markup::namespace_documentation::builder&  builder,
+                            std::unique_ptr<markup::entity_index_item> item)
+            {
+                builder.add_child(std::move(item));
+            }
+        };
+        type_safe::with(builder, lambda{}, std::move(item));
+    }
+};
+} // namespace
+
+std::unique_ptr<markup::entity_index> entity_index::generate(order o) const
+{
+    markup::entity_index::builder builder(
+        markup::heading::build(markup::block_id(), "Project index"));
+
+    std::vector<nested_list_builder> lists;
+    lists.push_back(nested_list_builder{"", type_safe::ref(builder)});
+
+    std::unique_lock<std::mutex> lock(mutex_);
+    for (auto& entity : entities_)
+    {
+        // find matching parent
+        while (entity.scope != (lists.back().scope.empty() ? "" : lists.back().scope + "::"))
+        {
+            auto ns = std::move(lists.back());
+            lists.pop_back();
+            ns.pop(o == order::namespace_external ? lists.front() : lists.back());
+        }
+
+        if (auto ns = entity.doc.optional_value(
+                type_safe::variant_type<markup::namespace_documentation::builder>{}))
+            // we've got a namespace
+            lists.push_back(nested_list_builder{entity.scope + entity.name, std::move(ns.value())});
         else
-            result += c;
+            // normal entity
+            lists.back().add_item(std::move(entity.doc.value(
+                type_safe::variant_type<std::unique_ptr<markup::entity_index_item>>{})));
+    }
+    lock.unlock();
 
-    if (result.size() >= 2 && result.end()[-1] == ')' && result.end()[-2] == '(')
+    while (!lists.empty())
     {
-        // ends with ()
-        result.pop_back();
-        result.pop_back();
+        auto ns = std::move(lists.back());
+        lists.pop_back();
+        if (!lists.empty())
+            ns.pop(o == order::namespace_external ? lists.front() : lists.back());
     }
 
-    return result;
+    return builder.finish();
 }
 
-std::string detail::get_short_id(const std::string& id)
+void standardese::register_index_entities(const entity_index& index, const cppast::cpp_file& file)
 {
-    std::string result;
+    detail::visit_namespace_level(file,
+                                  [&](const cppast::cpp_entity& entity) {
+                                      auto doc_e
+                                          = static_cast<const doc_entity*>(entity.user_data());
+                                      if (doc_e && !doc_e->is_excluded())
+                                      {
+                                          auto brief_section = doc_e->comment().map(
+                                              [](const comment::doc_comment& comment) {
+                                                  return comment.brief_section();
+                                              });
+                                          index.register_entity(doc_e->link_name(), entity,
+                                                                brief_section);
+                                      }
+                                  },
+                                  [&](const cppast::cpp_namespace& ns) {
+                                      auto doc_e = static_cast<const doc_entity*>(ns.user_data());
+                                      if (doc_e && !doc_e->is_excluded())
+                                          // it's not an excluded entity, so register it
+                                          index.register_namespace(ns,
+                                                                   static_cast<
+                                                                       const doc_cpp_namespace*>(
+                                                                       doc_e)
+                                                                       ->get_builder());
+                                  });
+}
 
-    auto skip = false;
-    for (auto ptr = id.c_str(); *ptr; ++ptr)
-    {
-        auto c = *ptr;
-        if (c == '(')
-            skip = true;
-        else if (c == '.')
+void file_index::register_file(std::string link_name, std::string file_name,
+                               type_safe::optional_ref<const markup::brief_section> brief) const
+{
+    file_index::file f(file_name, get_entity_entry(file_name, link_name, brief));
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto                        range = std::equal_range(files_.begin(), files_.end(), f,
+                                  [](const file_index::file& lhs, const file_index::file& rhs) {
+                                      return lhs.name < rhs.name;
+                                  });
+    if (range.first == range.second)
+        files_.insert(range.first, std::move(f));
+}
+
+std::unique_ptr<markup::file_index> file_index::generate() const
+{
+    markup::file_index::builder builder(
+        markup::heading::build(markup::block_id(), "Project files"));
+
+    std::unique_lock<std::mutex> lock(mutex_);
+    for (auto& file : files_)
+        builder.add_child(std::move(file.doc));
+    lock.unlock();
+
+    return builder.finish();
+}
+
+void module_index::register_module(markup::module_documentation::builder doc) const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto                        range = std::equal_range(modules_.begin(), modules_.end(), doc,
+                                  [](const markup::module_documentation::builder& lhs,
+                                     const markup::module_documentation::builder& rhs) {
+                                      return lhs.id().as_str() < rhs.id().as_str();
+                                  });
+    if (range.first == range.second)
+        modules_.insert(range.first, std::move(doc));
+}
+
+bool module_index::register_entity(std::string module, std::string link_name,
+                                   const cppast::cpp_entity&                            entity,
+                                   type_safe::optional_ref<const markup::brief_section> brief) const
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto                        iter = std::lower_bound(modules_.begin(), modules_.end(), module,
+                                 [](const markup::module_documentation::builder& lhs,
+                                    const std::string& rhs) { return lhs.id().as_str() < rhs; });
+    if (iter == modules_.end() || iter->id().as_str() != module)
+        return false;
+    iter->add_child(get_entity_entry(entity.name(), std::move(link_name), std::move(brief)));
+    return true;
+}
+
+std::unique_ptr<markup::module_index> module_index::generate() const
+{
+    markup::module_index::builder builder(
+        markup::heading::build(markup::block_id(), "Project modules"));
+
+    std::unique_lock<std::mutex> lock(mutex_);
+    for (auto& module : modules_)
+        builder.add_child(module.finish());
+    lock.unlock();
+
+    return builder.finish();
+}
+
+void standardese::register_module_entities(const module_index&     index,
+                                           const comment_registry& registry,
+                                           const cppast::cpp_file& file)
+{
+    auto get_module = [&](const cppast::cpp_entity& e) -> type_safe::optional<std::string> {
+        if (auto doc_e = static_cast<const doc_entity*>(e.user_data()))
         {
-            if (ptr[1] == '.')
+            if (doc_e->comment())
+                return doc_e->comment().value().metadata().module();
+        }
+
+        return type_safe::nullopt;
+    };
+
+    auto register_entity = [&](std::string module, const cppast::cpp_entity& e) {
+        assert(e.user_data());
+        auto& doc_e = *static_cast<const doc_entity*>(e.user_data());
+        return index.register_entity(std::move(module), doc_e.link_name(), e,
+                                     doc_e.comment().value().brief_section());
+    };
+
+    auto get_module_doc = [&](const std::string& name) {
+        markup::module_documentation::builder builder(markup::block_id(name),
+                                                      markup::heading::builder(markup::block_id())
+                                                          .add_child(markup::text::build("Module "))
+                                                          .add_child(markup::code::build(name))
+                                                          .finish());
+
+        if (auto module_comment = registry.get_comment(name))
+            comment::set_sections(builder, module_comment.value());
+
+        return builder;
+    };
+
+    cppast::visit(file, [&](const cppast::cpp_entity& e, const cppast::visitor_info& info) {
+        if (info.event != cppast::visitor_info::container_entity_exit)
+        {
+            auto module = get_module(e);
+            if (module && !register_entity(module.value(), e))
             {
-                // ... token
-                assert(ptr[2] == '.');
-                ptr += 2; // skip token as well
-            }
-            else
-            {
-                // next token is '.' separator for parameter
-                result += '.';
-                skip = false;
+                // need to register module
+                auto module_doc = get_module_doc(module.value());
+                index.register_module(std::move(module_doc));
+
+                // can register again now
+                auto result = register_entity(module.value(), e);
+                assert(result);
             }
         }
-        else if (c == '<')
-            skip = true;
-        else if (c == '>')
-            skip = false;
-        else if (!skip)
-            result += c;
-    }
 
-    return result;
-}
-
-void index::register_entity(const parser& p, const doc_entity& entity,
-                            std::string output_file) const
-{
-    auto id       = detail::get_id(entity.get_unique_name().c_str());
-    auto short_id = detail::get_short_id(id);
-
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    // insert short id if it doesn't exist
-    // otherwise erase
-    if (short_id != id)
-    {
-        auto iter = entities_.find(short_id);
-        if (iter == entities_.end())
-        {
-            auto res = entities_.emplace(std::move(short_id), std::make_pair(true, &entity)).second;
-            assert(res);
-            (void)res;
-        }
-        else if (iter->second.first)
-            // it was a short name
-            entities_.erase(iter);
-    }
-
-    // insert long id
-    auto pair = entities_.emplace(std::move(id), std::make_pair(false, &entity));
-    if (!pair.second && entity.get_cpp_entity_type() != cpp_entity::namespace_t)
-        p.get_logger()->warn("duplicate index registration of an entity named '{}'",
-                             entity.get_unique_name().c_str());
-    else if (pair.first->second.second->get_cpp_entity_type() == cpp_entity::file_t)
-    {
-        using value_type = decltype(files_)::value_type;
-        auto pos         = std::lower_bound(files_.begin(), files_.end(), pair.first,
-                                    [](value_type a, value_type b) { return a->first < b->first; });
-        files_.insert(pos, pair.first);
-    }
-
-    if (entity.in_module())
-    {
-        auto pos = std::lower_bound(modules_.begin(), modules_.end(), entity.get_module());
-        modules_.insert(pos, entity.get_module());
-    }
-
-    linker_.register_entity(entity, std::move(output_file));
-}
-
-const doc_entity* index::try_lookup(const std::string& unique_name) const
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-    auto                        iter = entities_.find(detail::get_id(unique_name));
-    return iter == entities_.end() ? nullptr : iter->second.second;
-}
-
-const doc_entity& index::lookup(const std::string& unique_name) const
-{
-    std::lock_guard<std::mutex> lock(mutex_);
-    return *entities_.at(detail::get_id(unique_name)).second;
-}
-
-const doc_entity* index::try_name_lookup(const doc_entity&  context,
-                                         const std::string& unique_name) const
-{
-    if (unique_name.front() == '?' || unique_name.front() == '*')
-    {
-        // first try parameter/base
-        auto name =
-            std::string(context.get_unique_name().c_str()) + "." + (unique_name.c_str() + 1);
-        if (auto entity = try_lookup(name))
-            return entity;
-
-        // then look for other names
-        for (auto cur = &context; cur; cur = cur->has_parent() ? &cur->get_parent() : nullptr)
-        {
-            auto name =
-                std::string(cur->get_unique_name().c_str()) + "::" + (unique_name.c_str() + 1);
-            if (auto entity = try_lookup(name))
-                return entity;
-        }
-    }
-
-    return try_lookup(unique_name);
-}
-
-const doc_entity& index::name_lookup(const doc_entity&  context,
-                                     const std::string& unique_name) const
-{
-    auto result = try_name_lookup(context, unique_name);
-    if (!result)
-        throw std::invalid_argument(fmt::format("unable to find entity named '{}'", unique_name));
-    return *result;
-}
-
-void index::namespace_member_impl(ns_member_cb cb, void* data)
-{
-    for (auto& pair : entities_)
-    {
-        auto& value = pair.second;
-        if (value.first)
-            continue; // ignore short names
-
-        auto& entity = *value.second;
-        if (entity.get_cpp_entity_type() == cpp_entity::namespace_t
-            || entity.get_cpp_entity_type() == cpp_entity::file_t)
-            continue;
-
-        assert(entity.has_parent());
-        auto* parent = &entity.get_parent();
-        if (parent->get_entity_type() == doc_entity::member_group_t)
-        {
-            assert(parent->has_parent());
-            parent = &parent->get_parent();
-        }
-
-        auto parent_type = parent->get_cpp_entity_type();
-        if (parent_type == cpp_entity::namespace_t)
-            cb(parent, entity, data);
-        else if (parent_type == cpp_entity::file_t)
-            cb(nullptr, entity, data);
-    }
+        return true;
+    });
 }

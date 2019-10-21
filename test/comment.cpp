@@ -1,452 +1,253 @@
-// Copyright (C) 2016-2017 Jonathan Müller <jonathanmueller.dev@gmail.com>
+// Copyright (C) 2016-2019 Jonathan Müller <jonathanmueller.dev@gmail.com>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
 #include <standardese/comment.hpp>
 
 #include <catch.hpp>
+#include <fstream>
 
-#include <standardese/detail/raw_comment.hpp>
-#include <standardese/cpp_function.hpp>
-#include <standardese/cpp_template.hpp>
-#include <standardese/doc_entity.hpp>
-#include <standardese/index.hpp>
-#include <standardese/md_blocks.hpp>
-#include <standardese/md_inlines.hpp>
-#include <standardese/parser.hpp>
+#include <cppast/cpp_class.hpp>
+#include <cppast/cpp_function.hpp>
+#include <cppast/cpp_template.hpp>
+#include <cppast/visitor.hpp>
 
 #include "test_parser.hpp"
 
 using namespace standardese;
 
-std::string get_text(const md_paragraph& paragraph)
+template <class Container>
+void test_comments(const comment_registry& registry, const Container& container)
 {
-    std::string result;
-    for (auto& child : paragraph)
-        if (child.get_entity_type() == md_entity::text_t)
-            result += dynamic_cast<const md_text&>(child).get_string();
-        else if (child.get_entity_type() == md_entity::soft_break_t)
-            result += '\n';
-    return result;
+    for (auto& entity : container)
+    {
+        auto comment = registry.get_comment(entity);
+        REQUIRE(comment.has_value());
+        if (entity.name().empty())
+            REQUIRE(!comment.value().metadata().module());
+        else
+        {
+            REQUIRE(comment.value().metadata().module() == entity.name());
+        }
+    }
 }
 
-const comment& parse_comment(parser& p, std::string source)
+TEST_CASE("comment")
 {
-    auto  tu     = parse(p, "md_comment", (source + "\nint a;").c_str());
-    auto& entity = *tu.get_file().begin();
+    SECTION("matched comments")
+    {
+        auto file = parse_file({}, "comment_matched_comments.cpp", R"(
+/// \module a
+using a = int;
 
-    auto res = p.get_comment_registry().lookup_comment(entity, nullptr);
-    REQUIRE(res);
-    return *res;
-}
+/// \module b
+struct b {};
 
-TEST_CASE("md_comment", "[doc]")
+/// \module c
+enum class c
 {
-    parser p(test_logger);
+    d, //< \module d
+    e, //< \module e
+};
+)");
 
-    SECTION("comment styles")
-    {
-        auto source = R"(///   C++ style.
-
-            //! C++ exclamation.
-
-            /** C style. */
-
-            // ignored
-            /* ignored as well */
-
-            /*! C exclamation.
-            */
-
-            /** C style
-              *
-              *   multiline.
-              */
-
-            /** C style
-            /// C++ multiline. */
-
-            /// Multiple
-            //! C++
-            /** and C style.
-            */
-
-            foo, //< End line style.
-            bar, //< End line style.
-            /// Continued.
-
-            /**/
-)";
-
-        auto comments = detail::read_comments(source);
-        REQUIRE(comments.size() == 10);
-
-        REQUIRE(comments[0].content == "  C++ style.");
-        REQUIRE(comments[0].count_lines == 1u);
-        REQUIRE(comments[0].end_line == 1u);
-
-        REQUIRE(comments[1].content == "C++ exclamation.");
-        REQUIRE(comments[1].count_lines == 1u);
-        REQUIRE(comments[1].end_line == 3u);
-
-        REQUIRE(comments[2].content == "C style.");
-        REQUIRE(comments[2].count_lines == 1u);
-        REQUIRE(comments[2].end_line == 5u);
-
-        REQUIRE(comments[3].content == "C exclamation.");
-        REQUIRE(comments[3].count_lines == 2u);
-        REQUIRE(comments[3].end_line == 11u);
-
-        REQUIRE(comments[4].content == "C style\n\n  multiline.");
-        REQUIRE(comments[4].count_lines == 4u);
-        REQUIRE(comments[4].end_line == 16u);
-
-        REQUIRE(comments[5].content == "C style\n/// C++ multiline.");
-        REQUIRE(comments[5].count_lines == 2u);
-        REQUIRE(comments[5].end_line == 19u);
-
-        REQUIRE(comments[6].content == "Multiple\nC++");
-        REQUIRE(comments[6].count_lines == 2u);
-        REQUIRE(comments[6].end_line == 22u);
-
-        REQUIRE(comments[7].content == "and C style.");
-        REQUIRE(comments[7].count_lines == 2u);
-        REQUIRE(comments[7].end_line == 24u);
-
-        REQUIRE(comments[8].content == "End line style.");
-        REQUIRE(comments[8].count_lines == 1u);
-        REQUIRE(comments[8].end_line == 26u);
-
-        REQUIRE(comments[9].content == "End line style.\nContinued.");
-        REQUIRE(comments[9].count_lines == 2u);
-        REQUIRE(comments[9].end_line == 28u);
+        file_comment_parser parser(test_logger());
+        parser.parse(type_safe::ref(*file));
+        test_comments(parser.finish(), *file);
     }
-    SECTION("simple parsing")
+    SECTION("param")
     {
-        auto& comment = parse_comment(p, R"(/// Hello World.)");
-        auto  count   = 0u;
-        for (auto& child : comment.get_content())
-        {
-            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
-
-            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
-            REQUIRE(get_text(paragraph) == std::string("Hello World."));
-            REQUIRE(paragraph.get_section_type() == section_type::brief);
-            ++count;
-        }
-        REQUIRE(count == 1u);
-    }
-    SECTION("multiple sections explicit")
-    {
-        auto& comment = parse_comment(p, R"(/**
-\brief A
-
-\details B
-C
-*/)");
-
-        auto count = 0u;
-        for (auto& child : comment.get_content())
-        {
-            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
-            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
-            INFO(get_text(paragraph));
-
-            if (get_text(paragraph) == "A")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::brief);
-            }
-            else if (get_text(paragraph) == "B\nC")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::details);
-            }
-            else
-                REQUIRE(false);
-        }
-        REQUIRE(count == 2u);
-    }
-    SECTION("multiple sections implicit")
-    {
-        auto& comment = parse_comment(p, R"(/**
-* A
-*
-* B
-* C /// C
-*/)");
-
-        auto count = 0u;
-        for (auto& child : comment.get_content())
-        {
-            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
-            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
-
-            if (get_text(paragraph) == "A")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::brief);
-            }
-            else if (get_text(paragraph) == "B\nC /// C")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::details);
-            }
-            else
-                REQUIRE(false);
-        }
-        REQUIRE(count == 2u);
-    }
-    SECTION("cherry pick other commands")
-    {
-        auto& comment = parse_comment(p, R"(
-/// \effects A A
-/// A A
+        auto file = parse_file({}, "comment_param.cpp", R"(
+/// \module a
 ///
-/// \returns B B
+/// \param b
+/// \module b
 ///
-/// \error_conditions C C)");
+/// \param c
+/// \module c
+///
+/// \param 2
+void a(int b, int c, int);
+)");
 
-        auto count = 0u;
-        for (auto& child : comment.get_content())
-        {
-            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
-            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
-            INFO(get_text(paragraph));
-
-            if (get_text(paragraph) == "A A\nA A")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::effects);
-            }
-            else if (get_text(paragraph) == "B B")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::returns);
-            }
-            else if (get_text(paragraph) == "C C")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::error_conditions);
-            }
-            else
-                REQUIRE(paragraph.get_section_type() == section_type::brief);
-        }
-        REQUIRE(count == 3u);
+        file_comment_parser parser(test_logger());
+        parser.parse(type_safe::ref(*file));
+        test_comments(parser.finish(),
+                      static_cast<const cppast::cpp_function_base&>(*file->begin()).parameters());
     }
-    SECTION("one paragraph")
+    SECTION("tparam")
     {
-        const char* source;
-        SECTION("C style")
-        {
-            source = R"(/**
-\effects A
-A
-\brief E
-\requires B
-B2
-\exclude
-C
-\details D
-\brief E
-\notes F/
-\notes G
-*/)";
-        }
-        SECTION("C style continuation")
-        {
-            source = R"(/**
-* \effects A
-* A
-* \brief E
-* \requires B
-* B2
-* \exclude
-* C
-* \details D
-* \brief E
-* \notes F/
-* \notes G
-*/)";
-        }
-        SECTION("C++ style")
-        {
-            source = R"(/// \effects A
-/// A
-/// \brief E
-/// \requires B
-/// B2
-/// \exclude
-/// C
-/// \details D
-/// \brief E
-/// \notes F/
-/// \notes G)";
-        }
+        auto file = parse_file({}, "comment_tparam.cpp", R"(
+/// \module a
+///
+/// \tparam b
+/// \module b
+///
+/// \tparam c
+/// \module c
+///
+/// \tparam 2
+template <int b, int c, int>
+void a();
+)");
 
-        auto& comment = parse_comment(p, source);
-
-        auto count = 0u;
-        for (auto& child : comment.get_content())
-        {
-            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
-            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
-            INFO('"' + get_text(paragraph) + '"');
-
-            if (get_text(paragraph) == "A\nA")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::effects);
-            }
-            else if (get_text(paragraph) == "B\nB2")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::requires);
-            }
-            else if (get_text(paragraph) == "D" || get_text(paragraph) == "C")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::details);
-            }
-            else if (get_text(paragraph) == "F")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::notes);
-            }
-            else if (get_text(paragraph) == "G")
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::notes);
-            }
-            else
-            {
-                ++count;
-                REQUIRE(paragraph.get_section_type() == section_type::brief);
-                REQUIRE(get_text(paragraph) == "E\nE");
-            }
-        }
-        REQUIRE(count == 7u);
+        file_comment_parser parser(test_logger());
+        parser.parse(type_safe::ref(*file));
+        test_comments(parser.finish(),
+                      static_cast<const cppast::cpp_template&>(*file->begin()).parameters());
     }
-    SECTION("commands")
+    SECTION("base")
     {
-        auto& comment = parse_comment(p, R"(
-                                      /// Normal markup.
-                                      ///
-                                      /// \exclude
-                                      /// \unique_name foo)");
-        REQUIRE(comment.is_excluded());
-        REQUIRE(comment.get_unique_name_override() == "foo");
+        auto file = parse_file({}, "comment_base.cpp", R"(
+struct b {};
+struct c {};
 
-        auto count = 0u;
-        for (auto& child : comment.get_content())
-        {
-            REQUIRE(child.get_entity_type() == md_entity::paragraph_t);
-            auto& paragraph = dynamic_cast<const md_paragraph&>(child);
-            INFO('"' << get_text(paragraph) << '"');
-            REQUIRE(paragraph.get_section_type() == section_type::brief);
-            REQUIRE(get_text(paragraph) == "Normal markup.");
-            ++count;
-        }
-        REQUIRE(count == 1u);
+/// \module a
+///
+/// \base b
+/// \module b
+///
+/// \base c
+/// \module c
+struct a : b, c {};
+)");
+
+        file_comment_parser parser(test_logger());
+        parser.parse(type_safe::ref(*file));
+        test_comments(parser.finish(),
+                      static_cast<const cppast::cpp_class&>(*file->begin()).bases());
     }
-}
+    SECTION("remote")
+    {
+        auto file = parse_file({}, "comment_remote.cpp", R"(
+/// \file
+/// \module comment_remote.cpp
 
-std::string get_text(const md_comment& comment)
+/// \entity a
+/// \module a
+
+/// \entity foo<T>::a
+/// \module a
+
+/// \entity foo<T>.T
+/// \module T
+
+/// \entity foo<T>::b(int, float).i
+/// \module i
+
+/// \entity foo<T>::b(int, float)
+/// \module b
+
+/// \entity custom
+/// \module c
+
+/// \entity custom::foo<int>
+/// \module foo<int>
+
+struct a {};
+
+/// \module foo
+template <typename T>
+struct foo : a
 {
-    std::string result;
-    for (auto& child : comment)
-    {
-        if (child.get_entity_type() != md_entity::paragraph_t)
-            continue;
-        auto& par = static_cast<const md_paragraph&>(child);
-        result += get_text(par);
+    /// \param j
+    /// \module j
+    void b(int i, float j);
+};
+
+/// \unique_name custom
+struct c : foo<int> {};
+)");
+
+        file_comment_parser parser(test_logger());
+        parser.parse(type_safe::ref(*file));
+        auto registry = parser.finish();
+
+        auto check_comment = [&](const cppast::cpp_entity& e) {
+            auto comment = registry.get_comment(e);
+            INFO(e.name());
+            REQUIRE(comment);
+            REQUIRE(e.name() == comment.value().metadata().module());
+        };
+
+        cppast::visit(*file, [&](const cppast::cpp_entity& e, const cppast::visitor_info&) {
+            check_comment(e);
+            if (e.kind() == cppast::cpp_class::kind())
+                for (auto& base : static_cast<const cppast::cpp_class&>(e).bases())
+                    check_comment(base);
+            else if (cppast::is_template(e.kind()))
+                for (auto& param : static_cast<const cppast::cpp_template&>(e).parameters())
+                    check_comment(param);
+            else if (cppast::is_function(e.kind()))
+                for (auto& param : static_cast<const cppast::cpp_function_base&>(e).parameters())
+                    check_comment(param);
+
+            return true;
+        });
     }
-    return result;
-}
-
-std::string get_text(const doc_entity& e)
-{
-    REQUIRE(e.has_comment());
-    auto& content = e.get_comment().get_content();
-    return get_text(content);
-}
-
-TEST_CASE("comment-matching", "[doc]")
-{
-    parser p(test_logger);
-
-    auto source = R"(
-        /// a
-        #define a
-
-        /// \file
-        ///
-        /// file
-
-        void b(int g);
-
-        /// \entity b
-        ///
-        /// b
-        ///
-        /// \param g g
-
-        /// \entity f
-        ///
-        /// e
-
-        /// c
-        /// \unique_name c2
-        ///
-        /// \param d d
-        /// \param e
-        /// \unique_name f
-        void c(int d, int e, int k);
-
-        /// \entity c2.k
-        /// k
-
-        /// h
-        ///
-        /// \param g g-param
-        ///
-        /// \base g g-base
-        template <typename g>
-        struct h : g {};
-
-        struct i {}; //< i
-        struct j {}; //< j
-      )";
-
-    auto tu = parse(p, "comment-matching", source);
-
-    standardese::index i;
-    auto               file = doc_file::parse(p, i, "", tu.get_file());
-
-    REQUIRE(get_text(*file) == "file");
-    for (auto& entity : *file)
+    SECTION("member groups")
     {
-        INFO(entity.get_name().c_str());
-        REQUIRE(get_text(entity) == entity.get_name().c_str());
+        auto file = parse_file({}, "comment_member_groups.cpp", R"(
+/// \group a
+void a();
 
-        if (is_function_like(entity.get_cpp_entity_type()))
-        {
-            for (auto& param : static_cast<doc_container_cpp_entity&>(entity))
-            {
-                INFO(param.get_name().c_str());
-                REQUIRE(get_text(param) == param.get_name().c_str());
-            }
-        }
-        else if (entity.get_cpp_entity_type() == cpp_entity::class_template_t)
-        {
-            for (auto& child : static_cast<doc_container_cpp_entity&>(entity))
-            {
-                INFO(child.get_name().c_str());
-                if (child.get_cpp_entity_type() == cpp_entity::base_class_t)
-                    REQUIRE(get_text(child) == "g-base");
-                else
-                    REQUIRE(get_text(child) == "g-param");
-            }
-        }
+/// \group b Heading
+void b();
+
+/// \group a
+void a(int);
+
+/// \group b
+void b(int);
+
+/// \group c
+void c();
+
+/// \group a
+void a(float);
+)");
+
+        file_comment_parser parser(test_logger());
+        parser.parse(type_safe::ref(*file));
+        auto groups = parser.finish();
+
+        auto a = groups.lookup_group("a");
+        REQUIRE((a.size() == 3u));
+        for (auto entity : a)
+            REQUIRE(entity->name() == "a");
+
+        auto b = groups.lookup_group("b");
+        REQUIRE((b.size() == 2u));
+        for (auto entity : b)
+            REQUIRE(entity->name() == "b");
+
+        auto c = groups.lookup_group("c");
+        REQUIRE((c.size() == 1u));
+        for (auto entity : c)
+            REQUIRE(entity->name() == "c");
+    }
+    SECTION("module")
+    {
+        // set synopsis to same name as module
+        // this doesn't make any sense, but is sufficient for testing here
+        auto file = parse_file({}, "comment_module.cpp", R"(
+/// \module foo
+/// \synopsis foo
+
+/// \module bar
+/// \synopsis bar
+)");
+
+        file_comment_parser parser(test_logger());
+        parser.parse(type_safe::ref(*file));
+        auto comments = parser.finish();
+
+        auto foo = comments.get_comment("foo");
+        REQUIRE(foo);
+        REQUIRE(foo.value().metadata().synopsis() == "foo");
+
+        auto bar = comments.get_comment("bar");
+        REQUIRE(bar);
+        REQUIRE(bar.value().metadata().synopsis() == "bar");
     }
 }
