@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT">
   <a href="https://travis-ci.org/foonathan/standardese"><img src="https://travis-ci.org/foonathan/standardese.svg?branch=master" alt="Travis CI"></a>
   <a href="https://ci.appveyor.com/project/foonathan/standardese/branch/master"><img src="https://ci.appveyor.com/api/projects/status/1aw8ml5lawu4mtyv/branch/master?svg=true" alt="Appveyor"></a>
-  <a href="https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"><img src="https://badges.gitter.im/foonathan/standardese.svg" alt="Gitter"></a>
+  <a href="https://gitter.im/foonathan/standardese"><img src="https://badges.gitter.im/foonathan/standardese.svg" alt="Gitter"></a>
 </p>
 
 <p align="center">The nextgen <a href="https://doxygen.org">Doxygen</a> for C++</p>
@@ -125,7 +125,7 @@ information, they also apply here.
 
 ## Documentation
 
-> If you need help or encounter a problem please contact us [on gitter](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
+> If you need help or encounter a problem please contact us [on gitter](https://gitter.im/foonathan/standardese).
 
 ### Basic Commandline Usage
 
