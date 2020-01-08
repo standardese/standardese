@@ -50,8 +50,8 @@ install:
 
 script:
   - mkdir build && cd build
-  # Use -Wnoshorten-64-to-32 to silence a warning in tiny-process-library/process_unix.cpp, see https://gitlab.com/eidheim/tiny-process-library/merge_requests/33
-  - $CMAKE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror -Wnoshorten-64-to-32 -pedantic -Wall -Wextra -Wconversion -Wsign-conversion -Wno-parentheses" -DLLVM_CONFIG_BINARY=$LLVM_CONFIG_BINARY ../
+  # Do not use -Werror until the warning in tiny-process-library/process_unix.cpp is fixed, see https://gitlab.com/eidheim/tiny-process-library/merge_requests/33
+  - $CMAKE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-pedantic -Wall -Wextra -Wconversion -Wsign-conversion -Wno-parentheses" -DLLVM_CONFIG_BINARY=$LLVM_CONFIG_BINARY ../
   - $CMAKE --build .
   - ./tool/standardese --version
   - ./test/standardese_test
