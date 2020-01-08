@@ -46,7 +46,7 @@ namespace std
 This will generate the following documentation:
 
 > # Header file `swap.hpp`
-> 
+>
 > ``` cpp
 > namespace std
 > {
@@ -54,16 +54,16 @@ This will generate the following documentation:
 >     void swap(T& a, T& b) noexcept(is_nothrow_move_constructible<T>::value && is_nothrow_move_assignable<T>::value);
 > }
 > ```
-> 
+>
 > ### Function `std::swap`
-> 
+>
 > ``` cpp
 > template <class T>
 > void swap(T& a, T& b) noexcept(is_nothrow_move_constructible<T>::value && is_nothrow_move_assignable<T>::value);
 > ```
-> 
+>
 > *Effects:* Exchanges values stored in two locations.
-> 
+>
 > *Requires:* Type `T` shall be `MoveConstructible` and `MoveAssignable`.
 
 The example makes it already clear:
