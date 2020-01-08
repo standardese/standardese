@@ -580,6 +580,6 @@ Thanks a lot to our contributors and supporters:
 
 * Trim @bresilla Bresilla, for our logo
 
-* Reiner Eiteljoerge and Sina for have supported development through patreon.
+* Reiner Eiteljoerge and Sina for having supported development through Patreon.
 
 And everyone else who shares and uses this project!
