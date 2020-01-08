@@ -29,9 +29,7 @@ FROM run-dependencies AS standardese
 
 RUN useradd -ms /bin/bash standardese
 
+COPY --from=built /build/tool/standardese /usr/local/bin/standardese
+
 USER standardese
 WORKDIR /home/standardese
-
-COPY --from=built /build/tool/standardese standardese
-
-ENTRYPOINT ["./standardese"]

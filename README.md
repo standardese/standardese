@@ -178,13 +178,11 @@ extract_private=true
 ### Basic Docker Usage
 
 For CI purposes, the `standardese/standardese` image provides a standardese
-binary at `/home/standardese/standardese` which is also set as the entrypoint
-(so in a normal CI context, you might want to set the entrypoint explicitly to
-`/bin/bash`.)
+binary at `/usr/local/bin/standardese`.
 
 If you want to process your local files with standardese, you probably want to
 mount your headers and process them with something like `docker run -v
-``pwd``:/sources standardese/standardese /sources`.
+``pwd``:/sources standardese/standardese standardese /sources`.
 
 ### Basic CMake Usage
 
