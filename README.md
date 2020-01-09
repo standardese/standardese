@@ -8,17 +8,14 @@
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT">
   <a href="https://travis-ci.org/foonathan/standardese"><img src="https://travis-ci.org/foonathan/standardese.svg?branch=master" alt="Travis CI"></a>
   <a href="https://ci.appveyor.com/project/foonathan/standardese/branch/master"><img src="https://ci.appveyor.com/api/projects/status/1aw8ml5lawu4mtyv/branch/master?svg=true" alt="Appveyor"></a>
-  <a href="https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge"><img src="https://badges.gitter.im/foonathan/standardese.svg" alt="Gitter"></a>
+  <a href="https://gitter.im/foonathan/standardese"><img src="https://badges.gitter.im/foonathan/standardese.svg" alt="Gitter"></a>
 </p>
 
 <p align="center">The nextgen <a href="https://doxygen.org">Doxygen</a> for C++</p>
 <hr>
 
-
-***Note:** The development branch is currently getting a major overhaul, this README is partly out of date and some features are missing.*
-
 Standardese aims to be a nextgen [Doxygen](http://doxygen.org).
-It consists of two parts: a library and a tool.
+It consists of two parts: a library and a command line tool.
 
 The library aims at becoming *the* documentation frontend that can be easily extended and customized.
 It parses C++ code with the help of [libclang](http://clang.llvm.org/doxygen/group__CINDEX.html) and provides access to it.
@@ -27,11 +24,6 @@ The tool drives the library to generate documentation for user-specified files.
 It supports a couple of output formats including Markdown and HTML as well as experimental Latex and Man pages.
 
 Read more in the introductory [blog post](http://foonathan.github.io/blog/2016/05/06/standardese-nextgen-doxygen.html).
-
-[![Patreon](https://c5.patreon.com/external/logo/become_a_patron_button.png)](https://patreon.com/foonathan)
-
-If you like this project, consider supporting me on Patreon.
-It would really help!
 
 ## Basic example
 
@@ -55,28 +47,20 @@ This will generate the following documentation:
 
 > # Header file `swap.hpp`
 >
->
-> ```cpp
-> #include <type_traits>
->
+> ``` cpp
 > namespace std
 > {
->     template <typename T>
->     void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
->     is_nothrow_move_assignable<T>::value);
+>     template <class T>
+>     void swap(T& a, T& b) noexcept(is_nothrow_move_constructible<T>::value && is_nothrow_move_assignable<T>::value);
 > }
 > ```
 >
+> ### Function `std::swap`
 >
-> ## Function template ``swap<T>``
->
->
-> ```cpp
-> template <typename T>
-> void swap(T & a, T & b) noexcept(is_nothrow_move_constructible<T>::value &&
-> is_nothrow_move_assignable<T>::value);
+> ``` cpp
+> template <class T>
+> void swap(T& a, T& b) noexcept(is_nothrow_move_constructible<T>::value && is_nothrow_move_assignable<T>::value);
 > ```
->
 >
 > *Effects:* Exchanges values stored in two locations.
 >
@@ -88,58 +72,64 @@ Standardese aims to provide a documentation in a similar way to the C++ standard
 This means that it provides commands to introduce so called *sections* in the documentation.
 The current sections are all the C++ standard lists in [`[structure.specifications]/3`](http://eel.is/c++draft/structure.specifications#3) like `\effects`, `\requires`, `\returns` and `\throws`.
 
-For a more complete example check out [my Meeting C++ Lightning Talk](https://www.youtube.com/watch?v=zoSGHMi-0lE).
+For a more complete example check out [foonathan's Meeting C++ Lightning Talk](https://www.youtube.com/watch?v=zoSGHMi-0lE).
 
 ## Installation
 
-### Very Easy: Pre-compiled Binaries
+Your usual software distribution might already provide standardese. If it does,
+we recommend to try that path first. Otherwise, here are some alternative paths
+to install standardese.
 
-TODO
+### conda
 
-### Easy: Docker
+A recent version of standardese is
+[packaged](https://github.com/conda-forge/standardese-feedstock/) by
+[conda-forge](https://conda-forge.org/) for Windows, Linux, and macOS.
 
-The easiest way to build standardese is to download the docker image `foonathan/standardese_dev` and run it like so:
+* install a recent version of [Miniconda](https://docs.conda.io/en/latest/miniconda.html)
+* enable [conda-forge channels](https://conda-forge.org/docs/user/introduction.html#how-can-i-install-packages-from-conda-forge)
+* create a new environment with standardese: `conda create -n standardese standardese`
+* activate your new environment: `conda activate standardese`
 
-```
-docker pull foonathan/standardese_dev
-docker run -v "/path/to/standardese/source:/root/standardese" -v "$(pwd):/root/output" foonathan/standardese_dev
-```
+Now `standardese` should be available on that command line.
 
-It will compile `standardese` as a fully statically linked binary and copy it to the current working directory.
-The binary is compatible with any Linux distribution.
+### Docker
 
-### Harder: Building From Source
+Standardese is also packaged for docker at `standardese/standardese`.
 
-The build system takes care of all dependencies automatically, except for two: Boost and libclang.
+### Building From Source
 
-It needs to have Boost.ProgramOptions and Boost.Filesystem as statically linked binaries.
-If they're installed, they should be found automatically.
-
-It also needs libclang.
-If you are under a Linux system, it should find the `llvm-config` binary automatically and everything works,
-otherwise things are a bit harder.
-Read the [cppast build instructions](https://github.com/foonathan/cppast#installation) for more information, they also apply here.
-
-Once they're installed, compiling is a simple:
+To build standardese run:
 
 ```
-cmake /path/to/standardese/source
+mkdir build
+cd build
+cmake ../
 cmake --build . --target standardese_tool
 ```
 
 The result is the executable `tool/standardese`.
 
-TODO: cmake installation
+The build system should take care of all dependencies automatically, except
+for two: Boost and libclang.
+
+We need Boost.ProgramOptions and Boost.Filesystem as statically linked
+binaries.  If they are installed, they should be found automatically.
+
+We also need libclang.  If you are under a Linux system, the `llvm-config`
+binary should be found automatically, otherwise things are a bit harder.
+Read the [cppast build
+instructions](https://github.com/foonathan/cppast#installation) for more
+information, they also apply here.
+
 
 ## Documentation
 
-> If you need help or encounter a problem please contact me [on gitter](https://gitter.im/foonathan/standardese?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge), I'll usually answer within a day or faster.
+> If you need help or encounter a problem please contact us [on gitter](https://gitter.im/foonathan/standardese).
 
-### Basic commandline usage
+### Basic Commandline Usage
 
-The tool uses Boost.ProgramOptions for the options parsing, `--help` gives a good overview.
-
-Basic usage is: `standardese [options] inputs`
+Basic usage is: `standardese [options] inputs`, see `standardese --help` for available options.
 
 The inputs can be both files or directories, in case of directory each file is documented, unless an input option is specified (see below).
 The tool will currently generate a corresponding Markdown file with the documentation for each file it gets as input.
@@ -185,7 +175,16 @@ blacklist_namespace=detail
 extract_private=true
 ```
 
-### Basic CMake usage
+### Basic Docker Usage
+
+For CI purposes, the `standardese/standardese` image provides a standardese
+binary at `/usr/local/bin/standardese`.
+
+If you want to process your local files with standardese, you probably want to
+mount your headers and process them with something like `docker run -v
+``pwd``:/sources standardese/standardese standardese /sources`.
+
+### Basic CMake Usage
 
 To ease the compilation options, you can call standardese from CMake like so:
 
@@ -202,7 +201,7 @@ It will use a custom target that runs standardese.
 You can specify the compilation options and inputs directly in CMake to allow shared variables.
 All other options must be given in a config file.
 
-If you don't have standardese installed, you can also include it directly:
+If you don't have standardese on the `PATH`, you can also include it directly:
 
 ```
 set(STANDARDESE_TOOL /path/to/standardese/binary)
@@ -554,99 +553,12 @@ For example:
 void func(int foo, int bar);
 ```
 
-### Template syntax overview
-
-> *Note:* Not implemented on develop at the moment.
-
-If you pass a file that is not a source file, it will be treated as template file and processed.
-This allows advanced control over the output or writing additional documentation files.
-
-standardese will read the file and replace two things:
-
-* URLs with the `standardese://` protocol will be converted to the correct URL for the given entity.
-This allows referring to documentation entities from other files without manually having to deal with the URLs.
-
-* Special commands inside two curly braces by default ('{{ … }}').
-
-> Note: standardese is dumb and does not do any other formatting with the template file otherwise.
-> Most importantly, it will create lot of unnecessary empty lines,
-> so does not really work with formats where newlines are important.
-
-The special commands allow querying standardese for information.
-It will look for delimiters and commands starting with `standardese_`.
-All other commands will be silently ignored.
-
-> This allows mixing "normal" template syntax with standardese syntax.
-> Process the file with standardese, then your template engine.
-
-There are the following commands available,
-`entity` always means the unique name of an entity here.
-
-* `standardese_doc <entity> <format>`: Will be replaced with the documentation output for `entity` in the given `format`.
-For example `{{ standardese_doc file.hpp html }}` will be replaced with the same HTML standardese will generate for the header file `file.hpp`.
-
-* `standardese_doc_text <entity> <format>`: Will be replaced with the comment of `entity` in the given format.
-
-* `standardese_doc_synopsis <entity> <format>`: Will be replaced with the synopsis of `entity` in the given format.
-
-* `standardese_doc_anchor <unique_name> <format>`: If `unique_name` refers to an existing entity, all links to that entity will link to the anchor in the template file generated in the given format.
-Otherwise it will create a new entity named `unique_name` you can link to throughout the documentation.
-
-* `standardese_name/index_name/unique_name <entity>`: Will be replaced with the name/index name/unique name of the given entity (just a raw character sequence without formatting).
-
-* `standardese_module`: Will be replaced by the module name of the given entity (just a raw character sequence without formatting).
-
-* `standardese_for <variable> <entity>`: Will loop over each child of `entity` and copy the processed next block, the unique name of the current child is stored in the given `variable`. For example, this will print the names of all children of an entity:
-```
-{{ standardese_for $child some_entity }}
-    {{ standardese_name $child }}
-{{ standardese_end }}
-```
-
-* `standardese_if/else_if/else <entity> <op> [args...]`: Will ignore a block if a condition is not fulfilled. See below for a list of conditions. For example, this will do something different depending on the unique name of an entity:
-```
-{{ standardese_if $entity name a }}
-    Name is a!
-{{ standardese_else_if $entity name b }}
-    Name is b!
-{{ standardese_else }}
-    Name is something else.
-{{ standardese_end }}
-```
-
-* `standardese_end`: Ends the block that was started last.
-
-There are the following if operations available:
-
-* `<entity> name <name>`: Checks if `entity` has the given unique name.
-
-* `<child> first_child <parent>`: Checks if `child` is the first child of `parent`.
-
-* `<entity> has_children`: Checks if `entity` has children.
-
-* `<entity> inline_entity`: Checks if `entity` is an inline entity (parameter, base class, enum value,...) and inline entities will be shown inline in the documentation output (`output.inline_doc`).
-
-* `<entity> member_group`: Checks if `entity` refers to a member group.
-
-* `<entity> index`: Check if `entity` refers to an index file
-
-You can also provide a default template that can be used to customize the output globally.
-Then there are two special variables available: `$file`, which refers to the current file, and `$format`, which refers to the set output format.
-The most basic template will just generate the output as standardese would do normally:
-
-```cpp
-{{ standardese_doc $file $format }}
-```
-
 ## Acknowledgements
 
-This project is greatly supported by my [patrons](https://patreon.com/foonathan).
-In particular thanks to the individual supporters:
+This project was started by Jonathan @foonathan Müller who wrote most of the
+code and maintains the cppast library that we heavily rely on.
 
-* Reiner Eiteljoerge
-* Sina
-
-Thanks a lot to the contributors as well:
+Thanks a lot to our contributors and supporters:
 
 * Manu @Manu343726 Sánchez, as always
 
@@ -667,5 +579,7 @@ Thanks a lot to the contributors as well:
 * @topisani, for issue reporting and bugfixes
 
 * Trim @bresilla Bresilla, for our logo
+
+* Reiner Eiteljoerge and Sina for having supported development through Patreon.
 
 And everyone else who shares and uses this project!

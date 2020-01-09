@@ -394,7 +394,7 @@ int main(int argc, char* argv[])
          po::value<std::string>()->default_value(""),
          "a prefix that will be added to all output files")
         ("output.format",
-         po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"html"}, "{html}"),
+         po::value<std::vector<std::string>>()->default_value(std::vector<std::string>{"commonmark"}, "{commonmark}"),
          "the output format used (html, commonmark, commonmark_html, xml, text)")
         ("output.link_extension", po::value<std::string>(),
          "the file extension of the links to entities, useful if you convert standardese output to a different format and change the extension")
