@@ -154,6 +154,33 @@ namespace ns
 </file-documentation>
 )*");
     }
+
+    SECTION("include guards")
+    {
+        auto file = build_doc_entities(comments, index, "documentation__guards.hpp", R"(
+#ifndef XXX
+#define XXX
+
+#include <type_traits>
+
+class X {};
+
+#endif
+)");
+
+        auto doc = generate_documentation({}, {}, index, *file);
+        REQUIRE(markup::as_xml(*doc) == R"*(<file-documentation id="documentation__guards.hpp">
+<heading>Header file <code>documentation__guards.hpp</code></heading>
+<code-block language="cpp"><code-block-preprocessor>#define</code-block-preprocessor> <code-block-identifier>XXX</code-block-identifier><soft-break></soft-break>
+<soft-break></soft-break>
+<code-block-keyword>class</code-block-keyword> <code-block-identifier>X</code-block-identifier><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+</code-block>
+</file-documentation>
+)*");
+
+    }
+
+
     SECTION("inlines")
     {
         auto file = build_doc_entities(comments, index, "documentation__inlines.cpp", R"(
