@@ -44,6 +44,45 @@ TEST_CASE("documentation")
     comment_registry         comments;
     cppast::cpp_entity_index index;
 
+    SECTION("readme")
+    {
+        auto file = build_doc_entities(comments, index, "documentation__readme.hpp", R"(
+#include <type_traits>
+
+namespace std
+{
+
+    /// \effects Exchanges values stored in two locations.
+    /// \requires Type `T` shall be `MoveConstructible` and `MoveAssignable`.
+    template <class T>
+    void swap(T &a, T &b) noexcept(is_nothrow_move_constructible<T>::value &&
+                                    is_nothrow_move_assignable<T>::value);
+}
+)");
+
+        auto doc = generate_documentation({}, {}, index, *file);
+        REQUIRE(markup::as_xml(*doc) == R"*(<file-documentation id="documentation__readme.hpp">
+<heading>Header file <code>documentation__readme.hpp</code></heading>
+<code-block language="cpp"><code-block-keyword>namespace</code-block-keyword> <code-block-identifier>std</code-block-identifier><soft-break></soft-break>
+<code-block-punctuation>{</code-block-punctuation><soft-break></soft-break>
+    <code-block-keyword>template</code-block-keyword> <code-block-punctuation>&lt;</code-block-punctuation><code-block-keyword>class</code-block-keyword> <code-block-identifier>T</code-block-identifier><code-block-punctuation>&gt;</code-block-punctuation><soft-break></soft-break>
+    <code-block-keyword>void</code-block-keyword> <documentation-link unresolved-destination-id="std::swap&lt;T&gt;(T&amp;,T&amp;)"><code-block-identifier>swap</code-block-identifier></documentation-link><code-block-punctuation>(</code-block-punctuation><code-block-identifier>T</code-block-identifier><code-block-punctuation>&amp;</code-block-punctuation> <code-block-identifier>a</code-block-identifier><code-block-punctuation>,</code-block-punctuation> <code-block-identifier>T</code-block-identifier><code-block-punctuation>&amp;</code-block-punctuation> <code-block-identifier>b</code-block-identifier><code-block-punctuation>)</code-block-punctuation> <code-block-keyword>noexcept</code-block-keyword><code-block-punctuation>(</code-block-punctuation><code-block-identifier>&apos;hidden&apos;</code-block-identifier><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+<code-block-punctuation>}</code-block-punctuation><soft-break></soft-break>
+</code-block>
+<entity-documentation id="std">
+<entity-documentation id="std::swap&lt;T&gt;(T&amp;,T&amp;)">
+<heading>Function <code>std::swap</code></heading>
+<code-block language="cpp"><code-block-keyword>template</code-block-keyword> <code-block-punctuation>&lt;</code-block-punctuation><code-block-keyword>class</code-block-keyword> <code-block-identifier>T</code-block-identifier><code-block-punctuation>&gt;</code-block-punctuation><soft-break></soft-break>
+<code-block-keyword>void</code-block-keyword> <code-block-identifier>swap</code-block-identifier><code-block-punctuation>(</code-block-punctuation><code-block-identifier>T</code-block-identifier><code-block-punctuation>&amp;</code-block-punctuation> <code-block-identifier>a</code-block-identifier><code-block-punctuation>,</code-block-punctuation> <code-block-identifier>T</code-block-identifier><code-block-punctuation>&amp;</code-block-punctuation> <code-block-identifier>b</code-block-identifier><code-block-punctuation>)</code-block-punctuation> <code-block-keyword>noexcept</code-block-keyword><code-block-punctuation>(</code-block-punctuation><code-block-identifier>&apos;hidden&apos;</code-block-identifier><code-block-punctuation>)</code-block-punctuation><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+</code-block>
+<inline-section name="Effects">Exchanges values stored in two locations.</inline-section>
+<inline-section name="Requires">Type <code>T</code> shall be <code>MoveConstructible</code> and <code>MoveAssignable</code>.</inline-section>
+</entity-documentation>
+</entity-documentation>
+</file-documentation>
+)*");
+    }
+
     SECTION("basic")
     {
         auto file = build_doc_entities(comments, index, "documentation__basic.cpp", R"(
