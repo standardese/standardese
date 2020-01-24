@@ -180,9 +180,19 @@ extract_private=true
 For CI purposes, the `standardese/standardese` image provides a standardese
 binary at `/usr/local/bin/standardese`.
 
-If you want to process your local files with standardese, you probably want to
-mount your headers and process them with something like `docker run -v
-``pwd``:/sources standardese/standardese standardese /sources`.
+To process local files with the standardese docker image, you need to mount
+your headers into the docker container.  If you need additional headers to be
+present, you can mount them into the docker container and make them available
+to standardese with the `-I` switch.  Note that standardese writes its output
+files to `/home/standardese` which you additionally might want to mount an
+output directory to.
+
+A typical invocation might therefore look like this:
+
+```
+mkdir output
+docker run -v `pwd`/headers:/headers:ro -v /my/include:/includes:ro -v `pwd`/output:/home/standardese standardese/standardese standardese /headers -I /includes --compilation.standard=c++17
+```
 
 ### Basic CMake Usage
 
