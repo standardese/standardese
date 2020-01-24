@@ -1,3 +1,11 @@
+## 0.4.0
+
+* Complete internal rewrite using [cppast](https://github.com/foonathan/cppast) and GitHub's fork of [cmark](https://github.com/github/cmark-gfm). Note that templating has not been implemented yet.
+
+### Build system
+
+* We do not release static binaries anymore but standardese should be soon on [conda-forge](https://conda-forge.org/) and there is a [Docker image](https://hub.docker.com/r/standardese/standardese) with a built binary.
+
 ## 0.3-4
 
 ### Documentation
