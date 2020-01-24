@@ -181,8 +181,7 @@ For CI purposes, the `standardese/standardese` image provides a standardese
 binary at `/usr/local/bin/standardese`.
 
 If you want to process your local files with standardese, you probably want to
-mount your headers and process them with something like `docker run -v
-``pwd``:/sources standardese/standardese standardese /sources`.
+mount your headers and process them with something like ``docker run -v `pwd`:/sources standardese/standardese standardese /sources``.
 
 ### Basic CMake Usage
 
