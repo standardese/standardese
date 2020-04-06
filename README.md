@@ -197,7 +197,7 @@ docker run -v `pwd`/headers:/headers:ro -v /my/include:/includes:ro -v `pwd`/out
 
 To ease the compilation options, you can call standardese from CMake like so:
 
-```
+```cmake
 find_package(standardese REQUIRED) # find standardese after installation
 
 # generates a custom target that will run standardese to generate the documentation
@@ -212,7 +212,7 @@ All other options must be given in a config file.
 
 If you don't have standardese on the `PATH`, you can also include it directly:
 
-```
+```cmake
 set(STANDARDESE_TOOL /path/to/standardese/binary)
 include(/path/to/standardese/standardese-config.cmake)
 
