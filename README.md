@@ -94,7 +94,7 @@ Now `standardese` should be available on that command line.
 
 ### Docker
 
-Standardese is also packaged for docker at `standardese/standardese`.
+Standardese is also packaged for docker at [`standardese/standardese`](https://hub.docker.com/r/standardese/standardese).
 
 ### Building From Source
 
