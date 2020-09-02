@@ -22,10 +22,14 @@ TEST_CASE("entity_index")
 using a = int;
 using b = int;
 
+namespace {}
+
+namespace {
 namespace ns1
 {
   using b = int;
   using a = int;
+}
 }
 
 namespace ns2
@@ -34,10 +38,13 @@ namespace ns2
 
   namespace inner
   {
-     using c = int;
+    using c = int;
   }
 
-  using b = int;
+  namespace
+  {
+    using b = int;
+  }
 }
 
 using z = int;
@@ -76,6 +83,8 @@ using z = int;
     {
         auto xml = R"(<entity-index id="entity-index">
 <heading>Project index</heading>
+<namespace-documentation>
+<heading>no heading</heading>
 <entity-index-item id="a">
 <entity><documentation-link unresolved-destination-id="a"><code>a</code></documentation-link></entity>
 </entity-index-item>
@@ -96,6 +105,9 @@ using z = int;
 <namespace-documentation id="ns2">
 <heading>no heading</heading>
 <brief-section>some brief documentation</brief-section>
+<namespace-documentation>
+<heading>no heading</heading>
+</namespace-documentation>
 <entity-index-item id="a">
 <entity><documentation-link unresolved-destination-id="a"><code>a</code></documentation-link></entity>
 </entity-index-item>
@@ -113,6 +125,7 @@ using z = int;
 <entity-index-item id="z">
 <entity><documentation-link unresolved-destination-id="z"><code>z</code></documentation-link></entity>
 </entity-index-item>
+</namespace-documentation>
 </entity-index>
 )";
         REQUIRE(markup::as_xml(*index.generate(entity_index::order::namespace_inline_sorted))
@@ -122,13 +135,6 @@ using z = int;
     {
         auto xml = R"(<entity-index id="entity-index">
 <heading>Project index</heading>
-<entity-index-item id="a">
-<entity><documentation-link unresolved-destination-id="a"><code>a</code></documentation-link></entity>
-</entity-index-item>
-<entity-index-item id="b">
-<entity><documentation-link unresolved-destination-id="b"><code>b</code></documentation-link></entity>
-<brief>some brief documentation</brief>
-</entity-index-item>
 <namespace-documentation id="ns1">
 <heading>no heading</heading>
 <entity-index-item id="a">
@@ -138,6 +144,9 @@ using z = int;
 <entity><documentation-link unresolved-destination-id="b"><code>b</code></documentation-link></entity>
 <brief>some brief documentation</brief>
 </entity-index-item>
+</namespace-documentation>
+<namespace-documentation>
+<heading>no heading</heading>
 </namespace-documentation>
 <namespace-documentation id="inner">
 <heading>no heading</heading>
@@ -156,9 +165,19 @@ using z = int;
 <brief>some brief documentation</brief>
 </entity-index-item>
 </namespace-documentation>
+<namespace-documentation>
+<heading>no heading</heading>
+<entity-index-item id="a">
+<entity><documentation-link unresolved-destination-id="a"><code>a</code></documentation-link></entity>
+</entity-index-item>
+<entity-index-item id="b">
+<entity><documentation-link unresolved-destination-id="b"><code>b</code></documentation-link></entity>
+<brief>some brief documentation</brief>
+</entity-index-item>
 <entity-index-item id="z">
 <entity><documentation-link unresolved-destination-id="z"><code>z</code></documentation-link></entity>
 </entity-index-item>
+</namespace-documentation>
 </entity-index>
 )";
         REQUIRE(markup::as_xml(*index.generate(entity_index::order::namespace_external)) == xml);

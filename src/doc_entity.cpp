@@ -111,13 +111,17 @@ std::string get_entity_name(bool include_scope, const cppast::cpp_entity& entity
             if (cur.value().kind() == doc_entity::cpp_entity)
             {
                 auto& cur_e = static_cast<const doc_cpp_entity&>(cur.value()).entity();
-                if (cur_e.scope_name())
+                if (cur_e.scope_name()
+                    // Do not prepend a "::" for unnamed namespaces
+                    && cur_e.scope_name().value().name() != "")
                     scope = cur_e.scope_name().value().name() + "::" + scope;
             }
             else if (cur.value().kind() == doc_entity::cpp_namespace)
             {
                 auto& cur_e = static_cast<const doc_cpp_namespace&>(cur.value()).namespace_();
-                if (cur_e.scope_name())
+                if (cur_e.scope_name()
+                    // Do not prepend a "::" for unnamed namespaces
+                    && cur_e.scope_name().value().name() != "")
                     scope = cur_e.scope_name().value().name() + "::" + scope;
             }
         }
@@ -1054,7 +1058,9 @@ bool entity_blacklist::is_blacklisted(const cppast::cpp_entity&         entity,
         for (auto cur = entity.parent(); cur; cur = cur.value().parent())
         {
             auto scope = cur.value().scope_name();
-            if (scope)
+            if (scope
+                // Do not prepend a "::" for unnamed namespaces
+                && scope.value().name() != "")
             {
                 name = scope.value().name() + "::" + name;
                 if (ns_blacklist_.count(name))

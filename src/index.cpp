@@ -76,7 +76,9 @@ std::string get_scope(const cppast::cpp_entity& e)
 {
     std::string result;
     for (auto parent = e.parent(); parent; parent = parent.value().parent())
-        if (parent.value().kind() == cppast::cpp_namespace::kind())
+        if (parent.value().kind() == cppast::cpp_namespace::kind()
+            // Do not add a "::" for unnamed namespaces
+            && parent.value().name() != "")
             result = parent.value().name() + "::" + result;
     return result;
 }
