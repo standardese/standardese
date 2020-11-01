@@ -4,6 +4,21 @@ standardese Change Log
 
 .. current developments
 
+v0.4.1
+====================
+
+**Changed:**
+
+* releases on GitHub are now created semi-automatically with [rever](https://github.com/regro/rever)
+
+**Fixed:**
+
+* catch header URL when downloading catch during test build
+* docker build; the docker build had stopped working a few months ago, since Ubuntu 19.04 had reached its end of life.
+* assertion error with unnamed namespaces
+
+
+
 v0.4.0
 ====================
 
