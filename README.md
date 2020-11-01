@@ -562,20 +562,6 @@ For example:
 void func(int foo, int bar);
 ```
 
-## Notice To Maintainers: How To Create A Release
-
-The basic steps to create a tarball to upload to the GitHub Releases Page:
-
-```
-VERSION=0.4.0
-git checkout v${VERSION}
-git submodule update --force --checkout --recursive
-conda create -n git-archive-all pip
-conda activate git-archive-all
-pip install git-archive-all
-git-archive-all --prefix standardese-${VERSION}/ -9 standardese-${VERSION}.tgz
-```
-
 ## Acknowledgements
 
 This project was started by Jonathan @foonathan Müller who wrote most of the
