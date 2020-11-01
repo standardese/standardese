@@ -50,7 +50,7 @@ $VERSION_BUMP_PATTERNS = [
     ('CMakeLists.txt', r'project\(STANDARDESE ', r'project(STANDARDESE VERSION $VERSION)'),
 ]
 
-$CHANGELOG_FILENAME = 'CHANGELOG.md'
+$CHANGELOG_FILENAME = 'CHANGELOG.rst'
 $CHANGELOG_TEMPLATE = 'TEMPLATE.rst'
 $CHANGELOG_CATEGORIES = ('Added', 'Changed', 'Removed', 'Fixed')
 $PUSH_TAG_REMOTE = 'git@github.com:standardese/standardese.git'
@@ -58,4 +58,4 @@ $PUSH_TAG_REMOTE = 'git@github.com:standardese/standardese.git'
 $GITHUB_ORG = 'standardese'
 $GITHUB_REPO = 'standardese'
 
-$GHRELEASE_ASSETS = ['standardese-' + $VERSION + '.tar.gz']
+$GHRELEASE_ASSETS = ['standardese-' + $VERSION + '.tgz']
