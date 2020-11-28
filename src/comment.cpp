@@ -234,38 +234,38 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
     // add free comments
     for (auto& free : file->unmatched_comments())
     {
-        auto comment = comment::parse(p, free.content, false);
-        if (comment::is_file(comment.entity))
+        const auto log = [&](auto... message)
         {
-            // comment for current file
-            if (!register_commented(file, std::move(comment.comment.value())))
-                logger_->log("standardese comment",
-                             make_semantic_diagnostic(*file, "multiple file comments"));
-        }
-        else if (auto module = comment::get_module(comment.entity))
+            logger_->log("standardese comment",
+              make_diagnostic(cppast::source_location::make_file(file->name(),free.line),
+              message...));
+        };
+
+        auto comment = comment::parse(p, free.content, false);
+        if (auto module = comment::get_module(comment.entity))
         {
             std::unique_lock<std::mutex> lock(mutex_);
-            auto                         result
-                = registry_.register_comment(module.value(), std::move(comment.comment.value()));
+            auto result = registry_.register_comment(module.value(), std::move(comment.comment.value()));
             lock.unlock();
 
             if (!result)
-                logger_->log("standardese comment",
-                             make_diagnostic(cppast::source_location::make_file(file->name(),
-                                                                                free.line),
-                                             "multiple comments for module '", module.value(),
-                                             "'"));
+                log("multiple comments for module '", module.value(), "'");
         }
         else if (auto name = comment::get_remote_entity(comment.entity))
         {
             assert(comment.comment);
             free_comments_.push_back(std::move(comment));
         }
+        else if (comment::is_file(comment.entity) || config_.free_file_comments())
+        {
+            // comment for current file
+            if (!register_commented(file, std::move(comment.comment.value())))
+                log("multiple file comments");
+        }
         else
-            logger_
-                ->log("standardese comment",
-                      make_diagnostic(cppast::source_location::make_file(file->name(), free.line),
-                                      "unmatched comment doesn't have a remote entity specified"));
+        {
+            log("comment does not have a remote entity specified");
+        }
     }
 }
 
