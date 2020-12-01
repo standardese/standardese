@@ -1149,7 +1149,7 @@ bool is_class(const cppast::cpp_entity& e)
 
 bool is_excluded(const cppast::cpp_entity& e, cppast::cpp_access_specifier_kind access,
                  type_safe::optional_ref<const comment::doc_comment> comment,
-                 const cppast::cpp_entity_index& index, const entity_blacklist& blacklist, bool blacklist_uncommented)
+                 const cppast::cpp_entity_index& index, const entity_blacklist& blacklist, bool hide_uncommented)
 {
     if (blacklist.is_blacklisted(e, access))
         return true;
@@ -1180,7 +1180,7 @@ bool is_excluded(const cppast::cpp_entity& e, cppast::cpp_access_specifier_kind 
             auto cur = entity;
             while (cur)
             {
-                auto excluded = is_excluded(cur.value(), access, comment, index, blacklist, blacklist_uncommented);
+                auto excluded = is_excluded(cur.value(), access, comment, index, blacklist, hide_uncommented);
                 if (excluded)
                     return true;
                 cur = cur.value().parent();
@@ -1192,7 +1192,7 @@ bool is_excluded(const cppast::cpp_entity& e, cppast::cpp_access_specifier_kind 
             return false;
     }
 
-    if (blacklist_uncommented && !is_documented(comment) && is_member(e))
+    if (hide_uncommented && !is_documented(comment) && is_member(e))
         return true;
     
     return false;
@@ -1403,12 +1403,12 @@ std::unique_ptr<doc_entity> build_entity(const comment_registry&         registr
 
 void standardese::exclude_entities(const comment_registry&         registry,
                                    const cppast::cpp_entity_index& index,
-                                   const entity_blacklist& blacklist, bool blacklist_uncommented, const cppast::cpp_file& file)
+                                   const entity_blacklist& blacklist, bool hide_uncommented, const cppast::cpp_file& file)
 {
     auto exclude_if_necessary
         = [&](const cppast::cpp_entity& entity, cppast::cpp_access_specifier_kind access) {
               auto comment = registry.get_comment(entity);
-              if (is_excluded(entity, access, comment, index, blacklist, blacklist_uncommented))
+              if (is_excluded(entity, access, comment, index, blacklist, hide_uncommented))
                   entity.set_user_data(&excluded_entity);
               else if (entity.parent() && entity.parent().value().user_data())
                   // parent excluded, so exclude this as well

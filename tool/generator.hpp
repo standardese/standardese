@@ -46,7 +46,7 @@ standardese::comment_registry parse_comments(const standardese::comment::config&
 std::vector<std::unique_ptr<standardese::doc_cpp_file>> build_files(
     const standardese::comment_registry& registry, const cppast::cpp_entity_index& index,
     std::vector<parsed_file>&& files, const standardese::entity_blacklist& blacklist,
-    bool blacklist_uncommented, unsigned no_threads);
+    bool hide_uncommented, unsigned no_threads);
 
 using documents = std::vector<std::unique_ptr<standardese::markup::document_entity>>;
 

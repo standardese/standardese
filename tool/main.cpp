@@ -227,8 +227,8 @@ standardese::generation_config get_generation_config(const po::variables_map& op
 
     config.set_flag(standardese::generation_config::document_uncommented,
                     !get_option<bool>(options, "input.require_comment").value());
-    config.set_flag(standardese::generation_config::blacklist_uncommented,
-                    !get_option<bool>(options, "input.blacklist_uncommented").value());
+    config.set_flag(standardese::generation_config::hide_uncommented,
+                    !get_option<bool>(options, "input.hide_uncommented").value());
     config.set_flag(standardese::generation_config::inline_doc,
                     get_option<bool>(options, "output.inline_doc").value());
 
@@ -348,7 +348,7 @@ int main(int argc, char* argv[])
         ("input.require_comment",
          po::value<bool>()->implicit_value(true)->default_value(true),
          "only generates documentation for entities that have a documentation comment")
-        ("input.blacklist_uncommented",
+        ("input.hide_uncommented",
          po::value<bool>()->implicit_value(true)->default_value(false),
          "omit uncommented members from the synopsis")
         ("input.extract_private",
@@ -465,7 +465,7 @@ int main(int argc, char* argv[])
                     = standardese_tool::parse_comments(comment_config, parsed.value(), no_threads);
                 auto files
                     = standardese_tool::build_files(comments, index, std::move(parsed.value()),
-                                                    blacklist, generation_config.is_flag_set(standardese::generation_config::blacklist_uncommented), no_threads);
+                                                    blacklist, generation_config.is_flag_set(standardese::generation_config::hide_uncommented), no_threads);
 
                 std::clog << "generating documentation...\n";
                 auto docs = standardese_tool::generate(generation_config, synopsis_config, comments,
