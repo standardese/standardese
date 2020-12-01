@@ -34,8 +34,6 @@ type_safe::optional<std::vector<parsed_file>> standardese_tool::parse(
                 });
 
                 auto actual_config = db_config.value_or(config);
-                actual_config.fast_preprocessing(
-                    true); // we can uncoditionally enable fast preprocessing for us
                 auto parsed
                     = parser.parse(index, fs::canonical(file.path).generic_string(), actual_config);
 

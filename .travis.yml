@@ -50,7 +50,8 @@ install:
 
 script:
   - mkdir build && cd build
-  - $CMAKE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-Werror -pedantic -Wall -Wextra -Wconversion -Wsign-conversion -Wno-parentheses" -DLLVM_CONFIG_BINARY=$LLVM_CONFIG_BINARY ../
+  # Do not use -Werror until the warning in tiny-process-library/process_unix.cpp is fixed, see https://gitlab.com/eidheim/tiny-process-library/merge_requests/33
+  - $CMAKE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-pedantic -Wall -Wextra -Wconversion -Wsign-conversion -Wno-parentheses" -DLLVM_CONFIG_BINARY=$LLVM_CONFIG_BINARY ../
   - $CMAKE --build .
   - ./tool/standardese --version
   - ./test/standardese_test

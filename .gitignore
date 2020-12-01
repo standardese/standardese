@@ -3,3 +3,7 @@ Win32/
 
 # For putting the build artifacts in-tree
 bin/
+build/
+
+# Rever
+rever/
