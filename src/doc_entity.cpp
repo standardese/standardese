@@ -61,12 +61,12 @@ namespace
 doc_excluded_entity excluded_entity;
 doc_excluded_entity parent_excluded_entity;
 
-bool is_documented(const type_safe::optional_ref<const comment::doc_comment>& comment) {
-    return comment
-           && (comment.value().brief_section()
-               || !comment.value().sections().empty());
+/// Return whether this comment provides meaningful documentation.
+bool is_documenting(const comment::doc_comment& comment) {
+    return comment.brief_section() || !comment.sections().empty();
 }
 
+/// Return whether this entity has meaningful documentation.
 bool is_documented(const doc_entity& entity)
 {
     if (entity.kind() == doc_entity::cpp_file)
@@ -74,27 +74,7 @@ bool is_documented(const doc_entity& entity)
     else if (entity.parent() && entity.parent().value().kind() == doc_entity::member_group)
         return is_documented(entity.parent().value());
     else
-        return is_documented(entity.comment());
-}
-
-bool is_member(const cppast::cpp_entity& e) {
-    switch(e.kind())
-    {
-        case cppast::cpp_entity_kind::member_variable_t:
-        case cppast::cpp_entity_kind::member_function_t:
-        case cppast::cpp_entity_kind::variable_t:
-        case cppast::cpp_entity_kind::function_t:
-        case cppast::cpp_entity_kind::variable_template_t:
-        case cppast::cpp_entity_kind::function_template_t:
-        case cppast::cpp_entity_kind::conversion_op_t:
-        case cppast::cpp_entity_kind::friend_t:
-        case cppast::cpp_entity_kind::constructor_t:
-        case cppast::cpp_entity_kind::destructor_t:
-        case cppast::cpp_entity_kind::type_alias_t:
-            return true;
-            break;
-    }
-    return false;
+        return entity.comment() && is_documenting(entity.comment().value());
 }
 
 } // namespace
@@ -1171,6 +1151,7 @@ bool is_excluded(const cppast::cpp_entity& e, cppast::cpp_access_specifier_kind 
         // exclude includes to external files
         return true;
     else if (comment && comment.value().metadata().exclude() == comment::exclude_mode::entity)
+        // exclude entities with an explicit \exclude
         return true;
     else if (e.kind() == cppast::cpp_base_class::kind())
     {
@@ -1192,8 +1173,30 @@ bool is_excluded(const cppast::cpp_entity& e, cppast::cpp_access_specifier_kind 
             return false;
     }
 
-    if (hide_uncommented && !is_documented(comment) && is_member(e))
-        return true;
+    if (hide_uncommented)
+    {
+        if (!comment || !is_documenting(comment.value()))
+        {
+            switch(e.kind())
+            {
+                case cppast::cpp_entity_kind::member_variable_t:
+                case cppast::cpp_entity_kind::member_function_t:
+                case cppast::cpp_entity_kind::variable_t:
+                case cppast::cpp_entity_kind::function_t:
+                case cppast::cpp_entity_kind::variable_template_t:
+                case cppast::cpp_entity_kind::function_template_t:
+                case cppast::cpp_entity_kind::conversion_op_t:
+                case cppast::cpp_entity_kind::friend_t:
+                case cppast::cpp_entity_kind::constructor_t:
+                case cppast::cpp_entity_kind::destructor_t:
+                case cppast::cpp_entity_kind::type_alias_t:
+                    // Hide uncommented member since its documentation would be empty.
+                    return true;
+                default:
+                    break;
+            }
+        }
+    }
     
     return false;
 }

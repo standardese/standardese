@@ -100,7 +100,7 @@ public:
         document_uncommented, //< Generate documentation for uncommented entities,
         /// even if they have no documented child entities.
 
-        hide_uncommented, //< Do not mention uncommented entities in the class synopsis
+        hide_uncommented, //< Do not mention uncommented methods and functions
 
         inline_doc, //< Show documentation of entities like parameters inline in the parent
                     // documentation.
