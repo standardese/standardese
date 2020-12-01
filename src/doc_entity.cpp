@@ -62,7 +62,8 @@ doc_excluded_entity excluded_entity;
 doc_excluded_entity parent_excluded_entity;
 
 /// Return whether this comment provides meaningful documentation.
-bool is_documenting(const comment::doc_comment& comment) {
+bool is_documenting(const comment::doc_comment& comment)
+{
     return comment.brief_section() || !comment.sections().empty();
 }
 
