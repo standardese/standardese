@@ -5,8 +5,9 @@
 cmake_minimum_required(VERSION 3.1)
 project(STANDARDESE VERSION 0.4.1)
 
-option(STANDARDESE_BUILD_TOOL "whether or not to build the tool" ON)
-option(STANDARDESE_BUILD_TEST "whether or not to build the test" ON)
+option(STANDARDESE_BUILD_TOOL "Build the standardese binary" ON)
+option(STANDARDESE_BUILD_TEST "Build the standardese test suite" ON)
+option(BUILD_SHARED_LIBS "Build shared libraries (.dll/.so/.dylib) instead of static ones (.lib/.a)" ON)
 
 set(lib_dest "lib/standardese")
 set(include_dest "include")
@@ -24,8 +25,6 @@ if (MSVC)
         /MP # Multi-processor compilation
         )
 endif()
-
-add_definitions(-DBOOST_ALL_NO_LIB) # Disable auto-link
 
 # subdirectories
 add_subdirectory(src)
