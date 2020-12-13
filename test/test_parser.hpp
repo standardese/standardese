@@ -63,22 +63,24 @@ inline standardese::comment_registry parse_comments(const cppast::cpp_file& file
 }
 
 inline std::unique_ptr<standardese::doc_cpp_file> build_doc_entities(
-    const standardese::comment_registry& comments, const cppast::cpp_entity_index& index,
-    std::unique_ptr<cppast::cpp_file> file, const standardese::entity_blacklist& blacklist = {})
+    const standardese::comment_registry& comments, const
+    cppast::cpp_entity_index& index, std::unique_ptr<cppast::cpp_file> file,
+    const standardese::entity_blacklist& blacklist = {}, bool hide_uncommented = false)
 {
     auto name = file->name();
-    standardese::exclude_entities(comments, index, blacklist, *file);
+    standardese::exclude_entities(comments, index, blacklist, hide_uncommented, *file);
     return standardese::build_doc_entities(type_safe::ref(comments), index, std::move(file),
                                            std::move(name));
 }
 
 inline std::unique_ptr<standardese::doc_cpp_file> build_doc_entities(
     standardese::comment_registry& comments, const cppast::cpp_entity_index& index,
-    const char* name, const char* source, const standardese::entity_blacklist& blacklist = {})
+    const char* name, const char* source, const standardese::entity_blacklist&
+    blacklist = {}, bool hide_uncommented = false)
 {
     auto file = parse_file(index, name, source);
     comments.merge(parse_comments(*file));
-    return build_doc_entities(comments, index, std::move(file), blacklist);
+    return build_doc_entities(comments, index, std::move(file), blacklist, hide_uncommented);
 }
 
 #endif // STANDARDESE_TEST_PARSER_HPP_INCLUDED

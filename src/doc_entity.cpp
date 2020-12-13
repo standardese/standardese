@@ -60,6 +60,24 @@ namespace
 // tag object to mark an excluded entity
 doc_excluded_entity excluded_entity;
 doc_excluded_entity parent_excluded_entity;
+
+/// Return whether this comment provides meaningful documentation.
+bool is_documenting(const comment::doc_comment& comment)
+{
+    return comment.brief_section() || !comment.sections().empty();
+}
+
+/// Return whether this entity has meaningful documentation.
+bool is_documented(const doc_entity& entity)
+{
+    if (entity.kind() == doc_entity::cpp_file)
+        return true;
+    else if (entity.parent() && entity.parent().value().kind() == doc_entity::member_group)
+        return is_documented(entity.parent().value());
+    else
+        return entity.comment() && is_documenting(entity.comment().value());
+}
+
 } // namespace
 
 bool doc_entity::is_excluded() const noexcept
@@ -350,18 +368,6 @@ private:
     {
         if (identifier.length() > 0u)
             builder_.add_child(markup::code_block::identifier::build(identifier.c_str()));
-    }
-
-    bool is_documented(const doc_entity& entity) const
-    {
-        if (entity.kind() == doc_entity::cpp_file)
-            return true;
-        else if (entity.parent() && entity.parent().value().kind() == doc_entity::member_group)
-            return is_documented(entity.parent().value());
-        else
-            return entity.comment()
-                   && (entity.comment().value().brief_section()
-                       || !entity.comment().value().sections().empty());
     }
 
     bool write_link(const doc_entity& entity, cppast::string_view name)
@@ -1124,7 +1130,7 @@ bool is_class(const cppast::cpp_entity& e)
 
 bool is_excluded(const cppast::cpp_entity& e, cppast::cpp_access_specifier_kind access,
                  type_safe::optional_ref<const comment::doc_comment> comment,
-                 const cppast::cpp_entity_index& index, const entity_blacklist& blacklist)
+                 const cppast::cpp_entity_index& index, const entity_blacklist& blacklist, bool hide_uncommented)
 {
     if (blacklist.is_blacklisted(e, access))
         return true;
@@ -1146,6 +1152,7 @@ bool is_excluded(const cppast::cpp_entity& e, cppast::cpp_access_specifier_kind 
         // exclude includes to external files
         return true;
     else if (comment && comment.value().metadata().exclude() == comment::exclude_mode::entity)
+        // exclude entities with an explicit \exclude
         return true;
     else if (e.kind() == cppast::cpp_base_class::kind())
     {
@@ -1155,7 +1162,7 @@ bool is_excluded(const cppast::cpp_entity& e, cppast::cpp_access_specifier_kind 
             auto cur = entity;
             while (cur)
             {
-                auto excluded = is_excluded(cur.value(), access, comment, index, blacklist);
+                auto excluded = is_excluded(cur.value(), access, comment, index, blacklist, hide_uncommented);
                 if (excluded)
                     return true;
                 cur = cur.value().parent();
@@ -1166,8 +1173,33 @@ bool is_excluded(const cppast::cpp_entity& e, cppast::cpp_access_specifier_kind 
         else
             return false;
     }
-    else
-        return false;
+
+    if (hide_uncommented)
+    {
+        if (!comment || !is_documenting(comment.value()))
+        {
+            switch(e.kind())
+            {
+                case cppast::cpp_entity_kind::member_variable_t:
+                case cppast::cpp_entity_kind::member_function_t:
+                case cppast::cpp_entity_kind::variable_t:
+                case cppast::cpp_entity_kind::function_t:
+                case cppast::cpp_entity_kind::variable_template_t:
+                case cppast::cpp_entity_kind::function_template_t:
+                case cppast::cpp_entity_kind::conversion_op_t:
+                case cppast::cpp_entity_kind::friend_t:
+                case cppast::cpp_entity_kind::constructor_t:
+                case cppast::cpp_entity_kind::destructor_t:
+                case cppast::cpp_entity_kind::type_alias_t:
+                    // Hide uncommented member since its documentation would be empty.
+                    return true;
+                default:
+                    break;
+            }
+        }
+    }
+    
+    return false;
 }
 
 bool is_ignored(const cppast::cpp_entity& e)
@@ -1375,12 +1407,12 @@ std::unique_ptr<doc_entity> build_entity(const comment_registry&         registr
 
 void standardese::exclude_entities(const comment_registry&         registry,
                                    const cppast::cpp_entity_index& index,
-                                   const entity_blacklist& blacklist, const cppast::cpp_file& file)
+                                   const entity_blacklist& blacklist, bool hide_uncommented, const cppast::cpp_file& file)
 {
     auto exclude_if_necessary
         = [&](const cppast::cpp_entity& entity, cppast::cpp_access_specifier_kind access) {
               auto comment = registry.get_comment(entity);
-              if (is_excluded(entity, access, comment, index, blacklist))
+              if (is_excluded(entity, access, comment, index, blacklist, hide_uncommented))
                   entity.set_user_data(&excluded_entity);
               else if (entity.parent() && entity.parent().value().user_data())
                   // parent excluded, so exclude this as well

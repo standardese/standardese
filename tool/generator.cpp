@@ -68,13 +68,13 @@ standardese::comment_registry standardese_tool::parse_comments(
 std::vector<std::unique_ptr<standardese::doc_cpp_file>> standardese_tool::build_files(
     const standardese::comment_registry& registry, const cppast::cpp_entity_index& index,
     std::vector<parsed_file>&& files, const standardese::entity_blacklist& blacklist,
-    unsigned no_threads)
+    bool hide_uncommented, unsigned no_threads)
 {
     {
         thread_pool pool(no_threads);
         for (auto& file : files)
             add_job(pool,
-                    [&] { standardese::exclude_entities(registry, index, blacklist, *file.file); });
+                    [&] { standardese::exclude_entities(registry, index, blacklist, hide_uncommented, *file.file); });
     }
 
     std::vector<std::unique_ptr<standardese::doc_cpp_file>> result;
