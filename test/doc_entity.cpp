@@ -200,6 +200,25 @@ file - doc_entity__blacklisted.cpp
     entity - outer::a
 )");
     }
+
+    SECTION("Uncommented entries are hidden when hide_uncommented is set")
+    {
+        auto file = build_doc_entities(comments, {}, "doc_entity__uncommented.cpp", R"(
+struct UncommentedType {
+  void uncommentedMember();
+
+  /// Unlike the other member, this one shows up because it has a comment.
+  void commentedMember();
+};
+)", {}, true);
+
+        REQUIRE(debug_string(*file) == R"(
+file - doc_entity__uncommented.cpp
+  entity - UncommentedType
+    entity - UncommentedType::commentedMember()
+)");
+    }
+
     SECTION("member groups")
     {
         auto file = build_doc_entities(comments, {}, "doc_entity__member_groups", R"(
