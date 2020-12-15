@@ -20,5 +20,5 @@ find_package(Boost COMPONENTS program_options filesystem system REQUIRED)
 target_include_directories(standardese_tool PUBLIC ${Boost_INCLUDE_DIR})
 target_link_libraries(standardese_tool PUBLIC ${Boost_LIBRARIES})
 
-# install tool
-#install(TARGETS standardese_tool EXPORT standardese DESTINATION "${tool_dest}")
+# install standardese binary
+install(TARGETS standardese_tool EXPORT standardese DESTINATION "${tool_dest}")
