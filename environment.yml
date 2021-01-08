@@ -1,0 +1,14 @@
+# This file lists the dependencies needed to build and test all of standerdese.
+# Create a conda environment with these dependencies preinstalled with:
+# conda env create -f environment.yml
+name: standardese-build
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - boost-cpp
+  - clangdev
+  - cmake
+  - coreutils
+  - cxx-compiler
+  - make

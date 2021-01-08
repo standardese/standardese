@@ -1,0 +1,15 @@
+name: Cancel outdated runs
+on:
+  workflow_run:
+    workflows: ['Test']
+    types: ['requested']
+
+jobs:
+  cancel-duplicate-workflow-runs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: potiuk/cancel-workflow-runs@master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          sourceRunId: ${{ github.event.workflow_run.id }}
+          skipEventTypes: '["push", "schedule"]'
