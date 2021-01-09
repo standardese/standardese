@@ -31,7 +31,7 @@ set(tests
 add_executable(standardese_test test.cpp test_logger.hpp test_parser.hpp ${tests})
 target_include_directories(standardese_test PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_link_libraries(standardese_test PUBLIC standardese)
-set_target_properties(standardese_test PROPERTIES CXX_STANDARD 11)
+set_target_properties(standardese_test PROPERTIES CXX_STANDARD 17)
 
 enable_testing()
 add_test(NAME test COMMAND standardese_test)

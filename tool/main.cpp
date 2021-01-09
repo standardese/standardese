@@ -197,7 +197,8 @@ std::vector<standardese_tool::input_file> get_input(const po::variables_map& opt
 standardese::comment::config get_comment_config(const po::variables_map& options)
 {
     standardese::comment::config config(
-        get_option<char>(options, "comment.command_character").value());
+        get_option<char>(options, "comment.command_character").value(),
+        get_option<bool>(options, "comment.free_file_comments").value());
 
     // TODO: handle command overrides
 
@@ -383,6 +384,7 @@ int main(int argc, char* argv[])
          "override name for the command following the name_ (e.g. comment.cmd_name_requires=require)")
         ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""),
          "syntax is namespace=url, supports linking to a different URL for entities in a certain namespace")
+        ("comment.free_file_comments", po::value<bool>()->implicit_value(true)->default_value(standardese::comment::config::default_free_file_comments()))
 
         // TODO
         ("template.default_template", po::value<std::string>()->default_value("", ""),

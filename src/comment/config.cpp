@@ -206,7 +206,7 @@ const char* config::default_list_section_name(section_type section) noexcept
     return "forgot a section";
 }
 
-config::config(char command_character) : command_character_(command_character)
+config::config(char command_character, bool free_file_comments) : command_character_(command_character), free_file_comments_(free_file_comments)
 {
     for (auto i = 0u; i != unsigned(section_type::count); ++i)
         command_names_[i] = default_command_name(make_section(i));

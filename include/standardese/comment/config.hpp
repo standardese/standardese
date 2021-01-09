@@ -24,6 +24,13 @@ namespace comment
             return '\\';
         }
 
+        /// \returns The default value for whether comments should be
+        /// considered for the entire file if they cannot be matched elsewhere.
+        static bool default_free_file_comments()
+        {
+            return false;
+        }
+
         /// \returns The default name for the given command or section.
         /// \group default_command_name
         static const char* default_command_name(command_type cmd) noexcept;
@@ -42,7 +49,8 @@ namespace comment
 
         /// \effects Creates it giving the command character,
         /// that is, the character that introduces a command.
-        explicit config(char command_character = default_command_character());
+        explicit config(char command_character = default_command_character(),
+            bool free_file_comments = default_free_file_comments());
 
         /// \effects Sets the name for the given command or section.
         /// \group set_command_name
@@ -81,11 +89,20 @@ namespace comment
         /// \returns The name of a [standardese::markup::list_section]().
         const char* list_section_name(section_type section) const noexcept;
 
+        /// \returns Whether comments in a file that cannot be associated to a
+        /// particular entity such as a class should be treated as comments for
+        /// the entire header file even if they do not start with the `\file`
+        /// command.
+        bool free_file_comments() const {
+            return free_file_comments_;
+        }
+
     private:
         std::array<std::string, unsigned(inline_type::count)>  command_names_;
         std::array<std::string, unsigned(section_type::count)> inline_sections_;
         std::array<std::string, unsigned(section_type::count)> list_sections_;
         char                                                   command_character_;
+        bool                                                   free_file_comments_;
     };
 } // namespace comment
 } // namespace standardese

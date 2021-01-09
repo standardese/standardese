@@ -250,4 +250,14 @@ void a(float);
         REQUIRE(bar);
         REQUIRE(bar.value().metadata().synopsis() == "bar");
     }
+    SECTION("free file comments")
+    {
+        auto file = parse_file({}, "file_comment.hpp", R"(
+/// Here we explain what this header file is about.
+)");
+
+        file_comment_parser parser(test_logger(), comment::config('\\', true));
+        parser.parse(type_safe::ref(*file));
+        auto comments = parser.finish();
+    }
 }

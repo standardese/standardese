@@ -69,7 +69,7 @@ set(src
     linker.cpp)
 
 add_library(standardese ${detail_header} ${comment_header} ${markup_header} ${header} ${comment_src} ${markup_src} ${src})
-set_target_properties(standardese PROPERTIES CXX_STANDARD 11)
+set_target_properties(standardese PROPERTIES CXX_STANDARD 17)
 target_include_directories(standardese PUBLIC
                                 $<BUILD_INTERFACE:${STANDARDESE_SOURCE_DIR}/include>
                                 $<INSTALL_INTERFACE:${include_dest}>
