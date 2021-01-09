@@ -589,7 +589,7 @@ void parse_command_impl(comment_builder* builder, bool has_matching_entity, meta
 
     case command_type::count:
     case command_type::invalid:
-        error(node, std::string("unkown command ") + detail::get_command_arguments(node));
+        error(node, std::string("unknown command ") + detail::get_command_arguments(node));
         break;
 
     case command_type::end:
