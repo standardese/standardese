@@ -258,9 +258,7 @@ PLATFORMS
 
 DEPENDENCIES
   github-pages
-  jekyll-feed (~> 0.6)
   minima
-  rouge
 
 BUNDLED WITH
    2.2.11

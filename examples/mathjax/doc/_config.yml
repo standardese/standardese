@@ -1,12 +1,4 @@
 header_pages:
   - None
 
-# kramdown rewrites our LaTeX environments so we use GFM here. (The main
-# problem with that rewrite is that it escapes \_ yet another time which breaks
-# subscripts.)
-markdown: GFM
-highlighter: rouge
 theme: minima
-plugins:
-  - jekyll-feed
-  - github-pages
