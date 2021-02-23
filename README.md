@@ -22,7 +22,7 @@ It parses C++ code with the help of [libclang](http://clang.llvm.org/doxygen/gro
 The tool drives the library to generate documentation for user-specified files.
 It supports a couple of output formats including Markdown and HTML as well as experimental Latex and Man pages.
 
-Read more in the introductory [blog post](http://foonathan.github.io/blog/2016/05/06/standardese-nextgen-doxygen.html).
+Read more in [the](https://foonathan.net/2016/05/standardese-nextgen-doxygen) [introductory](https://foonathan.net/2016/06/standardese-01) [blog](https://foonathan.net/2016/08/standardese-02) [posts](https://foonathan.net/2016/11/standardese-0.3).
 
 ## Basic example
 
