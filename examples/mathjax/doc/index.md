@@ -1,4 +1,4 @@
-This project uses [MathJax](https://mathjax.org) to display $$\LaTeX$$ in its HTML output.
+This project uses [MathJax](https://mathjax.org) to display $\LaTeX$ in its HTML output.
 
 This file was generated from a static index.md file. The documentation for
 [mathjax.hpp](./generated/markdown/doc_mathjax.md) was generated with
