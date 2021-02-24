@@ -857,24 +857,19 @@ std::unique_ptr<markup::documentation_entity> doc_cpp_entity::do_generate_docume
 
         // add inlines
         if (!my_inlines.tparams.empty())
-            builder.add_section(markup::list_section::build(markup::section_type::invalid,
-                                                            "Template parameters",
+            builder.add_section(markup::list_section::build("Template parameters",
                                                             my_inlines.tparams.finish()));
         if (!my_inlines.params.empty())
-            builder.add_section(markup::list_section::build(markup::section_type::invalid,
-                                                            "Parameters",
+            builder.add_section(markup::list_section::build("Parameters",
                                                             my_inlines.params.finish()));
         if (!my_inlines.bases.empty())
-            builder.add_section(markup::list_section::build(markup::section_type::invalid,
-                                                            "Base classes",
+            builder.add_section(markup::list_section::build("Base classes",
                                                             my_inlines.bases.finish()));
         if (!my_inlines.enumerators.empty())
-            builder.add_section(markup::list_section::build(markup::section_type::invalid,
-                                                            "Enumerators",
+            builder.add_section(markup::list_section::build("Enumerators",
                                                             my_inlines.enumerators.finish()));
         if (!my_inlines.members.empty())
-            builder.add_section(markup::list_section::build(markup::section_type::invalid,
-                                                            "Member variables",
+            builder.add_section(markup::list_section::build("Member variables",
                                                             my_inlines.members.finish()));
 
         if (comment() || (!builder.empty() && !builder.has_documentation())

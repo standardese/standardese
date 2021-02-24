@@ -1,4 +1,5 @@
 // Copyright (C) 2016-2019 Jonathan Müller <jonathanmueller.dev@gmail.com>
+//               2021 Julian Rüth <julian.rueth@fsfe.org>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -9,58 +10,19 @@
 #include <standardese/markup/list.hpp>
 #include <standardese/markup/paragraph.hpp>
 #include <standardese/markup/phrasing.hpp>
+#include <standardese/comment/commands.hpp>
 
 namespace standardese
 {
 namespace markup
 {
-    /// The type of a documentation section.
-    enum class section_type : unsigned
-    {
-        brief,
-        details,
+    using section_type = comment::section_type;
 
-        // [structure.specifications]/3 sections
-        requires,
-        effects,
-        synchronization,
-        postconditions,
-        returns,
-        throws,
-        complexity,
-        remarks,
-        error_conditions,
-        notes,
-
-        preconditions, //< For consistency with postconditions.
-
-        // proposed by p0788, not including ensures and expects
-        constraints, //< Compile-time requirements.
-        diagnostics, //< Compile-time requirements that will yield error message
-                     //(`static_assert()`).
-
-        see,
-
-        count,
-        invalid = count
-    };
-
-    /// A special section in an entity documentation.
+    /// A section in an entity documentation.
     class doc_section : public entity
     {
-    public:
-        /// \returns The type of section it is.
-        /// It may return [*section_type::invalid]() if there is no directly associated type.
-        section_type type() const noexcept
-        {
-            return do_get_section_type();
-        }
-
     protected:
         doc_section() noexcept = default;
-
-    private:
-        virtual section_type do_get_section_type() const noexcept = 0;
     };
 
     /// The `\brief` section in an entity documentation.
@@ -82,11 +44,6 @@ namespace markup
 
     private:
         entity_kind do_get_kind() const noexcept override;
-
-        section_type do_get_section_type() const noexcept override
-        {
-            return section_type::brief;
-        }
 
         void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
@@ -111,11 +68,6 @@ namespace markup
 
     private:
         entity_kind do_get_kind() const noexcept override;
-
-        section_type do_get_section_type() const noexcept override
-        {
-            return section_type::details;
-        }
 
         void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
@@ -192,11 +144,6 @@ namespace markup
     private:
         entity_kind do_get_kind() const noexcept override;
 
-        section_type do_get_section_type() const noexcept override
-        {
-            return type_;
-        }
-
         void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
         std::unique_ptr<entity> do_clone() const override;
@@ -213,12 +160,12 @@ namespace markup
 
     /// A section containing a list.
     ///
-    /// This can be a `\returns` with an entry for each return value, for example.
+    /// For example this is used to render the list of parameters to a function or method.
     class list_section final : public doc_section
     {
     public:
         /// \returns A newly built list section.
-        static std::unique_ptr<list_section> build(section_type type, std::string name,
+        static std::unique_ptr<list_section> build(std::string name,
                                                    std::unique_ptr<unordered_list> list);
 
         /// \returns The name of the section.
@@ -250,20 +197,14 @@ namespace markup
     private:
         entity_kind do_get_kind() const noexcept override;
 
-        section_type do_get_section_type() const noexcept override
-        {
-            return type_;
-        }
-
         void do_visit(detail::visitor_callback_t cb, void* mem) const override;
 
         std::unique_ptr<entity> do_clone() const override;
 
-        list_section(section_type type, std::string name, std::unique_ptr<unordered_list> list);
+        list_section(std::string name, std::unique_ptr<unordered_list> list);
 
         std::string                     name_;
         std::unique_ptr<unordered_list> list_;
-        section_type                    type_;
     };
 } // namespace markup
 } // namespace standardese

@@ -1,4 +1,5 @@
 // Copyright (C) 2016-2019 Jonathan Müller <jonathanmueller.dev@gmail.com>
+//               2021 Julian Rüth <julian.rueth@fsfe.org>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -198,9 +199,8 @@ standardese::comment::config get_comment_config(const po::variables_map& options
 {
     standardese::comment::config config(
         get_option<char>(options, "comment.command_character").value(),
-        get_option<bool>(options, "comment.free_file_comments").value());
-
-    // TODO: handle command overrides
+        get_option<bool>(options, "comment.free_file_comments").value(),
+        get_option<std::vector<std::string>>(options, "comment.command_pattern").value());
 
     return config;
 }
@@ -380,22 +380,11 @@ int main(int argc, char* argv[])
 
         ("comment.command_character", po::value<char>()->default_value(standardese::comment::config::default_command_character()),
          "character used to introduce special commands")
-        ("comment.cmd_name_", po::value<std::string>(), // TODO
-         "override name for the command following the name_ (e.g. comment.cmd_name_requires=require)")
+        ("comment.command_pattern", po::value<std::vector<std::string>>()->default_value({}, ""),
+         "set the regular expression to detect a command, e.g., `--comment.command_pattern 'returns=RETURNS:'` or `'returns|=RETURNS:'` to also keep the original pattern.")
         ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""),
          "syntax is namespace=url, supports linking to a different URL for entities in a certain namespace")
         ("comment.free_file_comments", po::value<bool>()->implicit_value(true)->default_value(standardese::comment::config::default_free_file_comments()))
-
-        // TODO
-        ("template.default_template", po::value<std::string>()->default_value("", ""),
-         "set the default template for all output")
-        ("template.delimiter_begin", po::value<std::string>()->default_value("{{"),
-         "set the template delimiter begin string")
-        ("template.delimiter_end", po::value<std::string>()->default_value("}}"),
-         "set the template delimiter end string")
-        ("template.cmd_name_", po::value<std::string>(),
-         "override the name for the template command following the name_ (e.g. template.cmd_name_if=my_if);"
-         "standardese prefix will be added automatically")
 
         ("output.prefix",
          po::value<std::string>()->default_value(""),
@@ -410,8 +399,6 @@ int main(int argc, char* argv[])
         ("output.entity_index_order", po::value<std::string>()->default_value("namespace_inline_sorted"),
          "how the namespaces are handled in the entity index: namespace_inline_sorted (sorted inline with all others), "
          "namespace_external (namespaces in top-level list only, sorted by the end position in the source file)")
-        ("output.section_name_", po::value<std::string>(), // TODO
-         "override output name for the section following the name_ (e.g. output.section_name_requires=Require)")
         ("output.tab_width", po::value<unsigned>()->default_value(standardese::synopsis_config::default_tab_width()),
          "the tab width (i.e. number of spaces, won't emit tab) of the code in the synthesis")
         ("output.inline_doc", po::value<bool>()->default_value(true)->implicit_value(true),

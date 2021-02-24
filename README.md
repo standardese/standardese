@@ -132,7 +132,6 @@ Basic usage is: `standardese [options] inputs`, see `standardese --help` for ava
 
 The inputs can be both files or directories, in case of directory each file is documented, unless an input option is specified (see below).
 The tool will currently generate a corresponding Markdown file with the documentation for each file it gets as input.
-Files that are not source files (determined by the `input.source_ext` option), will be treated as template files (see below).
 
 > Note: You only need and should give header files to standardese.
 > The source files are unnecessary.
@@ -155,9 +154,6 @@ standardese will pass *all* the flags of all files to libclang.
 
 * The `comment.*` options are related to the syntax of the documentation markup.
 You can set both the leading character and the name for each command, for example.
-
-* The `template.*` options are related to the syntax of the template markup.
-You can set both the delimiters and the name for each command, for example.
 
 * The `output.*` options are related to the output generation.
 It contains an option to set the human readable name of a section, for example.
@@ -473,7 +469,8 @@ Use `\n` to render a newline and use `\t` to render a tab.
     ```
     It also mixes with `unique_name` as you might expect.
 
-* `file` - A shorthand for `\entity current-file-name`.
+* `file` - similar to `entity`, marks a comment that
+  describes this entire file.
 
 ---
 
@@ -501,39 +498,6 @@ If you don't specify a section for a paragraph, the first paragraph will be impl
 /// \notes This is notes.
 /// \notes This is a different notes.
 ```
-
-If you have a section with the form `\<section> <arg> - <text>`, it will generate a key value list in the output.
-Then you can also add other key-value pairs in each line.
-Use `_` as argument for an empty key.
-Surround the argument in `[<arg>]` and it will create a link where `<arg>` is also the destination,
-i.e. like a regular entity link of the form `[<arg>]()`.
-
-*Note: Due to implementation reason you can't use a real CommonMark link as key.*
-
-The value consists of CommonMark inline formatting until the reset of the section or a new key is encountered.
-For example:
-
-```cpp
-/// This is documentation text (implictly brief btw).
-/// \returns 0 - Everything okay (first key-value pair).
-/// 1 - There was an input error (second key-value pair).
-/// This is *still* the second key-value pair.
-///
-/// This is normal text as the paragraph ended.
-```
-
-This will generate a list of possible return values in the output.
-
-This is also how the `see` section is intended:
-
-```cpp
-/// Some documentation...
-/// \see [this_type] - Put a description here (optional)
-/// [this_func()] -
-/// [std::vector<T>] -
-```
-
-It will generate a "See also:" list in the output with links to the entities.
 
 ---
 

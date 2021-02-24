@@ -26,7 +26,9 @@ set(tests
     documentation.cpp
     index.cpp
     linker.cpp
-    synopsis.cpp)
+    synopsis.cpp
+    util/indent.cpp
+    util/assertions/sections.cpp)
 
 add_executable(standardese_test test.cpp test_logger.hpp test_parser.hpp ${tests})
 target_include_directories(standardese_test PUBLIC ${CMAKE_CURRENT_BINARY_DIR})

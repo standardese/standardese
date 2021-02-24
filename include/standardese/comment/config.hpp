@@ -1,4 +1,5 @@
 // Copyright (C) 2016-2019 Jonathan Müller <jonathanmueller.dev@gmail.com>
+//               2021 Julian Rüth <julian.rueth@fsfe.org>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -7,6 +8,7 @@
 
 #include <array>
 #include <string>
+#include <regex>
 
 #include <standardese/comment/commands.hpp>
 
@@ -19,75 +21,36 @@ namespace comment
     {
     public:
         /// \returns The default command character.
-        static char default_command_character() noexcept
+        static char default_command_character()
         {
             return '\\';
         }
 
-        /// \returns The default value for whether comments should be
-        /// considered for the entire file if they cannot be matched elsewhere.
+        /// \returns The default value for whether comments should be applied
+        /// to the entire file if they cannot be matched elsewhere.
         static bool default_free_file_comments()
         {
             return false;
         }
 
-        /// \returns The default name for the given command or section.
-        /// \group default_command_name
-        static const char* default_command_name(command_type cmd) noexcept;
+        /// \effects Create a configuration such that all commands are formed
+        /// by prefixing the command name with the command character.
+        explicit config(
+            char command_character = default_command_character(),
+            bool free_file_comments = default_free_file_comments(),
+            const std::vector<std::string>& command_patterns = {});
 
-        /// \group default_command_name
-        static const char* default_command_name(section_type cmd) noexcept;
+        /// \returns The pattern that introduces a cmd command.
+        const std::regex& get_command_pattern(command_type cmd) const;
 
-        /// \group default_command_name
-        static const char* default_command_name(inline_type cmd) noexcept;
+        /// \returns The pattern that introduces a cmd section.
+        const std::regex& get_command_pattern(section_type cmd) const;
 
-        /// \returns The default name of a [standardese::markup::inline_section]().
-        static const char* default_inline_section_name(section_type section) noexcept;
-
-        /// \returns The default name of a [standardese::markup::list_section]().
-        static const char* default_list_section_name(section_type section) noexcept;
-
-        /// \effects Creates it giving the command character,
-        /// that is, the character that introduces a command.
-        explicit config(char command_character = default_command_character(),
-            bool free_file_comments = default_free_file_comments());
-
-        /// \effects Sets the name for the given command or section.
-        /// \group set_command_name
-        void set_command_name(command_type cmd, std::string name);
-
-        /// \group set_command_name
-        void set_command_name(section_type cmd, std::string name);
-
-        /// \group set_command_name
-        void set_command_name(inline_type cmd, std::string name);
-
-        /// \returns The command character.
-        char command_character() const noexcept
-        {
-            return command_character_;
-        }
-
-        /// \returns The name for the given command or section.
-        /// \group command_name
-        const char* command_name(command_type cmd) const noexcept;
-
-        /// \group command_name
-        const char* command_name(section_type cmd) const noexcept;
-
-        /// \group command_name
-        const char* command_name(inline_type cmd) const noexcept;
-
-        /// \returns The command or section corresponding to the given command string,
-        /// or an invalid value, if it doesn't belong to anything.
-        /// The command string does not contain the leading command character.
-        unsigned try_lookup(const char* name) const noexcept;
+        /// \returns The pattern that introduces a cmd inline.
+        const std::regex& get_command_pattern(inline_type cmd) const;
 
         /// \returns The name of a [standardese::markup::inline_section]().
-        const char* inline_section_name(section_type section) const noexcept;
-
-        /// \returns The name of a [standardese::markup::list_section]().
-        const char* list_section_name(section_type section) const noexcept;
+        const char* inline_section_name(section_type section) const;
 
         /// \returns Whether comments in a file that cannot be associated to a
         /// particular entity such as a class should be treated as comments for
@@ -98,11 +61,34 @@ namespace comment
         }
 
     private:
-        std::array<std::string, unsigned(inline_type::count)>  command_names_;
-        std::array<std::string, unsigned(section_type::count)> inline_sections_;
-        std::array<std::string, unsigned(section_type::count)> list_sections_;
-        char                                                   command_character_;
-        bool                                                   free_file_comments_;
+
+        /// \returns The default pattern for the given command or section.
+        /// \group default_command_pattern
+        static std::string default_command_pattern(char command_character, command_type cmd);
+
+        /// \group default_command_pattern
+        static std::string default_command_pattern(char command_character, section_type cmd);
+
+        /// \group default_command_pattern
+        static std::string default_command_pattern(char command_character, inline_type cmd);
+
+        /// \returns The default name of this command, i.e., the `name` in `\name`.
+        static const char* command_name(command_type cmd);
+
+        /// \returns The default name of this command, i.e., the `name` in `\name`.
+        static const char* command_name(section_type cmd);
+
+        /// \returns The default name of this command, i.e., the `name` in `\name`.
+        static const char* command_name(inline_type cmd);
+
+        /// \returns The pattern obtained from the command line arguments `options`.
+        static std::regex command_pattern(const std::vector<std::string>& options);
+
+        std::vector<std::regex> special_command_patterns_;
+        std::vector<std::regex> section_command_patterns_;
+        std::vector<std::regex> inline_command_patterns_;
+
+        bool free_file_comments_;
     };
 } // namespace comment
 } // namespace standardese

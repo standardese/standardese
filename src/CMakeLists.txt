@@ -35,8 +35,16 @@ set(header
     ../include/standardese/logger.hpp)
 
 set(comment_src
-    comment/cmark_ext.hpp
-    comment/cmark_ext.cpp
+    comment/command-extension/command_extension.hpp
+    comment/command-extension/command_extension.cpp
+    comment/verbatim-extension/verbatim_extension.hpp
+    comment/verbatim-extension/verbatim_extension.cpp
+    comment/ignore-html-extension/ignore_html_extension.hpp
+    comment/ignore-html-extension/ignore_html_extension.cpp
+    comment/command-extension/user_data.hpp
+    comment/command-extension/user_data.cpp
+    comment/cmark-extension/cmark_extension.hpp
+    comment/cmark-extension/cmark_extension.cpp
     comment/config.cpp
     comment/doc_comment.cpp
     comment/parser.cpp)
@@ -66,7 +74,8 @@ set(src
     comment.cpp
     doc_entity.cpp
     index.cpp
-    linker.cpp)
+    linker.cpp
+    util/enum_values.hpp)
 
 add_library(standardese ${detail_header} ${comment_header} ${markup_header} ${header} ${comment_src} ${markup_src} ${src})
 set_target_properties(standardese PROPERTIES CXX_STANDARD 17)
