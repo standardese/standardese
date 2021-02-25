@@ -3,7 +3,10 @@
     window.MathJax = {
       tex: {
         // https://docs.mathjax.org/en/latest/input/tex/delimiters.html#tex-and-latex-math-delimiters
-        inlineMath: [['$', '$'], ['\\(', '\\)']]
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        // To use Doxygen delimiters, we could set:
+        // inlineMath: [[ '\\f$', '\\f$']],
+        // displayMath: [[ '\\f[', '\\f]']],
       }
     };
   </script>
