@@ -5,7 +5,7 @@
 #ifndef STANDARDESE_TEST_LOGGER_HPP_INCLUDED
 #define STANDARDESE_TEST_LOGGER_HPP_INCLUDED
 
-#include <catch.hpp>
+#include "../external/catch/single_include/catch2/catch.hpp"
 
 #include <cppast/diagnostic_logger.hpp>
 

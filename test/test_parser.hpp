@@ -7,7 +7,7 @@
 
 #include <fstream>
 
-#include <catch.hpp>
+#include "../external/catch/single_include/catch2/catch.hpp"
 
 #include <cppast/libclang_parser.hpp>
 #include <cppast/visitor.hpp>

@@ -4,7 +4,7 @@
 
 #include <standardese/markup/link.hpp>
 
-#include <catch.hpp>
+#include "../external/catch/single_include/catch2/catch.hpp"
 
 #include <standardese/markup/document.hpp>
 #include <standardese/markup/generator.hpp>

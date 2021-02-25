@@ -4,7 +4,7 @@
 
 #include <standardese/comment/parser.hpp>
 
-#include <catch.hpp>
+#include "../external/catch/single_include/catch2/catch.hpp"
 
 #include <standardese/markup/generator.hpp>
 

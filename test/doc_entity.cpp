@@ -4,7 +4,7 @@
 
 #include <standardese/doc_entity.hpp>
 
-#include <catch.hpp>
+#include "../external/catch/single_include/catch2/catch.hpp"
 
 #include "test_parser.hpp"
 
