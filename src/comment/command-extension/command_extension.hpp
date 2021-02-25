@@ -6,6 +6,8 @@
 #ifndef STANDARDESE_COMMENT_COMMAND_EXTENSION_COMMAND_EXTENSION_HPP_INCLUDED
 #define STANDARDESE_COMMENT_COMMAND_EXTENSION_COMMAND_EXTENSION_HPP_INCLUDED
 
+#include <optional>
+
 #include <cmark-gfm.h>
 
 #include <standardese/comment/config.hpp>
