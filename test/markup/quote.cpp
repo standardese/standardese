@@ -4,7 +4,7 @@
 
 #include <standardese/markup/quote.hpp>
 
-#include <catch.hpp>
+#include "../external/catch/single_include/catch2/catch.hpp"
 
 #include <algorithm>
 

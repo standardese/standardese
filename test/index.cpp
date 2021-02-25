@@ -4,7 +4,7 @@
 
 #include <standardese/index.hpp>
 
-#include <catch.hpp>
+#include "../external/catch/single_include/catch2/catch.hpp"
 
 #include <cppast/cpp_namespace.hpp>
 #include <cppast/cpp_type_alias.hpp>

@@ -4,13 +4,14 @@
 
 #include <standardese/comment.hpp>
 
-#include <catch.hpp>
 #include <fstream>
 
 #include <cppast/cpp_class.hpp>
 #include <cppast/cpp_function.hpp>
 #include <cppast/cpp_template.hpp>
 #include <cppast/visitor.hpp>
+
+#include "../external/catch/single_include/catch2/catch.hpp"
 
 #include "test_parser.hpp"
 

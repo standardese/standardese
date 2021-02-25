@@ -4,7 +4,7 @@
 
 #include <standardese/doc_entity.hpp>
 
-#include <catch.hpp>
+#include "../external/catch/single_include/catch2/catch.hpp"
 
 #include <standardese/index.hpp>
 #include <standardese/linker.hpp>
