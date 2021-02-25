@@ -9,6 +9,7 @@
 #include "../util/indent.hpp"
 
 #include "../../include/standardese/comment/parser.hpp"
+#include "standardese/comment/config.hpp"
 
 namespace standardese::test::comment {
 
@@ -20,19 +21,19 @@ using standardese::comment::parse_error;
 
 /// Return the result of parsing `comment` as if it were a comment of an entity
 /// such as a method.
-standardese::comment::parse_result parse(std::string comment) {
+standardese::comment::parse_result parse(std::string comment, standardese::comment::config::options options = {}) {
     comment = unindent(comment);
     UNSCOPED_INFO(comment);
-    return parse(parser(), comment, true);
+    return parse(parser(standardese::comment::config(options)), comment, true);
 }
 
 
 /// Return the result of parsing `comment` as if it were a comment detached
 /// from any entity in isolated spot in a file.
-standardese::comment::parse_result parse_without_entity(std::string comment) {
+standardese::comment::parse_result parse_without_entity(std::string comment, standardese::comment::config::options options = {}) {
     comment = unindent(comment);
     UNSCOPED_INFO(comment);
-    return parse(parser(), comment, false);
+    return parse(parser(standardese::comment::config(options)), comment, false);
 }
 
 
@@ -874,6 +875,23 @@ TEST_CASE("Standardese Commands", "[comment]")
                 \output_section a
                 )"), parse_error);
         }
+        SECTION("Group Command Syntax can be Configured")
+        {
+            standardese::comment::config::options options;
+            // This syntax allows us to have a group name including whitespace
+            // so we drop the heading completely. (And there is also no way to
+            // use a separate heading with this approach unfortunately.)
+            options.command_patterns.push_back("group|=== ((?:.(?!==))+)() ==");
+
+            const auto metadata = parse(R"(
+                == Method Group ==
+                This is the brief of this method group.
+                )", options).comment.value().metadata();
+
+            REQUIRE(metadata.group().has_value());
+            CHECK(metadata.group().value().name() == "Method Group");
+            CHECK(!metadata.group().value().heading().has_value());
+        }
     }
 
     SECTION(R"(\module Groups Entities Across File Boundaries)")
@@ -1067,6 +1085,23 @@ TEST_CASE("Standardese Commands", "[comment]")
                 <brief-section>This is the brief of the parameter a.</brief-section>
                 )");
             CHECK_SECTIONS_EQUIVALENT_TO(parsed.inlines.at(0), std::vector<std::string>{});
+        }
+        SECTION(R"(The \param Command can be Changed Through Configuration)")
+        {
+            standardese::comment::config::options options;
+            options.command_patterns.push_back("param|=:param ([^:]+):");
+
+            const auto parsed = parse(R"(
+                \param a This is the brief of the parameter a.
+                :param b: This is the brief of the parameter b.
+                )", options);
+
+            CHECK_BRIEF_EQUIVALENT_TO(parsed.inlines.at(0), R"(
+                <brief-section>This is the brief of the parameter a.</brief-section>
+                )");
+            CHECK_BRIEF_EQUIVALENT_TO(parsed.inlines.at(1), R"(
+                <brief-section>This is the brief of the parameter b.</brief-section>
+                )");
         }
     }
     SECTION("Section Commands")

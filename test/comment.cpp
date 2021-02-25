@@ -256,7 +256,9 @@ void a(float);
 /// Here we explain what this header file is about.
 )");
 
-        file_comment_parser parser(test_logger(), comment::config('\\', true));
+        comment::config::options options;
+        options.free_file_comments = true;
+        file_comment_parser parser(test_logger(), comment::config(options));
         parser.parse(type_safe::ref(*file));
         auto comments = parser.finish();
     }

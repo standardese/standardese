@@ -195,14 +195,14 @@ std::vector<standardese_tool::input_file> get_input(const po::variables_map& opt
     return files;
 }
 
-standardese::comment::config get_comment_config(const po::variables_map& options)
+standardese::comment::config get_comment_config(const po::variables_map& variables)
 {
-    standardese::comment::config config(
-        get_option<char>(options, "comment.command_character").value(),
-        get_option<bool>(options, "comment.free_file_comments").value(),
-        get_option<std::vector<std::string>>(options, "comment.command_pattern").value());
+    standardese::comment::config::options options;
+    options.command_character = get_option<char>(variables, "comment.command_character").value();
+    options.free_file_comments = get_option<bool>(variables, "comment.free_file_comments").value();
+    options.command_patterns = get_option<std::vector<std::string>>(variables, "comment.command_pattern").value();
 
-    return config;
+    return standardese::comment::config(options);
 }
 
 standardese::synopsis_config get_synopsis_config(const po::variables_map& options)
@@ -378,13 +378,13 @@ int main(int argc, char* argv[])
          po::value<bool>()->implicit_value(true)->default_value(default_msvc_comp()),
          "enable/disable MSVC compatibility (-fms-compatibility)")
 
-        ("comment.command_character", po::value<char>()->default_value(standardese::comment::config::default_command_character()),
+        ("comment.command_character", po::value<char>()->default_value(standardese::comment::config::options().command_character),
          "character used to introduce special commands")
         ("comment.command_pattern", po::value<std::vector<std::string>>()->default_value({}, ""),
          "set the regular expression to detect a command, e.g., `--comment.command_pattern 'returns=RETURNS:'` or `'returns|=RETURNS:'` to also keep the original pattern.")
         ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""),
          "syntax is namespace=url, supports linking to a different URL for entities in a certain namespace")
-        ("comment.free_file_comments", po::value<bool>()->implicit_value(true)->default_value(standardese::comment::config::default_free_file_comments()))
+        ("comment.free_file_comments", po::value<bool>()->implicit_value(true)->default_value(standardese::comment::config::options().free_file_comments))
 
         ("output.prefix",
          po::value<std::string>()->default_value(""),

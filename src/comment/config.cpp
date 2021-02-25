@@ -77,29 +77,27 @@ std::string config::default_command_pattern(char command_character, inline_type 
     return prefix + command_name(cmd) + boundary + word;
 }
 
-config::config(char command_character, bool free_file_comments, const std::vector<std::string>& command_patterns) : free_file_comments_(free_file_comments)
+config::config(const options& options) : free_file_comments_(options.free_file_comments)
 {
-    const auto merge_options = [&](const std::string& name, const auto& fallback) {
-        std::vector<std::string> options;
+    const auto pattern = [&](const auto command) {
+        const std::string name = command_name(command);
+        const auto fallback = default_command_pattern(options.command_character, command);
 
-        options.emplace_back(name + "=" + fallback);
+        std::vector<std::string> parameters { name + "=" + fallback };
 
-        for (const auto& option : command_patterns)
-            if (option.rfind(name, 0) != std::string::npos)
-                options.emplace_back(option);
+        for (const auto& specification : options.command_patterns)
+            if (specification.rfind(name, 0) != std::string::npos)
+                parameters.emplace_back(specification);
 
-        return options;
+        return command_pattern(parameters);
     };
 
     for (const auto command : enum_values<command_type>())
-        special_command_patterns_.emplace_back(
-          command_pattern(merge_options(command_name(command), default_command_pattern(command_character, command))));
+        special_command_patterns_.emplace_back(pattern(command));
     for (const auto command : enum_values<section_type>())
-        section_command_patterns_.emplace_back(
-          command_pattern(merge_options(command_name(command), default_command_pattern(command_character, command))));
+        section_command_patterns_.emplace_back(pattern(command));
     for (const auto command : enum_values<inline_type>())
-        inline_command_patterns_.emplace_back(
-          command_pattern(merge_options(command_name(command), default_command_pattern(command_character, command))));
+        inline_command_patterns_.emplace_back(pattern(command));
 }
 
 std::regex config::command_pattern(const std::vector<std::string>& options)

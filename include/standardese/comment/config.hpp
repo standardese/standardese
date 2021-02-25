@@ -12,44 +12,40 @@
 
 #include <standardese/comment/commands.hpp>
 
-namespace standardese
+namespace standardese::comment
 {
-namespace comment
-{
-    /// The configuration of related to the comment syntax.
+    /// Configuration of the Comment Parser
     class config
     {
     public:
-        /// \returns The default command character.
-        static char default_command_character()
-        {
-            return '\\';
-        }
+        struct options {
+            options() {}
 
-        /// \returns The default value for whether comments should be applied
-        /// to the entire file if they cannot be matched elsewhere.
-        static bool default_free_file_comments()
-        {
-            return false;
-        }
+            /// Form commands by prefixing this to the command name.
+            char command_character = '\\';
+            /// Whether commands should be applied to the entire file if they
+            /// cannot be matched to another entity.
+            bool free_file_comments = false;
+            /// Override or complement command patterns with the ones giving
+            /// here, e.g., `brief=SUMMARY:` lets us write `SUMMARY:` instead of
+            /// `\brief`.
+            std::vector<std::string> command_patterns;
+        };
 
         /// \effects Create a configuration such that all commands are formed
         /// by prefixing the command name with the command character.
-        explicit config(
-            char command_character = default_command_character(),
-            bool free_file_comments = default_free_file_comments(),
-            const std::vector<std::string>& command_patterns = {});
+        explicit config(const options& = options());
 
-        /// \returns The pattern that introduces a cmd command.
+        /// \returns The pattern that introduces a `cmd` command.
         const std::regex& get_command_pattern(command_type cmd) const;
 
-        /// \returns The pattern that introduces a cmd section.
+        /// \returns The pattern that introduces a `cmd` section.
         const std::regex& get_command_pattern(section_type cmd) const;
 
-        /// \returns The pattern that introduces a cmd inline.
+        /// \returns The pattern that introduces a `cmd` inline.
         const std::regex& get_command_pattern(inline_type cmd) const;
 
-        /// \returns The name of a [standardese::markup::inline_section]().
+        /// \returns The name of a [*section_type]() in the resulting documentation.
         const char* inline_section_name(section_type section) const;
 
         /// \returns Whether comments in a file that cannot be associated to a
@@ -90,7 +86,6 @@ namespace comment
 
         bool free_file_comments_;
     };
-} // namespace comment
-} // namespace standardese
+}
 
 #endif // STANDARDESE_COMMENT_CONFIG_HPP_INCLUDED
