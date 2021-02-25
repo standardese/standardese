@@ -6,7 +6,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT">
-  <a href="https://travis-ci.org/standardese/standardese"><img src="https://travis-ci.org/standardese/standardese.svg?branch=master" alt="Travis CI"></a>
+  <a href="https://github.com/standardese/standardese/actions/workflows/test.yml"><img src="https://github.com/standardese/standardese/actions/workflows/test.yml/badge.svg" alt="Test"></a>
   <a href="https://gitter.im/foonathan/standardese"><img src="https://badges.gitter.im/foonathan/standardese.svg" alt="Gitter"></a>
 </p>
 

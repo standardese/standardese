@@ -4,7 +4,7 @@
 
 #include <standardese/markup/documentation.hpp>
 
-#include <catch.hpp>
+#include "../external/catch/single_include/catch2/catch.hpp"
 
 #include <cppast/cpp_file.hpp>
 #include <cppast/cpp_namespace.hpp>
