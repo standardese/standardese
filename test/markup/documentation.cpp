@@ -30,18 +30,6 @@ TEST_CASE("file_documentation", "[markup]")
 <dd>Some notes.</dd>
 </dl>
 <p>The details documentation.</p>
-<h4 class="standardese-list-section-heading">Return values</h4>
-<ul class="standardese-list-section">
-<li>
-<p>Any integer</p>
-</li>
-<li>
-<dl class="standardese-term-description-item">
-<dt>42</dt>
-<dd>&mdash; the answer!</dd>
-</dl>
-</li>
-</ul>
 </article>
 )";
 
@@ -54,15 +42,6 @@ TEST_CASE("file_documentation", "[markup]")
 <details-section>
 <paragraph>The details documentation.</paragraph>
 </details-section>
-<list-section name="Return values">
-<list-item>
-<paragraph>Any integer</paragraph>
-</list-item>
-<term-description-item>
-<term>42</term>
-<description>the answer!</description>
-</term-description-item>
-</list-section>
 </file-documentation>
 )";
     auto md  = R"(# A file
@@ -78,11 +57,6 @@ The brief documentation.
 *Notes:* Some notes.
 
 The details documentation.
-
-#### Return values
-
-  - Any integer
-  - 42 &mdash; the answer\!
 )";
 
     cppast::cpp_file::builder file("foo");
@@ -103,13 +77,6 @@ The details documentation.
             .add_child(
                 paragraph::builder().add_child(text::build("The details documentation.")).finish())
             .finish());
-
-    unordered_list::builder list{block_id()};
-    list.add_item(
-        list_item::build(paragraph::builder().add_child(text::build("Any integer")).finish()));
-    list.add_item(term_description_item::build(block_id(), term::build(text::build("42")),
-                                               description::build(text::build("the answer!"))));
-    builder.add_section(list_section::build(section_type::returns, "Return values", list.finish()));
 
     auto ptr = builder.finish()->clone();
     REQUIRE(as_html(*ptr) == html);

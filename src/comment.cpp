@@ -2,13 +2,14 @@
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
+#include <cassert>
+#include <algorithm>
+
 #include <standardese/comment.hpp>
 
 #include <cppast/cpp_friend.hpp>
 #include <cppast/cpp_namespace.hpp>
 #include <cppast/visitor.hpp>
-
-#include <algorithm>
 
 #include "get_special_entity.hpp"
 
@@ -176,8 +177,6 @@ void process_inlines(const cppast::diagnostic_logger&            logger,
 
 void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> file) const
 {
-    comment::parser p(config_);
-
     // add matched comments
     cppast::visit(*file, [&](const cppast::cpp_entity& entity, const cppast::visitor_info& info) {
         if (info.event == cppast::visitor_info::container_entity_exit)
@@ -198,7 +197,7 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
             try
             {
                 comment = type_safe::copy(entity.comment()).map([&](const std::string& str) {
-                    return comment::parse(p, str, true);
+                    return comment::parse(comment::parser(config_), str, true);
                 });
             }
             catch (comment::parse_error& ex)
@@ -241,7 +240,7 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
               message...));
         };
 
-        auto comment = comment::parse(p, free.content, false);
+        auto comment = comment::parse(comment::parser(config_), free.content, false);
         if (auto module = comment::get_module(comment.entity))
         {
             std::unique_lock<std::mutex> lock(mutex_);

@@ -1,4 +1,5 @@
 // Copyright (C) 2016-2019 Jonathan Müller <jonathanmueller.dev@gmail.com>
+//               2021 Julian Rüth <julian.rueth@fsfe.org>
 // This file is subject to the license terms in the LICENSE file
 // found in the top-level directory of this distribution.
 
@@ -20,7 +21,11 @@
 #include <standardese/markup/quote.hpp>
 #include <standardese/markup/thematic_break.hpp>
 
-#include "cmark_ext.hpp"
+#include "cmark-extension/cmark_extension.hpp"
+#include "command-extension/command_extension.hpp"
+#include "command-extension/user_data.hpp"
+#include "ignore-html-extension/ignore_html_extension.hpp"
+#include "verbatim-extension/verbatim_extension.hpp"
 
 using namespace standardese;
 using namespace standardese::comment;
@@ -28,14 +33,9 @@ using namespace standardese::comment;
 parser::parser(comment::config c)
 : config_(std::move(c)), parser_(cmark_parser_new(CMARK_OPT_SMART))
 {
-    auto command_ext = detail::create_command_extension(config_);
-    cmark_parser_attach_syntax_extension(parser_, command_ext);
-
-    auto html_ext = detail::create_no_html_extension();
-    cmark_parser_attach_syntax_extension(parser_, html_ext);
-
-    auto verbatim_ext = detail::create_verbatim_extension(config_);
-    cmark_parser_attach_syntax_extension(parser_, verbatim_ext);
+    verbatim_extension::verbatim_extension::create(parser_);
+    ignore_html_extension::ignore_html_extension::create(parser_);
+    command_extension::command_extension::create(parser_, config_);
 }
 
 parser::~parser() noexcept
@@ -215,8 +215,7 @@ std::unique_ptr<markup::code> parse_code(const config&, bool, cmark_node* node)
 
 std::unique_ptr<markup::verbatim> parse_verbatim(const config&, bool, cmark_node* node)
 {
-    assert(cmark_node_get_type(node) == detail::node_verbatim());
-    return markup::verbatim::build(detail::get_verbatim_content(node));
+    return markup::verbatim::build(cmark_node_get_string_content(node));
 }
 
 std::unique_ptr<markup::emphasis> parse_emph(const config& c, bool has_matching_entity,
@@ -323,45 +322,6 @@ std::unique_ptr<markup::phrasing_entity> parse_key(const char* key)
     return markup::text::build(key);
 }
 
-std::unique_ptr<markup::list_section> parse_list_section(const config& c, bool has_matching_entity,
-                                                         cmark_node*& node)
-{
-    auto type = detail::get_section_type(node);
-
-    markup::unordered_list::builder builder{markup::block_id{}};
-    do
-    {
-        auto key = detail::get_section_key(node);
-        if (key)
-        {
-            // key-value item
-            auto term = markup::term::build(parse_key(key));
-
-            markup::description::builder description;
-            add_children(c, description, has_matching_entity,
-                         cmark_node_first_child(node)); // the children of the paragraph
-
-            builder.add_item(markup::term_description_item::build(markup::block_id(),
-                                                                  std::move(term),
-                                                                  description.finish()));
-        }
-        else
-        {
-            // no key-value item, just add the normal paragraph
-            auto paragraph = cmark_node_first_child(node);
-            builder.add_item(
-                markup::list_item::build(parse_paragraph(c, has_matching_entity, paragraph)));
-        }
-
-        node = cmark_node_next(node);
-    } while (node && cmark_node_get_type(node) == detail::node_section()
-             && detail::get_section_type(node) == type);
-    // went one too far
-    node = cmark_node_previous(node);
-
-    return markup::list_section::build(type, c.list_section_name(type), builder.finish());
-}
-
 std::unique_ptr<markup::brief_section> parse_brief(const config& c, bool has_matching_entity,
                                                    cmark_node* node)
 {
@@ -383,8 +343,9 @@ std::unique_ptr<markup::details_section> parse_details(const config& c, bool has
 std::unique_ptr<markup::doc_section> parse_section(const config& c, bool has_matching_entity,
                                                    cmark_node*& node)
 {
-    assert(cmark_node_get_type(node) == detail::node_section());
-    switch (detail::get_section_type(node))
+    const auto& data = command_extension::user_data<section_type>::get(node);
+
+    switch (data.command)
     {
     case section_type::brief:
         return parse_brief(c, has_matching_entity, node);
@@ -407,29 +368,22 @@ std::unique_ptr<markup::doc_section> parse_section(const config& c, bool has_mat
     case section_type::diagnostics:
     case section_type::see:
     {
-        if (detail::get_section_key(node))
-            return parse_list_section(c, has_matching_entity, node);
-        else
+        auto result = markup::inline_section::builder(data.command, c.inline_section_name(data.command));
+
+        auto first = true;
+        for (auto child = cmark_node_first_child(node); child; child = cmark_node_next(child))
         {
-            auto result = markup::inline_section::builder(detail::get_section_type(node),
-                                                          c.inline_section_name(
-                                                              detail::get_section_type(node)));
+            if (first)
+                first = false;
+            else
+                result.add_child(markup::soft_break::build());
 
-            auto first = true;
-            for (auto child = cmark_node_first_child(node); child; child = cmark_node_next(child))
-            {
-                if (first)
-                    first = false;
-                else
-                    result.add_child(markup::soft_break::build());
-
-                auto paragraph = parse_paragraph(c, has_matching_entity, child);
-                for (auto& paragraph_child : *paragraph)
-                    result.add_child(markup::clone(paragraph_child));
-            }
-
-            return result.finish();
+            auto paragraph = parse_paragraph(c, has_matching_entity, child);
+            for (auto& paragraph_child : *paragraph)
+                result.add_child(markup::clone(paragraph_child));
         }
+
+        return result.finish();
     }
 
     case section_type::count:
@@ -450,52 +404,18 @@ struct comment_builder
     std::vector<std::unique_ptr<markup::doc_section>> sections;
     std::vector<unmatched_doc_comment>                inlines;
 };
-bool starts_with(const char* str, const char* target)
-{
-    return std::strncmp(str, target, std::strlen(target)) == 0;
-}
-
-const char* get_single_arg(cmark_node* node, const char* cmd)
-{
-    auto args = detail::get_command_arguments(node);
-    for (auto ptr = args; *ptr; ++ptr)
-        if (*ptr == ' ' || *ptr == '\t')
-            error(node, std::string("multiple arguments given for command '") + cmd
-                            + "', but only one expected");
-    return args;
-}
-
-void skip_ws(const char*& args)
-{
-    while (*args && (*args == ' ' || *args == '\t'))
-        ++args;
-}
-
-type_safe::optional<std::string> get_next_arg(const char*& args)
-{
-    std::string result;
-    while (*args && *args != ' ' && *args != '\t')
-        result += *args++;
-    skip_ws(args);
-    return result.empty() ? type_safe::nullopt : type_safe::make_optional(std::move(result));
-}
-
-std::string get_next_required_arg(const char*& args, cmark_node* node, const char* command)
-{
-    auto maybe_arg = get_next_arg(args);
-    if (!maybe_arg)
-        error(node, std::string("missing required argument command '") + command + "'");
-    return maybe_arg.value();
-}
 
 exclude_mode parse_exclude_mode(cmark_node* node)
 {
-    auto args = detail::get_command_arguments(node);
-    if (starts_with(args, "return"))
+    const auto& data = command_extension::user_data<command_type>::get(node);
+
+    const auto [target] = data.arguments<1>();
+
+    if (target == "return")
         return exclude_mode::return_type;
-    else if (starts_with(args, "target"))
+    else if (target == "target")
         return exclude_mode::target;
-    else if (*args)
+    else if (target != "")
         error(node, "invalid argument for exclude");
     else
         return exclude_mode::entity;
@@ -503,10 +423,12 @@ exclude_mode parse_exclude_mode(cmark_node* node)
 
 member_group parse_group(cmark_node* node)
 {
-    auto args = detail::get_command_arguments(node);
+    const auto& data = command_extension::user_data<command_type>::get(node);
+    auto [name, heading_] = data.arguments<2>();
 
-    auto name    = get_next_required_arg(args, node, "group");
-    auto heading = *args ? type_safe::make_optional(std::string(args)) : type_safe::nullopt;
+    type_safe::optional<std::string> heading;
+    if (heading_.size() != 0)
+        heading = heading_;
 
     if (name.front() == '-')
     {
@@ -522,25 +444,34 @@ member_group parse_group(cmark_node* node)
 void parse_command_impl(comment_builder* builder, bool has_matching_entity, metadata& data,
                         cmark_node* node)
 {
-    assert(cmark_node_get_type(node) == detail::node_command());
-    auto command = detail::get_command_type(node);
-    switch (command)
+    const auto& data_ = command_extension::user_data<command_type>::get(node);
+
+    switch (data_.command)
     {
     case command_type::exclude:
         if (!data.set_exclude(parse_exclude_mode(node)))
             error(node, "multiple exclude commands for entity");
         break;
     case command_type::unique_name:
-        if (!data.set_unique_name(get_single_arg(node, "unique name")))
-            error(node, "multiple unique name commands for entity");
+        {
+            auto [name] = data_.arguments<1>();
+            if (!data.set_unique_name(name))
+              error(node, "multiple unique name commands for entity");
+        }
         break;
     case command_type::output_name:
-        if (!data.set_output_name(get_single_arg(node, "output name")))
-            error(node, "multiple output name commands for entity");
+        {
+            auto [name] = data_.arguments<1>();
+            if (!data.set_output_name(name))
+              error(node, "multiple output name commands for entity");
+        }
         break;
     case command_type::synopsis:
-        if (!data.set_synopsis(detail::get_command_arguments(node)))
-            error(node, "multiple synopsis commands for entity");
+        {
+            auto [synopsis] = data_.arguments<1>();
+            if (!data.set_synopsis(synopsis))
+                error(node, "multiple synopsis commands for entity");
+        }
         break;
 
     case command_type::group:
@@ -551,7 +482,7 @@ void parse_command_impl(comment_builder* builder, bool has_matching_entity, meta
         break;
     case command_type::module:
     {
-        auto module = get_single_arg(node, "module");
+        auto [module] = data_.arguments<1>();
 
         if (!has_matching_entity && builder && !builder->entity.has_value())
             // non-inline comment and not remote, treat as module comment
@@ -562,42 +493,39 @@ void parse_command_impl(comment_builder* builder, bool has_matching_entity, meta
         break;
     }
     case command_type::output_section:
+    {
+        const auto [heading] = data_.arguments<1>();
         if (data.group())
             error(node, "cannot have group and output section");
-        else if (!data.set_output_section(detail::get_command_arguments(node)))
+        else if (!data.set_output_section(heading))
             error(node, "multiple output section commands for entity");
         break;
-
+    }
     case command_type::entity:
+    {
+        const auto [id] = data_.arguments<1>();
+
         if (!builder || has_matching_entity)
             error(node, "entity command not allowed for this node");
         else if (builder->entity.has_value())
             error(node, "multiple file/entity/module commands for entity");
         else
-            builder->entity = remote_entity(detail::get_command_arguments(node));
+            builder->entity = remote_entity(id);
         break;
+    }
     case command_type::file:
         if (!builder || has_matching_entity)
             error(node, "file command not allowed for this node");
         else if (builder->entity.has_value())
             error(node, "multiple file/entity/module commands for entity");
-        else if (*detail::get_command_arguments(node))
-            error(node, "arguments given to file command but none required");
         else
             builder->entity = current_file{};
         break;
-
-    case command_type::count:
-    case command_type::invalid:
-        error(node, std::string("unknown command ") + detail::get_command_arguments(node));
-        break;
-
     case command_type::end:
-        error(node, detail::get_command_arguments(node));
+        error(node, R"(unmatched \end command)");
         break;
-
-    case command_type::verbatim:
-        assert(!static_cast<bool>("verbatim shouldn't be handled here"));
+    default:
+        throw std::logic_error("not implemented: unsupported node type");
     }
 }
 
@@ -619,41 +547,37 @@ void parse_command(const T&, bool, cmark_node*)
 
 matching_entity parse_matching(cmark_node* node)
 {
-    if (!*detail::get_inline_entity(node))
-        error(node, "missing entity name for inline comment");
+    const auto& data = command_extension::user_data<inline_type>::get(node);
+    const auto [entity] = data.arguments<1>();
 
-    switch (detail::get_inline_type(node))
+    switch (data.command)
     {
     case inline_type::param:
     case inline_type::tparam:
-        return inline_param(detail::get_inline_entity(node));
+        return inline_param(entity);
     case inline_type::base:
-        return inline_base(detail::get_inline_entity(node));
-
-    case inline_type::count:
-    case inline_type::invalid:
-        break;
+        return inline_base(entity);
+    default:
+        throw std::logic_error("not implemented: unsupported inline type");
     }
-
-    assert(!static_cast<bool>("invalid inline type"));
-    return current_file{};
 }
 
 void parse_inline(const config& c, comment_builder& builder, bool, cmark_node* node)
 {
-    assert(cmark_node_get_type(node) == detail::node_inline());
+    assert(cmark_node_get_type(node) == command_extension::command_extension::node_type<inline_type>());
 
     metadata                                          data;
     std::unique_ptr<markup::brief_section>            brief;
     std::vector<std::unique_ptr<markup::doc_section>> sections;
     for (auto child = cmark_node_first_child(node); child; child = cmark_node_next(child))
     {
-        if (cmark_node_get_type(child) == detail::node_command())
+        if (cmark_node_get_type(child) == command_extension::command_extension::node_type<command_type>())
             parse_command(data, true, child);
-        else if (cmark_node_get_type(child) == detail::node_section())
+        else if (cmark_node_get_type(child) == command_extension::command_extension::node_type<section_type>())
         {
             auto section = parse_section(c, true, child);
-            if (detail::get_section_type(child) == section_type::brief)
+            const auto& data_ = command_extension::user_data<section_type>::get(child);
+            if (data_.command == section_type::brief)
             {
                 assert(!brief);
                 brief = std::unique_ptr<markup::brief_section>(
@@ -717,13 +641,16 @@ void add_children(const config& c, Builder& b, bool has_matching_entity, cmark_n
 {
     for (auto cur = cmark_node_first_child(parent); cur; cur = cmark_node_next(cur))
     {
-        if (cmark_node_get_type(cur) == detail::node_section())
+        using command_extension = command_extension::command_extension;
+        using verbatim_extension = verbatim_extension::verbatim_extension;
+
+        if (cmark_node_get_type(cur) == command_extension::node_type<section_type>())
             add_child(0, b, parse_section(c, has_matching_entity, cur));
-        else if (cmark_node_get_type(cur) == detail::node_command())
+        else if (cmark_node_get_type(cur) == command_extension::node_type<command_type>())
             parse_command(b, has_matching_entity, cur);
-        else if (cmark_node_get_type(cur) == detail::node_inline())
+        else if (cmark_node_get_type(cur) == command_extension::node_type<inline_type>())
             parse_inline(c, b, has_matching_entity, cur);
-        else if (cmark_node_get_type(cur) == detail::node_verbatim())
+        else if (cmark_node_get_type(cur) == verbatim_extension::node_type())
             add_child(0, b, parse_verbatim(c, has_matching_entity, cur));
         else
             switch (cmark_node_get_type(cur))

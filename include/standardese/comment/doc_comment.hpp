@@ -71,7 +71,7 @@ namespace comment
             return metadata_;
         }
 
-        /// \returns A range-like object to the non-brief documentation sections.
+        /// \returns The non-brief documentation sections.
         section_range sections() const noexcept
         {
             return section_range(sections_);

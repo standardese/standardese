@@ -123,7 +123,7 @@ void inline_section::do_visit(detail::visitor_callback_t cb, void* mem) const
 
 std::unique_ptr<entity> inline_section::do_clone() const
 {
-    builder b(type(), name());
+    builder b(type_, name());
     for (auto& child : *paragraph_)
         b.add_child(detail::unchecked_downcast<phrasing_entity>(child.clone()));
     return b.finish();
@@ -134,15 +134,15 @@ entity_kind list_section::do_get_kind() const noexcept
     return entity_kind::list_section;
 }
 
-std::unique_ptr<list_section> list_section::build(section_type type, std::string name,
+std::unique_ptr<list_section> list_section::build(std::string name,
                                                   std::unique_ptr<unordered_list> list)
 {
-    return std::unique_ptr<list_section>(new list_section(type, std::move(name), std::move(list)));
+    return std::unique_ptr<list_section>(new list_section(std::move(name), std::move(list)));
 }
 
-list_section::list_section(section_type type, std::string name,
+list_section::list_section(std::string name,
                            std::unique_ptr<unordered_list> list)
-: name_(std::move(name)), list_(std::move(list)), type_(type)
+: name_(std::move(name)), list_(std::move(list))
 {}
 
 void list_section::do_visit(detail::visitor_callback_t cb, void* mem) const
@@ -153,5 +153,5 @@ void list_section::do_visit(detail::visitor_callback_t cb, void* mem) const
 
 std::unique_ptr<entity> list_section::do_clone() const
 {
-    return build(type(), name(), detail::unchecked_downcast<unordered_list>(list_->clone()));
+    return build(name(), detail::unchecked_downcast<unordered_list>(list_->clone()));
 }
