@@ -5,6 +5,7 @@
 #include <cassert>
 #include <algorithm>
 #include <unordered_set>
+#include <stack>
 
 #include <standardese/comment.hpp>
 
