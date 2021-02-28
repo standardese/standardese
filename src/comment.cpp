@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <algorithm>
+#include <unordered_set>
 
 #include <standardese/comment.hpp>
 
@@ -244,15 +245,12 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
         if (auto module = comment::get_module(comment.entity))
         {
             std::unique_lock<std::mutex> lock(mutex_);
-            auto result = registry_.register_comment(module.value(), std::move(comment.comment.value()));
-            lock.unlock();
-
-            if (!result)
+            if (!registry_.register_comment(module.value(), std::move(comment.comment.value())))
                 log("multiple comments for module '", module.value(), "'");
         }
         else if (auto name = comment::get_remote_entity(comment.entity))
         {
-            assert(comment.comment);
+            std::unique_lock<std::mutex> lock(mutex_);
             free_comments_.push_back(std::move(comment));
         }
         else if (comment::is_file(comment.entity) || config_.free_file_comments())
@@ -270,17 +268,29 @@ void file_comment_parser::parse(type_safe::object_ref<const cppast::cpp_file> fi
 
 comment_registry file_comment_parser::finish()
 {
-    // find suitable entities for the free comments
+    resolve_free_comments();
+    if (config_.group_uncommented())
+        group_uncommented();
+    return std::move(registry_);
+}
+
+void file_comment_parser::resolve_free_comments()
+{
+    // Attach comments that are using the `\entity` command to the entity they're documenting.
     for (auto& free : free_comments_)
     {
+        // Find all the entities that are not documented yet that match this entity command.
         auto result = uncommented_.equal_range(comment::get_remote_entity(free.entity).value());
         if (result.first != result.second)
         {
             auto metadata = free.comment.value().metadata();
 
+            // Assign the entire comment block to the first entity found.
             register_commented(type_safe::ref(*result.first->second),
                                std::move(free.comment.value()), false);
 
+            // And only the metadata to all the other entities found.
+            // TODO: What is an example where this actually happens? This does not show up in our test cases.
             for (auto cur = std::next(result.first); cur != result.second; ++cur)
                 register_commented(type_safe::ref(*cur->second),
                                    comment::doc_comment(metadata, nullptr, {}), false);
@@ -290,12 +300,129 @@ comment_registry file_comment_parser::finish()
         else
             logger_->log("standardese comment",
                          make_diagnostic(cppast::source_location(),
-                                         "unable to find matching entity '",
+                                         "unable to find matching undocumented entity '",
                                          comment::get_remote_entity(free.entity).value(),
                                          "' for comment"));
     }
+}
 
-    return std::move(registry_);
+void file_comment_parser::group_uncommented()
+{
+    // Add undocumented members to the group their preceding member is in.
+    std::unordered_set<const cppast::cpp_file*> files;
+    for (const auto& uncommented : uncommented_) {
+        const cppast::cpp_entity* file = uncommented.second;
+        while (file->parent())
+            file = &file->parent().value();
+
+        assert(file->kind() == cppast::cpp_entity_kind::file_t && "all entities must live under a file root node");
+
+        files.insert(static_cast<const cppast::cpp_file*>(file));
+    }
+
+    for (const auto* file : files) {
+        std::stack<const cppast::cpp_entity*> previous;
+
+        previous.push(nullptr);
+
+        const auto assign_group = [&](const cppast::cpp_entity& target, const cppast::cpp_entity* source) {
+            if (source == nullptr)
+                return;
+
+            switch (target.kind()) {
+                case cppast::cpp_entity_kind::enum_value_t:
+                case cppast::cpp_entity_kind::function_t:
+                case cppast::cpp_entity_kind::function_template_t:
+                case cppast::cpp_entity_kind::member_function_t:
+                case cppast::cpp_entity_kind::conversion_op_t:
+                case cppast::cpp_entity_kind::constructor_t:
+                    break;
+                case cppast::cpp_entity_kind::destructor_t:
+                    // Do not automatically group the destructor as it
+                    // typically undocumented and the intention was probably
+                    // just to exclude it from the output.
+                    [[fallthrough]];
+                case cppast::cpp_entity_kind::enum_t:
+                case cppast::cpp_entity_kind::class_template_t:
+                case cppast::cpp_entity_kind::class_t:
+                    // Do not group types automatically as this is usually not
+                    // what users expect. Instead, uncommented (inner) types
+                    // were probably meant to be hidden from the output.
+                    [[fallthrough]];
+                case cppast::cpp_entity_kind::member_variable_t:
+                case cppast::cpp_entity_kind::file_t:
+                case cppast::cpp_entity_kind::macro_parameter_t:
+                case cppast::cpp_entity_kind::macro_definition_t:
+                case cppast::cpp_entity_kind::include_directive_t:
+                case cppast::cpp_entity_kind::language_linkage_t:
+                case cppast::cpp_entity_kind::namespace_t:
+                case cppast::cpp_entity_kind::namespace_alias_t:
+                case cppast::cpp_entity_kind::using_directive_t:
+                case cppast::cpp_entity_kind::using_declaration_t:
+                case cppast::cpp_entity_kind::type_alias_t:
+                case cppast::cpp_entity_kind::access_specifier_t:
+                case cppast::cpp_entity_kind::base_class_t:
+                case cppast::cpp_entity_kind::variable_t:
+                case cppast::cpp_entity_kind::bitfield_t:
+                case cppast::cpp_entity_kind::function_parameter_t:
+                case cppast::cpp_entity_kind::friend_t:
+                case cppast::cpp_entity_kind::template_type_parameter_t:
+                case cppast::cpp_entity_kind::non_type_template_parameter_t:
+                case cppast::cpp_entity_kind::template_template_parameter_t:
+                case cppast::cpp_entity_kind::alias_template_t:
+                case cppast::cpp_entity_kind::variable_template_t:
+                case cppast::cpp_entity_kind::function_template_specialization_t:
+                case cppast::cpp_entity_kind::class_template_specialization_t:
+                case cppast::cpp_entity_kind::static_assert_t:
+                    // Do not implicitly group things that people usually
+                    // don't want to be grouped or that we do not generate comments for anyway.
+                    [[fallthrough]];
+                default:
+                    return;
+            }
+
+            auto target_comment = registry_.get_comment(target);
+
+            if (target_comment.has_value() && target_comment.value().metadata().group())
+                // Do not implicitly assign a group if this member already has one.
+                return;
+
+            if (target_comment.has_value() && (target_comment.value().brief_section().has_value() || !target_comment.value().sections().empty()))
+                // Do not implicitly assign a group if this member already has some comment.
+                return;
+
+            const auto source_comment = registry_.get_comment(*source);
+
+            if (!source_comment.has_value() || !source_comment.value().metadata().group().has_value())
+                // Source has no group so we cannot assign it to target.
+                return;
+
+            comment::metadata metadata;
+            metadata.set_group(source_comment.value().metadata().group().value());
+
+            register_commented(type_safe::ref(target), comment::doc_comment(metadata, nullptr, {}), false);
+        };
+
+        cppast::visit(*file, [&](const cppast::cpp_entity& entity, const cppast::visitor_info& info) {
+            switch(info.event) {
+                case cppast::visitor_info::container_entity_enter:
+                    previous.push(nullptr);
+                    break;
+                case cppast::visitor_info::container_entity_exit:
+                    previous.pop();
+                    [[fallthrough]];
+                case cppast::visitor_info::leaf_entity:
+                    assign_group(entity, previous.top());
+                    previous.pop();
+                    previous.push(&entity);
+                    break;
+                default:
+                    throw std::logic_error("not implemented: unknown event while grouping entities implicitly");
+            }
+        });
+
+        assert(previous.size() == 1 && "stack inconsistent; expected the stack to be in the original 'empty' state");
+    }
 }
 
 bool file_comment_parser::register_commented(type_safe::object_ref<const cppast::cpp_entity> entity,

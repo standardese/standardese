@@ -15,7 +15,7 @@
 
 #include "test_parser.hpp"
 
-using namespace standardese;
+namespace standardese::test {
 
 template <class Container>
 void test_comments(const comment_registry& registry, const Container& container)
@@ -38,19 +38,19 @@ TEST_CASE("comment")
     SECTION("matched comments")
     {
         auto file = parse_file({}, "comment_matched_comments.cpp", R"(
-/// \module a
-using a = int;
+            /// \module a
+            using a = int;
 
-/// \module b
-struct b {};
+            /// \module b
+            struct b {};
 
-/// \module c
-enum class c
-{
-    d, //< \module d
-    e, //< \module e
-};
-)");
+            /// \module c
+            enum class c
+            {
+                d, //< \module d
+                e, //< \module e
+            };
+            )");
 
         file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
@@ -59,17 +59,17 @@ enum class c
     SECTION("param")
     {
         auto file = parse_file({}, "comment_param.cpp", R"(
-/// \module a
-///
-/// \param b
-/// \module b
-///
-/// \param c
-/// \module c
-///
-/// \param 2
-void a(int b, int c, int);
-)");
+            /// \module a
+            ///
+            /// \param b
+            /// \module b
+            ///
+            /// \param c
+            /// \module c
+            ///
+            /// \param 2
+            void a(int b, int c, int);
+            )");
 
         file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
@@ -79,18 +79,18 @@ void a(int b, int c, int);
     SECTION("tparam")
     {
         auto file = parse_file({}, "comment_tparam.cpp", R"(
-/// \module a
-///
-/// \tparam b
-/// \module b
-///
-/// \tparam c
-/// \module c
-///
-/// \tparam 2
-template <int b, int c, int>
-void a();
-)");
+            /// \module a
+            ///
+            /// \tparam b
+            /// \module b
+            ///
+            /// \tparam c
+            /// \module c
+            ///
+            /// \tparam 2
+            template <int b, int c, int>
+            void a();
+            )");
 
         file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
@@ -100,18 +100,18 @@ void a();
     SECTION("base")
     {
         auto file = parse_file({}, "comment_base.cpp", R"(
-struct b {};
-struct c {};
+            struct b {};
+            struct c {};
 
-/// \module a
-///
-/// \base b
-/// \module b
-///
-/// \base c
-/// \module c
-struct a : b, c {};
-)");
+            /// \module a
+            ///
+            /// \base b
+            /// \module b
+            ///
+            /// \base c
+            /// \module c
+            struct a : b, c {};
+            )");
 
         file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
@@ -121,44 +121,44 @@ struct a : b, c {};
     SECTION("remote")
     {
         auto file = parse_file({}, "comment_remote.cpp", R"(
-/// \file
-/// \module comment_remote.cpp
+            /// \file
+            /// \module comment_remote.cpp
 
-/// \entity a
-/// \module a
+            /// \entity a
+            /// \module a
 
-/// \entity foo<T>::a
-/// \module a
+            /// \entity foo<T>::a
+            /// \module a
 
-/// \entity foo<T>.T
-/// \module T
+            /// \entity foo<T>.T
+            /// \module T
 
-/// \entity foo<T>::b(int, float).i
-/// \module i
+            /// \entity foo<T>::b(int, float).i
+            /// \module i
 
-/// \entity foo<T>::b(int, float)
-/// \module b
+            /// \entity foo<T>::b(int, float)
+            /// \module b
 
-/// \entity custom
-/// \module c
+            /// \entity custom
+            /// \module c
 
-/// \entity custom::foo<int>
-/// \module foo<int>
+            /// \entity custom::foo<int>
+            /// \module foo<int>
 
-struct a {};
+            struct a {};
 
-/// \module foo
-template <typename T>
-struct foo : a
-{
-    /// \param j
-    /// \module j
-    void b(int i, float j);
-};
+            /// \module foo
+            template <typename T>
+            struct foo : a
+            {
+                /// \param j
+                /// \module j
+                void b(int i, float j);
+            };
 
-/// \unique_name custom
-struct c : foo<int> {};
-)");
+            /// \unique_name custom
+            struct c : foo<int> {};
+            )");
 
         file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
@@ -189,24 +189,24 @@ struct c : foo<int> {};
     SECTION("member groups")
     {
         auto file = parse_file({}, "comment_member_groups.cpp", R"(
-/// \group a
-void a();
+            /// \group a
+            void a();
 
-/// \group b Heading
-void b();
+            /// \group b Heading
+            void b();
 
-/// \group a
-void a(int);
+            /// \group a
+            void a(int);
 
-/// \group b
-void b(int);
+            /// \group b
+            void b(int);
 
-/// \group c
-void c();
+            /// \group c
+            void c();
 
-/// \group a
-void a(float);
-)");
+            /// \group a
+            void a(float);
+            )");
 
         file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
@@ -232,12 +232,12 @@ void a(float);
         // set synopsis to same name as module
         // this doesn't make any sense, but is sufficient for testing here
         auto file = parse_file({}, "comment_module.cpp", R"(
-/// \module foo
-/// \synopsis foo
+            /// \module foo
+            /// \synopsis foo
 
-/// \module bar
-/// \synopsis bar
-)");
+            /// \module bar
+            /// \synopsis bar
+            )");
 
         file_comment_parser parser(test_logger());
         parser.parse(type_safe::ref(*file));
@@ -254,8 +254,8 @@ void a(float);
     SECTION("free file comments")
     {
         auto file = parse_file({}, "file_comment.hpp", R"(
-/// Here we explain what this header file is about.
-)");
+            /// Here we explain what this header file is about.
+            )");
 
         comment::config::options options;
         options.free_file_comments = true;
@@ -263,4 +263,29 @@ void a(float);
         parser.parse(type_safe::ref(*file));
         auto comments = parser.finish();
     }
+
+    SECTION("Group Uncommented Members")
+    {
+        auto file = parse_file({}, "groups.hpp", R"(
+            /// This struct has some arithmetic operators.
+            struct S {
+                /// \group Arithmetic
+                /// Here are the arithmetic operators.
+                S& operator+=(const S&);
+                S& operator-=(const S&);
+            };
+            )");
+
+
+        comment::config::options options;
+        options.group_uncommented = true;
+        file_comment_parser parser(test_logger(), comment::config(options));
+        parser.parse(type_safe::ref(*file));
+        auto comments = parser.finish();
+
+        const auto& group = comments.lookup_group("Arithmetic");
+        CHECK(static_cast<size_t>(group.size()) == 2);
+    }
+}
+
 }

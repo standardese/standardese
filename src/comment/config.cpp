@@ -77,7 +77,7 @@ std::string config::default_command_pattern(char command_character, inline_type 
     return prefix + command_name(cmd) + boundary + word;
 }
 
-config::config(const options& options) : free_file_comments_(options.free_file_comments)
+config::config(const options& options) : free_file_comments_(options.free_file_comments), group_uncommented_(options.group_uncommented)
 {
     const auto pattern = [&](const auto command) {
         const std::string name = command_name(command);

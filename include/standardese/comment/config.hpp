@@ -26,6 +26,9 @@ namespace standardese::comment
             /// Whether commands should be applied to the entire file if they
             /// cannot be matched to another entity.
             bool free_file_comments = false;
+            /// Whether uncommented entities should be automatically grouped
+            /// with preceding commented entities.
+            bool group_uncommented = false;
             /// Override or complement command patterns with the ones giving
             /// here, e.g., `brief=SUMMARY:` lets us write `SUMMARY:` instead of
             /// `\brief`.
@@ -54,6 +57,12 @@ namespace standardese::comment
         /// command.
         bool free_file_comments() const {
             return free_file_comments_;
+        }
+
+        /// \returns Whether uncommented entities should be automatically
+        /// grouped with preceding commented entities.
+        bool group_uncommented() const {
+            return group_uncommented_;
         }
 
     private:
@@ -85,6 +94,7 @@ namespace standardese::comment
         std::vector<std::regex> inline_command_patterns_;
 
         bool free_file_comments_;
+        bool group_uncommented_;
     };
 }
 
