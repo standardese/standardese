@@ -200,6 +200,7 @@ standardese::comment::config get_comment_config(const po::variables_map& variabl
     standardese::comment::config::options options;
     options.command_character = get_option<char>(variables, "comment.command_character").value();
     options.free_file_comments = get_option<bool>(variables, "comment.free_file_comments").value();
+    options.group_uncommented = get_option<bool>(variables, "comment.group_uncommented").value();
     options.command_patterns = get_option<std::vector<std::string>>(variables, "comment.command_pattern").value();
 
     return standardese::comment::config(options);
@@ -384,7 +385,10 @@ int main(int argc, char* argv[])
          "set the regular expression to detect a command, e.g., `--comment.command_pattern 'returns=RETURNS:'` or `'returns|=RETURNS:'` to also keep the original pattern.")
         ("comment.external_doc", po::value<std::vector<std::string>>()->default_value({}, ""),
          "syntax is namespace=url, supports linking to a different URL for entities in a certain namespace")
-        ("comment.free_file_comments", po::value<bool>()->implicit_value(true)->default_value(standardese::comment::config::options().free_file_comments))
+        ("comment.free_file_comments", po::value<bool>()->implicit_value(true)->default_value(standardese::comment::config::options().free_file_comments),
+         "associate free comments to their entire file")
+        ("comment.group_uncommented", po::value<bool>()->implicit_value(true)->default_value(standardese::comment::config::options().group_uncommented),
+         "group undocumented members with preceding commented members")
 
         ("output.prefix",
          po::value<std::string>()->default_value(""),

@@ -22,9 +22,7 @@ class cpp_file;
 
 namespace standardese
 {
-/// The registry of the comments for all entities.
-///
-/// It also stores all member groups.
+/// A registry of the comments for all entities.
 class comment_registry
 {
 public:
@@ -76,27 +74,34 @@ private:
 /// \returns The unique name of the given entity.
 std::string lookup_unique_name(const comment_registry& registry, const cppast::cpp_entity& e);
 
-/// Parses the comments in a file.
+/// Parses the comments in several files and connects them in a shared registry.
 class file_comment_parser
 {
 public:
-    /// \effects Gives it the logger and comment configuration.
     explicit file_comment_parser(type_safe::object_ref<const cppast::diagnostic_logger> logger,
                                  comment::config config = comment::config())
     : config_(std::move(config)), logger_(logger)
     {}
 
-    /// \effects Parses all comments in the given file.
-    /// \notes This function is thread safe.
+    /// Parse all comments in `file`.
+    /// \notes This function is thread-safe.
     void parse(type_safe::object_ref<const cppast::cpp_file> file) const;
 
-    /// \effects Finishes parsing of the comments.
+    /// Create a registry from this parser.
     /// \returns The registry containing all registered comments.
     /// \requires This function must only be called once,
     /// and you must not call `parse()` afterwards.
     comment_registry finish();
 
 private:
+    /// Connect free comments with an `\entity` command to their respective entities.
+    /// \notes This function is not thread-safe.
+    void resolve_free_comments();
+
+    /// Group uncommented entities with preceding commented entities.
+    /// \notes This function is not thread-safe.
+    void group_uncommented();
+
     bool register_commented(type_safe::object_ref<const cppast::cpp_entity> entity,
                             comment::doc_comment comment, bool allow_cmd = true) const;
 

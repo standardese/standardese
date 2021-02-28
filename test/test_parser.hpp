@@ -16,6 +16,7 @@
 #include <standardese/doc_entity.hpp>
 
 #include "test_logger.hpp"
+#include "util/indent.hpp"
 
 inline std::unique_ptr<cppast::cpp_file> parse_file(const cppast::cpp_entity_index& idx,
                                                     const char* name, const char* content)
@@ -25,7 +26,7 @@ inline std::unique_ptr<cppast::cpp_file> parse_file(const cppast::cpp_entity_ind
     config.set_flags(cppast::cpp_standard::cpp_latest);
 
     std::ofstream file(name);
-    file << content;
+    file << standardese::test::util::unindent(content);
     file.close();
 
     return parser.parse(idx, name, config);
