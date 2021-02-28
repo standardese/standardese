@@ -553,4 +553,9 @@ cmark_node* command_extension::parse_command(cmark_parser* parser, cmark_node* p
     return nullptr;
 }
 
+// Explicitly instantiate templates for the linker.
+template cmark_node_type command_extension::node_type<inline_type>();
+template cmark_node_type command_extension::node_type<command_type>();
+template cmark_node_type command_extension::node_type<section_type>();
+
 }
