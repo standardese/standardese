@@ -77,7 +77,7 @@ set(src
     linker.cpp
     util/enum_values.hpp)
 
-add_library(standardese ${detail_header} ${comment_header} ${markup_header} ${header} ${comment_src} ${markup_src} ${src})
+add_library(standardese ${comment_header} ${markup_header} ${header} ${comment_src} ${markup_src} ${src})
 set_target_properties(standardese PROPERTIES CXX_STANDARD 17)
 target_include_directories(standardese PUBLIC
                                 $<BUILD_INTERFACE:${STANDARDESE_SOURCE_DIR}/include>
@@ -98,7 +98,8 @@ target_link_libraries(standardese PUBLIC cppast)
 # link cmark
 target_link_libraries(standardese PUBLIC libcmark-gfm_static)
 
-# install library: TODO
-#install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")
-#install(FILES ${header} DESTINATION "${include_dest}/standardese")
-#install(FILES ${detail_header} DESTINATION "${include_dest}/standardese/detail")
+# install library:
+install(TARGETS standardese EXPORT standardese DESTINATION "${lib_dest}")
+install(FILES ${header} DESTINATION "${include_dest}/standardese")
+install(FILES ${comment_header} DESTINATION "${include_dest}/standardese/comment")
+install(FILES ${markup_header} DESTINATION "${include_dest}/standardese/markup")
