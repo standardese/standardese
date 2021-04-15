@@ -4,6 +4,16 @@ standardese Change Log
 
 .. current developments
 
+v0.5.1
+====================
+
+**Fixed:**
+
+* Added missing libraries in docker image.
+* A compile error on some clang versions on Windows.
+
+
+
 v0.5.0
 ====================
 
