@@ -4,6 +4,8 @@ FROM ubuntu:20.04 AS run-dependencies
 # static libraries.  It would probably be better not to install any of these
 # libraries and build a static standardese binary.
 RUN apt-get update && apt-get install -y \
+    libboost-program-options1.71 \
+    libboost-filesystem1.71 \
     libclang-dev \
     clang \
   && rm -rf /var/lib/apt/lists/* \
@@ -31,7 +33,7 @@ RUN mkdir /build
 
 WORKDIR /build
 
-RUN cmake ../src
+RUN cmake -DBUILD_SHARED_LIBS=OFF ../src
 RUN cmake --build . --target standardese_tool -j $NUM_THREADS
 
 FROM run-dependencies AS standardese
@@ -42,3 +44,5 @@ COPY --from=built /build/tool/standardese /usr/local/bin/standardese
 
 USER standardese
 WORKDIR /home/standardese
+
+RUN standardese --version
