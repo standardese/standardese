@@ -7,6 +7,7 @@
 #define STANDARDESE_COMMENT_COMMAND_EXTENSION_COMMAND_EXTENSION_HPP_INCLUDED
 
 #include <optional>
+#include <functional>
 
 #include <cmark-gfm.h>
 
