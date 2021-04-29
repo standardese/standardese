@@ -3,7 +3,7 @@
 # found in the top-level directory of this distribution.
 
 cmake_minimum_required(VERSION 3.1)
-project(STANDARDESE VERSION 0.5.1)
+project(STANDARDESE VERSION 0.5.2)
 
 option(STANDARDESE_BUILD_TOOL "Build the standardese binary" ON)
 option(STANDARDESE_BUILD_TEST "Build the standardese test suite" ON)
