@@ -16,6 +16,7 @@ FROM ubuntu:20.04 AS build-dependencies
 RUN apt-get update && apt-get install -y \
     libclang-dev \
     clang \
+    git \
     llvm-dev \
     cmake \
     python3 \
