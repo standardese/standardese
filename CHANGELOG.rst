@@ -4,6 +4,23 @@ standardese Change Log
 
 .. current developments
 
+v0.5.2
+====================
+
+**Added:**
+
+* Adding the c++2a and c++20 compilation flags
+
+**Changed:**
+
+* Update of the cppast submodule (cppast commit: 032d48d)
+
+**Fixed:**
+
+* Distinction between c++1z and c++17 compilation flags
+
+
+
 v0.5.1
 ====================
 
