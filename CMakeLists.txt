@@ -26,6 +26,8 @@ if (MSVC)
         )
 endif()
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS on)
+
 # subdirectories
 add_subdirectory(src)
 if(STANDARDESE_BUILD_TOOL)
