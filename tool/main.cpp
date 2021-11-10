@@ -74,9 +74,6 @@ po::variables_map get_options(int argc, char* argv[], const po::options_descript
         if (!config.is_open())
             throw std::runtime_error("config file '" + path.generic_string() + "' not found");
 
-        po::options_description conf;
-        conf.add(configuration);
-
         file_result = po::parse_config_file(config, configuration, true);
         po::store(file_result, map);
         po::notify(map);
