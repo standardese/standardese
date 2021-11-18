@@ -74,9 +74,6 @@ po::variables_map get_options(int argc, char* argv[], const po::options_descript
         if (!config.is_open())
             throw std::runtime_error("config file '" + path.generic_string() + "' not found");
 
-        po::options_description conf;
-        conf.add(configuration);
-
         file_result = po::parse_config_file(config, configuration, true);
         po::store(file_result, map);
         po::notify(map);
@@ -127,6 +124,8 @@ inline cppast::cpp_standard parse_standard(const std::string& str)
 cppast::libclang_compile_config get_compile_config(const po::variables_map& options)
 {
     cppast::libclang_compile_config config;
+
+    config.remove_comments_in_macro(!get_option<bool>(options, "compilation.keep_comments_in_macro").value());
 
     cppast::compile_flags flags;
     if (auto gnu_ext = get_option<bool>(options, "compilation.gnu_extensions"))
@@ -384,6 +383,9 @@ int main(int argc, char* argv[])
         ("compilation.ms_compatibility",
          po::value<bool>()->implicit_value(true)->default_value(default_msvc_comp()),
          "enable/disable MSVC compatibility (-fms-compatibility)")
+        ("compilation.keep_comments_in_macro",
+         po::value<bool>()->implicit_value(true)->default_value(false),
+         "disable/enable removal of comments during macro evaluation (-CC)")
 
         ("comment.command_character", po::value<char>()->default_value(standardese::comment::config::options().command_character),
          "character used to introduce special commands")
