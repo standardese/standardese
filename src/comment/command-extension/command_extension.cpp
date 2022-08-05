@@ -8,6 +8,7 @@
 
 #include <type_traits>
 #include <cassert>
+#include <cstring>
 
 #include <cmark-gfm.h>
 #include <cmark-gfm-extension_api.h>
@@ -143,7 +144,7 @@ cmark_node* command_extension::postprocess(cmark_node* root) const
         const auto type = cmark_node_get_type(sibling);
 
         if (type == CMARK_NODE_PARAGRAPH) {
-            sibling = postprocess_paragraph(sibling, brief, details);    
+            sibling = postprocess_paragraph(sibling, brief, details);
         } else if (type == node_type<command_type>()) {
             // This is some other command such as \output_section.
             // We do not need to collect any children for it here so we leave it alone.
@@ -366,7 +367,7 @@ void command_extension::splice(cmark_node* target, cmark_node* begin, cmark_node
     while (begin != end) {
         cmark_node* move = begin;
         begin = cmark_node_next(begin);
-        cmark_node_append_child(target, move); 
+        cmark_node_append_child(target, move);
     }
 }
 
@@ -522,7 +523,7 @@ cmark_node* command_extension::parse_command(cmark_parser* parser, cmark_node* p
         std::match_results<char*> match;
         if (!std::regex_search(reinterpret_cast<char*>(begin), reinterpret_cast<char*>(end), match, pattern, std::regex_constants::match_continuous))
             return nullptr;
-          
+
         begin += match.length();
 
         // We found a match for this command. Create a node for it and store
