@@ -98,7 +98,11 @@ bool handle_path(const fs::path& path, const whitelist& source_extensions,
             if (fs::is_directory(cur))
             {
                 if (!detail::is_valid(cur, relative, extensions, files, dirs, blacklist_dotfiles))
+#if BOOST_VERSION >= 108500
+                    iter.disable_recursion_pending();
+#else
                     iter.no_push();
+#endif
             }
             else if (detail::is_valid(cur, relative, extensions, files, dirs, blacklist_dotfiles))
             {

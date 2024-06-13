@@ -75,7 +75,7 @@ ns::foo<ns::foo<int>> make();
 <code-block-punctuation>{</code-block-punctuation><soft-break></soft-break>
     <code-block-keyword>int</code-block-keyword> <code-block-identifier>member</code-block-identifier><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <soft-break></soft-break>
-    <code-block-identifier>foo</code-block-identifier><code-block-punctuation>(</code-block-punctuation>const foo&lt;T&gt;<code-block-punctuation>&amp;</code-block-punctuation> <code-block-identifier>f</code-block-identifier><code-block-punctuation>)</code-block-punctuation> <code-block-punctuation>=</code-block-punctuation> <code-block-keyword>default</code-block-keyword><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
+    <code-block-identifier>foo</code-block-identifier><code-block-punctuation>(</code-block-punctuation><code-block-identifier>foo&lt;T&gt;</code-block-identifier> <code-block-keyword>const</code-block-keyword><code-block-punctuation>&amp;</code-block-punctuation> <code-block-identifier>f</code-block-identifier><code-block-punctuation>)</code-block-punctuation> <code-block-punctuation>=</code-block-punctuation> <code-block-keyword>default</code-block-keyword><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
 <soft-break></soft-break>
     //=== do_sth ===//<soft-break></soft-break>
     <code-block-keyword>void</code-block-keyword> <code-block-identifier>do_sth</code-block-identifier><code-block-punctuation>(</code-block-punctuation><code-block-punctuation>)</code-block-punctuation> <code-block-keyword>const</code-block-keyword><code-block-punctuation>;</code-block-punctuation><soft-break></soft-break>
